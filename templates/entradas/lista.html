@@ -1,0 +1,565 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+{% block title %}Lista - Entrada NF/Pedidos{% endblock %}
+{% block content %}
+    <div class="container-fluid bg-white">
+        <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Listagem de Entradas (NF/Pedidos)</li>
+            </ol>
+        </nav>
+        {% if messages %}
+            <div id="django-messages" data-messages='[
+                {% for message in messages %}
+                    {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
+                    {% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ]'></div>
+        {% endif %}
+        <form method="GET" id="search-form" style="margin-left: 1%; margin-right: 1%;">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-2 search-div flex-md-fill">
+                    <label class="form-label">Filial:</label>
+                    <select class="form-control" id="vinc_emp" name="fil">
+                        <option value="">Selecione uma filial</option>
+                        {% if filial_selecionada %}
+                            <option value="{{ filial_selecionada.id }}" selected>
+                                {{ filial_selecionada.fantasia }}
+                            </option>
+                        {% endif %}
+                        {% for filial in filiais %}
+                            <option value="{{ filial.id }}" {% if request.GET.fil == filial.id|stringformat:"s" %}selected{% endif %}>
+                                {{ filial.fantasia }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 search-div">
+                    <label class="form-label">Numeração:</label>
+                    <input class="form-control" type="text" name="s" id="s" value="{{ request.GET.s }}">
+                </div>
+                <div class="col-md-2 search-div flex-md-fill">
+                    <label class="form-label">Fornecedor:</label>
+                    <select class="form-control" id="fornecedor" name="cl">
+                        <option value="">Escolha uma opção</option>
+                        {% if fornecedor_selecionado %}
+                            <option value="{{ fornecedor_selecionado.id }}" selected>
+                                {{ fornecedor_selecionado.fantasia }}
+                            </option>
+                        {% endif %}
+                        {% for fornecedor in fornecedores %}
+                            <option value="{{ fornecedor.id }}" {% if request.GET.cl == fornecedor.id|stringformat:"s" %}selected{% endif %}>
+                                {{ fornecedor.fantasia }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-1 search-div">
+                    <label class="form-label">Situação:</label>
+                    <div class="d-flex">
+                        <select class="form-control" name="sit" id="situacao">
+                            <option value="Pendente" {% if request.GET.sit == 'Pendente' %}selected{% endif %}>Pendentes</option>
+                            <option value="Efetivada" {% if request.GET.sit == 'Efetivada' %}selected{% endif %}>Efetivadas</option>
+                            <option value="Cancelada" {% if request.GET.sit == 'Cancelada' %}selected{% endif %}>Canceladas</option>
+                            <option value="Todos" {% if request.GET.sit == 'Todos' %}selected{% endif %}>Todos</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-1 search-div">
+                    <label class="form-label">Dt. de:</label>
+                    <div class="d-flex">
+                        <select class="form-control" name="tp_dt" id="tp_data">
+                            <option value="Emissão" {% if request.GET.tp_dt == 'Emissão' %}selected{% endif %}>Emissão</option>
+                            <option value="Entrega" {% if request.GET.tp_dt == 'Entrega' %}selected{% endif %}>Entrega</option>
+                            <option value="Todos" {% if request.GET.tp_dt == 'Todos' %}selected{% endif %}>Todas</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-1 search-div">
+                    <label class="form-label">Período:</label>
+                    <select class="form-control" id="usar-data" name="p_dt">
+                        <option value="Sim" {% if request.GET.p_dt == 'Sim' %}selected{% endif %}>Sim</option>
+                        <option value="Nao" {% if request.GET.p_dt == 'Nao' %}selected{% endif %}>Não</option>
+                    </select>
+                </div>
+                <div class="col-md-2 search-div">
+                    <div class="col">
+                        <label class="form-label">De:</label>
+                        <input class="form-control datepicker" type="text" name="dt_ini" id="data_inicio1" value="{{ request.GET.dt_ini }}">
+                    </div>
+                </div>
+                <div class="col-md-2 search-div">
+                    <div class="col">
+                        <label class="form-label">Até:</label>
+                        <input class="form-control datepicker" type="text" name="dt_fim" id="data_fim1" value="{{ request.GET.dt_fim }}">
+                    </div>
+                </div>
+                <div class="col-md-1 search-div">
+                    <label class="form-label">Reg.:</label>
+                    <select class="form-control" id="qtd_reg" name="reg">
+                        <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
+                        <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
+                        <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
+                        <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
+                        <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
+                        <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
+                    </select>
+                </div>
+                <div class="col search-div d-flex justify-content-start">
+                    <button class="btn btn-dark" title="Consultar" type="submit" id="data-btn" data-bs-toggle="modal" data-bs-target="#loadingModal">🔎</button>
+                </div>
+            </div>
+        </form>
+        <div class="table-container" style="margin-left: 1%; margin-right: 1%;">
+            <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
+                <thead thead class="table-dark">
+                    <tr>
+                        <th scope="col" style="text-align: center; width: 3%;">Opções</th>
+                        <th scope="col" style="text-align: center; width: 0.5%;"></th>
+                        <th scope="col" style="text-align: justify; width: 2%;">Numeração</th>
+                        <th scope="col" style="text-align: justify; width: 6%;">Situação</th>
+                        <th scope="col" style="text-align: justify; width: 20%;">Fornecedor</th>
+                        <th scope="col" style="text-align: justify; width: 10%;">Filial</th>
+                        <th scope="col" style="text-align: justify; width: 7%;">Dt. Emissão</th>
+                        <th scope="col" style="align-items: center; width: 7%;">Dt. Entrega</th>
+                        <th scope="col" style="align-items: center; width: 7%;">Vl. Total</th>
+                        <th scope="col" style="align-items: center; width: 6%;">Tipo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entrada in entradas %}
+                        <tr>
+                            <td>
+                                <div style="text-align: center;">
+                                    <button type="button" data-bs-toggle="modal" data-bs-target="#menuModal{{ entrada.id }}" class="btn btn-dark btn-sm">
+                                        <span>
+                                            <i class="fa-solid fa-bars" style="font-size: 18px; color: white;" title="Menu de Opções"></i>
+                                        </span>
+                                    </button>
+                                </div>
+                                <!-- Modal de opções da entrada -->
+                                <div class="modal fade modal-sm" id="menuModal{{ entrada.id }}" tabindex="-1" aria-labelledby="menuModalLabel{{ entrada.id }}" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header" style="background-color: #191919;">
+                                                <div class="d-flex justify-content-center w-100" style="margin-left: 50px;">
+                                                    <h1 class="modal-title fs-5 text-center" id="menuModalLabel{{ entrada.id }}" style="color: white;">
+                                                        <i class="fa-brands fa-square-letterboxd"></i> <strong>Opções - {{ entrada.numeracao }}</strong>
+                                                    </h1>
+                                                </div>
+                                            </div>
+                                            <div class="modal-body d-grid gap-2">
+                                                <a href="{% url 'att-entrada' entrada.id %}" class="btn-permissao" data-permissao="entradas.change_entrada" data-msg-negado="Seu usuário não pode editar entradas de NF/Pedidos!">
+                                                    <button class="btn btn-outline-dark" type="button" id="botoes-modal" data-id="{{ entrada.id }}">
+                                                        <span><i class="fas fa-edit" title="Editar Orçamento"></i></span>
+                                                        <strong style="color: #13c43f; font-size: 20px;">EDITAR</strong>
+                                                    </button>
+                                                </a>
+                                                {% if entrada.situacao == 'Pendente' %}
+                                                    <!-- Botão de Deletar -->
+                                                    <button class="btn btn-outline-dark btn-delete" type="button" data-orcamento-id="{{ entrada.id }}">
+                                                        <span><i class="fas fa-trash"></i></span>
+                                                        <strong style="color: #db1e47; font-size: 20px;">DELETAR</strong>
+                                                    </button>
+                                                {% else %}
+                                                    <a href="{% url 'del-entrada' entrada.id %}">
+                                                        <button class="btn btn-outline-dark btn-delete" type="button" data-orcamento-id="{{ entrada.id }}" data-bs-dismiss="modal">
+                                                            <span><i class="fas fa-trash"></i></span>
+                                                            <strong style="color: #db1e47; font-size: 20px;">DELETAR</strong>
+                                                        </button>
+                                                    </a>
+                                                {% endif %}
+                                                <button class="btn btn-outline-dark" type="button" data-bs-toggle="modal" data-bs-target="#infoEntModal{{ entrada.id }}">
+                                                    <span><i class="fa-solid fa-circle-info"></i></span>
+                                                    <strong style="color: #ff8800; font-size: 20px;">DETALHES</strong>
+                                                </button>
+                                                {% if entrada.situacao == 'Efetivada' %}
+                                                    <button class="btn btn-outline-dark" type="button" id="doc-botao" data-bs-toggle="collapse" data-bs-target="#btnCancelar" aria-expanded="false" aria-controls="btnCancelar">
+                                                        <i class="fa-solid fa-circle-xmark"></i>
+                                                        <strong style="font-size: 20px; color: red;">CANCELAR</strong>
+                                                    </button>
+
+                                                    <div class="collapse" id="btnCancelar">
+                                                        <div class="card card-body">
+                                                            <form method="post" action="{% url 'cancelar-entrada' entrada.id %}">
+                                                                {% csrf_token %}
+                                                                <div style="margin-bottom: 5px;">
+                                                                    <label for="id_motivo" class="form-label">Motivo do Cancelamento*</label>
+                                                                    <textarea class="form-control" id="id_motivo" name="motivo" required></textarea>
+                                                                </div>
+                                                                <div style="text-align: center;">
+                                                                    <button type="submit" class="btn btn-danger" aria-label="Cancelar orçamento">
+                                                                        Cancelar
+                                                                    </button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                                {% if entrada.situacao == 'Pendente' %}
+                                                    <button class="btn btn-outline-dark btn-faturar btn-permissao"
+                                                        type="button"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#faturarModal-{{ entrada.id }}"
+                                                        data-permissao="entradas.efetivar_entrada"
+                                                        data-msg-negado="Seu usuário não pode efetivar entradas de NF/Pedidos!"
+                                                        data-orcamento-id="{{ entrada.id }}"
+                                                        id="doc-botao">
+                                                        <span><i class="fa-solid fa-money-bill" title="Efetivar Entrada"></i></span>
+                                                        <strong style="color: #3CB371; font-size: 20px;">EFETIVAR</strong>
+                                                    </button>
+                                                {% endif %}
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary mx-auto" data-bs-dismiss="modal">Fechar</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% if entrada.situacao == 'Pendente' %}
+                                    <!-- Modal ÚNICO para cada cliente -->
+                                    <div class="modal fade" id="modal-{{ entrada.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ entrada.id }}" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content">
+                                                <div class="modal-header titulo-modal">
+                                                    <h1 class="modal-title fs-5" id="modalTitle-{{ entrada.id }}">
+                                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                                    </h1>
+
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p>Você confirma a EXCLUSÃO DE {{ entrada.tipo }} <strong>({{ entrada.fornecedor.fantasia }} - {{ entrada.numeracao }})</strong>?</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-primary btn-confirmar" data-url="{% url 'del-entrada' entrada.id %}" disabled>
+                                                        <u>S</u>im <span class="contador">3</span>
+                                                    </button>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <div class="modal fade" id="faturarModal-{{ entrada.id }}" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header titulo-modal">
+                                                <h5 class="modal-title"><i class="fa-solid fa-money-bill" style="float: none;"></i> Efetivar {{ entrada.tipo }} - {{ entrada.numeracao }}</h5>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row g-3">
+                                                    <div class="col-md-2">
+                                                        <label class="form-label fw-bold" for="numeracao_entrada">Nº:</label>
+                                                        <input class="form-control mb-3 fw-bold" id="numeracao_entrada" value="{{ entrada.numeracao }}" disabled="disabled">
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label fw-bold" for="fornecedor_entrada">Fornecedor:</label>
+                                                        <input class="form-control mb-3 fw-bold" id="fornecedor_entrada" value="{{ entrada.fornecedor }}" disabled="disabled">
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <label class="form-label fw-bold" for="total_entrada">Valor Total:</label>
+                                                        <input class="form-control mb-3 fw-bold" id="total_entrada" style="color: #2E8B57;" value="{{ entrada.total|moeda_br }}" disabled="disabled">
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <label class="form-label" for="dt_efet_ent">Dt. Efetivação:</label>
+                                                        <input class="form-control mb-3" id="dt_efet_ent" type="text">
+                                                    </div>
+                                                </div>
+                                                <div class="card">
+                                                    <h6 class="card-header text-center fw-bold">GERAÇÃO DE TÍTULOS À PAGAR</h6>
+                                                    <div class="card-body">
+                                                        <div class="row g-3">
+                                                            <div class="col-md-1">
+                                                                <label class="form-label fw-bold" for="inpIntervalo">Interv:</label>
+                                                                <input class="form-control mb-3" id="inpIntervalo" type="number" min="0">
+                                                            </div>
+                                                            <div class="col-md-1">
+                                                                <label class="form-label fw-bold" for="inpParc">Parc:</label>
+                                                                <input class="form-control mb-3" id="inpParc" type="number" min="1">
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <label class="form-label fw-bold" for="inpDiasPriParc">Dias p/ 1ª Parcela:</label>
+                                                                <input class="form-control mb-3" id="inpDiasPriParc" type="number" min="1">
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label datepicker" for="inpDtPriParc">Dt. 1ª Parcela:</label>
+                                                                <input class="form-control mb-3" id="inpDtPriParc" type="text">
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <label class="form-label fw-bold" for="selTpCob">Tipo de Cobrança:</label>
+                                                                <select class="form-select mb-3" id="selTpCob" name="TpCob">
+                                                                    <option value="">Selecione um tipo</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-md-2 d-flex align-items-start">
+                                                                <button type="button" class="btn btn-dark btn-sm w-100" style="margin-top: 30px;"><i class="fa-solid fa-circle-down"></i> Gerar</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!--<table class="table table-bordered table-striped" id="itensTableForm">-->
+                                                <!--    <thead class="table-dark">-->
+                                                <!--        <tr>-->
+                                                <!--            <th>Item</th>-->
+                                                <!--            <th>Forma Pgto.</th>-->
+                                                <!--            <th>Valor</th>-->
+                                                <!--        </tr>-->
+                                                <!--    </thead>-->
+                                                <!--    <tbody>-->
+                                                <!--        <tr>-->
+                                                <!--            <td>ND</td>-->
+                                                <!--            <td>ND</td>-->
+                                                <!--            <td>ND</td>-->
+                                                <!--        </tr>-->
+                                                <!--    </tbody>-->
+                                                <!--</table>-->
+                                            </div>
+                                            <div class="modal-footer">
+                                                <form method="post" action="{% url 'efetivar-entrada' entrada.id %}">
+                                                    {% csrf_token %}
+                                                    <button type="submit"
+                                                            class="btn btn-success"
+                                                            data-id="{{ entrada.id }}"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#loadingModal">
+                                                        Confirmar
+                                                    </button>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal fade" id="infoEntModal{{ entrada.id }}" tabindex="-1" aria-labelledby="infoEntModalLabel{{ entrada.id }}" aria-hidden="true">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header titulo-modal">
+                                                <h1 class="modal-title fs-5" id="infoEntModalLabel{{ entrada.id }}"><i class="fa-solid fa-circle-info text-white" style="float: none;"></i> Detalhes - Entrada {{ entrada.tipo }} - Nº {{ entrada.numeracao }}</h1>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row g-3">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Fornecedor:</label>
+                                                        <input class="form-control fw-bold" type="text" value="{{ entrada.fornecedor.id }} - {{ entrada.fornecedor.fantasia }}" disabled readonly>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <label class="form-label">Nº {{ entrada.tipo }}:</label>
+                                                        <input class="form-control fw-bold" type="text" value="{{ entrada.numeracao }}" disabled readonly>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <label class="form-label">Data Emissão:</label>
+                                                        <input class="form-control fw-bold" type="text" value="{{ entrada.dt_emi|date:'d/m/Y' }}" disabled readonly>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <label class="form-label">Valor Total:</label>
+                                                        <input class="form-control fw-bold" type="text" style="color: #2E8B57;" value="{{ entrada.total|moeda_br }}" disabled readonly>
+                                                    </div>
+                                                    <div class="col-12 mt-2">
+                                                        <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                                                            <table class="table table-bordered table-responsive-sm table-rounded table-striped w-100">
+                                                                <thead class="table-dark">
+                                                                    <tr>
+                                                                        <th style="width: 1%;">Código</th>
+                                                                        <th style="width: 30%;">Produto</th>
+                                                                        <th style="width: 4%;">Quantidade</th>
+                                                                        <th style="width: 14%;">Vl. Unit.</th>
+                                                                        <th style="width: 6%;">Desconto</th>
+                                                                        <th>Vl. Total</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {% for item in entrada.itens.all %}
+                                                                        <tr>
+                                                                            <td>{{ item.produto.id }}</td>
+                                                                            <td>{{ item.produto.desc_prod }}</td>
+                                                                            <td>{{ item.quantidade }}</td>
+                                                                            <td>{{ item.preco_unitario }}</td>
+                                                                            <td>{{ item.desconto }}</td>
+                                                                            <td>{{ item.subtotal|floatformat:2 }}</td>
+                                                                        </tr>
+                                                                    {% empty %}
+                                                                        <tr>
+                                                                            <td colspan="5" class="text-center">Nenhum produto encontrado.</td>
+                                                                        </tr>
+                                                                    {% endfor %}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="text-align: center; width: 0.5%;"><i class="fa-solid fa-circle-info" style="font-size: 25px; margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#infoEntModal{{ entrada.id }}"></i></td>
+                            <td style="align-items: center;">{{ entrada.numeracao }}</td>
+                            {% if entrada.situacao == 'Pendente' %}
+                                <td style="text-align: center; width: 80px;" class="task-item">
+                                    <div style="background-color: #005eff; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
+                                        <strong>{{ entrada.situacao }}</strong>
+                                    </div>
+                                </td>
+                            {% elif entrada.situacao == 'Efetivada' %}
+                                <td style="text-align: center; width: 100px;" class="task-item">
+                                    <div style="background-color: #3CB371; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
+                                        <strong>{{ entrada.situacao }}</strong>
+                                    </div>
+                                </td>
+                            {% else %}
+                                <td style="text-align: center; width: 100px;" class="task-item">
+                                    <div style="background-color: #800000; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
+                                        <strong>{{ entrada.situacao }}</strong>
+                                    </div>
+                                </td>
+                            {% endif %}
+                            <td style="align-items: center;">{{ entrada.fornecedor }}</td>
+                            <td style="align-items: center; text-transform: uppercase;">{{ entrada.vinc_fil }}</td>
+                            <td style="align-items: center;">{{ entrada.dt_emi|date:"d/m/Y" }}</td>
+                            <td style="align-items: center;">{{ entrada.dt_ent|date:"d/m/Y" }}</td>
+                            <td style="align-items: center;"><div style="color: #2E8B57; font-weight: bold;">{{ entrada.total|moeda_br }}</div></td>
+                            <td style="text-align: center;">
+                                {% if entrada.tipo == "Pedido" %}
+                                    <div style="background-color: #4F4F4F; color: white; border-radius: 10px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
+                                        <strong>Pedido</strong>
+                                    </div>
+                                {% else %}
+                                    <div style="background-color: #1C1C1C; color: white; border-radius: 10px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
+                                        <strong>Nota Fiscal</strong>
+                                    </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="12" class="me-auto" style="text-align: center;">
+                            Nenhuma entrada de NF/Pedido encontrada.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="card">
+            <div class="card-body" style="max-height: 50px;">
+                <strong>Total de Entradas: {{ entradas|length }}</strong>
+                <a id="add-link" href="{% url 'add-entrada' %}" style="margin-left: 1%; margin-right: 1%; float: right;" class="btn-permissao" data-permissao="entradas.add_entrada" data-msg-negado="Seu usuário não pode adicionar entradas!">
+                    <button type="button" class="btn btn-primary btn-sm" id="add-entrada"><i class="fas fa-plus"></i> Novo</button>
+                </a>
+            </div>
+            <div class="card-footer text-body-secondary">
+                <nav aria-label="Page navigation example" style="padding-bottom: 1px;">
+                    <ul class="pagination justify-content-center">
+                        {% if entradas.number > 1 and entradas.number > 3 %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="First">
+                                    <span aria-hidden="true" style="color: #0f1d2b;">1</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                        {% if entradas.number > 4 %}
+                            <li class="page-item disabled">
+                                <a class="page-link">...</a>
+                            </li>
+                        {% endif %}
+                        {% for num in entradas.paginator.page_range %}
+                            {% if num >= entradas.number|add:'-2' and num <= entradas.number|add:'2' %}
+                                {% if entradas.number == num %}
+                                    <li class="page-item active" aria-current="page">
+                                        <span class="page-link" style="background-color: #0f1d2b; color: white;">{{ num }}</span>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" style="color: #0f1d2b;" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if entradas.number < entradas.paginator.num_pages|add:'-3' %}
+                            <li class="page-item disabled">
+                                <a class="page-link">...</a>
+                            </li>
+                        {% endif %}
+                        {% if entradas.number < entradas.paginator.num_pages and entradas.number < entradas.paginator.num_pages|add:'-2' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ entradas.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                    <span aria-hidden="true" style="color: #0f1d2b;">{{ entradas.paginator.num_pages }}</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+    <script>
+        function imprimirEFaturar(id) {
+            fetch(`/orcamentos/fat_orc/${id}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else {
+                    const win = window.open(`/orcamentos/comprovante/${id}/`, '_blank');
+                    const selectSituacao = document.getElementById('situacao');
+                    if (selectSituacao) {
+                        selectSituacao.value = 'Todos';
+                    }
+                    const checkClose = setInterval(function () {
+                        if (win.closed) {
+                            clearInterval(checkClose);
+
+                            // Aciona o botão de busca ao fechar o comprovante
+                            const btnBuscar = document.getElementById('data-btn');
+                            if (btnBuscar) {
+                                btnBuscar.click();
+                            }
+
+                            // Exibe o Toastify só depois que o comprovante for fechado
+                            Toastify({
+                                text: "Orçamento faturado com sucesso!",
+                                duration: 10000,
+                                gravity: "top",
+                                position: "center",
+                                backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)"
+                            }).showToast();
+                        }
+                    }, 1000);
+                }
+            })
+            .catch(() => {
+                Toastify({
+                    text: "Erro ao faturar orçamento!",
+                    duration: 3000,
+                    gravity: "top",
+                    position: "center",
+                    backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)"
+                }).showToast();
+            });
+        }
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let cookie of cookies) {
+                    cookie = cookie.trim();
+                    if (cookie.startsWith(name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.slice(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+{% endblock %}

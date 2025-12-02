@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-4 offset-md-4" style="margin-top: 5%;">
+        <div class="card auth-card">
+            <div class="card-body">
+                <div class="mx-auto text-center">
+                    <img src="{% static 'img/Allitec logo.png' %}" style="width: 12rem; text-align: center;">
+                </div>
+                <h4 class="card-title text-center">Bem vindo a Área Administrativa</h4>
+                {% if messages %}
+                    <div id="django-messages" data-messages='[
+                        {% for message in messages %}
+                            {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
+                            {% if not forloop.last %},{% endif %}
+                        {% endfor %}
+                    ]'></div>
+                {% endif %}
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="d-grid gap-2">
+                        <div style="text-align: center;">
+                            <button type="submit" id="btn-login" data-bs-toggle="modal" data-bs-target="#loadingModal" class="btn btn-primary btn-login">
+                                Entrar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal border-0 d-flex align-items-center">
+            <div class="modal-body text-center">
+                <div class="spinner-border text-dark spinner-lg" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Carregando...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+
+document.addEventListener("DOMContentLoaded", function() {
+    // Função para adicionar input-group com ícone
+    function adicionarInputGroup(campoId, icone) {
+        const input = document.getElementById(campoId);
+        if (input) {
+            const wrapper = document.createElement('div');
+            wrapper.classList.add('input-group');
+
+            const span = document.createElement('span');
+            span.classList.add('input-group-text');
+
+            const icon = document.createElement('i');
+            icon.className = icone;  // Ex: "fa-solid fa-user" ou "fa-solid fa-lock"
+
+            span.appendChild(icon);
+
+            // Insere o input e o span no wrapper
+            input.parentNode.insertBefore(wrapper, input);
+            wrapper.appendChild(span);
+            wrapper.appendChild(input);
+        }
+    }
+
+    // Adiciona ícones aos campos
+    adicionarInputGroup('id_username', 'fa-solid fa-user');
+    adicionarInputGroup('id_password', 'fa-solid fa-lock');
+    const campoUsername = document.getElementById("id_username");
+    if (campoUsername) {
+        campoUsername.focus();
+    }
+});
+</script>
+{% endblock %}

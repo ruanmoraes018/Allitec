@@ -1,0 +1,938 @@
+body, html {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #0f1d2b;
+  font-size: 15px;
+  font-family: Times;
+  overflow-x: hidden;   /* permite scroll vertical */
+  overflow-y: auto;     /* permite scroll vertical */
+}
+
+#gear { font-size: 20px; display: inline-block; }
+
+/* animação principal: rotação contínua */
+@keyframes gear-rotate {
+  to { transform: rotate(360deg); }
+}
+
+/* pequena oscilação (subtle wobble) para parecer "mecânico" */
+@keyframes gear-wobble {
+  0%   { transform: rotate(0)   translateY(0); }
+  50%  { transform: rotate(2deg) translateY(-1px); }
+  100% { transform: rotate(0)   translateY(0); }
+}
+
+#gear {
+  transform-origin: 50% 50%;
+  animation:
+    gear-rotate 3s linear infinite,
+    gear-wobble 1.8s ease-in-out infinite;
+  /* melhora o antialiasing */
+  backface-visibility: hidden;
+  will-change: transform;
+  cursor: pointer;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;         /* centraliza o ícone */
+    gap: 6px;                    /* espaço entre texto e engrenagem */
+    background-color: #F1C40F;
+    color: white;
+    padding: 4px 12px;
+    border: 2px solid white;
+    border-radius: 12px;
+    white-space: nowrap;         /* impede o texto quebrar linha */
+    line-height: 1;              /* força alinhamento */
+}
+
+/* animação, caso queira manter */
+#gear {
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ====== 1) Animação da CAIXA (queda + quicada) ====== */
+#caixa {
+    animation: caixaDrop 1.4s ease-in-out infinite;
+}
+
+@keyframes caixaDrop {
+    0%   { transform: translateY(-3px); }
+    30%  { transform: translateY(3px); }
+    45%  { transform: translateY(-1px); }
+    60%  { transform: translateY(2px); }
+    100% { transform: translateY(-3px); }
+}
+
+
+
+/* ====== 2) Animação do CAMINHÃO (balanço lateral suave) ====== */
+#caminhao {
+    animation: caminhaoMove 1.8s ease-in-out infinite;
+}
+
+@keyframes caminhaoMove {
+    0%   { transform: translateX(0); }
+    25%  { transform: translateX(3px); }
+    50%  { transform: translateX(0); }
+    75%  { transform: translateX(-3px); }
+    100% { transform: translateX(0); }
+}
+
+
+
+/* ====== 3) Animação da FERRAMENTA (vibração mecânica) ====== */
+#ferramenta {
+    animation: ferramentaVibe 0.22s linear infinite;
+}
+
+@keyframes ferramentaVibe {
+    0%   { transform: rotate(0deg); }
+    25%  { transform: rotate(2deg); }
+    50%  { transform: rotate(0deg); }
+    75%  { transform: rotate(-2deg); }
+    100% { transform: rotate(0deg); }
+}
+
+
+.card {
+    margin-left: 10px; margin-right: 10px; margin-bottom: 130px;
+}
+.container-fluid.bg-white {margin-top: 60px;}
+.card-footer.text-body-secondary {max-height: 50px;}
+/* Diminui o calendário inteiro */
+.flatpickr-calendar {
+    transform: scale(0.85);   /* 85% do tamanho original */
+    transform-origin: top left; /* evita ficar desalinhado */
+}
+
+/* Fonte menor dentro do calendário */
+.flatpickr-day,
+.flatpickr-months,
+.flatpickr-weekday {
+    font-size: 14px !important;
+    padding: 2px 4px;
+}
+
+.lista-funcao {
+    color: white; /* Cor padrão do texto */
+    background-color: #3f3f3f;
+    transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out; /* Transição suave */
+}
+/* Animação no hover */
+.lista-funcao:hover {
+    color: #FFD700;
+}
+/*Overflow das tabelas de orçamento*/
+/*#itensTableProduto, #itensTableProdutoAdc, #itensTableForm {overflow-x: auto;}*/
+.container {
+  width: 400px;
+  height: 400px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #a694fb;
+}
+.center {
+  width: 180px;
+  height: 60px;
+  position: absolute;
+}
+.btn-login {
+  width: 180px;
+  height: 60px;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid #91C9FF;
+  outline: none;
+  transition: 0.25s ease-in-out 0.25s ease-in;
+}
+#btn-login {
+    color: black;
+}
+#btn-login:hover {
+    color: white;
+}
+.cont_fant {
+    background-color: #2E8B57; color: white; font-weight: bold;
+    border: none; margin-top: 10px; margin-bottom: 10px; padding: 10px;
+    font-size: 20px; text-align: center;
+}
+.btn-login:hover {
+  transition: 1s ease-in-out;
+  background: #0f1d2b;
+}
+.btn-login span {
+  color: white;
+  font-size: 18px;
+  font-weight: 100;
+}
+.offcanvas {
+  transform: translateX(100%);
+  transition: all 0.3s ease-in-out;
+}
+.offcanvas.show {
+  transform: translateX(0);
+}
+/* Opções da lista em caixa alta */
+.select2-results__option,
+.select2-selection__rendered {
+    text-transform: uppercase;
+}
+.select2-selection__placeholder,
+.select2-results__option.select2-results__message {
+    text-transform: none !important;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    font-size: 12px; /* ajuste para o tamanho que preferir */
+}
+/* Texto das opções no dropdown */
+.select2-container--default .select2-results__option {
+    font-size: 12px; /* ajuste aqui também */
+}
+#container_fantasia {
+    width: 100%; /* Ocupa toda a largura do elemento pai */
+    max-width: 100%; /* Garante que não ultrapasse o container */
+    display: block; /* Evita que fique inline com outros elementos */
+}
+label {
+    font-weight: bold;
+}
+@media (max-width: 768px) {
+    #offcanvasExample {
+        width: 55%;
+    }
+    .container-fluid.bg-white{
+        overflow-y: auto;
+    }
+}
+@media (min-width: 769px) {
+    #offcanvasExample {
+        width: 20%;
+    }
+    .container-fluid.bg-white{
+        overflow-y: auto;
+    }
+}
+.titulo-modal {
+    background-color: #0f1d2b;
+    color: white;
+}
+.card-header {
+    background-color: #0f1d2b;
+    color: white;
+    font-weight: bold;
+}
+.modal-header.titulo-modal {
+    padding: 5px; /* Diminui o espaço interno */
+    height: auto; /* Define a altura como automática */
+    line-height: 1; /* Ajusta a altura das linhas, se necessário */
+}
+.select2-container--default .select2-selection--single {
+    height: calc(0.6rem + 1px); /* altura menor */
+    padding: 0.1rem 0.5rem;     /* padding reduzido */
+    font-size: 0.80rem;         /* fonte menor */
+    line-height: 0.8;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 1.1;
+    padding-top: 5px;
+    padding-left: 5px;
+}
+/* seta para abrir o select */
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: calc(0.6rem + 2px);
+}
+/* ✅ ajuste do ícone clear (x) */
+.select2-container--default .select2-selection--single .select2-selection__clear {
+    margin-top: -4px; /* sobe o ícone */
+}
+
+.container-fluid {
+    padding: 0;
+    height: auto;
+    max-height: none;    /* remova limite artificial */
+    overflow-y: visible; /* deixa o conteúdo rolar normalmente */
+}
+.container-fluid .row {margin: 0;}
+/*NavBar*/
+.navbar {border-bottom: 1px solid #333; margin-bottom: 20px;}
+.navbar-nav {margin: auto;}
+.navbar-brand {font-weight: bold;}
+.navbar-light .navbar-nav a.nav-link {color: #333; letter-spacing: 1px;}
+/* Dashboard*/
+.dashboard {padding: 0; width: 100%; display: block;}
+.dashboard h4 {font-size: 17px;}
+.dashboard span {font-size: 40px; display: block; width: 100%;}
+#meuGrafico {align-items: center; aspect-ratio: 16/9; width: 80%; max-width: 600px; height: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; margin: 0 auto;}
+@media screen and (max-width: 768px) {
+    #meuGrafico {width: 100%;}
+    #graficoTarefasPorCliente {width: 100%;}
+}
+@media screen and (max-width: 480px) {
+    #meuGrafico {width: 100%; margin-left: 0;}
+    #graficoTarefasPorCliente {width: 100%; margin-left: 0;}
+}
+/*Botão de adicionar*/
+#add-link {text-decoration: none;}
+#item-naveg {text-decoration: none; color: #545454;}
+.add-div {background-color: #3476e2; cursor: pointer; display: inline-block; color: #FFF; padding: 8px; border-radius: 5px; margin-right: 20px, margin-bottom: 15px; width: 80px;}
+.fas.fa-plus {color: #FFF; margin-right: 5px; margin-left: 5px;}
+/*Search*/
+.fas.fa-search {position: absolute; top: 43px; right: 26px; cursor: pointer;}
+.search-div {position: relative; padding: 0px; margin-right: 15px; display: inline-block;}
+.data-div {position: relative; padding: 0px; margin-top: 15px; margin-bottom: 15px; display: inline-block;}
+/* Filter*/
+.filter-div {margin-bottom: 15px; padding: 0;}
+/*#filter {display: inline-block; width: 200px; margin-left: 10px;}*/
+/*Lista de tarefas*/
+.list-div {padding: 0;}
+.task-list {padding-left: 0;}
+.task-item {list-style: none; font-size: 16px; height: 50px; padding: 0 15px; padding-top: 10px; border-bottom: 1px dashed #ccc;}
+.task-item.done {background-color: #90ee90;}
+.fa-solid.fa-circle-info, .fas.fa-trash, .fas.fa-edit, .fas.fa-check, .fas.fa-sharp.fa-solid.fa-desktop, .fas.fa-sharp.fa-solid.fa-circle-info, .fas.fa-ban, .fas.fa-reply, .fa-solid.fa-file-pdf, .fa-brands.fa-elementor, .fa-solid.fa-print, .fa-solid.fa-user-check, .fa-solid.fa-person-circle-check, .fa-solid.fa-person-circle-minus, .fa-solid.fa-clone, .fa-brands.fa-square-letterboxd, .fa-solid.fa-money-bill, .fa-solid.fa-circle-xmark, .fa-regular.fa-square-check  {cursor: pointer; margin: 5px; font-size: 20px; float: right;}
+.fa-solid.fa-clone {color: #2F4F4F;}
+.fa-solid.fa-circle-info {color: #ff8800;}
+.fa-regular.fa-square-check {color: #2E8B57; font-size: 21px;}
+.fa-solid.fa-circle-xmark {color: red;}
+.fas.fa-trash {color: #db1e47;}
+.fa-solid.fa-person-circle-check, .fa-solid.fa-person-circle-minus{color: #40E0D0;}
+.fas.fa-edit {color: #13c43f;}
+.fas.fa-sharp.fa-solid.fa-desktop {color: #939;}
+.fas.fa-sharp.fa-solid.fa-circle-info {color: #ffff61;}
+.fas.fa-check {color: #CCC;}
+.fa-brands.fa-elementor {color: #1C1C1C;}
+.fa-brands.fa-square-letterboxd {color: #1C1C1C; cursor: pointer; margin: 5px; font-size: 30px; text-align: center; padding-right: 5px;}
+.fas.fa-ban {color: #b81414;}
+.fas.fa-reply {color: #c8a2c8;}
+.fa-solid.fa-file-pdf {color: #404040;}
+.done .fas.fa-check {color: #3476e2;}
+.fa-solid.fa-print {color: black;}
+/*Rodapé*/
+footer {background-color: #333; height: 100px; margin-top: 5%; border-top: 2px solid #202020;}
+footer p {color: #f5f5f5; text-align: center; top: 50%; position: relative;}
+/* Messages */
+ul.messages {padding: 0;}
+ul.messages li {list-style: none;}
+/*Paginação*/
+.pagination {margin-bottom: 20px;}
+.step-links {position: relative; margin-left: auto; margin-right: auto;}
+.step-links .current {margin-left: 5px; margin-right: 5px;}
+/*Login*/
+.auth-card {margin-bottom: 30px;}
+#btn-login {padding-left: -20%; padding-right: -20%;}
+/* Register*/
+#btn-register {padding-left: 20%; padding-right: 20%;}
+.change-form-p {margin-top: 30px; text-align: center;}
+/*Containers do Dashboard*/
+.espaco-th {padding-right: 200px; padding-left: 100px; text-align: center;}
+.espaco-td {padding-right: 93px; padding-left: auto; text-align: center;}
+.container_tabela_tarefas, .container_tabela_aniversariantes, .container_tabela_visitas {box-sizing: border-box; background-color: #DFDFDF; width: 80%; height: 50%; border-radius: .5rem; margin: 10px;}
+.container_tabela_tarefas, .container_tabela_aniversariantes, .container_tabela_visitas {overflow-x: auto; margin-left: 10%;}
+@media (max-width: 768px) {.container_tabela_tarefas,.container_tabela_aniversariantes, .container_tabela_visitas {width: 100%; margin: 10px 0;}}
+/*Modal de confirmação*/
+.modal.vibrate {animation: vibrate 1s;}
+@keyframes vibrate {0% { transform: translateX(0); } 20% { transform: translateX(-10px); } 40% { transform: translateX(10px); } 60% { transform: translateX(-10px); } 80% { transform: translateX(10px); } 100% { transform: translateX(0); }}
+/*Faixa da paginação*/
+.breadcrumb {background-color: #CCC; padding: 1%;}
+/*Formulários*/
+.titulo {margin-left: 20px;}
+.botoes {margin-bottom: 10px;}
+.formularios {margin-left: 20px; margin-right: 15px;}
+.base_botao {margin-top: 15px;}
+/*Messages*/
+ul.messages {padding: 0;}
+ul.messages li {list-style: none;}
+/*Listas*/
+/*Tabelas*/
+#tabelas-lista {margin-top: 10px;}
+/* Impede scroll horizontal global */
+html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Só a tabela pode rolar */
+.table-container {
+    width: 98%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-rounded {border-radius: 20px 20px 0 0; overflow: hidden;}
+.table-rounded thead th:first-child {border-top-left-radius: 15px;}
+.table-rounded thead th:last-child {border-top-right-radius: 15px;}
+#itensTableProduto, #itensTableProdutoAdc, #itensTableForm {border-radius: 20px 20px 0 0; overflow: hidden;}
+.breadcrumb {border: 1px solid #dee2e6; border-radius: 10px; padding: 10px;}
+/*Estilo de Botões*/
+.btn-ativo, .btn-ativo:hover {background-color: #808080; color: #fff;}
+.btn-inativo:hover {background-color: #1C1C1C; color: #fff;}
+#id_empresa_cliente{display: flex; flex-direction: row-reverse;}
+/*Cores da tabela*/
+.table-striped tbody tr:nth-of-type(odd){background-color: #f9f9f9;}
+.table-striped tbody tr:nth-of-type(even){background-color: #e0e0e0;}
+/*Modal e posições do select2*/
+#colaborador_select{z-index: 9999;}
+#nome_emp_cli{z-index: 1000;}
+.select2-dropdown{z-index: 10000;}
+/*table{margin-top: 20px;}*/
+/*#thTable,td{text-align: center;}*/
+.select2-container--default .select2-selection--single .select2-selection__arrow {display: none;}
+.select2-container .select2-selection--single {height: calc(1.5em + .75rem + 2px);padding: .300rem .0rem;line-height: 1.5;border-radius: .25rem;}
+.select2-container {width: 100% !important;}
+.form-select {-webkit-appearance: none;-moz-appearance: none;appearance: none;background: none;padding-right: 10px;}
+#link-pagina{text-decoration: none;}
+.page-link:focus {outline: none; box-shadow: none;}
+/* Estilo para a página ativa */
+.page-item.active .page-link {background-color: #0f1d2b; color: white; border-color: #0f1d2b;}
+#search-form {z-index: 10;}
+/*Ícone de Lista O.S.*/
+#info-icon {font-size: 25px; cursor: pointer; display: block; margin-top: 5px; color: #e6a519;}
+body .select2-container .select2-results__option--highlighted {background-color: #0f1d2b !important;}
+#alertas {width: 100%;}
+@media (min-width: 768px) {#alertas {width: 400px;}}
+/* Estilo para itens selecionados */
+body .select2-container .select2-results__option[aria-selected="true"] {background-color: #0f1d2b !important;font-weight: bold;}
+/* Alterando a cor do texto no campo de seleção */
+body .select2-container .select2-selection__rendered {font-size: 14px;}
+.logo-hover {cursor: pointer;width: 50px;height: 50px;border: 1px solid #ddd;border-radius: 50%;margin-top: 5px;transition: transform 0.3s ease, box-shadow 0.3s ease, border-radius 0.3s ease;}
+/* Estilo ao passar o mouse */
+.logo-hover:hover {
+    transform: scaleX(3.5) scaleY(2.5);/* Ampliação maior */
+    z-index: 10000;
+    position: relative;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); /* Destaque */
+    border-radius: 0; /* Remove o formato circular */
+}
+.custom-border {
+    border: 1px solid gray;
+    padding: 10px;
+    border-radius: 5px; /* Cantos arredondados */
+    background-color: #f9f9f9; /* Cor de fundo opcional */
+    margin-bottom: 10px;
+}
+/*Trilho da Barra de Rolar*/
+::-webkit-scrollbar {
+    width: 8px;
+
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1; /* Bordas arredondadas na trilha */
+  border-radius: 100px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #0f1d2b; /* Cor do "polegar" (a parte que você arrasta) */
+    border-top-left-radius: 100px 100px;
+    border-top-right-radius: 100px 100px;
+    border-bottom-left-radius: 100px 100px;
+    border-bottom-right-radius: 100px 100px;
+
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0f1d2b; /* Cor do polegar ao passar o mouse */
+}
+
+/* Estilo para Firefox */
+* {
+  scrollbar-width: thin; /* Espessura da barra: auto, thin ou none */
+  scrollbar-color: #0f1d2b #f1f1f1; /* Cor do polegar e do fundo */
+}
+#graficoTarefasPorCliente {
+    align-items: center;
+    aspect-ratio: 16 / 9;
+    width: 100%; /* Ajusta o gráfico ao tamanho do container */
+    max-width: 600px; /* Limita o tamanho máximo do gráfico */
+    height: auto; /* Mantém a proporção com base na largura */
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    margin: 0 auto;
+    display: block;
+    box-sizing: border-box;
+    margin-top: 10px;
+}
+#css-idSistema {
+    margin-top: 10px;
+    width: 30px;
+}
+
+#p-inicio {
+    font-size: 1.5vw;
+    line-height: 1.5;
+    max-width: 50%; /* Controla a largura máxima */
+    text-align: justify; /* Justifica o texto */
+    background-color: transparent; /* Apenas para visualização */
+    margin-left: auto; /* Empurra o elemento para a direita */
+    padding: 10px; /* Adiciona espaçamento interno */
+    color: white;
+    margin-bottom: 125px;
+}
+#p1-inicio {
+    font-size: 1.5vw;
+    line-height: 1.5;
+    max-width: 70%; /* Controla a largura máxima */
+    text-align: justify; /* Justifica o texto */
+    background-color: #4B0082; /* Apenas para visualização */
+    margin-left: auto; /* Empurra o elemento para a direita */
+    padding: 10px; /* Adiciona espaçamento interno */
+    color: white;
+    display: flex;
+    margin-right: 30px;
+    margin-top: -12%;
+    border-radius: 20px;
+}
+
+#body-inicio {
+    background-image: url('../img/post_inicioo.png');
+    background-repeat: repeat-y; /* Evita repetição */
+    background-position: top center; /* Alinha ao topo e centraliza horizontalmente */
+    background-size: cover; /* Faz a imagem cobrir a área completamente */
+    width: 100%; /* Largura total */
+    height: 100vh; /* Altura total da viewport */
+    padding: 0; /* Remove espaços internos */
+    margin: 0; /* Remove margens externas */
+    overflow-x: hidden; /* Remove qualquer rolagem */
+}
+
+#h2-inicio {
+    font-family: Impact, sans-serif;
+    font-size: 4vw; /* Tamanho responsivo */
+    margin: 10px 30px; /* Margem entre o título e o texto */
+    display: flex;
+    justify-content: flex-end;
+    color: white;
+}
+.container-card {
+    font-size: 3vw;
+    background-color: #A020F0;
+    display: flex;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+#h5-inicio {
+    background-color: #A020F0;
+    font-weight: bold;
+    color: #1C1C1C;
+    text-align: center;
+    width: 50%;
+    display: flex;
+    margin-top: 1.5%;
+    margin-left: 5%;
+}
+#h4-inicio {
+    margin-left: 2%;
+    font-weight: bold;
+    width: 90%;
+}
+
+#logo-inicio {
+    width: 10%;
+    height: 15%;
+    text-align: center;
+    padding: 10px;
+    display: flex;
+    justify-content: flex-start;
+    margin-right: 25px;
+     /* Efeito suave */
+}
+
+  /* Estilo ao passar o mouse */
+
+
+#logo-sobre {
+    justify-content: start;
+    width: 25%;
+    height: 25%;
+    margin-top: 20px;
+}
+#h3-inicio {
+    font-family: Impact, sans-serif;
+    font-size: 4vw;
+    display: inline;
+    justify-content: center;
+    margin-left: 5%;
+    color: white;
+}
+.div-ini {
+    font-size: 1.4vw;
+    line-height: 1.5;
+    text-align: justify; /* Justifica o texto */
+    background-color: transparent; /* Apenas para visualização */
+    margin-right: auto; /* Empurra o elemento para a direita */
+    margin-left: 15px;
+    padding: 10px; /* Adiciona espaçamento interno */
+    color: white;
+    display: flex;
+}
+#foto-dispositivos {
+    justify-content: flex-end;
+    margin-left: 5px;
+    width: 60%;
+    height: 60%;
+}
+#h3-seg {
+    font-family: Impact, sans-serif;
+    font-size: 3vw;
+    text-align: center;
+    justify-content: center;
+    color: white;
+}
+#div-fim {
+    font-family: Impact, sans-serif;
+    font-size: 3vw;
+    text-align: left;
+    margin-left: auto;
+    color: white;
+    width: 50%;
+}
+.botao-guia {
+    text-align: right;
+    margin: 40px 40px;
+}
+.bot-guia {
+    background-color: #0f1d2b;
+    font-size: 2vw;
+    border: #0f1d2b;
+    border-top-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+    color: white;
+}
+.bot-guia:hover {
+    background-color: #A020F0;
+    color: white;
+}
+.bot-guia:focus {
+    background-color: #A020F0;
+    color: white;
+}
+.bot-guia:active{
+    background-color: #A020F0;
+    color: white;
+}
+#div-seg {
+    text-align: center;
+}
+#ft-seg {
+    width: 250px;
+    height: 175px;
+    border: solid #D3D3D3;
+    margin: 5px;
+    transition: transform 0.4s ease, box-shadow 0.4s ease, border-radius 0.4s ease; /* Efeito suave */
+}
+#ft-seg:hover {
+    transform: scaleX(1.25) scaleY(1.25);/* Ampliação maior */
+    z-index: 10000;
+    position: relative;
+}
+.p-bt {
+    font-weight: bold;
+    font-size: 2vw;
+    color: white;
+    margin-left: 20px;
+    margin-top: 40px;
+    display: inline;
+}
+#navbar-inicio {
+    background-color: white;
+    color: #0f1d2b;
+    margin-left: -100px;
+    margin-right: -100px;
+    padding: 10px 0;
+}
+
+/* Garante que os links da navbar fiquem visíveis */
+.navbar .nav-tabs .nav-link {
+    color: #0f1d2b;
+}
+
+/* Ajusta o espaçamento e o comportamento do menu */
+.navbar-nav {
+    text-align: center;
+}
+.nav-tabs {
+    border-bottom: none !important;
+}
+.nav-tabs .nav-link {
+    border: none;
+    padding-bottom: 10px; /* Ajuste conforme necessário */
+}
+
+/* Adiciona a borda inferior apenas na aba ativa */
+.nav-tabs .nav-link.active {
+    border-bottom: 3px solid #0f1d2b; /* Cor e espessura da borda ativa */
+    padding-bottom: 0px; /* Reduz o espaçamento inferior */
+    margin-bottom: -1px; /* Garante alinhamento exato com a navbar */
+}
+.logos-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px; /* Espaço entre as imagens */
+}
+
+/* Ajuste no tamanho das imagens */
+.logo-cliente {
+    width: 150px; /* Ajuste para desktop */
+    height: auto;
+    margin-right: 35px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-radius 0.3s ease;
+}
+
+.logo-cliente:hover {
+    transform: scale(1.5); /* Aumenta 2x mantendo proporção */
+    z-index: 10;
+    position: relative;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3); /* Sombra ao passar o mouse */
+    border-radius: 10px; /* Bordas arredondadas ao ampliar */
+}
+#gifs {
+    width: 5%;
+}
+.rillpay {
+    width: 100%;
+    padding-right: 30px;
+    border-radius: 5px 0 0 5px;
+}
+.link-rillpay {
+    text-decoration: none;
+}
+
+#botoes-modal {
+    width: 100%;
+}
+#doc-botao {
+    width: 100%;
+}
+.btn-delete {
+    width: 100%;
+}
+
+/* Ajustes responsivos */
+@media (max-width: 768px) {
+    #body-inicio {
+        background-image: url('../img/post_inicioo.png');
+        background-repeat: repeat-y; /* Evita repetição */
+        background-position: top center; /* Alinha ao topo e centraliza horizontalmente */
+        background-size: cover; /* Faz a imagem cobrir a área completamente */
+        width: 100%; /* Largura total */
+        height: 100vh; /* Altura total da viewport */
+        padding: 0; /* Remove espaços internos */
+        margin: 0; /* Remove margens externas */
+        overflow-x: hidden; /* Remove qualquer rolagem */
+    }
+
+    .container-card {
+        padding: 3%; margin-left: -50px; margin-right: -50px; background-color: #A020F0;
+    }
+    #h4-inicio {
+        padding-left: 25px;
+    }
+    #h2-inicio {
+        font-size: 6vw;
+    }
+
+    #p-inicio {
+        font-size: 3vw;
+        max-width: 40%;
+        color: white;/* Ajusta a largura em telas menores */
+        margin-bottom: 125px;
+    }
+    .logo-cliente {
+        width: 250px;
+    }
+    #p1-inicio {
+        font-size: 3vw;
+        max-width: 70%;
+        color: white;
+        background-color: #4B0082;
+    }
+    #navbar-inicio {
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .nav-tabs {
+        display: block;
+        text-align: left;
+    }
+
+
+
+    .navbar-toggler {
+        border: none;
+        outline: none;
+    }
+    #ft-seg {
+        width: 90px; /* Ajuste menor para telas pequenas */
+    }
+    #gifs {
+        width: 5%;
+    }
+}
+
+@media (max-width: 480px) {
+    #body-inicio {
+        background-image: url('../img/post_inicio2.png'); /* Imagem de fundo */
+        background-repeat: repeat-y; /* Evita repetição */
+        background-position: top center; /* Alinha ao topo e centraliza horizontalmente */
+        background-size: cover;
+        width: 100%; /* Ocupa toda a largura */
+        height: 100vh; /* Altura total da viewport */
+        padding: 20px; /* Espaço interno para evitar colar texto nas bordas */
+        overflow-x: hidden;
+    }
+    .logos-container {
+        display: flex;
+        flex-direction: column; /* Empilha as imagens */
+        align-items: center;
+    }
+    .logo-cliente {
+        margin-left: 30px;
+        width: 250px; /* Imagens menores no celular */
+    }
+    /* Ajusta os textos principais */
+    #h2-inicio, #h3-inicio, #h5-inicio {
+        font-size: 7vw;
+        text-align: center;
+    }
+    #h5-inicio, #h3-inicio, #h4-inicio {
+        font-size: 5vw;
+    }
+    #h5-inicio {
+        margin-left: 19%;
+        width: 125%;
+    }
+    #h3-inicio {
+        font-size: 5.9vw;
+        background-color: #1C1C1C;
+        opacity: 0.9;
+    }
+    #h3-inicio1 {
+        font-size: 5vw;
+        width: 90%;
+        color: white;
+        padding-left: 7.5%;
+        font-weight: bold;
+    }
+    .p-bt {
+        font-size: 4vw;
+    }
+    .bot-guia {
+        max-width: 50%;
+        font-size: 4vw;
+    }
+    #h3-seg {
+        font-size: 4vw;
+    }
+    .div-ini {
+        display: flex;
+        flex-direction: column; /* Organiza os itens em coluna */
+        align-items: center; /* Centraliza os itens */
+        text-align: justify; /* Garante que o texto fique centralizado */
+    }
+
+    #foto-dispositivos {
+        width: 100%; /* Ajusta a largura da imagem proporcional à tela */
+        max-width: 600px; /* Define um limite para não ficar muito grande */
+        height: auto; /* Mantém a proporção da imagem */
+    }
+    #div-seg {
+        max-width: 100%; /* Permite que o container ocupe toda a largura necessária */
+        text-align: center; /* Centraliza os elementos */
+    }
+
+    #div-seg a {
+        display: inline-block; /* Garante que os links não fiquem desalinhados */
+        margin: 10px; /* Adiciona espaçamento entre as imagens */
+    }
+
+    #ft-seg {
+        width: 100%; /* Ajusta o tamanho das imagens */
+        height: auto; /* Mantém a proporção original */
+    }
+
+    .p-div-ini {
+        font-size: 4vw; /* Mantém a responsividade do texto */
+        margin-top: 20px; /* Espaçamento entre a imagem e o texto */
+        max-width: 90%; /* Para não ultrapassar a largura da tela */
+        opacity: 0.9;
+        background-color: #1C1C1C;
+        padding: 4%;
+
+    }
+    .container-card {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        height: auto;
+        padding: 2%;
+        text-align: justify;
+    }
+
+    .bot-guia {
+        align-self: center; /* Centraliza o botão */
+        margin-top: 20px; /* Adiciona espaçamento entre texto e botão */
+    }
+
+    /* Ajusta a div de segmentos */
+    #div-seg a img {
+        width: 170px; /* Ajusta o tamanho das imagens dos segmentos */
+        height: auto;
+        margin: 5px;
+    }
+
+    /* Ajusta a imagem de dispositivos */
+    #foto-dispositivos {
+        width: 90%;
+        display: block;
+        margin: 10px auto;
+    }
+
+    /* Ajusta os botões */
+    .bot-guia {
+        display: block;
+        width: 100%;
+        text-align: center;
+        margin: 10px auto;
+    }
+
+    #p-inicio {
+        font-size: 4vw;
+        background-color: gray;
+        max-width: 100%;
+        color: white;
+        margin-bottom: 20px;
+    }
+    #p1-inicio {
+        font-size: 4vw;
+        max-width: 100%;
+        color: white;
+        margin-right: -5px;
+        margin-top: 20px;
+        margin-bottom: 10px;
+    }
+    #navbar-inicio {
+        margin-right: -10px;
+    }
+    #div-fim {
+        font-size: 6vw;
+        width: 80%;
+    }
+    #gifs {
+        width: 20%;
+    }
+}

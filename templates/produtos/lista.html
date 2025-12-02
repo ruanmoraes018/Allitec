@@ -1,0 +1,485 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+{% block title %}Lista - Produtos{% endblock %}
+{% block content %}
+    <div class="container-fluid bg-white">
+        <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Listagem de Produtos</li>
+            </ol>
+        </nav>
+        {% if messages %}
+            <div id="django-messages" data-messages='[
+                {% for message in messages %}
+                    {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
+                    {% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ]'></div>
+        {% endif %}
+        <form method="GET" id="search-form" style="margin-left: 1%; margin-right: 1%;">
+            <div class="row align-items-end">
+                <div class="col-md-1 search-div">
+                    <label class="form-label">Filtro:</label>
+                    <select name="tp" id="tp" class="form-control">
+                        <option value="desc" {% if request.GET.tp == 'desc' %}selected{% endif %}>Descrição</option>
+                        <option value="cod" {% if request.GET.tp == 'cod' %}selected{% endif %}>Código</option>
+                    </select>
+                </div>
+                <div class="col-md-2 search-div flex-md-fill">
+                    <label class="form-label">Conteúdo:</label>
+                    <input class="form-control" type="text" name="s" id="s" placeholder="Digite o termo de busca" value="{{ request.GET.s }}">
+                </div>
+                <div class="col-md-1 search-div">
+                    <label class="form-label">Situação:</label>
+                    <select name="sit" id="sit" class="form-control">
+                        <option value="0" {% if request.GET.sit == '0' %}selected{% endif %}>Todos</option>
+                        <option value="1" {% if request.GET.sit == '1' %}selected{% endif %}>Ativos</option>
+                        <option value="2" {% if request.GET.sit == '2' %}selected{% endif %}>Inativos</option>
+                    </select>
+                </div>
+                <div class="col-md-1 search-div">
+                    <label class="form-label">Tipo:</label>
+                    <select name="tp_produto" id="tp_produto" class="form-control">
+                        <option value="" {% if request.GET.tp_produto == '' %}selected{% endif %}>Todos</option>
+                        <option value="Principal" {% if request.GET.tp_produto == 'Principal' %}selected{% endif %}>Principal</option>
+                        <option value="Adicional" {% if request.GET.tp_produto == 'Adicional' %}selected{% endif %}>Adicional</option>
+                    </select>
+                </div>
+                <div class="col-md-2 search-div flex-md-fill">
+                    <label class="form-label">Marca:</label>
+                    <select class="form-control" id="marca" name="marc">
+                        <option value="">Escolha uma marca</option>
+                        {% if marca_selec %}
+                            <option value="{{ marca_selec.id }}" selected>
+                                {{ marca_selec.nome_grupo }}
+                            </option>
+                        {% endif %}
+                        {% for marca in marcas %}
+                            <option value="{{ marca.id }}" {% if request.GET.gp == marca.id|stringformat:"s" %}selected{% endif %}>
+                                {{ marca.nome_marca }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-1 search-div flex-md-fill">
+                    <label class="form-label">Grupo:</label>
+                    <select class="form-control" id="grupo" name="gp">
+                        <option value="">Escolha uma opção</option>
+                        {% if grupo_selecionado %}
+                            <option value="{{ grupo_selecionado.id }}" selected>
+                                {{ grupo_selecionado.nome_grupo }}
+                            </option>
+                        {% endif %}
+                        {% for grupo in grupos %}
+                            <option value="{{ grupo.id }}" {% if request.GET.gp == grupo.id|stringformat:"s" %}selected{% endif %}>
+                                {{ grupo.nome_grupo }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 search-div flex-md-fill">
+                    <label class="form-label">Unidade:</label>
+                    <select class="form-control" id="unidade" name="unid">
+                        <option value="">Escolha uma unidade</option>
+                        {% if unidade_selecionado %}
+                            <option value="{{ unidade_selecionado.id }}" selected>
+                                {{ unidade_selecionado.nome_unidade }}
+                            </option>
+                        {% endif %}
+                        {% for unidade in unidades %}
+                            <option value="{{ unidade.id }}" {% if request.GET.unid == unidade.id|stringformat:"s" %}selected{% endif %}>
+                                {{ unidade.nome_unidade }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <!--<div class="col-md-1 search-div">-->
+                <!--    <label class="form-label">Data:</label>-->
+                <!--    <select class="form-control" id="usar-data" name="p_dt">-->
+                <!--        <option value="Nao" {% if request.GET.por_dt == 'Nao' %}selected{% endif %}>Não</option>-->
+                <!--        <option value="Sim" {% if request.GET.por_dt == 'Sim' %}selected{% endif %}>Sim</option>-->
+                <!--    </select>-->
+                <!--</div>-->
+                <!--<div class="col-md-2 search-div">-->
+                <!--    <label class="form-label">Filtrar por Data:</label>-->
+                <!--    <input class="form-control" type="text" name="data" id="data" placeholder="dd/mm/yyyy" value="{{ request.GET.data }}" {% if request.GET.usar_data != 'Sim' %}disabled{% endif %}>-->
+                <!--</div>-->
+                <div class="col-md-1 search-div">
+                    <label class="form-label">Reg.:</label>
+                    <select class="form-control" id="qtd_reg" name="reg">
+                        <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
+                        <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
+                        <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
+                        <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
+                        <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
+                        <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
+                    </select>
+                </div>
+                <div class="col-md-1 search-div">
+                    <label class="form-label">Ordem:</label>
+                    <select class="form-control" id="ordem" name="ordem">
+                        <option value="0" {% if request.GET.ordem == '0' %}selected{% endif %}>Descrição</option>
+                        <option value="1" {% if request.GET.ordem == '1' %}selected{% endif %}>Código</option>
+                    </select>
+                </div>
+                <div class="col search-div d-flex justify-content-start">
+                    <button class="btn btn-dark" title="Consultar produtos" type="submit" id="data-btn" data-bs-toggle="modal" data-bs-target="#loadingModal">🔎</button>
+                </div>
+            </div>
+        </form>
+        <form id="multi-form">
+            {% csrf_token %}
+            <div class="table-container" style="margin-left: 1%; margin-right: 1%;">
+                <table class="table table-sm table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
+                    <thead thead class="table-dark">
+                        <tr>
+                            <th scope="col" style="text-align: center; cursor: pointer; width: 2%;" onclick="toggleSelectAll()">
+                                <input type="checkbox" class="form-check-input" id="select-all" onclick="event.stopPropagation(); toggleSelectAll();">
+                            </th>
+                            <th scope="col" style="text-align: justify; width: 3%;">Opções</th>
+                            <th scope="col" style="text-align: justify; width: 5%;">Código</th>
+                            <th scope="col" style="text-align: justify; width: 7%;">Situação</th>
+                            <th scope="col" style="text-align: justify; width: 30%;">Descrição</th>
+                            <th scope="col" style="text-align: justify; width: 8%;">Tipo</th>
+                            <th scope="col" style="text-align: justify; width: 8%;">Marca</th>
+                            <th scope="col" style="text-align: justify; width: 8%;">Grupo</th>
+                            <th scope="col" style="align-items: center; width: 7%;">Unidade</th>
+                            <th scope="col" style="align-items: center; width: 7%;">Estoque</th>
+                            <th scope="col" style="align-items: center; width: 10%;">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for produto in produtos %}
+                            <tr>
+                                <td style="text-align: center; padding-top: 8px; cursor: pointer;" onclick="toggleTaskCheckbox(this)">
+                                    <input type="checkbox" class="form-check-input task-checkbox" name="multi" value="{{ produto.id }}" onclick="event.stopPropagation(); checkIfAllSelected(); updateMassChangesButton();">
+                                </td>
+                                <td style="width: 108px;">
+                                    <div style="text-align: center;">
+                                        <button type="button" data-bs-toggle="modal" data-bs-target="#menuModal{{ produto.id }}" class="btn btn-dark btn-sm">
+                                            <span>
+                                                <i class="fa-solid fa-bars" style="font-size: 18px; color: white; margin-top: 5px;" title="Menu de Opções"></i>
+                                            </span>
+                                        </button>
+                                    </div>
+                                    <!-- Modal de opções da produto -->
+                                    <div class="modal fade modal-sm" id="menuModal{{ produto.id }}" tabindex="-1" aria-labelledby="menuModalLabel{{ produto.id }}">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content">
+                                                <div class="modal-header" style="background-color: #191919;">
+                                                    <div class="d-flex justify-content-center w-100">
+                                                        <h1 class="modal-title fs-5 text-center" id="menuModalLabel{{ produto.id }}" style="color: white;">
+                                                            <strong>{{ produto.id|stringformat:"04d" }}</strong>
+                                                        </h1>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-body d-grid gap-2">
+                                                    <a href="{% url 'att-produto' produto.id %}" class="btn-permissao" data-permissao="produtos.change_produto" data-msg-negado="Seu usuário não pode editar produtos!">
+                                                        <button class="btn btn-outline-dark" type="button" id="botoes-modal" data-id="{{ produto.id }}">
+                                                            <span><i class="fas fa-edit" title="Editar Produto"></i></span>
+                                                            <strong style="color: #13c43f; font-size: 20px;">EDITAR</strong>
+                                                        </button>
+                                                    </a>
+                                                    <button class="btn btn-outline-dark btn-delete" type="button" data-orcamento-id="{{ produto.id }}">
+                                                        <span><i class="fas fa-trash"></i></span>
+                                                        <strong style="color: #db1e47; font-size: 20px;">DELETAR</strong>
+                                                    </button>
+                                                    <a href="{% url 'clonar-produto' produto.id %}" class="btn-permissao" data-permissao="produtos.clonar_produto" data-msg-negado="Seu usuário não pode clonar produtos!">
+                                                        <button class="btn btn-outline-dark" type="button" id="botoes-modal" data-id="{{ produto.id }}">
+                                                            <span><i class="fa-solid fa-clone" title="Clonar"></i></span>
+                                                            <strong style="color: #483D8B; font-size: 20px;">CLONAR</strong>
+                                                        </button>
+                                                    </a>
+                                                    <button class="btn btn-outline-dark ver-entradas" type="button" data-bs-dismiss="modal" data-bs-toggle="modal" data-produto-id="{{ produto.id }}" data-bs-target="#infoEntModal{{ produto.id }}">
+                                                        <span><i class="fa-solid fa-people-carry-box" style="float: right; font-size: 20px; color: #ff8800; margin-top: 5px;"></i></span>
+                                                        <strong style="color: #ff8800; font-size: 20px;">FORNECEDORES</strong>
+                                                    </button>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary mx-auto" data-bs-dismiss="modal">Fechar</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Modal ÚNICO para cada cliente -->
+                                    <div class="modal" id="modal-{{ produto.id }}" tabindex="-1" aria-labelledby="modalLabel-{{ produto.id }}">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content">
+                                                <div class="modal-header titulo-modal">
+                                                    <h1 class="modal-title fs-5" id="modalLabel-{{ produto.id }}">
+                                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                                    </h1>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p>Você confirma a EXCLUSÃO DO PRODUTO <strong>{{ produto.desc_prod }}</strong>?</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button"
+                                                            class="btn btn-primary btn-confirmar btn-permissao"
+                                                            data-url="{% url 'del-produto' produto.id %}"
+                                                            data-permissao="produtos.delete_produto"
+                                                            data-msg-negado="Seu usuário não pode deletar produtos!">
+                                                        <u>S</u>im <span class="contador">3</span>
+                                                    </button>
+
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal" id="infoEntModal{{ produto.id }}" tabindex="-1" aria-labelledby="infoEntModalLabel{{ produto.id }}">
+                                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                                            <div class="modal-content">
+                                                <div class="modal-header titulo-modal">
+                                                    <h1 class="modal-title fs-5" id="infoEntModalLabel{{ produto.id }}"><i class="fa-solid fa-magnifying-glass"></i> Fornecedores do Produto</h1>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="row g-3">
+                                                        <div class="col-md-12">
+                                                            <input class="form-control fw-bold bg-primary text-center text-white" type="text" value="{{ produto.id }} - {{ produto.desc_prod }}" disabled readonly>
+                                                        </div>
+                                                        <div class="col-12 mt-2">
+                                                            <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                                                                <table class="table table-bordered table-responsive-sm table-rounded table-striped w-100">
+                                                                    <thead class="table-dark">
+                                                                        <tr>
+                                                                            <th style="width: 40%;">Fornecedor</th>
+                                                                            <th style="width: 6%;">Data</th>
+                                                                            <th style="width: 4%;">Nº</th>
+                                                                            <th style="width: 6%;">Quantidade</th>
+                                                                            <th style="width: 25%;">Valor Unitário</th>
+                                                                            <th>Vl. Total</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody id="entradasTableBody{{ produto.id }}"></tbody>
+
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td style="align-items: center;">{{ produto.id }}</td>
+                                <td style="text-align: center; padding: 5px;">
+                                    {% if produto.situacao == 'Ativo' %}
+                                        <div style="background-color: #2c2c2c; border-radius: 20px; color: white;">
+                                            <strong>{{ produto.situacao }}</strong>
+                                        </div>
+                                    {% else %}
+                                        <div style="background-color: #800000; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px;">
+                                            <strong>{{ produto.situacao }}</strong><br>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td style="align-items: center;">{{ produto.desc_prod }}</td>
+                                <td style="align-items: center;">{{ produto.tp_prod }}</td>
+                                <td style="align-items: center;">{{ produto.marca }}</td>
+                                <td style="align-items: center;">{{ produto.grupo }}</td>
+                                <td style="align-items: center;">{{ produto.unidProd }}</td>
+                                <td style="align-items: center; font-weight: bold;">
+                                    {% if produto.estoque_prod == "" %}
+                                        0.00
+                                    {% endif %}
+                                    {% if produto.estoque_prod < 0 %}
+                                        <span class="text-danger" title="Saldo Negativo">{{ produto.estoque_prod }}</span>
+                                    {% elif produto.estoque_prod > 0 %}
+                                        <span class="text-success" title="Saldo Positivo">{{ produto.estoque_prod }}</span>
+                                    {% else %}
+                                        <span class="text-success" title="Saldo Zerado">{{ produto.estoque_prod }}</span>
+                                    {% endif %}
+                                </td>
+                                <td style="align-items: center;">
+                                    <div style="max-height: 5em; overflow-y: auto; white-space: normal; line-height: 0.8em; font-weight: bold;">
+                                        {% for tab in produto.tab_conv %}
+                                            <div class="p-1 mb-1 bg-secondary text-light rounded-3" style="font-size: 0.8rem;">
+                                                {{ tab.descricao }} <span style="float: right;">{{ tab.vl_prod|moeda_br }}</span>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="11" class="me-auto" style="text-align: center;">
+                                Nenhum produto encontrado.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card">
+                <div class="card-body dropup">
+                    <strong>Total de Produtos: {{ produtos|length }}</strong>
+                    <a id="add-link" href="{% url 'add-produto' %}" style="margin-left: 1%; margin-right: 1%; float: right;" class="btn-permissao" data-permissao="produtos.add_produto" data-msg-negado="Seu usuário não pode adicionar produtos!">
+                        <button type="button" class="btn btn-primary btn-sm" id="add-produto"><i class="fas fa-plus"></i> Novo</button>
+                    </a>
+                    <button type="button" style="float: right; margin-right: 10px;" class="btn btn-sucess btn-sm bg-success text-white fw-bold dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Outras</button>
+                    <ul class="dropdown-menu">
+                        <li><button class="dropdown-item" type="button" data-bs-toggle="modal" id="update-selected" data-bs-target="#updateModal">Atribuir Campos</button></li>
+                        <li><button class="dropdown-item" type="button" data-bs-toggle="modal" id="mdAttTbPreco">Atribuir Tabela</button></li>
+                    </ul>
+                </div>
+                <div class="card-footer text-body-secondary">
+                    <nav aria-label="Page navigation example" style="padding-bottom: 1px; justify-content: center;">
+                        <ul class="pagination justify-content-center">
+                            {% if produtos.number > 1 and produtos.number > 3 %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="First">
+                                        <span aria-hidden="true" style="color: #0f1d2b;">1</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                            {% if produtos.number > 4 %}
+                                <li class="page-item disabled">
+                                    <a class="page-link">...</a>
+                                </li>
+                            {% endif %}
+                            {% for num in produtos.paginator.page_range %}
+                                {% if num >= produtos.number|add:'-2' and num <= produtos.number|add:'2' %}
+                                    {% if produtos.number == num %}
+                                        <li class="page-item active" aria-current="page">
+                                            <span class="page-link" style="background-color: #0f1d2b; color: white;">{{ num }}</span>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item">
+                                            <a class="page-link" style="color: #0f1d2b;" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                            {% if produtos.number < produtos.paginator.num_pages|add:'-3' %}
+                                <li class="page-item disabled">
+                                    <a class="page-link">...</a>
+                                </li>
+                            {% endif %}
+                            {% if produtos.number < produtos.paginator.num_pages and produtos.number < produtos.paginator.num_pages|add:'-2' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ produtos.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                        <span aria-hidden="true" style="color: #0f1d2b;">{{ produtos.paginator.num_pages }}</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </form>
+
+        <div class="modal fade" id="updateModal" tabindex="-1" aria-labelledby="updateModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form method="post" action="{% url 'att-prod-lote' %}">
+                        {% csrf_token %}
+                        <div class="modal-header" style="background-color: #191919;">
+                            <h5 class="modal-title" id="updateModalLabel" style="color: white;"><i class="fa-solid fa-book-open"></i> Alterar Produtos Selecionados</h5>
+                        </div>
+                        <div class="modal-body">
+                            <p>Produtos Selecionados: <span id="selected-count"></span> Produto(s).</p>
+                            <hr>
+                            <div id="multi-hidden-container"></div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch" style="margin-top: 10px;">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="switchSit" name="switchSit">
+                                        <label class="form-check-label" for="switchSit">Grupo</label>
+                                    </div>
+                                    <select id="grupo1" name="gp1" class="form-select" aria-label="Grupo">
+                                        <option value="">Escolha um grupo</option>
+                                        {% for grupo in grupos %}
+                                            <option value="{{ grupo.id }}">{{ grupo.nome_grupo }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch" style="margin-top: 10px;">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="switchMarca" name="switchMarca">
+                                        <label class="form-check-label" for="switchMarca">Marca</label>
+                                    </div>
+                                    <select id="marca1" name="marca1" class="form-select" aria-label="Marca">
+                                        <option value="">Escolha uma marca</option>
+                                        {% for marca in marcas %}
+                                            <option value="{{ marca.id }}">{{ marca.nome_marca }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch" style="margin-top: 10px;">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="switchEmp" name="switchEmp">
+                                        <label class="form-check-label" for="switchEmp">Unidade</label>
+                                    </div>
+                                    <select id="unidade1" name="unid1" class="form-select" aria-label="Unidade">
+                                        <option value="">Escolha uma unidade</option>
+                                        {% for unidade in unidades %}
+                                            <option value="{{ unidade.id }}">{{ unidade.nome_unidade }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-check form-switch" style="margin-top: 10px;">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="switchListaOrc" name="switchListaOrc">
+                                        <label class="form-check-label" for="switchListaOrc">Exibir na Lista (Orçamentos)</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#loadingModal">Confirmar</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="attTbPrecModal" tabindex="-1" aria-labelledby="attTbPrecModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form method="post" action="{% url 'att-tb-preco-lote' %}">
+                        {% csrf_token %}
+                        <div class="modal-header" style="background-color: #191919;">
+                            <h5 class="modal-title" id="attTbPrecModalLabel" style="color: white;"><i class="fa-solid fa-book-open"></i> Atribuir Tabela de Preço</h5>
+                        </div>
+                        <div class="modal-body">
+                            <div id="multi-hidden-cont"></div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="tb-prec">Tabela de Preço:</label>
+                                    <select name="tb-prec" id="tb-prec" class="form-select">
+                                        <option value="">Selecione uma tabela</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="tp-atrib">Tipo de atribuição:</label>
+                                    <select name="tp-atrib" id="tp-atrib" class="form-select">
+                                        <option value="0">Margem (%)</option>
+                                        <option value="1">Valor (R$)</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label id="lbl-campo-1" for="campo_1">Margem (%)</label>
+                                    <input type="Decimal" name="campo_1" id="campo_1" class="form-control" placeholder="Ex: 50">
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label id="lbl-campo-2" for="campo_2">Valor (R$)</label>
+                                    <input type="Decimal" name="campo_2" id="campo_2" class="form-control" placeholder="Ex: 100">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#loadingModal">Confirmar</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

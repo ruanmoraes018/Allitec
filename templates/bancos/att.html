@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% block title %}Alterar Banco{% endblock %}
+{% block content %}
+<div class="container-fluid bg-white">
+    <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'lista-bancos' %}" id="item-naveg">Bancos</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Alterar</li>
+        </ol>
+    </nav>
+    <div class="formularios">
+        <form method="POST" id="createForm" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% if b %}
+                {% if error_messages %}
+                    <div id="toast-messages" data-messages='[
+                        {"text": "{% for message in error_messages %}{{ message }}<br>{% endfor %}", "tag": "error"}
+                    ]'></div>
+                {% endif %}
+                <div class="card">
+                    <div class="card-header">
+                        <span>
+                            ALTERAÇÃO DE BANCOS
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3" style="margin-left: -8px;">
+                            <div class="col-md-8">
+                                {{ form.nome_banco|as_crispy_field }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.cod_banco|as_crispy_field }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="base_botao">
+                            <button type="button" class="btn btn-success botoes" data-bs-toggle="modal" data-bs-target="#staticBackdrop" id="openModalBtn">Alterar</button>
+                            <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#loadingModal">Voltar</a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </form>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h1 class="modal-title fs-5" id="staticBackdropLabel"><i class="fa-regular fa-circle-question"></i> Confirmação!</h1>
+                </div>
+                <div class="modal-body">
+                    <p>Você confirma a ALTERAÇÃO DO BANCO?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>
+                    <button type="button" class="btn btn-secondary" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

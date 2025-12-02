@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Lista - Clientes{% endblock %}
+{% block content %}
+    <div class="container-fluid bg-white">
+        <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Listagem de Clientes</li>
+            </ol>
+        </nav>
+        {% if messages %}
+            <div id="django-messages" data-messages='[
+                {% for message in messages %}
+                    {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
+                    {% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ]'></div>
+        {% endif %}
+        <form method="GET" id="search-form" style="margin-left: 1%; margin-right: 1%;">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-2 search-div">
+                    <label class="form-label">Cliente:</label>
+                    <select class="form-control" id="cliente" name="cl">
+                        <option value="">Escolha uma opção</option>
+                        {% if cliente_selecionado %}
+                            <option value="{{ cliente_selecionado.id }}" selected>
+                                {{ cliente_selecionado.fantasia }}
+                            </option>
+                        {% endif %}
+                        {% for cliente in clientes %}
+                            <option value="{{ cliente.id }}" {% if request.GET.cl == cliente.id|stringformat:"s" %}selected{% endif %}>
+                                {{ cliente.fantasia }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-1 search-div">
+                    <label class="form-label">Situação:</label>
+                    <div class="d-flex">
+                        <select class="form-control" name="sit" id="situacao">
+                            <option value="Ativo" {% if request.GET.sit == 'Ativo' %}selected{% endif %}>Ativos</option>
+                            <option value="Inativo" {% if request.GET.sit == 'Inativo' %}selected{% endif %}>Inativos</option>
+                            <option value="Todos" {% if request.GET.sit == 'Todos' %}selected{% endif %}>Todos</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-1 search-div">
+                    <label class="form-label">Tp. Pessoa:</label>
+                    <div class="d-flex">
+                        <select class="form-control" name="t_pes" id="t_pes">
+                            <option value="Todas" {% if request.GET.t_pes == 'Todas' %}selected{% endif %}>Todas</option>
+                            <option value="Física" {% if request.GET.t_pes == 'Física' %}selected{% endif %}>Física</option>
+                            <option value="Jurídica" {% if request.GET.t_pes == 'Jurídica' %}selected{% endif %}>Jurídica</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-1 search-div">
+                    <label class="form-label">Período:</label>
+                    <select class="form-control" id="usar-data" name="p_dt">
+                        <option value="Nao" {% if request.GET.p_dt == 'Nao' %}selected{% endif %}>Não</option>
+                        <option value="Sim" {% if request.GET.p_dt == 'Sim' %}selected{% endif %}>Sim</option>
+                    </select>
+                </div>
+                <div class="col-md-3 search-div">
+                    <div class="row">
+                        <div class="col">
+                            <label class="form-label">De:</label>
+                            <input class="form-control" type="text" name="dt_ini" id="data_inicio1" value="{{ request.GET.dt_ini }}">
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Até:</label>
+                            <input class="form-control" type="text" name="dt_fim" id="data_fim1" value="{{ request.GET.dt_fim }}">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-1 search-div">
+                    <label class="form-label">Reg.:</label>
+                    <select class="form-control" id="qtd_reg" name="reg">
+                        <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
+                        <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
+                        <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
+                        <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
+                        <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
+                        <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
+                    </select>
+                </div>
+                <div class="col search-div d-flex justify-content-start">
+                    <button class="btn btn-dark" title="Consultar clientes" type="submit" id="data-btn" data-bs-toggle="modal" data-bs-target="#loadingModal">🔎</button>
+                </div>
+            </div>
+        </form>
+        <div class="table-container" style="margin-left: 1%; margin-right: 1%;">
+            <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
+                <thead thead class="table-dark">
+                    <tr>
+                        <th scope="col">Opções</th>
+                        <th scope="col" style="text-align: center; width: 7%;">Situação</th>
+                        <th scope="col" style="text-align: center; width: 7%;">Tp. Pessoa</th>
+                        <th scope="col" style="align-items: center;">Nome/Razão Social</th>
+                        <th scope="col" style="align-items: center;">Apelido/Fantasia</th>
+                        <th scope="col" style="align-items: center;">CPF/CNPJ</th>
+                        <th scope="col" style="align-items: center;">Cidade</th>
+                        <th scope="col" style="align-items: center;">Telefone</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cliente in clientes %}
+                        <tr>
+
+                            <td style="width: 80px;">
+                                <a href="{% url 'del-cliente' cliente.id %}" class="btn-permissao"
+                                  data-permissao="clientes.delete_cliente"
+                                  data-msg-negado="Seu usuário não pode deletar clientes!"><span><i class="fas fa-trash" title="Deletar cliente"></i></span></a>
+                                <a href="{% url 'att-cliente' cliente.id %}" class="btn-permissao"
+                                  data-permissao="clientes.change_cliente"
+                                  data-msg-negado="Seu usuário não pode editar clientes!"><span><i class="fas fa-edit" title="Editar cliente"></i></span></a>
+                            </td>
+                            <td style="text-align: center; padding: 5px;">
+                                {% if cliente.situacao == 'Ativo' %}
+                                    <div style="background-color: #2c2c2c; border-radius: 20px; color: white; margin-top: 5px;">
+                                        <strong>{{ cliente.situacao }}</strong>
+                                    </div>
+                                {% else %}
+                                    <div style="background-color: #800000; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
+                                        <strong>{{ cliente.situacao }}</strong><br>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: center; padding: 5px;">
+                                {% if cliente.pessoa == 'Física' %}
+                                    <div style="background-color: #008080; border-radius: 20px; color: white; margin-top: 5px;">
+                                        <strong>{{ cliente.pessoa }}</strong>
+                                    </div>
+                                {% else %}
+                                    <div style="background-color: #4682B4; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
+                                        <strong>{{ cliente.pessoa }}</strong><br>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td style="align-items: center;">{{ cliente.razao_social }}</td>
+                            <td style="align-items: center; text-transform: uppercase;">{{ cliente.fantasia }}</td>
+                            <td style="align-items: center;">{{ cliente.cpf_cnpj }}</td>
+                            <td style="align-items: center;">{{ cliente.cidade.nome_cidade }}</td>
+                            <td style="align-items: center;">{{ cliente.tel }}</td>
+                        </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="me-auto" style="text-align: center;">
+                            Nenhum cliente encontrado.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="card">
+            <div class="card-body" style="max-height: 50px;">
+                <strong>Total de Clientes: {{ clientes|length }}</strong>
+                <a id="add-link" href="{% url 'add-cliente' %}" style="margin-left: 1%; margin-right: 1%; float: right;" class="btn-permissao" data-permissao="clientes.add_cliente" data-msg-negado="Seu usuário não pode adicionar clientes!">
+                    <button type="button" class="btn btn-primary btn-sm" id="add-cliente"><i class="fas fa-plus"></i> Novo</button>
+                </a>
+            </div>
+            <div class="card-footer text-body-secondary">
+                <nav aria-label="Page navigation example" style="padding-bottom: 1px;">
+                    <ul class="pagination justify-content-center">
+                        {% if clientes.number > 1 and clientes.number > 3 %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="First">
+                                    <span aria-hidden="true" style="color: #0f1d2b;">1</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                        {% if clientes.number > 4 %}
+                            <li class="page-item disabled">
+                                <a class="page-link">...</a>
+                            </li>
+                        {% endif %}
+                        {% for num in clientes.paginator.page_range %}
+                            {% if num >= clientes.number|add:'-2' and num <= clientes.number|add:'2' %}
+                                {% if clientes.number == num %}
+                                    <li class="page-item active" aria-current="page">
+                                        <span class="page-link" style="background-color: #0f1d2b; color: white;">{{ num }}</span>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" style="color: #0f1d2b;" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if clientes.number < clientes.paginator.num_pages|add:'-3' %}
+                            <li class="page-item disabled">
+                                <a class="page-link">...</a>
+                            </li>
+                        {% endif %}
+                        {% if clientes.number < clientes.paginator.num_pages and clientes.number < clientes.paginator.num_pages|add:'-2' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ clientes.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                    <span aria-hidden="true" style="color: #0f1d2b;">{{ clientes.paginator.num_pages }}</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+{% endblock %}

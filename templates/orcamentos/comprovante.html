@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+{% load crispy_forms_tags %}
+{% block title %}Faturar Orçamento{% endblock %}
+{% block content %}
+<style>
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        #comprovante, #comprovante * {
+            visibility: visible;
+        }
+        #comprovante {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+        }
+    }
+
+    #comprovante {
+        font-family: Helvetica, sans-serif;
+        width: 78mm;
+        margin: 0 auto;
+        padding: 5px;
+        border: 1px dashed #000;
+    }
+
+    #comprovante h2 {
+        text-align: center;
+        margin-bottom: 5px;
+    }
+
+    #comprovante p {
+        margin: 2px 0;
+        font-size: 12px;
+    }
+
+    #comprovante .linha {
+        border-top: 1px dashed #000;
+        margin: 5px 0;
+    }
+</style>
+
+<div id="comprovante" class="container-fluid bg-white">
+    <img src="{{ request.user.filial_user.logo.url }}" alt="Logo" style="max-width: 100%; max-height: 100px; display: block; margin: 0 auto;">
+    <br>
+    <div class="text-uppercase">
+        <h6 style="text-align: center; font-weight: bold;">{{ request.user.filial_user.fantasia }}</h6>
+        <h6 style="text-align: center; font-weight: bold;">CNPJ: {{ request.user.filial_user.cnpj }}</h6>
+        <h6 style="text-align: center; font-weight: bold;">{{ request.user.filial_user.endereco }}, {{ request.user.filial_user.numero }} - {{ request.user.filial_user.bairro_fil }}</h6>
+        <h6 style="text-align: center; font-weight: bold;">{{ request.user.filial.cidade_fil }} - {{ request.user.filial_user.uf }}</h6>
+        <h6 style="text-align: center; font-weight: bold;">FONE: {{ request.user.filial_user.tel }}</h6>
+    </div>
+    <h5 style="text-align: center; font-weight: bold;">**Orçamento ({{ orcamento.situacao }})**</h5>
+    <p><strong>Nº Orçamento:</strong> {{ orcamento.num_orcamento }}</p>
+    <p><strong>Dt. Emissão:</strong> {{ orcamento.dt_emi|date:"d/m/Y" }}</p>
+    <p><strong>Solicitante:</strong> {{ orcamento.solicitante.nome }}</p>
+    <div class="linha"></div>
+    <h6 style="text-align: center; font-weight: bold;"> Dados do Cliente</h6>
+    <div class="linha"></div>
+    <p><strong>Cliente:</strong> {{ orcamento.cli.fantasia }}</p>
+    <p><strong>Endereço:</strong> {{ orcamento.cli.endereco }}, {{ orcamento.cli.numero }}, {{ orcamento.cli.bairro }} - {{ orcamento.cli.cidade }} / {{ orcamento.cli.uf }}</p>
+    <div class="linha"></div>
+    <h6 style="text-align: center; font-weight: bold;"> Formas de Pagamento</h6>
+    <div class="linha"></div>
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th scope="col">Item</th>
+                <th scope="col">Forma Pgto.</th>
+                <th scope="col">Valor (R$)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for forma in formas_pgto %}
+                <tr>
+                    <td><p>{{ forloop.counter|stringformat:"03d" }}</p></td>
+                    <td><p>{{ forma.formas_pgto.descricao }}</p></td>
+                    <td><p>{{ forma.valor|moeda_br }}</p></td>
+                </tr>
+            {% empty %}
+                <tr>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="linha"></div>
+    <p><strong>Subtotal: R$ {{ orcamento.subtotal|moeda_br }}</strong></p>
+    <p><strong>Desconto: R$ {{ orcamento.desconto|moeda_br }}</strong></p>
+    <p><strong>Acréscimo: R$ {{ orcamento.acrescimo|moeda_br }}</strong></p>
+    <p><strong>Total: R$ {{ orcamento.total|moeda_br }}</strong></p>
+    <div class="linha"></div>
+    <p style="text-align: center;">{{ request.user.filial.info_comp }}</p>
+</div>
+
+<script>
+    window.onload = function () {
+        window.print();
+        window.onafterprint = function () {
+            window.close();
+        };
+    };
+</script>
+{% endblock %}

@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Lista - Formas de Pagamento{% endblock %}
+{% block content %}
+    <div class="container-fluid bg-white">
+        <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Listagem de Formas de Pagamento</li>
+            </ol>
+        </nav>
+        {% if messages %}
+            <div id="django-messages" data-messages='[
+                {% for message in messages %}
+                    {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
+                    {% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ]'></div>
+        {% endif %}
+        {% if not perm_add_formapgto and not perm_change_formapgto and not perm_delete_formapgto %}
+            <div class="alert alert-warning">
+                Usuário não autorizado para realizar esta função.
+            </div>
+        {% endif %}
+        <form method="GET" id="search-form" style="margin-left: 1%; margin-right: 1%;">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-1 search-div">
+                    <label class="form-label">Filtro:</label>
+                    <select name="tp" id="tp" class="form-control">
+                        <option value="desc" {% if request.GET.tp == 'desc' %}selected{% endif %}>Descrição</option>
+                        <option value="cod" {% if request.GET.tp == 'cod' %}selected{% endif %}>Código</option>
+                    </select>
+                </div>
+                <div class="col-md-2 search-div flex-md-fill">
+                    <label class="form-label">Conteúdo:</label>
+                    <input class="form-control" type="text" name="s" id="s" placeholder="Digite o termo de busca" value="{{ request.GET.s }}">
+                </div>
+                <div class="col-md-1 search-div">
+                    <label class="form-label">Reg.:</label>
+                    <select class="form-control" id="qtd_reg" name="reg">
+                        <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
+                        <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
+                        <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
+                        <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
+                        <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
+                        <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
+                    </select>
+                </div>
+                <div class="col search-div d-flex justify-content-start">
+                    <button class="btn btn-dark" title="Consultar clientes" type="submit" id="data-btn" data-bs-toggle="modal" data-bs-target="#loadingModal">🔎</button>
+                </div>
+            </div>
+        </form>
+        <div class="table-container" style="margin-left: 1%; margin-right: 1%;">
+            <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
+                <thead thead class="table-dark">
+                    <tr>
+                        <th scope="col" style="text-align: justify; width: 7%;">Opções</th>
+                        <th scope="col" style="text-align: center; width: 7%;">Código</th>
+                        <th scope="col" style="align-items: center;">Descrição</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f_p in formas_pgto %}
+                        <tr>
+                            <td style="width: 80px;">
+                                <span>
+                                    <i class="fas fa-trash" title="Deletar" data-bs-toggle="modal" data-bs-target="#modal-{{ f_p.id }}"></i>
+                                </span>
+                                <!-- Modal ÚNICO para cada f_p -->
+                                <div class="modal fade" id="modal-{{ f_p.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ f_p.id }}" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header titulo-modal">
+                                                <h1 class="modal-title fs-5" id="modalLabel-{{ f_p.id }}">
+                                                    <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                                </h1>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Você confirma a EXCLUSÃO DA FORMA DE PAGAMENTO <strong>{{ f_p.descricao }}</strong>?</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-primary btn-confirmar" data-url="{% url 'del-formas_pgto' f_p.id %}" disabled>
+                                                    <u>S</u>im <span class="contador">3</span>
+                                                </button>
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <a href="{% url 'att-formas_pgto' f_p.id %}" class="btn-permissao"
+                                  data-permissao="formas_pgto.change_formapgto"
+                                  data-msg-negado="Seu usuário não pode editar formas de pagamento!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
+                            </td>
+                            <td style="align-items: center;">{{ f_p.id }}</td>
+                            <td class="text-uppercase" style="align-items: center;">{{ f_p.descricao }}</td>
+                        </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="me-auto" style="text-align: center;">
+                            Nenhuma forma de pagamento encontrada.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="card">
+            <div class="card-body" style="max-height: 50px;">
+                <strong>Total de Formas de Pagamento: {{ formas_pgto|length }}</strong>
+                <a id="add-link" href="{% url 'add-formas_pgto' %}" style="margin-left: 1%; margin-right: 1%; float: right;" class="btn-permissao" data-permissao="formas_pgto.add_formapgto" data-msg-negado="Seu usuário não pode adicionar formas de pagamento!">
+                    <button type="button" class="btn btn-primary btn-sm" id="add-formas_pgto"><i class="fas fa-plus"></i> Novo</button>
+                </a>
+            </div>
+            <div class="card-footer text-body-secondary">
+                <nav aria-label="Page navigation example" style="padding-bottom: 1px;">
+                    <ul class="pagination justify-content-center">
+                        {% if formas_pgto.number > 1 and formas_pgto.number > 3 %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="First">
+                                    <span aria-hidden="true" style="color: #0f1d2b;">1</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                        {% if formas_pgto.number > 4 %}
+                            <li class="page-item disabled">
+                                <a class="page-link">...</a>
+                            </li>
+                        {% endif %}
+                        {% for num in formas_pgto.paginator.page_range %}
+                            {% if num >= formas_pgto.number|add:'-2' and num <= formas_pgto.number|add:'2' %}
+                                {% if formas_pgto.number == num %}
+                                    <li class="page-item active" aria-current="page">
+                                        <span class="page-link" style="background-color: #0f1d2b; color: white;">{{ num }}</span>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" style="color: #0f1d2b;" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if formas_pgto.number < formas_pgto.paginator.num_pages|add:'-3' %}
+                            <li class="page-item disabled">
+                                <a class="page-link">...</a>
+                            </li>
+                        {% endif %}
+                        {% if formas_pgto.number < formas_pgto.paginator.num_pages and formas_pgto.number < formas_pgto.paginator.num_pages|add:'-2' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ formas_pgto.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                    <span aria-hidden="true" style="color: #0f1d2b;">{{ formas_pgto.paginator.num_pages }}</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load extras %}
+{% load crispy_forms_tags %}
+{% block title %}Cadastrar Usuário{% endblock %}
+{% block content %}
+<div class="container-fluid bg-white">
+    <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'lista-usuarios' %}" id="item-naveg">Usuários</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Adicionar</li>
+        </ol>
+    </nav>
+    <div class="formularios">
+        <form method="POST" id="createForm" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% if form %}
+                {% if error_messages %}
+                    <div id="toast-messages" data-messages='[
+                        {"text": "{% for message in error_messages %}{{ message }}<br>{% endfor %}", "tag": "error"}
+                    ]'></div>
+                {% endif %}
+                <div class="card">
+                    <div class="card-header">
+                        <span>
+                            INCLUSÃO DE USUÁRIOS
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3" style="margin-left: -8px;">
+                            <div class="col-md-1">
+                                {{ form.is_active|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ form.filial_user|as_crispy_field }}
+                            </div>
+                            <div class="col-md-3">
+                                {{ form.first_name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ form.username|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ form.email|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                              {{ form.password|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2 form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="id_gerar_senha_lib" name="gerar_senha_lib" {% if usuario.gerar_senha_lib %}checked{% endif %}>
+                                <label class="form-check-label" for="id_gerar_senha_lib">
+                                    Gerar Senha de Liberação
+                                </label>
+                            </div>
+
+                            <div class="col-md-3 mb-3">
+                                <label for="id_senha_liberacao" class="form-label">Senha de Liberação</label>
+                                <input type="password" class="form-control" id="id_senha_liberacao" name="senha_liberacao" value="{{ usuario.senha_liberacao }}">
+                            </div>
+
+                            <div class="card" style="margin: 0; margin-left: 5px;">
+                                <div class="form-buttons" style="margin-left: 10px; margin-top: 10px; margin-bottom: 10px;">
+                                    <div class="card-header bg-white">
+                                        <button type="button" class="btn btn-dark" id="endBtn">Permissões do Usuário</button>
+                                        <button type="button" class="btn btn-dark" id="complBtn">Complementos</button>
+                                    </div>
+                                </div>
+                                <div class="form-section" id="enderecos">
+                                    <div class="row g-3" style="margin-left: -8px;">
+                                        {% for categoria, grupos in form.categorias_permissoes.items %}
+                                            <div class="card mb-3" style="margin: 0; margin-left: 4px;">
+                                                <div class="card-header bg-dark-subtle text-center">
+                                                    <h4 class="mb-1 mt-1 text-primary-emphasis" style="font-weight: bold;">{{ categoria }}</h4>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="row">
+                                                        {% for grupo in grupos %}
+                                                            <div class="col-md-4">
+                                                                <div class="card" style="margin: 0; margin-bottom: 20px;">
+                                                                    <div class="card-header bg-dark-subtle text-primary text-center" style="font-size: 1.4rem; font-weight: bold;">
+                                                                        <span class="check-grupo" style="cursor: pointer; user-select: none; color: blue; text-decoration: none;"
+                                                                              data-grupo="{{ grupo|slugify }}">
+                                                                            <i class="fa-solid fa-table-list"></i>
+                                                                        </span>
+                                                                        {{ grupo }}
+                                                                    </div>
+
+                                                                    <div class="card-body">
+                                                                        {% for perm in form.grupo_permissoes|get_item:grupo %}
+                                                                            <div class="form-check mb-2">
+                                                                                <input class="form-check-input check-permissao"
+                                                                                       name="permissoes"
+                                                                                       type="checkbox"
+                                                                                       value="{{ perm.id }}"
+                                                                                       id="check_{{ perm.id }}"
+                                                                                       data-grupo="{{ grupo|slugify }}"
+                                                                                       {% if perm.id in form.initial.permissoes %} checked {% endif %}>
+
+                                                                                <label class="form-check-label" for="check_{{ perm.id }}">
+                                                                                    {% with perm.codename as code %}
+                                                                                        {% if 'add_' in code %}
+                                                                                            <span class="badge bg-success fs-6">Incluir</span>
+                                                                                        {% elif 'change_' in code %}
+                                                                                            <span class="badge bg-warning text-dark fs-6">Editar</span>
+                                                                                        {% elif 'clonar_' in code %}
+                                                                                            <span class="badge text-white fs-6" style="background-color: #6A5ACD;">Clonar</span>
+                                                                                        {% elif 'delete_' in code %}
+                                                                                            <span class="badge bg-danger fs-6">Excluir</span>
+                                                                                        {% elif 'view_' in code %}
+                                                                                            <span class="badge bg-info text-dark fs-6">Visualizar</span>
+                                                                                        {% elif 'efetivar_' in code %}
+                                                                                            <span class="badge bg-success-subtle text-dark fs-6">Efetivar</span>
+                                                                                        {% elif 'faturar_' in code %}
+                                                                                            <span class="badge bg-success-subtle text-dark fs-6">Faturar</span>
+                                                                                        {% elif 'cancelar_' in code %}
+                                                                                            <span class="badge bg-danger-subtle text-dark fs-6">Cancelar</span>
+                                                                                        {% elif 'atribuir_desconto' in code or 'atribuir_desconto_ped' in code %}
+                                                                                            <span class="badge bg-info-subtle text-dark fs-6">Atribuir Desconto</span>
+                                                                                        {% elif 'atribuir_acrescimo' in code or 'atribuir_acrescimo_ped' in code %}
+                                                                                            <span class="badge bg-danger-subtle text-dark fs-6">Atribuir Acréscimo</span>
+                                                                                        {% else %}
+                                                                                            {{ perm.name }}
+                                                                                        {% endif %}
+                                                                                    {% endwith %}
+                                                                                </label>
+                                                                            </div>
+                                                                        {% endfor %}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="form-section" id="complementos">
+                                    <div class="row g-3" style="margin-left: -8px;">
+                                        Teste
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="base_botao">
+                            <button type="button" class="btn btn-success botoes" data-bs-toggle="modal" data-bs-target="#staticBackdrop" id="openModalBtn">Criar</button>
+                            <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#loadingModal">Voltar</a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </form>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h1 class="modal-title fs-5" id="staticBackdropLabel"><i class="fa-regular fa-circle-question"></i> Confirmação!</h1>
+                </div>
+                <div class="modal-body">
+                    <p>Você confirma a INCLUSÃO DO USUÁRIO?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>
+                    <button type="button" class="btn btn-secondary" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkbox = document.getElementById('id_alterar_senha');
+    const senhaContainer = document.getElementById('senha-container');
+
+    if (!checkbox || !senhaContainer) return; // Proteção caso não existam
+
+    function toggleSenha() {
+        senhaContainer.style.display = checkbox.checked ? 'block' : 'none';
+    }
+
+    // Ativa/desativa quando clica no label ou na própria checkbox
+    checkbox.addEventListener('change', toggleSenha);
+
+    // Executa no carregamento inicial
+    toggleSenha();
+});
+</script>
+{% endblock %}

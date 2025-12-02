@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% block title %}Alterar Produto{% endblock %}
+{% block content %}
+<div class="container-fluid bg-white">
+    <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'lista-produtos' %}" id="item-naveg">Produtos</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Alterar</li>
+        </ol>
+    </nav>
+    <div class="formularios">
+        <form method="POST" id="createForm" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% if p %}
+                {% if error_messages %}
+                    <div id="toast-messages" data-messages='[
+                        {"text": "{% for message in error_messages %}{{ message }}<br>{% endfor %}", "tag": "error"}
+                    ]'></div>
+                {% endif %}
+                <div class="card">
+                    <div class="card-header">
+                        <span>
+                            ALTERAÇÃO DE PRODUTOS
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3" style="margin-left: -8px;">
+                            <div class="accordion" id="accordionPanelsStayOpenExample">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseOne" aria-expanded="true" aria-controls="panelsStayOpen-collapseOne">
+                                            Informações
+                                        </button>
+                                    </h2>
+                                    <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse show">
+                                        <div class="accordion-body">
+                                            <div class="row g-3">
+                                                <div class="col-md-1">
+                                                    {{ form.situacao|as_crispy_field }}
+                                                </div>
+                                                <div class="col-md-1">
+                                                    {{ form.tp_prod|as_crispy_field }}
+                                                </div>
+                                                <div class="col-md-4">
+                                                    {{ form.desc_prod|as_crispy_field }}
+                                                </div>
+                                                <div class="col-md-2">
+                                                    {{ form.marca|as_crispy_field }}
+                                                </div>
+                                                <div class="col-md-2">
+                                                    {{ form.grupo|as_crispy_field }}
+                                                </div>
+                                                <div class="col-md-2">
+                                                    {{ form.unidProd|as_crispy_field }}
+                                                </div>
+                                            </div>
+
+                                         </div>
+                                    </div>
+                                </div>
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseTwo" aria-expanded="false" aria-controls="panelsStayOpen-collapseTwo">
+                                            Custo/Venda
+                                        </button>
+                                    </h2>
+                                    <div id="panelsStayOpen-collapseTwo" class="accordion-collapse collapse">
+                                        <div class="accordion-body">
+                                            <div class="row g-3">
+                                                <div class="col-md-2">
+                                                    {{ form.vl_compra|as_crispy_field }}
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label for="id_tabela" class="form-label">Tabela de Preço*</label>
+                                                    <select id="id_tabela" class="form-select form-select-sm" name="tabela">
+                                                        <option value="">Selecione uma tabela</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label for="id_margem" class="form-label">Margem (%)</label>
+                                                    <input type="Decimal" id="id_margem" class="form-control form-control-sm border-dark-subtle" name="margem">
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label for="id_vl_prod" class="form-label">Preço de Venda*</label>
+                                                    <input type="Decimal" id="id_vl_prod" class="form-control form-control-sm border-dark-subtle" style='color: darkgreen; font-weight: bold; background: honeydew;' name="vl_prod">
+                                                </div>
+                                                <div class="col-md-2 d-flex align-items-start">
+                                                    <button class="btn btn-dark btn-sm w-100" type="button" id="add-tab" style="margin-top: 30px;">
+                                                        <i class="fa-solid fa-plus"></i> Incluir
+                                                    </button>
+                                                </div>
+                                                <div class="table-container">
+                                                    <table class="table table-sm table-bordered table-striped table-hover table-responsive-md table-rounded" id="tab-prec">
+                                                        <thead class="table-dark">
+                                                            <tr>
+                                                                <th>Tabela</th>
+                                                                <th>Margem (%)</th>
+                                                                <th>Valor</th>
+                                                                <th style="width: 80px;">Ações</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% if prod_tabelas %}
+                                                                {% for item in prod_tabelas %}
+                                                                    <tr data-id="{{ forloop.counter0 }}">
+                                                                        <td>
+                                                                            {{ item.tabela.descricao }}
+                                                                            <input type="hidden" name="tab_preco[{{ forloop.counter0 }}][tabela]" value="{{ item.tabela.id }}">
+                                                                        </td>
+                                                                        <td>
+                                                                            {{ item.margem|floatformat:2 }}
+                                                                            <input type="hidden" name="tab_preco[{{ forloop.counter0 }}][margem]" value="{{ item.margem|floatformat:2 }}">
+                                                                        </td>
+                                                                        <td>
+                                                                            {{ item.vl_prod|floatformat:2 }}
+                                                                            <input type="hidden" name="tab_preco[{{ forloop.counter0 }}][vl_prod]" value="{{ item.vl_prod|floatformat:2 }}">
+                                                                        </td>
+                                                                        <td>
+                                                                            <button type="button" class="editando btn btn-success btn-sm mt-1 mb-1"><i class="fa-solid fa-pen-to-square"></i></button>
+                                                                            <button type="button" class="remover btn btn-danger btn-sm mt-1 mb-1"><i class="fa-solid fa-trash"></i></button>
+                                                                        </td>
+                                                                    </tr>
+                                                                {% endfor %}
+                                                            {% else %}
+                                                                <tr class="vazio">
+                                                                    <td colspan="4" class="text-center">Nenhuma tabela de preço inserida.</td>
+                                                                </tr>
+                                                            {% endif %}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseThree" aria-expanded="false" aria-controls="panelsStayOpen-collapseThree">
+                                            Estoque e Outros
+                                        </button>
+                                    </h2>
+                                    <div id="panelsStayOpen-collapseThree" class="accordion-collapse collapse">
+                                        <div class="accordion-body">
+                                            <div class="row g-3">
+                                                <div class="col-md-1">
+                                                    {{ form.estoque_prod|as_crispy_field }}
+                                                </div>
+                                                <div class="col-md-2 form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="id_lista_orc" name="lista_orc" {% if p.lista_orc %}checked{% endif %}>
+                                                    <label class="form-check-label" for="id_lista_orc">
+                                                        Exibir na Lista (Orçamentos)
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="card" style="margin: 0; width: 30rem;">
+                                                    <div class="card-header fw-bold bg-light text-secondary">
+                                                        Código Secundário
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div class="row mb-1" style="margin-left: -8px;">
+                                                            <div class="col-md-9">
+                                                                <label for="cod-sec" class="form-label">Código:</label>
+                                                                <input type="text" id="cod-sec" class="form-control form-control-sm border-dark-subtle" name="cod-sec">
+                                                            </div>
+                                                            <div class="col-md-3 d-flex align-items-start">
+                                                                <button class="btn btn-success btn-sm w-100" type="button" id="add-cod-sec-tab" style="margin-top: 30px;">
+                                                                    <i class="fa-solid fa-plus"></i> Incluir
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <div style="max-height: 100px; overflow-y: auto;">
+                                                            <table class="table table-sm table-bordered rounded-top" id="tb-cod-sec">
+                                                                <thead class="table-secondary">
+                                                                    <tr>
+                                                                        <th scope="col">Código</th>
+                                                                        <th scope="col" style="width: 30px;">Exc.</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {% for c in codigos %}
+                                                                        <tr data-id="{{ forloop.counter0 }}">
+                                                                            <td>
+                                                                                {{ c.codigo }}
+                                                                                <input type="hidden" name="codigo[{{ forloop.counter0 }}][codigo]" value="{{ c.codigo }}">
+                                                                            </td>
+                                                                            <td>
+                                                                                <button type="button" class="remover btn btn-danger btn-sm mt-1 mb-1"><i class="fa-solid fa-trash"></i></button>
+                                                                            </td>
+                                                                        </tr>
+                                                                    {% endfor %}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="base_botao">
+                            <button type="button" class="btn btn-success botoes" data-bs-toggle="modal" data-bs-target="#staticBackdrop" id="openModalBtn">Alterar</button>
+                            <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#loadingModal">Voltar</a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </form>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h1 class="modal-title fs-5" id="staticBackdropLabel"><i class="fa-regular fa-circle-question"></i> Confirmação!</h1>
+                </div>
+                <div class="modal-body">
+                    <p>Você confirma a ALTERAÇÃO DO PRODUTO?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>
+                    <button type="button" class="btn btn-secondary" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

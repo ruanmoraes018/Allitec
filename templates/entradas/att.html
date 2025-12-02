@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% block title %}Alterar Entrada{% endblock %}
+{% block content %}
+<div class="container-fluid bg-white">
+    <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'lista-entradas' %}" id="item-naveg">Entradas</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Alterar</li>
+        </ol>
+    </nav>
+    <div class="formularios">
+        <form method="POST" id="createForm" class="orcamentoForm" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% if form %}
+                {% if error_messages %}
+                    <div id="toast-messages" data-messages='[
+                        {"text": "{% for message in error_messages %}{{ message }}<br>{% endfor %}", "tag": "error"}
+                    ]'></div>
+                {% endif %}
+                <div class="card">
+                    <div class="card-header">
+                        <span>
+                            ALTERAÇÃO DE NF/PEDIDOS
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3" style="margin-left: -8px;">
+                            <div class="col-md-4">
+                                {{ form.fornecedor|as_crispy_field }}
+                            </div>
+                            <div class="col-md-3">
+                                {{ form.vinc_fil|as_crispy_field }}
+                            </div>
+                            <div class="col-md-1">
+                                {{ form.numeracao|as_crispy_field }}
+                            </div>
+                            <div class="col-md-1">
+                                {{ form.tp_frete|as_crispy_field }}
+                            </div>
+                            <div class="col-md-1">
+                                {{ form.dt_emi|as_crispy_field }}
+                            </div>
+                            <div class="col-md-1">
+                                {{ form.dt_ent|as_crispy_field }}
+                            </div>
+                            <div class="col-md-1">
+                                {{ form.tipo|as_crispy_field }}
+                            </div>
+                            <div class="col-md-1">
+                                {{ form.modelo|as_crispy_field }}
+                            </div>
+                            <div class="col-md-1">
+                                {{ form.serie|as_crispy_field }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.nat_op|as_crispy_field }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.chave_acesso|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2 d-flex align-items-start">
+                                <button class="btn btn-dark btn-sm w-100" type="button" id="add-produtos" style="margin-top: 30px;">
+                                    <i class="fa-solid fa-plus"></i> Adicionar Item
+                                </button>
+                            </div>
+                            <div class="card" style="margin: 0; margin-left: 4px;">
+                                <div class="form-buttons" style="margin-left: 10px; margin-top: 10px;">
+                                    <div class="card-header bg-white">
+                                        <button type="button" class="btn btn-dark" id="endBtn">Produtos</button>
+                                        <button type="button" class="btn btn-dark" id="complBtn">Observações</button>
+                                    </div>
+                                </div>
+                                <div class="form-section" id="enderecos">
+                                    <div class="row g-3" style="overflow-x: auto;">
+                                        <table class="table table-sm table-bordered table-striped table-hover table-responsive-md table-rounded" id="tabela-produtos">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>Código</th>
+                                                    <th>Produto</th>
+                                                    <th>Quantidade</th>
+                                                    <th>Vl. Unit.</th>
+                                                    <th>Desconto</th>
+                                                    <th>Vl. Total</th>
+                                                    <th style="width: 6%;">Ações</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% if produtos %}
+                                                    {% for item in produtos %}
+                                                        <tr data-id="{{ forloop.counter0 }}">
+                                                            <td>
+                                                                {{ item.produto.id }}
+                                                                <input type="hidden" name="produtos[{{ forloop.counter0 }}][codigo]" value="{{ item.produto.id }}">
+                                                            </td>
+                                                            <td>
+                                                                {{ item.produto.desc_prod }}
+                                                                <input type="hidden" name="produtos[{{ forloop.counter0 }}][produto]" value="{{ item.produto.desc_prod }}">
+                                                            </td>
+                                                            <td>
+                                                                {{ item.quantidade }}
+                                                                <input type="hidden" name="produtos[{{ forloop.counter0 }}][quantidade]" value="{{ item.quantidade }}">
+                                                            </td>
+                                                            <td style="font-weight: bold; color: #2E8B57;">
+                                                                {{ item.preco_unitario }}
+                                                                <input type="hidden" name="produtos[{{ forloop.counter0 }}][preco_unitario]" value="{{ item.preco_unitario }}">
+                                                            </td>
+                                                            <td>
+                                                                {{ item.desconto }}
+                                                                <input type="hidden" name="produtos[{{ forloop.counter0 }}][desconto]" value="{{ item.desconto }}">
+                                                            </td>
+                                                            <td style="font-weight: bold; color: #2E8B57;">
+                                                                {{ item.subtotal|floatformat:2 }}
+                                                            </td>
+                                                            <td>
+                                                                <input type="hidden" name="produtos[{{ forloop.counter0 }}][unidade]" value="{{ item.produto.unidProd.nome_unidade }}">
+                                                                <input type="hidden" name="produtos[{{ forloop.counter0 }}][grupo]" value="{{ item.produto.grupo.nome_grupo }}">
+                                                                <button type="button" class="editar btn btn-success btn-sm mt-1 mb-1"><i class="fa-solid fa-pen-to-square"></i></button>
+                                                                <button type="button" class="remover btn btn-danger btn-sm mt-1 mb-1"><i class="fa-solid fa-trash"></i></button>
+                                                            </td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <tr class="vazio">
+                                                        <td colspan="7" class="text-center">Nenhum produto inserido.</td>
+                                                    </tr>
+                                                {% endif %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="form-section" id="complementos">
+                                    <div class="row g-3" style="margin-left: -8px;">
+                                        <div class="col-md-12">
+                                            {{ form.obs|as_crispy_field }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card" style="margin: 0;">
+                                    <div class="card-body text-center" style="max-height: 10px;">
+                                        <h6 class="fw-bold" style="margin-top: -10px;">TOTAIS DA NOTA/PEDIDO</h6>
+                                    </div>
+                                </div>
+                                <div class="card mt-2 mb-2 mx-auto" style="width: 18rem;">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item fw-bold">Total Desconto: <span style="background-color: #20B2AA; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" id="total-desconto">0.00</span></li>
+                                        <li class="list-group-item fw-bold">Total dos Produtos: <span style="background-color: #3CB371; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" id="total-produtos">0.00</span></li>
+                                        <li class="list-group-item fw-bold">
+                                            Total Frete: <span title="Clique para inserir o valor do frete" id="total-frete" style="background-color: #F08080; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" class="editable">{{ form.frete.value }}</span>
+                                            <input type="hidden" id="id_frete" name="frete" value="{{ form.frete.value }}">
+                                        </li>
+
+                                        <li class="list-group-item fw-bold">Valor Total: <span style="background-color: #32CD32; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" id="valor-total">0.00</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="base_botao">
+                            <button type="button" class="btn btn-success botoes" data-bs-toggle="modal" data-bs-target="#staticBackdrop" id="openModalBtn">Alterar</button>
+                            <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#loadingModal">Voltar</a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </form>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h1 class="modal-title fs-5" id="staticBackdropLabel"><i class="fa-regular fa-circle-question"></i> Confirmação!</h1>
+                </div>
+                <div class="modal-body">
+                    <p>Você confirma a ALTERAÇÃO DE NF/PEDIDO?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>
+                    <button type="button" class="btn btn-secondary" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--Modal de Consulta de Produtos-->
+    <div class="modal fade" id="produtoModal" style="z-index: 1060;" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="produtoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h5 class="modal-title" id="produtoModalLabel"><i class="fa-solid fa-magnifying-glass"></i> Pesquisar Produtos</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Conteúdo da Pesquisa:</label>
+                            <input type="text" id="campo-pesquisa-produto" class="form-control" placeholder="Digite a descrição do produto">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Tipo:</label>
+                            <select class="form-select" id="campo-tipo-produto">
+                                <option value="Principal">Principal</option>
+                                <option value="Adicional">Adicional</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Grupo:</label>
+                            <select class="form-select" id="campo-grupo-produto">
+                                <option value="">Selecione um grupo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Unidade:</label>
+                            <select class="form-select" id="campo-unidade-produto">
+                                <option value="">Selecione uma unidade</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">Reg.:</label>
+                            <select class="form-select" id="campo-pagina">
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="30">30</option>
+                                <option value="40">40</option>
+                                <option value="50">50</option>
+                                <option value="todos">Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1 d-flex align-items-start">
+                            <button class="btn btn-dark w-100" id="pesq-produtos" style="margin-top: 30px;">Listar</button>
+                        </div>
+                    </div>
+
+                    <div class="table-container mt-3">
+                        <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th scope="col" style="width: 20px;">Opções</th>
+                                    <th scope="col">Código</th>
+                                    <th scope="col">Descrição</th>
+                                    <th scope="col">Tipo</th>
+                                    <th scope="col">Grupo</th>
+                                    <th scope="col">Unidade</th>
+                                    <th scope="col">Estoque</th>
+                                    <th scope="col">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="produtos-lista">
+                                <!-- Os produtos serão listados aqui -->
+                            </tbody>
+                        </table>
+                        <div id="paginacao" class="mt-2 d-flex gap-1 mx-auto" style="text-align: center;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--Modal de Inserção de Produtos-->
+    <div class="modal fade" id="edProdModal" style="z-index: 1055;" tabindex="-1" aria-labelledby="edProdModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h1 class="modal-title fs-5" id="edProdModalLabel"><i class="fa-solid fa-file-pen"></i> Adição/Edição de Item</h1>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3" style="margin-left: -8px;">
+                        <div class="col-md-3" id="div_id_cod_prod">
+                            <label for="id_cod_produto" class="form-label requiredField">Cód. Produto</label>
+                            <div class="input-group">
+                                <input type="text" id="id_cod_produto" class="form-control form-control-sm border-dark-subtle" placeholder="Cód. Prod." aria-label="Cód. Prod." aria-describedby="add-prod">
+                                <button class="btn btn-outline-dark btn-sm" type="button" id="add-prod"><i class="fa-solid fa-magnifying-glass"></i></button>
+                            </div>
+                        </div>
+                        <div class="col-md-7" id="div_id_desc_prod">
+                            <label for="id_desc_prod" class="form-label requiredField">Descrição</label>
+                            <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_desc_prod" autofocus name="desc_prod" disabled="disabled">
+                        </div>
+                        <div class="col-md-2" id="div_id_unidProd">
+                            <label for="id_unidProd" class="form-label requiredField">Unidade</label>
+                            <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_unidProd" name="unidProd" disabled="disabled">
+                        </div>
+                        <div class="col-md-4" id="div_id_grupo">
+                            <label for="id_grupoProd" class="form-label requiredField">Grupo</label>
+                            <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_grupoProd" name="grupo" disabled="disabled">
+                        </div>
+                        <div class="col-md-2" id="div_id_preco_unit">
+                            <label for="id_preco_unit" class="form-label requiredField">Preço Unitário*</label>
+                            <input type="decimal" class="form-control form-control-sm border-dark-subtle" id="id_preco_unit" name="preco_unit">
+                        </div>
+                        <div class="col-md-2" id="div_id_quantidade">
+                            <label for="id_quantidade" class="form-label requiredField">Quantidade*</label>
+                            <input type="decimal" class="form-control form-control-sm border-dark-subtle" id="id_quantidade" name="quantidade">
+                        </div>
+                        <div class="col-md-2" id="div_id_desconto">
+                            <label for="id_desconto" class="form-label requiredField">Desconto</label>
+                            <input type="decimal" class="form-control form-control-sm border-dark-subtle" id="id_desconto" name="desconto">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark" id="add-produto-lista">Confirmar</button>
+                    <button type="button" class="btn btn-secondary" id="cancelar-produto-lista" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

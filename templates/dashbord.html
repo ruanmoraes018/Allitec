@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+{% block title %}Allitec - Dashboard{% endblock %}
+{% block content %}
+    {% block nav %}
+        {% if messages %}
+            <div id="django-messages" data-messages='[
+                {% for message in messages %}
+                    {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
+                    {% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ]'></div>
+        {% endif %}
+        <div class="container-fluid bg-white">
+            <h1 class="text-center" style="font-size: 30px;">Dashboard</h1>
+            <div class="row">
+                <div class="col-sm-6 mb-3 mb-sm-3" style="margin-bottom: 10px;">
+                    <div class="card">
+                        <div class="card-header bg-secondary-subtle">
+                            <h5 class="card-title text-info-emphasis text-center">Resumo de Orçamentos <i class="fa-solid fa-calendar-days"></i> {{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                {% if orcamentos_abertos > 0 %}
+                                    <div class="row g-3">
+                                        <div class="col-md-2 card-text bg-primary rounded-pill text-white fw-bold text-center" style="margin-bottom: 10px; margin-right: 20px;">
+                                            {{ orcamentos_abertos }} {% if orcamentos_abertos > 1 %}Abertos{% else %}Aberto{% endif %}
+                                        </div>
+                                        <div class="col-md-2 card text fw bold text-center" style="margin-bottom: 10px; font-weight: bold;">
+                                            {{ total_abertos|moeda_br }}
+                                        </div>
+                                    </div>
+
+                                {% endif %}
+                                {% if orcamentos_faturados > 0 %}
+                                    <div class="row g-3">
+                                        <div class="col-md-2 card-text bg-success rounded-pill text-white fw-bold text-center" style="margin-bottom: 10px; margin-right: 20px;">
+                                            {{ orcamentos_faturados }} {% if orcamentos_faturados > 1 %}Faturados{% else %}Faturado{% endif %}
+                                        </div>
+                                        <div class="col-md-2 card text fw bold text-center" style="margin-bottom: 10px; font-weight: bold;">
+                                            {{ total_faturados|moeda_br }}
+                                        </div>
+                                        <div class="col-md-7 flex-md-fill">
+                                            <h5 style="float: right; font-weight: bold; color: green;">R$ {{ media_valor_fat|moeda_br }}</h5>
+                                        </div>
+                                        {% if orcamentos_cancelados > 0 %}
+                                            <div class="col-md-2 card-text bg-danger rounded-pill text-white fw-bold text-center" style="margin-bottom: 10px; margin-right: 20px;">
+                                                {{ orcamentos_cancelados }} {% if orcamentos_cancelados > 1 %}Cancelados{% else %}Cancelado{% endif %}
+                                            </div>
+                                            <div class="col-md-2 card text fw bold text-center" style="margin-bottom: 10px; font-weight: bold;">
+                                                {{ total_cancelados|moeda_br }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="row g-3">
+                                            <div class="col-md-9 flex-md-fill">
+                                                <h6 style="float: right;">Média faturada p/ orçamento</h6>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                {% if orcamentos_abertos < 1 and orcamentos_faturados < 1 and orcamentos_cancelados < 1 %}
+                                    <div class="text-center">
+                                        Não há orçamentos gerados!
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6" style="margin-bottom: 10px;">
+                    <div class="card">
+                        <div class="card-header bg-secondary-subtle">
+                            <h5 class="card-title text-info-emphasis text-center">Orçamentos por Técnico <i class="fa-solid fa-calendar-days"></i> {{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                {% for tecnico in tecnicos %}
+                                    <div class="col-md-5 card-text" style="margin-bottom: 10px;">
+                                        <strong>{{ tecnico.nome }}</strong> - {{ tecnico.qtd }} {% if tecnico.qtd > 1 %}orçamentos{% else %}orçamento{% endif %}
+                                    </div>
+                                    <div class="col-md-6 flex-md-fill">
+                                        <h6 style="float: right; font-weight: bold;">R$ {{ tecnico.total|moeda_br }}</h6>
+                                    </div>
+                                {% empty %}
+                                    <div class="text-center">
+                                        Não há orçamentos faturados!
+                                    </div>
+                                {% endfor %}
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    {% endblock %}
+{% endblock %}
