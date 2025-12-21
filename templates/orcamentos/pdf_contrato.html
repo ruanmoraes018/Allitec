@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+{% load static %}
+{% load custom_filters %}
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Contrato de Venda e Instalação - {{o.num_orcamento}}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 10mm 15mm 20mm 15mm;
+        }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 12px;
+            line-height: 1.2;
+            color: #000;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .header img {
+            height: 70px;
+        }
+        .header .orcamento {
+            text-align: right;
+            font-size: 11px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 16px;
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+        h2 {
+            font-size: 13px;
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+        p {
+            text-align: justify;
+            margin-bottom: 10px;
+        }
+        ul {
+            margin: 5px 0 10px 25px;
+        }
+        li {
+            margin-bottom: 5px;
+        }
+        .assinaturas {
+            margin-top: 60px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .assinatura {
+            width: 45%;
+            text-align: center;
+            font-size: 12px;
+        }
+        .linha {
+            border-top: 1px solid #000;
+            margin-top: 50px;
+            padding-top: 5px;
+        }
+        footer {
+            position: fixed;
+            bottom: 10mm;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+<!-- CABEÇALHO -->
+<div class="header">
+    <div>
+        {% if logo_base64 %}
+            <img src="data:image/jpeg;base64,{{ logo_base64 }}">
+        {% endif %}
+    </div>
+    <div class="orcamento">
+        <strong>Contrato nº:</strong> {{ o.num_orcamento }}<br>
+        <strong>Data:</strong> {{ o.dt_emi|date:"d/m/Y" }}
+    </div>
+</div>
+<h1>CONTRATO DE VENDA E INSTALAÇÃO</h1>
+<p>
+Pelo presente instrumento particular, as partes abaixo identificadas:
+</p>
+<p>
+<strong>CONTRATANTE:</strong>
+{{ o.nome_cli }}, {% if o.cli.pessoa == "Física" %}Pessoa Física, inscrita no CPF{% else %} Pessoa Jurídica, inscrita no CNPJ sob o nº{% endif %} {{ o.cli.cpf_cnpj }},
+residente e domiciliada em {{ o.cli.endereco }}, Nº: {{ o.cli.numero }} - Bairro: {{ o.cli.bairro }} - {{ o.cli.cidade }}/{{ o.cli.uf }}.
+</p>
+<p>
+<strong>CONTRATADA:</strong>
+<strong>{{ o.vinc_fil.fantasia|upper }}</strong>, inscrita no CNPJ sob o nº {{ o.vinc_fil.cnpj }}, Inscrição Estadual nº {{ o.vinc_fil.ie }},
+com sede na {{ o.vinc_fil.endereco }}, Nº: {{ o.vinc_fil.numero }} - Bairro: {{ o.vinc_fil.bairro_fil }} - {{ o.vinc_fil.cidade_fil }}/{{ o.vinc_fil.uf }}, 
+CEP: {{ o.vinc_fil.cep }}, Telefone {{ o.vinc_fil.tel }}.
+</p>
+<p>
+Têm entre si justo e contratado o que segue, mediante as cláusulas e condições abaixo descritas.
+</p>
+<!-- OBJETO -->
+<h2>CLÁUSULA PRIMEIRA – DO OBJETO</h2>
+<p>
+    O presente contrato tem por objeto a venda e instalação de
+    {% for porta in portas %}
+        <strong>{{ forloop.counter }}ª porta
+        de ({{ porta.largura }}m x {{ porta.altura }}m)
+        {% if not forloop.last %}; {% endif %}.</strong> 
+    {% endfor %}
+    {% if o.pintura == "Sim" %}Com pintura aplicada {% else %}Sem Pintura aplicada {% endif %} e 
+    {% if o.portao_social == "Sim" %}com Portão Social - R$ {{ o.vl_p_s|moeda_br }}{% else %}sem Portão Social{% endif %}.
+</p>
+<!-- VALOR -->
+<h2>CLÁUSULA SEGUNDA – DO VALOR E FORMA DE PAGAMENTO</h2>
+<p>
+Pelos serviços descritos na cláusula anterior, o CONTRATANTE pagará à CONTRATADA o valor total de <strong>R$ {{ o.total|moeda_br }}</strong>.
+O pagamento será efetuado em 50%, no ato da Fatura e o restante ao término da instalação.
+</p>
+{% if o.vinc_fil.chave_pix %}
+<p>
+<strong>Dados para Pagamento via PIX:</strong> Banco: {{ o.vinc_fil.banco_fil }}, Favorecido: {{ o.vinc_fil.beneficiario }}, Chave PIX: {{ o.vinc_fil.chave_pix }}.
+</p>
+{% endif %}
+<!-- OBRIGAÇÕES -->
+<h2>CLÁUSULA TERCEIRA – DAS OBRIGAÇÕES DAS PARTES</h2>
+
+<p><strong>São obrigações da CONTRATADA:</strong></p>
+<ul>
+    <li>Iniciar a instalação em até <strong>20 (vinte) dias</strong> após a assinatura deste contrato, com frete incluso;</li>
+    <li>Fornecer <strong>01 (um) ano de assistência técnica gratuita</strong>, exceto nos casos de mau uso;</li>
+    <li>Executar os serviços conforme as especificações acordadas.</li>
+</ul>
+
+<p><strong>São obrigações da CONTRATANTE:</strong></p>
+<ul>
+    <li>Disponibilizar ponto de energia elétrica <strong>220V</strong> adequado para funcionamento do motor;</li>
+    <li>Efetuar o pagamento conforme estipulado neste contrato.</li>
+</ul>
+
+<p>
+<strong>Parágrafo Único:</strong> A assistência técnica gratuita não se aplica em casos de acidente,
+uso inadequado ou mau uso do equipamento, situações em que poderão ser cobrados valores
+referentes a deslocamento, mão de obra e peças.
+</p>
+
+<!-- MULTA -->
+<h2>CLÁUSULA QUARTA – DA MULTA POR INADIMPLÊNCIA</h2>
+<p>
+Em caso de inadimplência, será aplicada multa de <strong>2%</strong> sobre o valor devido,
+acrescida de juros moratórios de <strong>1% ao mês</strong>.
+</p>
+
+<!-- VIGÊNCIA -->
+<h2>CLÁUSULA QUINTA – DA VIGÊNCIA</h2>
+<p>
+O presente contrato passa a vigorar a partir de sua assinatura física ou aceite eletrônico,
+permanecendo válido até o cumprimento integral das obrigações aqui estabelecidas.
+</p>
+
+<p>
+E, por estarem justas e contratadas, as partes assinam o presente instrumento.
+</p>
+
+<p>
+<strong>Local e data:</strong> {{ o.vinc_fil.cidade_fil }}, {{ o.dt_emi|date:"d \\d\\e F \\d\\e Y" }}.
+</p>
+
+<!-- ASSINATURAS -->
+<div class="assinaturas">
+    <div class="assinatura">
+        <div class="linha"></div>
+        <strong>{{ o.vinc_fil.nome }}</strong><br>
+        {{ o.vinc_fil.razao_social }}
+    </div>
+
+    <div class="assinatura">
+        <div class="linha"></div>
+        <strong>{{ o.cliente.nome }}</strong><br>
+        {{ o.cli.razao_social }}
+    </div>
+</div>
+
+<footer style="margin-top: 50px;"><br>
+    {{ o.vinc_fil.fantasia|upper }} • {{ o.vinc_fil.endereco }}, Nº: {{ o.vinc_fil.numero }}<br> Bairro: {{ o.vinc_fil.bairro_fil }} - {{ o.vinc_fil.cidade_fil }}/{{ o.vinc_fil.uf}} - CEP: {{ o.vinc_fil.cep }} • {{ o.vinc_fil.tel }}
+</footer>
+
+</body>
+</html>

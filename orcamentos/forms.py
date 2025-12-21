@@ -1,5 +1,5 @@
 from django import forms
-from .models import Orcamento
+from .models import Orcamento, PortaAdicional, PortaOrcamento, PortaProduto
 from clientes.models import Cliente
 from tecnicos.models import Tecnico
 from decimal import Decimal, InvalidOperation
@@ -45,56 +45,6 @@ class OrcamentoForm(forms.ModelForm):
         })
     )
 
-    qtd = forms.CharField(
-        label="Quantidade",
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
-        })
-    )
-
-    qtd_lam = forms.DecimalField(
-        label="Qtd. Lâmina",
-        max_digits=10,
-        decimal_places=2,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control border-dark-subtle',
-            'placeholder': '0.00',
-        })
-    )
-
-    tp_lamina = forms.ChoiceField(
-        label='TP. Lâmina',
-        choices=[
-            ('Fechada', 'Fechada'),
-            ('Transvision', 'Transvision')
-        ],
-        widget=forms.Select(attrs={
-            'class': 'form-select form-select-sm border-dark-subtle',
-        })
-    )
-
-    tp_vao = forms.ChoiceField(
-        label='TP. Vão',
-        choices=[
-            ('Dentro do Vão', 'Dentro do Vão'),
-            ('Fora do Vão', 'Fora do Vão'),
-            ('1 Lado Dentro do Vão', '1 Lado Dentro do Vão')
-
-        ],
-        widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'})
-    )
-    larg = forms.CharField(
-        label='Largura',
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
-        })
-    )
-    alt = forms.CharField(
-        label='Altura',
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
-        })
-    )
     pintura = forms.ChoiceField(
         choices=[
             ('Sim', 'Sim'),
@@ -104,8 +54,20 @@ class OrcamentoForm(forms.ModelForm):
             'class': 'form-select form-select-sm border-dark-subtle',
         })
     )
+
+    portao_social = forms.ChoiceField(
+        label="Portão Social",
+        choices=[
+            ('Não', 'Não'),
+            ('Sim', 'Sim')
+        ],
+        widget=forms.Select(attrs={
+            'class': 'form-select form-select-sm border-dark-subtle',
+        })
+    )
+
     tp_pintura = forms.ChoiceField(
-        label="TP. Pintura",
+        label="Tipo Pintura",
         choices=[
             ('Eletrostática', 'Eletrostática'),
             ('Automotiva', 'Automotiva')
@@ -130,55 +92,28 @@ class OrcamentoForm(forms.ModelForm):
         required=False,  # Define que o campo não é obrigatório
         widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'})
     )
-    fator_peso = forms.CharField(
-        label='Fator Peso',
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
-            'placeholder': '0.00',
-        })
-    )
-    peso = forms.CharField(
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
-            'placeholder': '0.00',
-        })
-    )
-    eixo_motor = forms.CharField(
-        label='Eixo Motor',
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
-            'placeholder': '0.00',
-        })
-    )
-    larg_corte = forms.CharField(
-        label='Lg. Corte',
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
-        })
-    )
-    alt_corte = forms.CharField(
-        label='At. Corte',
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
-        })
-    )
-    rolo = forms.CharField(
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
-        })
-    )
-    m2 = forms.CharField(
-        label='M²',
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
-        })
-    )
+    
     obs_form_pgto = forms.CharField(
         label='Obs',
         required=False,
         widget=forms.Textarea(attrs={
             'class': 'form-control form-control-sm border-dark-subtle text-uppercase',
             'rows': 2
+        })
+    )
+    vl_p_s = forms.DecimalField(
+        required=False,
+        label="Vl. P. Social",
+        max_digits=10,
+        decimal_places=2,
+        widget=forms.TextInput(attrs={
+            "type": "number",
+            "step":"0.01",
+            "min": "0",
+            'class': 'form-control border-dark-subtle',
+            'style': 'color: darkgreen; font-weight: bold; background: honeydew;',
+            'placeholder': '0.00',
+            'disabled': 'disabled'
         })
     )
     desconto = forms.DecimalField(
@@ -246,9 +181,8 @@ class OrcamentoForm(forms.ModelForm):
     class Meta:
         model = Orcamento
         fields = (
-            'num_orcamento', 'solicitante', 'dt_emi', 'cli',  'obs_cli', 'qtd', 'tp_lamina', 'larg', 'alt', 'tp_vao', 'tp_pintura',
-            'pintura', 'cor', 'fator_peso', 'peso', 'eixo_motor', 'larg_corte', 'alt_corte', 'rolo', 'm2', 'obs_form_pgto', 'dt_ent',
-            'subtotal', 'total', 'desconto', 'acrescimo', 'vinc_fil', 'qtd_lam'
+            'num_orcamento', 'solicitante', 'dt_emi', 'cli',  'obs_cli', 'tp_pintura', 'pintura', 'cor', 'obs_form_pgto', 'dt_ent',
+            'subtotal', 'total', 'desconto', 'acrescimo', 'vinc_fil', 'portao_social', 'vl_p_s'
         )
         widgets = {
             'dt_emi': forms.TextInput(attrs={
@@ -273,3 +207,35 @@ class OrcamentoForm(forms.ModelForm):
 
     def clean_obs_form_pgto(self):
         return self.cleaned_data['obs_form_pgto'].upper()
+
+
+class PortaOrcamentoForm(forms.ModelForm):
+    rolo = forms.DecimalField(localize=False)
+    largura = forms.DecimalField(localize=False)
+    altura = forms.DecimalField(localize=False)
+    m2 = forms.DecimalField(localize=False)
+    larg_corte = forms.DecimalField(localize=False)
+    alt_corte = forms.DecimalField(localize=False)
+    class Meta:
+        model = PortaOrcamento
+        fields = ('numero', 'largura', 'altura', 'tp_lamina', 
+                  'tp_vao', 'qtd_lam', 'm2', 'larg_corte', 
+                  'alt_corte', 'rolo', 'peso', 'fator_peso', 'eixo_motor'
+        )
+        localized_fields = ('rolo', 'largura', 'altura', 'm2', 
+                            'larg_corte', 'alt_corte'
+        )
+
+class PortaProdutoForm(forms.ModelForm):
+    quantidade = forms.DecimalField(localize=False)
+    class Meta:
+        model = PortaProduto
+        fields = ('produto', 'quantidade')
+    localized_fields = ('quantidade', )
+
+class PortaAdicionalForm(forms.ModelForm):
+    quantidade = forms.DecimalField(localize=False)
+    class Meta:
+        model = PortaAdicional
+        fields = ('produto', 'quantidade')
+    localized_fields = ('quantidade', )

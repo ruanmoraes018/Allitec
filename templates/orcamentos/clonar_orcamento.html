@@ -37,25 +37,25 @@
                     <div class="card-body">
                         <!--Cliente-->
                         <div class="form-section" id="clientes">
-                            <div class="row g-3" style="margin-left: -8px;">
+                            <div class="row" style="margin-left: -8px;">
                                 <div class="col-md-1">
                                     {{ form.num_orcamento|as_crispy_field }}
                                 </div>
-                                <div class="col-md-2">
+                                <div class="col-md-3">
                                     {{ form.vinc_fil|as_crispy_field }}
                                 </div>
                                 <div class="col-md-3">
                                     {{ form.solicitante|as_crispy_field }}
                                 </div>
-                                <div class="col-md-2">
+                                <div class="col-md-1">
                                     {{ form.dt_emi|as_crispy_field }}
                                 </div>
-                                <div class="col-md-2">
+                                <div class="col-md-1">
                                     {{ form.dt_ent|as_crispy_field }}
                                 </div>
                             </div>
                             <hr>
-                            <div class="row g-3" style="margin-left: -8px;">
+                            <div class="row" style="margin-left: -8px;">
                                 <div class="col-md-3">
                                     {{ form.cli|as_crispy_field }}
                                 </div>
@@ -102,101 +102,109 @@
                         </div>
                         <!--Medidas-->
                         <div class="form-section" id="medidas">
-                            <div class="row g-3" style="margin-left: -8px;">
-                                <div class="col-md-1">
-                                    {{ form.qtd|as_crispy_field }}
+                            <div class="row" style="margin-left: -8px;">
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-md-2">
+                                        <label for="qtd_portas" class="form-label">Nº de Portas:</label>
+                                        <input type="number" id="qtd_portas" class="form-control form-control-sm" min="1" value="1">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" id="btnGerarPortas" class="btn btn-dark btn-sm"><i class="fa-solid fa-square-plus"></i> Gerar</button>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <small class="text-muted">Após gerar, preencha largura/altura e abra Produtos / Adicionais para visualizar os itens por porta.</small>
+                                    </div>
                                 </div>
-                                <div class="col-md-2">
-                                    {{ form.tp_lamina|as_crispy_field }}
-                                </div>
-                                <div class="col-md-1">
-                                    {{ form.larg|as_crispy_field }}
-                                </div>
-                                <div class="col-md-1">
-                                    {{ form.alt|as_crispy_field }}
-                                </div>
-                                <div class="col-md-2">
-                                    {{ form.tp_vao|as_crispy_field }}
-                                </div>
-                                <div class="col-md-1">
-                                    {{ form.qtd_lam|as_crispy_field }}
+                                <!-- TABELA RESUMO (linhas das portas geradas) -->
+                                <div class="card mb-3" style="margin: 0; margin-top: 10px; padding-left: 0; padding-right: 0;">
+                                    <div class="card-header text-center"><i class="fa-solid fa-align-justify"></i> <strong>Portas Geradas</strong></div>
+                                    <div class="card-body p-0">
+                                        <table class="table table-bordered table-sm table-striped mb-0" id="tabelaPortasResumo">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th style="width: 6%;">Largura</th>
+                                                    <th style="width: 6%;">Altura</th>
+                                                    <th style="width: 6%;">Lg. Corte</th>
+                                                    <th style="width: 6%;">At. Corte</th>
+                                                    <th style="width: 6%;">Qtd. Lâm</th>
+                                                    <th style="width: 6%;">M²</th>
+                                                    <th style="width: 6%;">Ft. Peso</th>
+                                                    <th style="width: 6%;">Peso</th>
+                                                    <th style="width: 6.5%;">Eixo Motor</th>
+                                                    <th style="width: 6%;">Rolo</th>
+                                                    <th>Tipo de Lâmina</th>
+                                                    <th>Tipo de Vão</th>
+                                                    <th style="width: 40px;">Exc.</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for pt in orcamento.portas.all %}
+                                                    <tr id="linha_resumo_{{ pt.numero }}" class="linha-porta" data-porta="{{ pt.numero }}">
+                                                        <td data-label="Porta:" class="mobile-3col">{{ forloop.counter|stringformat:"01d" }}</td>
+                                                        <td data-label="Larg.:" class="mobile-3col"><input type="text" class="form-control form-control-sm larg" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.largura }}"></td>
+                                                        <td data-label="Alt.:" class="mobile-3col"><input type="text" class="form-control form-control-sm alt" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.altura }}"></td>
+                                                        <td data-label="Lg. Corte:" class="mobile-3col"><input readonly class="form-control form-control-sm larg-corte" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.larg_corte }}"></td>
+                                                        <td data-label="At. Corte:" class="mobile-3col"><input readonly class="form-control form-control-sm alt-corte" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.alt_corte }}"></td>
+                                                        <td data-label="Qtd. Lâm.:" class="mobile-3col"><input readonly class="form-control form-control-sm qtd-laminas" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.qtd_lam }}"></td>
+                                                        <td data-label="M²:" class="mobile-3col"><input readonly class="form-control form-control-sm m2" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.m2 }}"></td>
+                                                        <td data-label="Ft. Peso:" class="mobile-3col"><input readonly class="form-control form-control-sm ft-peso" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.fator_peso }}"></td>
+                                                        <td data-label="Peso:" class="mobile-3col"><input readonly class="form-control form-control-sm peso" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.peso }}"></td>
+                                                        <td data-label="Eix. Mot.:" class="mobile-3col"><input readonly class="form-control form-control-sm eix-mot" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.eixo_motor }}"></td>
+                                                        {% load l10n %}
+                                                        <td data-label="Rolo:" class="mobile-3col">
+                                                            <input readonly class="form-control form-control-sm rolo" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.rolo|unlocalize }}">
+                                                        </td>
+                                                        <td data-label="Tp. Lâm.:" class="mobile-3col">
+                                                            <select class="form-select form-select-sm tipo-lamina" data-porta="{{ pt.numero }}">
+                                                                <option value="Fechada" {% if pt.tipo_lamina == "Fechada" %}selected{% endif %}>Fechada</option>
+                                                                <option value="Transvision" {% if pt.tipo_lamina == "Transvision" %}selected{% endif %}>Transvision</option>
+                                                            </select>
+                                                        </td>
+                                                        <td data-label="Tp. Vão:" class="mobile-2col">
+                                                            <select class="form-select form-select-sm tipo-vao" data-porta="{{ pt.numero }}">
+                                                                <option value="Fora do Vão" {% if pt.tipo_vao == "Fora do Vão" %}selected{% endif %}>Fora do Vão</option>
+                                                                <option value="Dentro do Vão" {% if pt.tipo_vao == "Dentro do Vão" %}selected{% endif %}>Dentro do Vão</option>
+                                                                <option value="1 Lado Dentro do Vão" {% if pt.tipo_vao == "1 Lado Dentro do Vão" %}selected{% endif %}>1 Lado Dentro do Vão</option>
+                                                            </select>
+                                                        </td>
+                                                        <td data-label="Exc.:" class="text-center mobile-2col">
+                                                            <button type="button" class="btn btn-danger btn-sm removerPorta" data-porta="{{ pt.numero }}">
+                                                                <i class="fa-solid fa-trash-can"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>  
                                 </div>
                                 <div class="col-md-1">
                                     {{ form.pintura|as_crispy_field }}
                                 </div>
-                                <div class="col-md-1">
+                                <div class="col-md-2">
                                     {{ form.tp_pintura|as_crispy_field }}
                                 </div>
                                 <div class="col-md-2">
                                     {{ form.cor|as_crispy_field }}
                                 </div>
-                                <div class="col-md-1">
-                                    {{ form.fator_peso|as_crispy_field }}
+                                <div class="col-md-2">
+                                    {{ form.portao_social|as_crispy_field }}
                                 </div>
                                 <div class="col-md-1">
-                                    {{ form.peso|as_crispy_field }}
+                                    {{ form.vl_p_s|as_crispy_field }}
                                 </div>
-                                <div class="col-md-1">
-                                    {{ form.eixo_motor|as_crispy_field }}
-                                </div>
-                                <div class="col-md-1">
-                                    {{ form.larg_corte|as_crispy_field }}
-                                </div>
-                                <div class="col-md-1">
-                                    {{ form.alt_corte|as_crispy_field }}
-                                </div>
-                                <div class="col-md-1">
-                                    {{ form.rolo|as_crispy_field }}
-                                </div>
-                                <div class="col-md-1">
-                                    {{ form.m2|as_crispy_field }}
-                                </div>
+                                <input type="hidden" id="id_json_portas" name="json_portas">
                             </div>
                         </div>
                         <!--Prod./Serviços-->
                         <div class="form-section" id="prod_serv">
-                            <div class="row g-3" style="margin-left: -8px;">
-                                <div class="col-md-2" id="div_id_cod_prod">
+                            <div class="row" style="margin-left: -8px;">
+                                {% comment %} <div class="col-md-2" id="div_id_cod_prod">
                                     <label for="id_cod_prod" class="form-label requiredField">Cód.</label>
                                     <div class="input-group">
                                         <input type="text" id="id_cod_prod" class="form-control form-control-sm border-dark-subtle" placeholder="Cód. Prod." aria-label="Cód. Prod." aria-describedby="button-addon2">
                                         <button class="btn btn-outline-dark btn-sm" type="button" id="button-addon2">🔎</button>
-                                    </div>
-                                </div>
-                                <div class="modal fade" id="produtoModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="produtoModalLabel" aria-hidden="true">
-                                    <div class="modal-dialog  modal-lg modal-dialog-centered modal-dialog-scrollable">
-                                        <div class="modal-content">
-                                            <div class="modal-header titulo-modal">
-                                                <h5 class="modal-title" id="produtoModalLabel">Pesquisar Produtos Principais</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <div class="input-group mb-3">
-                                                    <input type="text" id="campo-pesquisa-produto" class="form-control" placeholder="Digite a descrição do produto">
-                                                    <button class="btn btn-dark" id="pesquisar-produtos">🔎</button>
-                                                </div>
-                                                <div class="table-container mt-3">
-                                                    <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
-                                                        <thead class="table-dark">
-                                                            <tr>
-                                                                <th scope="col">Opções</th>
-                                                                <th scope="col">Código</th>
-                                                                <th scope="col">Descrição</th>
-                                                                <th scope="col">Unidade</th>
-                                                                <th scope="col">Estoque</th>
-                                                                <th scope="col">Valor</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody id="produtos-lista">
-                                                            <!-- Os produtos serão listados aqui -->
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                                 <div class="col-md-3" id="div_id_desc_prod">
@@ -221,92 +229,89 @@
                                 </div>
                                 <div class="col-md-1" id="div_id_vl_compra">
                                     <input type="hidden" style="color: #DC143C; font-weight: bold;" class="form-control form-control-sm border-dark-subtle valor_os" id="id_vl_compra" name="vl_compra" disabled="disabled">
+                                </div> {% endcomment %}
+                                <!-- Accordion Produtos -->
+                                <div class="accordion" id="accordionProdutos">
+                                    {% for pt in portas %}
+                                        <div class="accordion-item acc-produto porta-{{ pt.numero }}" id="accProd_{{ pt.numero }}" data-porta="{{ pt.numero }}">
+                                            <h2 class="accordion-header" id="headingProd_{{ pt.numero }}">
+                                                <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProd_{{ pt.numero }}">
+                                                    Produtos – Porta {{ pt.numero }}
+                                                </button>
+                                            </h2>
+                                            <div id="collapseProd_{{ pt.numero }}" class="accordion-collapse collapse">
+                                                <div class="accordion-body table-container w-100">
+                                                    <table class="table table-bordered table-sm table-striped tabela-produtos" id="tblProd_{{ pt.numero }}">
+                                                        <thead class="table-dark">
+                                                            <tr>
+                                                                <th>#</th>
+                                                                <th>Cód.</th>
+                                                                <th>Descrição</th>
+                                                                <th>Unidade</th>
+                                                                <th>Vl. Compra</th>
+                                                                <th>Vl. Un.</th>
+                                                                <th>Qtde.</th>
+                                                                <th>Tot. Compra</th>
+                                                                <th>Vl. Tot.</th>
+                                                                <th style="width: 70px;">Ações</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for pprod in pt.produtos.all %}
+                                                            <tr data-porta="{{ pt.numero }}" data-item-id="{{ pprod.produto.id }}">
+                                                                <td data-label="#" class="mobile-2col">{{ forloop.counter }}</td>
+                                                                <td data-label="Cód:" class="mobile-2col">{{ pprod.produto.id }}</td>
+                                                                <td data-label="Desc.:" class="mobile-2col">{{ pprod.produto.desc_prod }}</td>
+                                                                <td data-label="Unid:" class="mobile-2col">{{ pprod.produto.unidProd }}</td>
+                                                                <td class="text-danger fw-bold mobile-3col" data-label="Vl. Compra:">{{ pprod.produto.vl_compra }}</td>
+                                                                {% load l10n %}
+                                                                <td class="vl-unit text-success fw-bold mobile-3col" data-label="Vl. Unit:">
+                                                                    {{ pprod.produto.produtotabela_set.first.vl_prod|unlocalize }}
+                                                                </td>
+                                                                {% load l10n %}
+                                                                <td class="qtd-produto mobile-3col" data-label="Qtde:">
+                                                                    {{ pprod.quantidade|unlocalize }}
+                                                                </td>
+                                                                <td class="tot-compra text-danger fw-bold mobile-3col" data-label="Tot. Compra:">
+                                                                    {{ pprod.totCompraP|floatformat:2 }}
+                                                                </td>
+                                                                <td class="vl-total text-success fw-bold mobile-3col" data-label="Vl. Total:">
+                                                                    {{ pprod.subtotalP|floatformat:2 }}
+                                                                </td>
+                                                                <td data-label="Ações:" class="mobile-3col">
+                                                                    <i class="fas fa-edit editBtn" style="color:#13c43f;cursor:pointer" data-bs-toggle="modal" data-bs-target="#editItemModal"></i>
+                                                                    <i class="fas fa-trash deleteBtn" style="color:#db1e47;cursor:pointer"></i>
+                                                                </td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                    <!-- 🔥 Totais da porta -->
+                                                    <div class="d-flex justify-content-end gap-4 mt-2 porta-totais" data-porta="{{ pt.numero }}">
+                                                        <span>
+                                                            <strong>Total Compra:</strong>
+                                                            <span style="padding-left: 10px; padding-right: 10px;" class="border border-danger-subtle rounded-4 bg-danger-subtle fw-bold" id="totCompra_porta_{{ pt.numero }}">0,00</span>
+                                                        </span>
+                                                        <span>
+                                                            <strong>Total Venda:</strong>
+                                                            <span style="padding-left: 10px; padding-right: 10px;" class="border border-success-subtle rounded-4 bg-success-subtle fw-bold" id="totVenda_porta_{{ pt.numero }}">0,00</span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
                                 </div>
-                                <div class="table-container">
-                                    <table class="table table-bordered table-striped" id="itensTableProduto">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th col="auto" id="thTable" style="text-align: justify;">Itens</th>
-                                                <th col="auto" id="thTable" style="text-align: justify;">Cód.</th>
-                                                <th col="auto" id="thTable" style="text-align: justify;">Descrição</th>
-                                                <th col="auto" id="thTable" style="text-align: justify;">Unidade</th>
-                                                <th col="auto valor_os" id="thTable" style="text-align: justify;">Vl. Compra</th>
-                                                <th col="auto valor_os" id="thTable" style="text-align: justify;">Vl. Un.</th>
-                                                <th col="auto" id="thTable" style="text-align: justify;">Qtde.</th>
-                                                <th col="auto" id="thTable" style="text-align: justify;">Tot. Compra</th>
-                                                <th col="auto" id="thTable" style="text-align: justify;">Vl. Tot.</th>
-                                                <th col="auto" style="text-align: justify; width: 80px;">Ações</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for produto in orcamento.produtos.all %}
-                                                <tr>
-                                                    <td>{{ forloop.counter|stringformat:"03d" }}</td>
-                                                    <td>{{ produto.produto.id }}</td>
-                                                    <td>{{ produto.produto.desc_prod }}</td>
-                                                    <td>{{ produto.produto.unidProd.nome_unidade }}</td>
-                                                    <td style="font-weight: bold; color: #DC143C;">{{ produto.produto.vl_compra }}</td>
-                                                    <td style="font-weight: bold; color: #2E8B57;">
-                                                        {{ produto.produto.produtotabela_set.first.vl_prod }}
-                                                    </td>
-                                                    <td>{{ produto.quantidade }}</td>
-                                                    <td style="font-weight: bold; color: #DC143C;">{{ produto.subtotalCompra }}</td>
-                                                    <td style="font-weight: bold; color: #2E8B57;">{{ produto.subtotalVenda }}</td>
-                                                    <td>
-                                                        <i class="fas fa-trash deleteItemBtn deleteBtn" title="Deletar" style="color: #db1e47;" data-item="{{ produto }}"></i>
-                                                        <i class="fas fa-edit editItemBtn editBtn" title="Editar" style="color: #13c43f;" data-item="{{ produto }}" data-bs-toggle="modal" data-id="{{ produto.id }}" data-bs-target="#editItemModal"></i>
-                                                    </td>
-                                                </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <input type="hidden" id="id_itens_prod" name="itens_prod">
                             </div>
                         </div>
                         <!--Adicionais-->
                         <div class="form-section" id="adicionais">
-                            <div class="row g-3" style="margin-left: -8px;">
-                                <div class="col-md-2" id="div_id_cod_prod_adc">
+                            <div class="row" style="margin-left: -8px;">
+                                {% comment %} <div class="col-md-2" id="div_id_cod_prod_adc">
                                     <label for="id_cod_prod_adc" class="form-label requiredField">Cód.</label>
                                     <div class="input-group">
                                         <input type="text" id="id_cod_prod_adc" class="form-control form-control-sm border-dark-subtle" placeholder="Cód. Prod." aria-label="Cód. Prod. Adicional" aria-describedby="button-addon3">
                                         <button class="btn btn-outline-dark btn-sm" type="button" id="button-addon3">🔎</button>
-                                    </div>
-                                </div>
-                                <div class="modal fade" id="produtoAdcModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="produtoAdcModalLabel" aria-hidden="true">
-                                    <div class="modal-dialog  modal-lg modal-dialog-centered modal-dialog-scrollable">
-                                        <div class="modal-content">
-                                            <div class="modal-header titulo-modal">
-                                                <h5 class="modal-title" id="produtoAdcModalLabel">Pesquisar Produtos Adicionais</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <div class="input-group mb-3">
-                                                    <input type="text" id="campo-pesquisa-produto-adicional" class="form-control" placeholder="Digite a descrição do produto">
-                                                    <button class="btn btn-dark" id="pesquisar-produtos-adicionais">🔎</button>
-                                                </div>
-                                                <div class="table-container mt-3">
-                                                    <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
-                                                        <thead class="table-dark">
-                                                            <tr>
-                                                                <th scope="col">Opções</th>
-                                                                <th scope="col">Código</th>
-                                                                <th scope="col">Descrição</th>
-                                                                <th scope="col">Unidade</th>
-                                                                <th scope="col">Estoque</th>
-                                                                <th scope="col">Valor</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody id="produtosAdc-lista">
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                                 <div class="col-md-3" id="div_id_desc_prod_adc">
@@ -317,7 +322,6 @@
                                     <label for="id_unidProd_adc" class="form-label requiredField">Unidade</label>
                                     <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_unidProd_adc" name="unidProd_adc" disabled="disabled">
                                 </div>
-
                                 <div class="col-md-1" id="div_id_vl_prod_adc">
                                     <label for="id_vl_prod_adc" class="form-label requiredField">Valor*</label>
                                     <input type="text" style="color: #2E8B57; font-weight: bold;" class="form-control form-control-sm border-dark-subtle valor_os" placeholder="0.00" id="id_vl_prod_adc" name="vl_prod_adc">
@@ -331,56 +335,84 @@
                                 </div>
                                 <div class="col-md-1" id="div_id_vl_compra_adc">
                                     <input type="hidden" style="color: #DC143C; font-weight: bold;" class="form-control form-control-sm border-dark-subtle valor_os" id="id_vl_compra_adc" name="vl_compra_adc" disabled="disabled">
+                                </div> {% endcomment %}
+                                <!-- Accordion Adicionais -->
+                                <div class="accordion" id="accordionAdicionais">
+                                    {% for pt in portas %}
+                                        <div class="accordion-item acc-adicional porta-{{ pt.numero }}" id="accAdc_{{ pt.numero }}" data-porta="{{ pt.numero }}">
+                                            <h2 class="accordion-header" id="headingAdc_{{ pt.numero }}">
+                                                <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAdc_{{ pt.numero }}">
+                                                    Adicionais – Porta {{ pt.numero }}
+                                                </button>
+                                            </h2>
+                                            <div id="collapseAdc_{{ pt.numero }}" class="accordion-collapse collapse">
+                                                <div class="accordion-body table-container w-100">
+                                                    <table class="table table-bordered table-sm table-striped tabela-adicionais" id="tblAdc_{{ pt.numero }}">
+                                                        <thead class="table-dark">
+                                                            <tr>
+                                                                <th>#</th>
+                                                                <th>Cód.</th>
+                                                                <th>Descrição</th>
+                                                                <th>Unidade</th>
+                                                                <th>Vl. Compra</th>
+                                                                <th>Vl. Un.</th>
+                                                                <th>Qtde.</th>
+                                                                <th>Tot. Compra</th>
+                                                                <th>Vl. Tot.</th>
+                                                                <th style="width: 70px;">Ações</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for adc in pt.adicionais.all %}
+                                                            <tr data-porta="{{ pt.numero }}" data-item-id="{{ adc.produto.id }}">
+                                                                <td data-label="#" class="mobile-2col">{{ forloop.counter }}</td>
+                                                                <td data-label="Cód:" class="mobile-2col">{{ adc.produto.id }}</td>
+                                                                <td data-label="Desc.:" class="mobile-2col">{{ adc.produto.desc_prod }}</td>
+                                                                <td data-label="Unid:" class="mobile-2col">{{ adc.produto.unidProd }}</td>
+                                                                <td class="text-danger fw-bold mobile-3col" data-label="Vl. Compra:">{{ adc.produto.vl_compra }}</td>
+                                                                {% load l10n %}
+                                                                <td class="vl-unit text-success fw-bold mobile-3col" data-label="Vl. Unit:">
+                                                                    {{ adc.produto.produtotabela_set.first.vl_prod|unlocalize }}
+                                                                </td>
+                                                                {% load l10n %}
+                                                                <td class="qtd-produto mobile-3col" data-label="Qtde:">
+                                                                    {{ adc.quantidade|unlocalize }}
+                                                                </td>
+                                                                <td class="tot-compra text-danger fw-bold mobile-3col" data-label="Tot. Compra:">
+                                                                    {{ adc.totCompraA|floatformat:2 }}
+                                                                </td>
+                                                                <td class="vl-total text-success fw-bold mobile-3col" data-label="Vl. Total:">
+                                                                    {{ adc.subtotalA|floatformat:2 }}
+                                                                </td>
+                                                                <td data-label="Ações:" class="mobile-3col">
+                                                                    <i class="fas fa-edit editBtn" data-bs-toggle="modal" data-bs-target="#editItemAdcModal" style="color:#13c43f;cursor:pointer"></i>
+                                                                    <i class="fas fa-trash deleteBtn" style="color:#db1e47;cursor:pointer"></i>
+                                                                </td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                    <!-- 🔥 Totais da porta -->
+                                                    <div class="d-flex justify-content-end gap-4 mt-2 porta-totais" data-porta="{{ pt.numero }}">
+                                                        <span>
+                                                            <strong>Total Compra:</strong>
+                                                            <span style="padding-left: 10px; padding-right: 10px;" class="border border-danger-subtle rounded-4 bg-danger-subtle fw-bold" id="totCompraAdc_porta_{{ pt.numero }}">0,00</span>
+                                                        </span>
+                                                        <span>
+                                                            <strong>Total Venda:</strong>
+                                                            <span style="padding-left: 10px; padding-right: 10px;" class="border border-success-subtle rounded-4 bg-success-subtle fw-bold" id="totVendaAdc_porta_{{ pt.numero }}">0,00</span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
                                 </div>
-                                <div class="table-container">
-                                    <table class="table table-bordered table-striped" id="itensTableProdutoAdc">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th col="auto" id="thTableAdc" style="text-align: justify;">Itens</th>
-                                                <th col="auto" id="thTableAdc" style="text-align: justify;">Cód.</th>
-                                                <th col="auto" id="thTableAdc" style="text-align: justify;">Descrição</th>
-                                                <th col="auto" id="thTableAdc" style="text-align: justify;">Unidade</th>
-                                                <th col="auto valor_os" id="thTableAdc" style="text-align: justify;">Vl. Compra</th>
-                                                <th col="auto valor_os" id="thTableAdc" style="text-align: justify;">Vl. Un.</th>
-                                                <th col="auto" id="thTableAdc" style="text-align: justify;">Qtde.</th>
-                                                <th col="auto" id="thTableAdc" style="text-align: justify;">Tot. Compra</th>
-                                                <th col="auto" id="thTableAdc" style="text-align: justify;">Vl. Tot.</th>
-                                                <th col="auto" style="text-align: justify; width: 80px;">Ações</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for adicional in orcamento.adicionais.all %}
-                                                <tr>
-                                                    <td>{{ forloop.counter|stringformat:"03d" }}</td>
-                                                    <td>{{ adicional.produto.id }}</td>
-                                                    <td>{{ adicional.produto.desc_prod }}</td>
-                                                    <td>{{ adicional.produto.unidProd.nome_unidade }}</td>
-                                                    <td style="font-weight: bold; color: #DC143C;">{{ adicional.produto.vl_compra }}</td>
-                                                    <td style="font-weight: bold; color: #2E8B57;">
-                                                        {{ adicional.produto.produtotabela_set.first.vl_prod }}
-                                                    </td>
-                                                    <td>{{ adicional.quantidade }}</td>
-                                                    <td style="font-weight: bold; color: #DC143C;">{{ adicional.subtotalCompra }}</td>
-                                                    <td style="font-weight: bold; color: #2E8B57;">{{ adicional.subtotalVenda }}</td>
-                                                    <td>
-                                                        <i class="fas fa-trash deleteItemBtn deleteBtn" title="Deletar"
-                                                           style="color: #db1e47;" data-item="{{ adicional }}"></i>
-                                                        <i class="fas fa-edit editItemBtn editBtn" title="Editar"
-                                                           style="color: #13c43f;" data-item="{{ adicional }}"
-                                                           data-bs-toggle="modal" data-id="{{ produto.id }}"
-                                                           data-bs-target="#editItemModalAdc"></i>
-                                                    </td>
-                                                </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <input type="hidden" id="id_itens_prod_adc" name="itens_prod_adc">
                             </div>
                         </div>
                         <!--Form. Pgto.-->
                         <div class="form-section" id="form_pgto">
-                            <div class="row g-3" style="margin-left: -8px;">
+                            <div class="row" style="margin-left: -8px;">
                                 <input type="hidden" id="id_subtotal" name="subtotal">
                                 <input type="hidden" id="id_total" name="total">
                                 <div class="col-md-2" id="div_id_form_pgto">
@@ -399,108 +431,28 @@
                                 <div class="col-md-2" id="div_id_desconto">
                                     <label for="id_desconto" class="form-label">Desconto (-)</label>
                                     <div class="input-group">
-                                        <input type="text" step="0.01" placeholder="0,00" min="0.01"
-                                            class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly"
-                                            id="id_desconto" name="desconto" value="{{ form.desconto.value }}"
-                                            style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm"
-                                            data-bs-toggle="modal" data-bs-target="#modalDesconto">
+                                        <input type="text" step="0.01" placeholder="0,00" min="0.01" class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly"
+                                            id="id_desconto" name="desconto" value="{{ form.desconto.value }}" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao"
+                                            data-permissao="orcamentos.atribuir_desconto" data-acao="atribuir_desconto" id="btnDesconto">
                                             <i class="fa-solid fa-pen-to-square"></i>
                                         </button>
                                     </div>
-                                </div>
-                                <!-- Modal -->
-                                <div class="modal fade" id="modalDesconto" tabindex="-1" aria-labelledby="modalDescontoLabel" aria-hidden="true">
-                                  <div class="modal-dialog modal-dialog-centered">
-                                    <div class="modal-content">
-                                      <div class="modal-header bg-dark text-white">
-                                        <h1 class="modal-title fs-5" id="modalDescontoLabel">Atribuir Desconto (-)</h1>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                      </div>
-                                      <div class="modal-body">
-                                        <div class="col">
-                                            <label class="form-label fw-bold" for="tipo_desconto">Tipo de desconto:</label>
-                                            <select class="form-control" id="tipo_desconto">
-                                                <option selected value="valor">Valor (R$)</option>
-                                                <option value="porcentagem">Porcentagem (%)</option>
-                                            </select>
-                                        </div>
-                                        <div class="col">
-                                            <label class="form-label fw-bold" for="campo_desconto">Valor:</label>
-                                            <div class="input-group mb-3">
-                                                <span class="input-group-text" id="simbolo">R$</span>
-                                                <input class="form-control" id="campo_desconto" value="{{ form.desconto.value }}" type="text" placeholder="0.00" aria-describedby="simbolo">
-                                            </div>
-                                        </div>
-                                        <div class="col">
-                                            <label class="form-label fw-bold" for="auxiliar_desconto">Percentual:</label>
-                                            <div class="input-group mb-3">
-                                                <span class="input-group-text" id="simboloAuxiliar">%</span>
-                                                <input class="form-control" id="auxiliar_desconto" disabled="disabled" type="text" placeholder="0.00" aria-describedby="simboloAuxiliar">
-                                            </div>
-                                        </div>
-                                      </div>
-                                      <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                                        <button type="button" class="btn btn-primary" id="confirmarDesconto">Atribuir</button>
-                                      </div>
-                                    </div>
-                                  </div>
                                 </div>
                                 <!--Acréscimo-->
                                 <div class="col-md-2" id="div_id_acrescimo">
                                     <label for="id_acrescimo" class="form-label">Acréscimo (+)</label>
                                     <div class="input-group">
                                         <input type="text" step="0.01" placeholder="0,00" min="0.01"
-                                            class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly"
-                                            id="id_acrescimo" name="acrescimo" value="{{ form.acrescimo.value }}"
-                                            style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm"
-                                            data-bs-toggle="modal" data-bs-target="#modalAcrescimo">
+                                            class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly" id="id_acrescimo" name="acrescimo" value="{{ form.acrescimo.value }}" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao"
+                                                data-permissao="orcamentos.atribuir_acrescimo" data-acao="atribuir_acrescimo" id="btnAcrescimo">
                                             <i class="fa-solid fa-pen-to-square"></i>
                                         </button>
                                     </div>
                                 </div>
-                                <!-- Modal -->
-                                <div class="modal fade" id="modalAcrescimo" tabindex="-1" aria-labelledby="modalAcrescimoLabel" aria-hidden="true">
-                                  <div class="modal-dialog modal-dialog-centered">
-                                    <div class="modal-content">
-                                      <div class="modal-header bg-dark text-white">
-                                        <h1 class="modal-title fs-5" id="modalAcrescimoLabel">Atribuir Acréscimo (+)</h1>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                      </div>
-                                      <div class="modal-body">
-                                        <div class="col">
-                                            <label class="form-label fw-bold" for="tipo_acrescimo">Tipo de Acréscimo:</label>
-                                            <select class="form-control" id="tipo_acrescimo">
-                                                <option selected value="valor">Valor (R$)</option>
-                                                <option value="porcentagem">Porcentagem (%)</option>
-                                            </select>
-                                        </div>
-                                        <div class="col">
-                                            <label class="form-label fw-bold" for="campo_acrescimo">Valor:</label>
-                                            <div class="input-group mb-3">
-                                                <span class="input-group-text" id="simboloAc">R$</span>
-                                                <input class="form-control" id="campo_acrescimo" value="{{ form.acrescimo.value }}" type="text" placeholder="0.00" aria-describedby="simboloAc">
-                                            </div>
-                                        </div>
-                                        <div class="col">
-                                            <label class="form-label fw-bold" for="auxiliar_acrescimo">Percentual:</label>
-                                            <div class="input-group mb-3">
-                                                <span class="input-group-text" id="simboloAuxiliarAc">%</span>
-                                                <input class="form-control" id="auxiliar_acrescimo" disabled="disabled" type="text" placeholder="0.00" aria-describedby="simboloAuxiliarAc">
-                                            </div>
-                                        </div>
-                                      </div>
-                                      <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                                        <button type="button" class="btn btn-primary" id="confirmarAcrescimo">Atribuir</button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
                                 <div style="overflow-x: auto;">
-                                    <table class="table table-bordered table-striped" id="itensTableForm" style="margin-left: 10px; width: 98.5%;">
+                                    <table class="table table-bordered table-striped" id="itensTableForm">
                                         <thead class="table-dark">
                                             <tr>
                                                 <th col="auto" id="thTableForm" style="text-align: justify;">Itens</th>
@@ -512,10 +464,10 @@
                                         <tbody>
                                             {% for forma in orcamento.formas_pgto.all %}
                                                 <tr>
-                                                    <td>{{ forloop.counter|stringformat:"03d" }}</td>
-                                                    <td>{{ forma.formas_pgto.descricao }}</td>
-                                                    <td style="font-weight: bold; color: #2E8B57;">{{ forma.valor|moeda_br }}</td>
-                                                    <td>
+                                                    <td data-label="#" class="mobile-2col">{{ forloop.counter }}</td>
+                                                    <td data-label="Forma Pgto.:" class="mobile-2col">{{ forma.formas_pgto.descricao }}</td>
+                                                    <td data-label="Valor:" class="mobile-2col" style="font-weight: bold; color: #2E8B57;">{{ forma.valor|moeda_br }}</td>
+                                                    <td data-label="Exc.:" class="mobile-2col">
                                                         <i class="fas fa-trash deleteItemBtn deleteBtn" title="Deletar" style="color: #db1e47;" data-item="{{ produto }}"></i>
                                                     </td>
                                                 </tr>
@@ -523,7 +475,10 @@
                                         </tbody>
                                     </table>
                                 </div>
-                                <input type="hidden" id="id_itens_forma_pgto" name="itens_forma_pgto">
+                                <ul class="list-group col" style="border-radius: 15px; margin: 10px 5px;">
+                                    <li class="list-group-item"><strong>Soma das Formas de Pagamento:</strong> <span style="float: right; padding-left: 10px; padding-right: 10px;" class="border border-secondary rounded-4 bg-primary-subtle fw-bold" id="somaFormas">R$ 0,00</span></li>
+                                </ul>
+                                <input type="hidden" id="id_json_formas_pgto" name="json_formas_pgto">
                                 <div class="col-md-12">
                                     {{ form.obs_form_pgto|as_crispy_field }}
                                 </div>
@@ -531,28 +486,16 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="text-center col mb-3" style="border: 1px solid #A9A9A9; border-radius: 15px; margin-right: 5px; margin-left: 10px;">
-                            <div class="col-md-6 mx-auto">
-                                <strong>Subtotal:</strong> <h5 id="subtotal_txt" style="background-color: #3CB371; color: white; font-weight: bold; border-radius: 15px; padding-left: 10px;">R$ 0.00</h5>
-                            </div>
-                            <div class="col-md-6 mx-auto">
-                                <strong>Desconto (-):</strong> <h5 id="desconto" style="background-color: #20B2AA; color: white; font-weight: bold; border-radius: 15px; padding-left: 10px;">R$ 0.00</h5>
-                            </div>
-                            <div class="col-md-6 mx-auto">
-                                <strong>Acréscimo (+):</strong> <h5 id="acrescimo" style="background-color: #F08080; color: white; font-weight: bold; border-radius: 15px; padding-left: 10px;">R$ 0.00</h5>
-                            </div>
-                        </div>
-                        <div class="text-center col mb-3" style="border: 1px solid #A9A9A9; border-radius: 15px; margin-left: 5px; margin-right: 10px;">
-                            <div class="col-md-6 mx-auto">
-                                <strong>Custo Total:</strong> <h5 id="custoTotal_txt" style="background-color: #8B0000; color: white; font-weight: bold; border-radius: 15px; padding-left: 10px;">R$ 0.00</h5>
-                            </div>
-                            <div class="col-md-6 mx-auto">
-                                <strong>Total:</strong> <h5 id="total_txt" style="background-color: #32CD32; color: white; font-weight: bold; border-radius: 15px; padding-left: 10px;">R$ 0.00</h5>
-                            </div>
-                            <div class="col-md-6 mx-auto">
-                                <strong>Margem Lucro:</strong> <h5 id="margem_txt" style="background-color: #4682B4; color: white; font-weight: bold; border-radius: 15px; padding-left: 10px;">0.00%</h5>
-                            </div>
-                        </div>
+                        <ul class="list-group col" style="border-radius: 15px; margin-right: 5px; margin-left: 10px; margin-bottom: 10px;">
+                            <li class="list-group-item"><strong>Subtotal:</strong> <span id="subtotal_txt" style="background-color: #3CB371; color: white; font-weight: bold; border-radius: 15px; padding-left: 20px; padding-right: 20px; float: right;">R$ 0.00</span></li>
+                            <li class="list-group-item"><strong>Desconto (-):</strong> <span id="desconto" style="background-color: #20B2AA; color: white; font-weight: bold; border-radius: 15px; padding-left: 20px; padding-right: 20px; float: right;">0</span></li>
+                            <li class="list-group-item"><strong>Acréscimo (+):</strong> <span id="acrescimo" style="background-color: #F08080; color: white; font-weight: bold; border-radius: 15px; padding-left: 20px; padding-right: 20px; float: right;">0</span></li>
+                        </ul>
+                        <ul class="list-group col" style="border-radius: 15px; margin-right: 5px; margin-left: 10px; margin-bottom: 10px;">
+                            <li class="list-group-item"><strong>Custo Total:</strong> <span id="custoTotal_txt" style="background-color: #8B0000; color: white; font-weight: bold; border-radius: 15px; padding-left: 20px; padding-right: 20px; float: right;">R$ 0.00</span></li>
+                            <li class="list-group-item"><strong>Total:</strong> <span id="total_txt" style="background-color: #32CD32; color: white; font-weight: bold; border-radius: 15px;  padding-left: 20px; padding-right: 20px; float: right;">R$ 0.00</span></li>
+                            <li class="list-group-item"><strong>Margem Lucro:</strong> <span id="margem_txt" style="background-color: #4682B4; color: white; font-weight: bold; border-radius: 15px;  padding-left: 20px; padding-right: 20px; float: right;">0.00%</span></li>
+                        </ul>
                     </div>
                     <div class="card-footer">
                         <div class="base_botao">
@@ -677,5 +620,153 @@
             </div>
         </div>
     </div>
+    <div class="modal fade" id="produtoModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="produtoModalLabel" aria-hidden="true">
+        <div class="modal-dialog  modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h5 class="modal-title" id="produtoModalLabel">Pesquisar Produtos Principais</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <input type="text" id="campo-pesquisa-produto" class="form-control" placeholder="Digite a descrição do produto">
+                        <button class="btn btn-dark" id="pesquisar-produtos">🔎</button>
+                    </div>
+                    <div class="table-container mt-3">
+                        <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th scope="col">Opções</th>
+                                    <th scope="col">Código</th>
+                                    <th scope="col">Descrição</th>
+                                    <th scope="col">Unidade</th>
+                                    <th scope="col">Estoque</th>
+                                    <th scope="col">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="produtos-lista">
+                                <!-- Os produtos serão listados aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="produtoAdcModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="produtoAdcModalLabel" aria-hidden="true">
+        <div class="modal-dialog  modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h5 class="modal-title" id="produtoAdcModalLabel">Pesquisar Produtos Adicionais</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <input type="text" id="campo-pesquisa-produto-adicional" class="form-control" placeholder="Digite a descrição do produto">
+                        <button class="btn btn-dark" id="pesquisar-produtos-adicionais">🔎</button>
+                    </div>
+                    <div class="table-container mt-3">
+                        <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th scope="col">Opções</th>
+                                    <th scope="col">Código</th>
+                                    <th scope="col">Descrição</th>
+                                    <th scope="col">Unidade</th>
+                                    <th scope="col">Estoque</th>
+                                    <th scope="col">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="produtosAdc-lista">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="modalDesconto" tabindex="-1" aria-labelledby="modalDescontoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+            <h1 class="modal-title fs-5" id="modalDescontoLabel">Atribuir Desconto (-)</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+            <div class="col">
+                <label class="form-label fw-bold" for="tipo_desconto">Tipo de desconto:</label>
+                <select class="form-control" id="tipo_desconto">
+                    <option selected value="valor">Valor (R$)</option>
+                    <option value="porcentagem">Porcentagem (%)</option>
+                </select>
+            </div>
+            <div class="col">
+                <label class="form-label fw-bold" for="campo_desconto">Valor:</label>
+                <div class="input-group mb-3">
+                    <span class="input-group-text" id="simbolo">R$</span>
+                    <input class="form-control" id="campo_desconto" value="{{ form.desconto.value }}" type="text" placeholder="0.00" aria-describedby="simbolo">
+                </div>
+            </div>
+            <div class="col">
+                <label class="form-label fw-bold" for="auxiliar_desconto">Percentual:</label>
+                <div class="input-group mb-3">
+                    <span class="input-group-text" id="simboloAuxiliar">%</span>
+                    <input class="form-control" id="auxiliar_desconto" disabled="disabled" type="text" placeholder="0.00" aria-describedby="simboloAuxiliar">
+                </div>
+            </div>
+            </div>
+            <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            <button type="button" class="btn btn-primary" id="confirmarDesconto">Atribuir</button>
+            </div>
+        </div>
+        </div>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="modalAcrescimo" tabindex="-1" aria-labelledby="modalAcrescimoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+            <h1 class="modal-title fs-5" id="modalAcrescimoLabel">Atribuir Acréscimo (+)</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+            <div class="col">
+                <label class="form-label fw-bold" for="tipo_acrescimo">Tipo de Acréscimo:</label>
+                <select class="form-control" id="tipo_acrescimo">
+                    <option selected value="valor">Valor (R$)</option>
+                    <option value="porcentagem">Porcentagem (%)</option>
+                </select>
+            </div>
+            <div class="col">
+                <label class="form-label fw-bold" for="campo_acrescimo">Valor:</label>
+                <div class="input-group mb-3">
+                    <span class="input-group-text" id="simboloAc">R$</span>
+                    <input class="form-control" id="campo_acrescimo" value="{{ form.acrescimo.value }}" type="text" placeholder="0.00" aria-describedby="simboloAc">
+                </div>
+            </div>
+            <div class="col">
+                <label class="form-label fw-bold" for="auxiliar_acrescimo">Percentual:</label>
+                <div class="input-group mb-3">
+                    <span class="input-group-text" id="simboloAuxiliarAc">%</span>
+                    <input class="form-control" id="auxiliar_acrescimo" disabled="disabled" type="text" placeholder="0.00" aria-describedby="simboloAuxiliarAc">
+                </div>
+            </div>
+            </div>
+            <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            <button type="button" class="btn btn-primary" id="confirmarAcrescimo">Atribuir</button>
+            </div>
+        </div>
+        </div>
+    </div>
+    
 </div>
 {% endblock %}

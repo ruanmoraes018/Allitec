@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-q+la1=z6y43yf-+j=c+3cf2scm_6lw6l)lz0y8lwb^5zv3i35z
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['allitec.pythonanywhere.com']
+ALLOWED_HOSTS = ['allitec.pythonanywhere.com', '127.0.0.1']
 
 
 # Application definition
@@ -171,9 +171,11 @@ LOGOUT_REDIRECT_URL = '/contas/logout/'
 
 # default static files settings for PythonAnywhere.
 # see https://help.pythonanywhere.com/pages/DjangoStaticFiles for more info
-STATIC_URL = 'static/'
-
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    BASE_DIR / 'static'
+]
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_ROOT = BASE_DIR / 'staticfiles'

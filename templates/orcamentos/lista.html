@@ -125,137 +125,91 @@
                         <option value="7" {% if request.GET.ordem == '7' %}selected{% endif %}>Dt. Fatura</option>
                     </select>
                 </div>
-                <div class="col search-div d-flex justify-content-start">
-                    <button class="btn btn-dark" title="Consultar" type="submit" id="data-btn" data-bs-toggle="modal" data-bs-target="#loadingModal">🔎</button>
-                </div>
+                <div class="col search-div d-flex justify-content-start"> <button class="btn btn-dark" title="Consultar" type="submit" id="data-btn" data-bs-toggle="modal" data-bs-target="#loadingModal">🔎</button></div>
             </div>
         </form>
-        <div class="table-container" style="margin-left: 1%; margin-right: 1%;">
+        <div class="table-container" style="margin-left: 1%; margin-right: 1%; font-size: 12px;">
             <table class="table table-sm table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
                 <thead thead class="table-dark">
                     <tr>
-                        <th scope="col" style="text-align: justify; width: 4%;">Opções</th>
-                        <th scope="col" style="text-align: justify; width: 8%;">Nº Orçamento</th>
-                        <th scope="col" style="text-align: center; width: 0.25%;"></th>
-                        <th scope="col" style="text-align: justify; width: 6%;">Situação</th>
-                        <th scope="col" style="text-align: justify; width: 10%;">Filial</th>
-                        <th scope="col" style="text-align: justify; width: 10%;">Cliente</th>
-                        <th scope="col" style="text-align: justify; width: 9%;">Solicitante</th>
-                        <th scope="col" style="text-align: center; width: 8%;">Status</th>
-                        <th scope="col" style="align-items: center; width: 5.5%;">Dt. Emissão</th>
-                        <th scope="col" style="align-items: center; width: 5.5%;">Dt. Fatura</th>
-                        <th scope="col" style="align-items: center; width: 5.5%;">Dt. Entrega</th>
-                        <th scope="col" style="text-align: justify; width: 5%;">Valor</th>
-                        <th scope="col" style="align-items: center; width: 9%;">Formas</th>
+                        <th style="width: 30px;">Opções</th> <th>Nº Orçamento</th> <th style="width: 20px;"></th>
+                        <th>Situação</th> <th>Filial</th> <th>Cliente</th>
+                        <th>Solicitante</th> <th>Status</th> <th>Dt. Emissão</th>
+                        <th>Dt. Fatura</th> <th>Dt. Entrega</th> <th>Valor</th> <th>Formas</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for orcamento in orcamentos %}
                         <tr>
-                            <td>
-                                <div style="text-align: center;">
-                                    <button type="button" data-bs-toggle="modal" data-bs-target="#menuModal{{ orcamento.id }}" class="btn btn-dark btn-sm">
-                                        <span>
-                                            <i class="fa-solid fa-bars" style="font-size: 18px; color: white; margin-top: 5px;" title="Menu de Opções"></i>
-                                        </span>
-                                    </button>
+                            <td data-label="Opções:" class="mobile-2col">
+                                <div style="text-align: left;">
+                                    <button type="button" data-bs-toggle="modal" data-bs-target="#menuModal{{ orcamento.id }}" class="btn btn-dark btn-sm"> <span> <i class="fa-solid fa-bars" style="font-size: 14px; color: white; margin-top: 5px;" title="Menu de Opções"></i> </span></button>
                                 </div>
                                 <!-- Modal de opções da orcamento -->
-                                <div class="modal fade modal-sm" id="menuModal{{ orcamento.id }}" tabindex="-1" aria-labelledby="menuModalLabel{{ orcamento.id }}" aria-hidden="true">
+                                <div class="modal fade modal-sm" id="menuModal{{ orcamento.id }}" data-orcamento-id="{{ orcamento.id }}" tabindex="-1" aria-labelledby="menuModalLabel{{ orcamento.id }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header" style="background-color: #191919;">
                                                 <div class="d-flex justify-content-center w-100" style="margin-left: 50px;">
-                                                    <h1 class="modal-title fs-5 text-center" id="menuModalLabel{{ orcamento.id }}" style="color: white;">
-                                                        <i class="fa-brands fa-square-letterboxd"></i> <strong>Opções - {{ orcamento.num_orcamento }}</strong>
-                                                    </h1>
+                                                    <h1 class="modal-title fs-5 text-center" id="menuModalLabel{{ orcamento.id }}" style="color: white;"> <i class="fa-brands fa-square-letterboxd"></i> <strong>Opções - {{ orcamento.num_orcamento }}</strong> </h1>
                                                 </div>
                                             </div>
                                             <div class="modal-body d-grid gap-2">
                                                 <a href="{% url 'att-orcamento' orcamento.id %}" class="btn-permissao" data-permissao="orcamentos.change_orcamento" data-msg-negado="Seu usuário não pode editar orçamentos!">
-                                                    <button class="btn btn-outline-dark" type="button" id="botoes-modal" data-id="{{ orcamento.id }}">
-                                                        <span><i class="fas fa-edit" title="Editar Orçamento"></i></span>
-                                                        <strong style="color: #13c43f; font-size: 20px;">EDITAR</strong>
+                                                    <button class="btn btn-outline-dark btn-sm" type="button" id="botoes-modal" data-id="{{ orcamento.id }}"> <span><i class="fas fa-edit" title="Editar Orçamento"></i></span> <strong style="color: #13c43f; font-size: 20px;">EDITAR</strong>
                                                     </button>
                                                 </a>
                                                 <a href="{% url 'clonar-orcamento' orcamento.id %}" class="btn-permissao" data-permissao="orcamentos.clonar_orcamento" data-msg-negado="Seu usuário não pode clonar orçamentos!">
-                                                    <button class="btn btn-outline-dark" type="button" id="botoes-modal" data-id="{{ orcamento.id }}">
-                                                        <span><i class="fa-solid fa-clone" title="Clonar Orçamento"></i></span>
-                                                        <strong style="color: #483D8B; font-size: 20px;">CLONAR</strong>
+                                                    <button class="btn btn-outline-dark btn-sm" type="button" id="botoes-modal" data-id="{{ orcamento.id }}"> <span><i class="fa-solid fa-clone" title="Clonar Orçamento"></i></span> <strong style="color: #483D8B; font-size: 20px;">CLONAR</strong>
                                                     </button>
                                                 </a>
                                                 {% if orcamento.situacao == 'Aberto' %}
                                                     <!-- Botão de Deletar -->
-                                                    <button class="btn btn-outline-dark btn-delete" type="button" data-orcamento-id="{{ orcamento.id }}">
-                                                        <span><i class="fas fa-trash"></i></span>
-                                                        <strong style="color: #db1e47; font-size: 20px;">DELETAR</strong>
+                                                    <button class="btn btn-outline-dark btn-sm btn-delete" type="button" data-orcamento-id="{{ orcamento.id }}"> <span><i class="fas fa-trash"></i></span> <strong style="color: #db1e47; font-size: 20px;">DELETAR</strong>
                                                     </button>
                                                 {% else %}
                                                     <a href="{% url 'del-orcamento' orcamento.id %}">
-                                                        <button class="btn btn-outline-dark btn-delete" type="button" data-orcamento-id="{{ orcamento.id }}">
-                                                            <span><i class="fas fa-trash"></i></span>
-                                                            <strong style="color: #db1e47; font-size: 20px;">DELETAR</strong>
+                                                        <button class="btn btn-outline-dark btn-sm btn-delete" type="button" data-orcamento-id="{{ orcamento.id }}"> <span><i class="fas fa-trash"></i></span> <strong style="color: #db1e47; font-size: 20px;">DELETAR</strong>
                                                         </button>
                                                     </a>
                                                 {% endif %}
-                                                <button class="btn btn-outline-dark" type="button" data-bs-toggle="modal" data-bs-target="#infoEntModal{{ orcamento.id }}">
-                                                    <span><i class="fa-solid fa-circle-info"></i></span>
-                                                    <strong style="color: #ff8800; font-size: 20px;">DETALHES</strong>
+                                                <button class="btn btn-outline-dark btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#infoEntModal{{ orcamento.id }}"> <span><i class="fa-solid fa-circle-info"></i></span> <strong style="color: #ff8800; font-size: 20px;">DETALHES</strong>
                                                 </button>
-                                                <button class="btn btn-outline-dark" type="button" id="doc-botao" data-bs-toggle="collapse" data-bs-target="#btnOpcoes" aria-expanded="false" aria-controls="btnOpcoes">
-                                                    <i class="fa-solid fa-print"></i>
-                                                    <strong style="font-size: 20px;">IMPRESSÃO</strong>
+                                                <button class="btn btn-outline-dark btn-sm" type="button" id="doc-botao" data-bs-toggle="collapse" data-bs-target="#btnOpcoes" aria-expanded="false" aria-controls="btnOpcoes"> <i class="fa-solid fa-print"></i> <strong style="font-size: 20px;">IMPRESSÃO</strong>
                                                 </button>
                                                 <div class="collapse" id="btnOpcoes">
                                                     <div class="card card-body" style="margin: 0;">
                                                         <div class="d-inline-flex gap-2" style="margin-bottom: 10px;">
                                                             <a href="{% url 'pdf-a4' orcamento.id %}" target="_blank" style="flex: 1; text-decoration: none;">
-                                                                <button class="btn btn-dark w-100 d-flex justify-content-center align-items-center gap-2" type="button">
-                                                                    <i class="fa-solid fa-file-pdf" style="color: white;" title="Imprimir PDF A4 do Orçamento"></i>
-                                                                    <strong style="font-size: 20px;">A4</strong>
+                                                                <button class="btn btn-dark btn-sm w-100 d-flex justify-content-center align-items-center gap-2" type="button"> <i class="fa-solid fa-file-pdf" style="color: white;" title="Imprimir PDF A4 do Orçamento"></i> <strong style="font-size: 20px;">A4</strong>
                                                                 </button>
                                                             </a>
                                                             <a href="{% url 'comprovante' orcamento.id %}" target="_blank" style="flex: 1; text-decoration: none;">
-                                                                <button class="btn btn-dark w-100 d-flex justify-content-center align-items-center gap-2" type="button">
-                                                                    <strong style="font-size: 20px;">Cupom</strong>
-                                                                    <i class="fa-solid fa-scroll" title="Imprimir Cupom do Orçamento"></i>
+                                                                <button class="btn btn-dark btn-sm w-100 d-flex justify-content-center align-items-center gap-2" type="button"> <strong style="font-size: 20px;">Cupom</strong> <i class="fa-solid fa-scroll" title="Imprimir Cupom do Orçamento"></i>
                                                                 </button>
                                                             </a>
                                                         </div>
-
-                                                        <div class="d-inline-flex gap-1">
-                                                            <a href="{% url 'pdf-orcamento' orcamento.id %}" target="_blank">
-                                                                <button class="btn btn-dark" type="button" id="doc-botao">
-                                                                    <span><i class="fa-solid fa-file-pdf" style="color: white;" title="Imprimir PDF do Orçamento"></i></span>
-                                                                    <strong style="color: white; font-size: 14px;">Orçamento</strong>
+                                                        <div class="d-inline-flex gap-2" style="margin-bottom: 10px;">
+                                                            <a href="{% url 'pdf-orcamento' orcamento.id %}" target="_blank" style="flex: 1; text-decoration: none;">
+                                                                <button class="btn btn-dark btn-sm w-100 d-flex justify-content-center align-items-center gap-2" type="button" id="doc-botao"> <span><i class="fa-solid fa-file-pdf" style="color: white;" title="Imprimir PDF do Orçamento"></i></span><strong style="color: white; font-size: 15px;">Orçamento</strong>
                                                                 </button>
                                                             </a>
-                                                            {% if orcamento.vinc_fil.layout_contrato == "Layout 1" %}
-                                                                <a href="{% url 'pdf-contrato' orcamento.id %}" target="_blank">
-                                                                    <button class="btn btn-dark" type="button" id="doc-botao">
-                                                                        <span><i class="fa-solid fa-file-pdf" style="color: white;" title="Imprimir PDF do Contrato"></i></span>
-                                                                        <strong style="color: white; font-size: 14px;">Contrato</strong>
-                                                                    </button>
-                                                                </a>
-                                                            {% elif orcamento.vinc_fil.layout_contrato == "Layout 2" %}
-                                                                <a href="{% url 'pdf-cont-v2' orcamento.id %}" target="_blank">
-                                                                    <button class="btn btn-dark" type="button" id="doc-botao">
-                                                                        <span><i class="fa-solid fa-file-pdf" style="color: white;" title="Imprimir PDF do Contrato"></i></span>
-                                                                        <strong style="color: white; font-size: 14px;">Contrato</strong>
-                                                                    </button>
-                                                                </a>
-                                                            {% endif %}
+                                                            <a href="{% url 'pdf-cont-v2' orcamento.id %}" target="_blank" style="flex: 1; text-decoration: none;">
+                                                                <button class="btn btn-dark btn-sm w-100 d-flex justify-content-center align-items-center gap-2" type="button" id="doc-botao"> <span><i class="fa-solid fa-file-pdf" style="color: white;" title="Imprimir PDF da Proposta"></i></span><strong style="color: white; font-size: 15px;">Proposta</strong>
+                                                                </button>
+                                                            </a>
                                                         </div>
+                                                        <a href="{% url 'pdf-contrato' orcamento.id %}" target="_blank" style="flex: 1; text-decoration: none;">
+                                                            <button class="btn btn-dark btn-sm w-100 d-flex justify-content-center align-items-center gap-2" type="button" id="doc-botao"> <span><i class="fa-solid fa-file-pdf" style="color: white;" title="Imprimir PDF do Contrato"></i></span><strong style="color: white; font-size: 14px;">Contrato</strong>
+                                                            </button>
+                                                        </a>
                                                     </div>
                                                 </div>
                                                 {% if orcamento.situacao == 'Faturado' %}
-                                                    <button class="btn btn-outline-dark" type="button" id="doc-botao" data-bs-toggle="collapse" data-bs-target="#btnCancelar" aria-expanded="false" aria-controls="btnCancelar">
-                                                        <i class="fa-solid fa-circle-xmark"></i>
-                                                        <strong style="font-size: 20px; color: red;">CANCELAR</strong>
+                                                    <button class="btn btn-outline-dark btn-sm" type="button" id="doc-botao" data-bs-toggle="collapse" data-bs-target="#btnCancelar" aria-expanded="false" aria-controls="btnCancelar"> <i class="fa-solid fa-circle-xmark"></i> <strong style="font-size: 20px; color: red;">CANCELAR</strong>
                                                     </button>
-
                                                     <div class="collapse" id="btnCancelar">
-                                                        <div class="card card-body">
+                                                        <div class="card card-body" style="margin: 0;">
                                                             <form method="post" action="{% url 'cancelar-orcamento' orcamento.id %}">
                                                                 {% csrf_token %}
                                                                 <div style="margin-bottom: 5px;">
@@ -263,30 +217,28 @@
                                                                     <textarea class="form-control" id="id_motivo" name="motivo" required></textarea>
                                                                 </div>
                                                                 <div style="text-align: center;">
-                                                                    <button type="submit" class="btn btn-danger" aria-label="Cancelar orçamento">
-                                                                        Cancelar
-                                                                    </button>
+                                                                    <button type="submit" class="btn btn-danger btn-sm" aria-label="Cancelar orçamento"> Cancelar </button>
                                                                 </div>
                                                             </form>
                                                         </div>
                                                     </div>
                                                 {% endif %}
                                                 {% if orcamento.situacao == 'Aberto' %}
-                                                    <button class="btn btn-outline-dark btn-faturar btn-permissao"
+                                                    <button
+                                                        class="btn btn-outline-dark btn-sm btn-faturar btn-permissao"
                                                         type="button"
                                                         data-permissao="orcamentos.faturar_orcamento"
                                                         data-msg-negado="Seu usuário não pode faturar orçamentos!"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#faturarModal-{{ orcamento.id }}"
-                                                        data-orcamento-id="{{ orcamento.id }}"
+                                                        data-id="{{ orcamento.id }}"
                                                         id="doc-botao">
-                                                    <span><i class="fa-solid fa-money-bill" title="Faturar Orçamento"></i></span>
-                                                    <strong style="color: #3CB371; font-size: 20px;">FATURAR</strong>
-                                                </button>
+                                                        <span><i class="fa-solid fa-money-bill"></i></span>
+                                                        <strong style="color: #3CB371; font-size: 20px;">FATURAR</strong>
+                                                    </button>
+
                                                 {% endif %}
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary mx-auto" data-bs-dismiss="modal">Fechar</button>
+                                                <button type="button" class="btn btn-secondary btn-sm mx-auto" data-bs-dismiss="modal">Fechar</button>
                                             </div>
                                         </div>
                                     </div>
@@ -297,16 +249,13 @@
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
                                                 <div class="modal-header titulo-modal">
-                                                    <h1 class="modal-title fs-5" id="modalTitle-{{ orcamento.id }}">
-                                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
-                                                    </h1>
+                                                    <h1 class="modal-title fs-5" id="modalTitle-{{ orcamento.id }}"> <i class="fa-regular fa-circle-question"></i> Confirmação! </h1>
                                                 </div>
-                                                <div class="modal-body">
-                                                    <p>Você confirma a EXCLUSÃO DO ORÇAMENTO <strong>{{ orcamento.num_orcamento }}</strong>?</p>
-                                                </div>
+                                                <div class="modal-body"> <p>Você confirma a EXCLUSÃO DO ORÇAMENTO <strong>{{ orcamento.num_orcamento }}</strong>?</p> </div>
                                                 <div class="modal-footer">
-                                                    <button type="button" class="btn btn-primary btn-confirmar" id="confirmBtn" data-url="{% url 'del-orcamento' orcamento.id %}" disabled>
-                                                        <u>S</u>im <span class="contador">3</span>
+                                                    <button
+                                                        type="button" class="btn btn-primary btn-confirmar" data-url="{% url 'del-orcamento' orcamento.id %}"
+                                                        data-orcamento-id="{{ orcamento.id }}" disabled> <u>S</u>im <span class="contador">3</span>
                                                     </button>
                                                     <button type="button" class="btn btn-secondary" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
                                                 </div>
@@ -317,8 +266,7 @@
                                 <div class="modal fade" id="faturarModal-{{ orcamento.id }}" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered modal-lg">
                                         <div class="modal-content">
-                                            <div class="modal-header bg-success text-white">
-                                                <h5 class="modal-title"><i class="fa-solid fa-money-bill" style="float: none;"></i> Faturar Orçamento {{ orcamento.num_orcamento }}</h5>
+                                            <div class="modal-header bg-success text-white"> <h5 class="modal-title"><i class="fa-solid fa-money-bill" style="float: none;"></i> Faturar Orçamento {{ orcamento.num_orcamento }}</h5>
                                             </div>
                                             <div class="modal-body">
                                                 <div class="row">
@@ -344,7 +292,7 @@
                                                         <tbody>
                                                             {% for forma in orcamento.formas_pgto.all %}
                                                                 <tr>
-                                                                    <td>{{ forloop.counter|stringformat:"03d" }}</td>
+                                                                    <td>{{ forloop.counter|stringformat:"01d" }}</td>
                                                                     <td>{{ forma.formas_pgto.descricao }}</td>
                                                                     <td>{{ forma.valor|moeda_br }}</td>
                                                                 </tr>
@@ -358,15 +306,29 @@
                                             <div class="modal-footer">
                                                 <form method="post" action="{% url 'faturar-orcamento' orcamento.id %}">
                                                     {% csrf_token %}
-                                                    <button type="button" onclick="imprimirEFaturar({{ orcamento.id }})"
-                                                            class="btn btn-success"
-                                                            data-id="{{ orcamento.id }}"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#loadingModal">
-                                                        Confirmar Faturamento
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-success btn-sm btn-confirmar-faturamento"
+                                                        data-id="{{ orcamento.id }}">
+                                                        Faturar
                                                     </button>
-
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                    <div class="modal fade" id="staticBackdrop{{ orcamento.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel{{ orcamento.id }}" aria-hidden="true">
+                                                        <div class="modal-dialog modal-dialog-centered">
+                                                            <div class="modal-content">
+                                                                <div class="modal-header titulo-modal">
+                                                                    <h1 class="modal-title fs-5" id="staticBackdropLabel{{ orcamento.id }}"><i class="fa-regular fa-circle-question"></i> Confirmação!</h1>
+                                                                </div>
+                                                                <div class="modal-body">
+                                                                    <p>Você confirma o FATURAMENTO DO ORÇAMENTO {{ orcamento.num_orcamento }}?</p>
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button type="submit" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>
+                                                                    <button type="button" class="btn btn-secondary" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </form>
                                             </div>
                                         </div>
@@ -375,8 +337,7 @@
                                 <div class="modal fade" id="infoEntModal{{ orcamento.id }}" tabindex="-1" aria-labelledby="infoEntModalLabel{{ orcamento.id }}" aria-hidden="true">
                                     <div class="modal-dialog modal-lg">
                                         <div class="modal-content">
-                                            <div class="modal-header titulo-modal">
-                                                <h1 class="modal-title fs-5" id="infoEntModalLabel{{ orcamento.id }}"><i class="fa-solid fa-circle-info text-white" style="float: none;"></i> Detalhes - Orçamento Nº {{ orcamento.num_orcamento }}</h1>
+                                            <div class="modal-header titulo-modal"> <h1 class="modal-title fs-5" id="infoEntModalLabel{{ orcamento.id }}"><i class="fa-solid fa-circle-info text-white" style="float: none;"></i> Detalhes - Orçamento Nº {{ orcamento.num_orcamento }}</h1>
                                             </div>
                                             <div class="modal-body">
                                                 <div class="row g-3">
@@ -431,13 +392,8 @@
                                                                         <table class="table table-bordered table-responsive-sm table-rounded table-striped w-100">
                                                                             <thead class="table-dark">
                                                                                 <tr>
-                                                                                    <th style="width: 1%;">Itens</th>
-                                                                                    <th style="width: 1%;">Código</th>
-                                                                                    <th style="width: 30%;">Descrição</th>
-                                                                                    <th style="width: 4%;">Unidade</th>
-                                                                                    <th style="width: 14%;">Vl. Unit.</th>
-                                                                                    <th style="width: 6%;">Qtde</th>
-                                                                                    <th>Vl. Total</th>
+                                                                                    <th style="width: 1%;">Itens</th> <th style="width: 1%;">Código</th> <th style="width: 30%;">Descrição</th>
+                                                                                    <th style="width: 4%;">Unidade</th> <th style="width: 14%;">Vl. Unit.</th> <th style="width: 6%;">Qtde</th> <th>Vl. Total</th>
                                                                                 </tr>
                                                                             </thead>
                                                                             <tbody>
@@ -515,42 +471,39 @@
                                                 <strong id="novoStatusTexto{{ orcamento.id }}"></strong>?
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-primary confirm-status">
-                                                    Sim
-                                                </button>
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                                    Não
-                                                </button>
+                                                <button type="button" class="btn btn-primary confirm-status"> Sim </button>
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"> Não </button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </td>
-                            <td style="align-items: center;">{{ orcamento.num_orcamento }}</td>
-                            <td style="text-align: center; width: 0.25%;"><i class="fa-solid fa-circle-info" style="font-size: 25px; margin-right: 5px;" data-bs-toggle="modal" data-bs-target="#infoEntModal{{ orcamento.id }}"></i></td>
-                            {% if orcamento.situacao == 'Aberto' %}
-                                <td style="text-align: center; width: 80px;" class="task-item">
-                                    <div style="background-color: #005eff; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
+                            <td data-label="Nº Orçamento:" class="mobile-2col">{{ orcamento.num_orcamento }}</td>
+                            <td class="icon-cell mx-auto mobile-2col" data-label="">
+                                <i class="fa-solid fa-circle-info"
+                                   data-bs-toggle="modal"
+                                   data-bs-target="#infoEntModal{{ orcamento.id }}"
+                                   style="cursor: pointer;"></i>
+                            </td>
+                            <td data-label="Situação:" class="mobile-2col" style="text-align: center;">
+                                {% if orcamento.situacao == 'Aberto' %}
+                                    <div style="background-color: #005eff; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px; font-size: 12px;">
                                         <strong>{{ orcamento.situacao }}</strong>
                                     </div>
-                                </td>
-                            {% elif orcamento.situacao == 'Faturado' %}
-                                <td style="text-align: center; width: 100px;" class="task-item">
-                                    <div style="background-color: #3CB371; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
+                                {% elif orcamento.situacao == 'Faturado' %}
+                                    <div style="background-color: #3CB371; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px; font-size: 12px;">
                                         <strong>{{ orcamento.situacao }}</strong>
                                     </div>
-                                </td>
-                            {% else %}
-                                <td style="text-align: center; width: 100px;" class="task-item">
-                                    <div style="background-color: #800000; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
+                                {% else %}
+                                    <div style="background-color: #800000; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px; font-size: 12px;">
                                         <strong>{{ orcamento.situacao }}</strong>
                                     </div>
-                                </td>
-                            {% endif %}
-                            <td class="text-uppercase">{{ orcamento.vinc_fil }}</td>
-                            <td style="color: #36454F; font-weight: bold;">{{ orcamento.cli }}</td>
-                            <td style="align-items: center;">{{ orcamento.solicitante }}</td>
-                            <td style="text-align: center;">
+                                {% endif %}
+                            </td>
+                            <td data-label="Filial:" class="text-uppercase mobile-2col">{{ orcamento.vinc_fil }}</td>
+                            <td data-label="Cliente:" class="mobile-2col" style="color: #36454F; font-weight: bold;">{{ orcamento.cli }}</td>
+                            <td data-label="Solicitante:" class="mobile-2col" style="align-items: center;">{{ orcamento.solicitante }}</td>
+                            <td data-label="Status:" class="mobile-2col" style="text-align: center;">
                                 {% if orcamento.situacao == "Faturado" %}
                                     {% if orcamento.status == "Em Produção" %}
                                         <span class="status-badge fw-bold">
@@ -571,16 +524,21 @@
                                     {% endif %}
                                 {% endif %}
                             </td>
-                            <td style="align-items: center;">{{ orcamento.dt_emi|date:"d/m/Y" }}</td>
-                            <td style="align-items: center;">{{ orcamento.dt_fat|date:"d/m/Y" }}</td>
-                            <td style="align-items: center;">{{ orcamento.dt_ent|date:"d/m/Y" }}</td>
-                            <td style="color: #36454F; font-weight: bold;">{{ orcamento.total|moeda_br }}</td>
-                            <td style="align-items: center; font-weight: bold;">
-                                <div style="max-height: 3em; overflow-y: auto; white-space: normal; line-height: 0.8em;">
+                            <td data-label="Dt. Emissão:" class="mobile-2col" style="text-align: center;">
+                                {% load tz %}
+                                {% timezone "UTC" %}
+                                    {{ orcamento.dt_emi|date:"d/m/Y H:i" }}
+                                {% endtimezone %}
+                            </td>
+                            <td data-label="Dt. Fatura:" class="mobile-2col" style="align-items: center;">{{ orcamento.dt_fat|date:"d/m/Y" }}</td>
+                            <td data-label="Dt. Entrega:" class="mobile-2col" style="align-items: center;">{{ orcamento.dt_ent|date:"d/m/Y" }}</td>
+                            <td data-label="Valor:" class="mobile-2col" style="color: #36454F; font-weight: bold;">{{ orcamento.total|moeda_br }}</td>
+                            <td data-label="Formas:" class="mobile-full" style="align-items: center; font-weight: bold;">
+                                <div style="max-height: 3.5em; overflow-y: auto; white-space: normal; line-height: 0.8em;">
                                     {% for forma in orcamento.formas_pgto.all %}
                                         <div class="p-1 mb-1 bg-secondary text-light rounded-3" style="font-size: 0.8rem;">
                                             {{ forma.formas_pgto.descricao }}
-                                            <span style="float: right;">{{ forma.valor|moeda_br }}</span>
+                                            <span style="float: right; margin-left: 10px;">{{ forma.valor|moeda_br }}</span>
                                         </div>
                                     {% endfor %}
                                 </div>
@@ -648,7 +606,7 @@
             </div>
         </div>
     </div>
-    <script>
+    {% comment %} <script>
         function imprimirEFaturar(id) {
             fetch(`/orcamentos/fat_orc/${id}/`, {
                 method: 'POST',
@@ -711,5 +669,5 @@
             }
             return cookieValue;
         }
-    </script>
+    </script> {% endcomment %}
 {% endblock %}

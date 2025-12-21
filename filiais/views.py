@@ -201,7 +201,7 @@ def filiais_vinculadas_ajax(request):
     termo_busca = request.GET.get('term', '')
 
     usuario_logado = request.user
-    filial_principal = usuario_logado.filial_user
+    filial_principal = usuario_logado.empresa
 
     if filial_principal is None:
         return JsonResponse({'results': []})
@@ -237,60 +237,54 @@ def add_filial(request):
 
     try:
         usuario_logado = request.user
-        filial_atual = usuario_logado.filial
-    except Usuario.DoesNotExist:
-        messages.error(request, 'Usuário não está vinculado a uma filial.')
+
+        # 🔹 BUSCA A FILIAL (não a empresa)
+        filial_atual = Filial.objects.get(
+            vinc_emp=usuario_logado.empresa,
+            principal=True
+        )
+
+    except Filial.DoesNotExist:
+        messages.error(request, 'Filial principal não encontrada para este usuário.')
         return redirect('/filiais/lista/')
 
-    # Define qual é a filial principal
-    filial_principal = filial_atual if filial_atual.principal else filial_atual.vinculada_a
+    # 🔹 Filial principal
+    filial_principal = filial_atual
 
-    qtd_permitida = filial_principal.vinc_emp.qtd_filial
+    # 🔹 Empresa correta
+    empresa = filial_principal.vinc_emp
 
-    total_filiais_vinculadas = 1 + Filial.objects.filter(
-        vinculada_a=filial_principal, situacao='Ativa'
+    qtd_permitida = empresa.qtd_filial
+
+    total_filiais_vinculadas = 1 + filial_principal.filiais_secundarias.filter(
+        situacao='Ativa'
     ).count()
 
-    if not filial_principal:
-        messages.error(request, 'Filial principal não encontrada.')
-        return redirect('/filiais/lista/')
-
-    if total_filiais_vinculadas > qtd_permitida:
-        messages.warning(request, f'Limite de {qtd_permitida} filial(is) ativa(s) atingido para sua filial.')
+    if total_filiais_vinculadas >= qtd_permitida:
+        messages.warning(
+            request,
+            f'Limite de {qtd_permitida} filial(is) ativa(s) atingido para sua empresa.'
+        )
         return redirect('/filiais/lista/')
 
     if request.method == 'POST':
         form = FilialForm(request.POST, request.FILES)
         if form.is_valid():
             nova_filial = form.save(commit=False)
-            nova_filial.vinc_emp = request.user.empresa
+
+            nova_filial.vinc_emp = empresa
             nova_filial.vinculada_a = filial_principal
-            nova_filial.principal = False  # sempre será filial
+            nova_filial.principal = False
             nova_filial.situacao = 'Ativa'
+
             logo = request.FILES.get('logo')
-            nova_filial.qtd_filial = 0
-
-            if logo: nova_filial.logo = logo
-            else: nova_filial.logo = 'media/default_logo.png'
-
-            # Zera os dados desnecessários
-            campos_para_zerar = ['nome', 'cpf', 'orgao', 'dt_nasc', 'endereco_adm', 'cep_adm',
-                                 'numero_adm', 'bairro_adm', 'cidade_adm', 'uf_adm', 'tel_adm', 'email_adm']
-            for campo in campos_para_zerar:
-                setattr(nova_filial, campo, '')
-            if not nova_filial.principal:
-                nova_filial.qtd_usuarios = "0"  # ou outro campo que você deseje setar como 0
+            nova_filial.logo = logo if logo else 'default_logo.png'
 
             nova_filial.save()
+
             messages.success(request, 'Filial cadastrada com sucesso.')
             return redirect('/filiais/lista/')
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors:
-                    for error in field.errors:
-                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'filiais/add_filial.html', {'form': form, 'error_messages': error_messages})
+
     else:
         form = FilialForm()
 

@@ -1,5 +1,5 @@
 from django import forms
-from .models import Produto
+from .models import Produto, ProdutoTabela
 from unidades.models import Unidade
 
 class ProdutoForm(forms.ModelForm):
@@ -65,3 +65,9 @@ class ProdutoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(ProdutoForm, self).__init__(*args, **kwargs)
 
+class ProdutoTabelaForm(forms.ModelForm):
+    vl_prod = forms.DecimalField(localize=False)
+    class Meta:
+        model = ProdutoTabela
+        fields = ('produto', 'tabela')
+    localized_fields = ('vl_prod', )

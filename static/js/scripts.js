@@ -6,6 +6,20 @@ $(document).ready(function() {
     $('[name^="nome_"]').first().focus();
     $('[name^="descricao"]').first().focus();
     // Novo teste
+    $('#id_portao_social').on('change', function () {
+        const p_social = $(this).val();
+        if (p_social === 'Não') {
+            $("#id_vl_p_s").val('0');
+            $("#id_vl_p_s").prop("disabled", true);
+            atualizarSubtotal();
+        } else if (p_social === "Sim") {
+            $("#id_vl_p_s").prop("disabled", false);
+        }
+    });
+    $("#id_vl_p_s").on("blur", function() {
+        atualizarSubtotal();
+    });
+    // Mudança no status de Orçamento Faturado
     $('[id^="sel-status"]').select2({
         placeholder: 'Selecione uma opção',
         allowClear: true
@@ -16,41 +30,28 @@ $(document).ready(function() {
     });
     // Clicar no EDIT
     $(document).on("click", ".edit-status", function () {
-
         const id = $(this).data("id");
         const $select = $(`#sel-status-${id}`);
         const $cancel = $(`#cancel-status-${id}`);
-
-        // Se o select estiver DESABILITADO → habilita
         if ($select.prop("disabled")) {
             $select.prop("disabled", false);
             $cancel.show();
             return; // primeira etapa concluída
         }
-
-        // Se o select já estiver habilitado → abrir modal
         const novoStatus = $select.find("option:selected").text();
-
-        // Inserir texto dentro do modal correspondente
         $(`#novoStatusTexto${id}`).text(novoStatus);
-
-        // Abrir modal correto
         const modal = new bootstrap.Modal(
             document.getElementById(`modalConfirmacaoStatus${id}`)
         );
         modal.show();
     });
-
     // Clicar no CANCELAR
     $(document).on("click", ".fa-circle-xmark", function () {
-
         const id = $(this).data("id");
         const $select = $(`#sel-status-${id}`);
-
         $select.prop("disabled", true);
         $(this).hide(); // esconder cancelar
     });
-
     // CONFIRMAR no modal
     $(document).on("click", ".confirm-status", function () {
         const modalElement = $(this).closest(".modal").attr("id");
@@ -85,7 +86,10 @@ $(document).ready(function() {
                 );
                 bsModal.hide();
                 resumoModal.hide();
-                $("#data-btn").click();
+                setTimeout(function () {
+                    $("#data-btn").click();
+                    finalizarLoading();
+                }, 1500);
             },
             error: function () {
                 Toastify({
@@ -105,15 +109,12 @@ $(document).ready(function() {
             new bootstrap.Tooltip(this);
         });
     });
-
-
     // Teste
     $(document).on("click", '[id^="medidasBtn"]', function () {
         let id = $(this).attr("id").replace("medidasBtn", "");
         $("#medidas" + id).show();
         $("#clientes" + id).hide();
     });
-
     $(document).on("click", '[id^="clienteBtn"]', function () {
         let id = $(this).attr("id").replace("clienteBtn", "");
         $("#clientes" + id).show();
@@ -134,11 +135,9 @@ $(document).ready(function() {
             $('#lbl-campo-2').text("Margem (%)");
         }
     });
-
     // 🔹 Verificar checkboxes antes de abrir o modal
     $('#mdAttTbPreco').on('click', function (e) {
         const checkboxesMarcados = $('.task-checkbox:checked');
-
         if (checkboxesMarcados.length === 0) {
             e.preventDefault(); // impede o modal de abrir
             Toastify({
@@ -153,8 +152,6 @@ $(document).ready(function() {
             }).showToast();
             return;
         }
-
-        // Se tiver marcado, abre o modal normalmente
         $('#attTbPrecModal').modal('show');
     });
     // VISUALIZAR ENTRADAS DE PRODUTO
@@ -163,7 +160,6 @@ $(document).ready(function() {
         const modalEl = $(`#infoEntModal${produtoId}`)[0];
         const modal = new bootstrap.Modal(modalEl);
         const tableBody = $(`#entradasTableBody${produtoId}`);
-
         $.ajax({
             url: `/entradas/entradas-produto/${produtoId}/`,
             method: 'GET',
@@ -187,7 +183,6 @@ $(document).ready(function() {
                 } else {
                     tableBody.append('<tr><td colspan="6" class="text-center">Nenhuma entrada encontrada.</td></tr>');
                 }
-
                 modal.show();
             },
             error: function() {
@@ -225,11 +220,9 @@ $(document).ready(function() {
         if (!dtEfetivacao.val()) {
             dtEfetivacao.val(obterDataAtual2()); // função sua para pegar a data atual
         }
-        // Preenche a "Dt 1ª Parcela" inicialmente
         if (dtEfetivacao.val()) {
             inpDtPriParc.val(addDtInterv(dtEfetivacao.val(), inpDiasPriParc.val()));
         }
-        // Atualiza sempre que mudar a data ou os dias da 1ª parcela
         $('#dt_efet_ent, #inpDiasPriParc').on('change', function () {
             const dtEfetiv = $('#dt_efet_ent').val();
             const interv = $('#inpDiasPriParc').val();
@@ -254,30 +247,19 @@ $(document).ready(function() {
             $(this).val(parseFloat(valor).toFixed(2));
         }
     });
-    // $('#id_desconto, #id_estoque_prod').on("blur", function() {
-    //     let valor = $(this).val().replace(',', '.').trim();
-    //     if (valor === "" || isNaN(valor)) {
-    //         $(this).val("0.00");
-    //     } else {
-    //         $(this).val(parseFloat(valor).toFixed(2));
-    //     }
-    // });
     $(document).on("click", ".editable#total-frete", function () {
         const $span = $(this);
         const valor = $span.text().trim();
         const $input = $(`<input type="text" id="total-frete" class="form-control d-inline-block w-auto inpFrete" value="${valor}">`);
         $span.replaceWith($input);
         $input.focus().select();
-        // máscara no input enquanto digita
         $input.on("input", function() {
             let val = $(this).val().replace(/[^0-9]/g, ""); // mantém só números
             if (val === "") {
                 $(this).val("0.00");
                 return;
             }
-            // transforma em número decimal
             let num = (parseFloat(val) / 100).toFixed(2);
-            // formata com ponto decimal
             $(this).val(num);
         });
         $input.on("blur keydown", function(e) {
@@ -290,7 +272,6 @@ $(document).ready(function() {
                     return;
                 }
                 const novoValorNum = parseFloat(novoValorRaw.replace(',', '.')) || 0;
-                // substitui pelo span formatado
                 const $newSpan = $(`
                     <span class="editable" id="total-frete"
                           style="background-color: #F08080; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;">
@@ -298,9 +279,7 @@ $(document).ready(function() {
                     </span>
                 `);
                 $input.replaceWith($newSpan);
-                // atualiza o hidden
                 $('#id_frete').val(novoValorNum.toFixed(2));
-                // recalcula totais
                 calcTotalEntrada();
             }
         });
@@ -348,9 +327,7 @@ $(document).ready(function() {
             $("#id_modelo, #id_serie, #id_nat_op, #id_chave_acesso").prop("disabled", false);
         }
     });
-
     // Add código secundário nos Produtos
-
     let ident = 0;
     // Adicionando um produto na lista.
     $("#add-cod-sec-tab").click(function () {
@@ -369,7 +346,6 @@ $(document).ready(function() {
             // === Criar nova linha ===
             let idx = ident++;
             let codigoJaExiste = false;
-            // Verifica se já existe um <input hidden> com esse código dentro da tabela
             $("#tb-cod-sec tbody input[name*='[codigo]']").each(function() {
                 if ($(this).val() === cod) {
                     codigoJaExiste = true;
@@ -405,74 +381,55 @@ $(document).ready(function() {
     $(document).on("click", ".remover", function () {
         $(this).closest("tr").remove();
     });
-
     $('#cod-sec').on('keydown', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault(); // evita o submit do form
             $("#add-cod-sec-tab").click(); // aciona o mesmo evento do botão
         }
     });
-
-
-    //
     // Pra Adicionar Tabela de Preço de Produto
-    //
     let trEdit = null;          // variável global para edição
     let identificador = $("#tab-prec tbody tr").length; // contador inicial
     let editing = false;        // flag para evitar sobrescrever margem ao editar
     let bloqueio = false;       // evita loop de eventos
-
     // ======= REACALCULOS AUTOMÁTICOS =======
-    // Recalcular MARGEM ao editar VALOR PRODUTO
     $('#id_vl_prod').on('blur', function () {
         if (bloqueio) return;
         bloqueio = true;
-
         const valorCompra = parseFloat($('#id_vl_compra').val()) || 0;
         const valorProduto = parseFloat($(this).val()) || 0;
-
         if (valorCompra > 0 && valorProduto > 0) {
             const margem = ((valorProduto - valorCompra) / valorCompra) * 100;
             $('#id_margem').val(margem < 0 ? '0.00' : margem.toFixed(2));
         } else {
             $('#id_margem').val('0.00');
         }
-
         bloqueio = false;
     });
-
     // Recalcular VALOR PRODUTO ao editar MARGEM
     $('#id_margem').on('blur', function () {
         if (bloqueio) return;
         bloqueio = true;
-
         const valorCompra = parseFloat($('#id_vl_compra').val()) || 0;
         const margem = parseFloat($(this).val()) || 0;
-
         if (valorCompra > 0) {
             const valorProduto = valorCompra * (1 + margem / 100);
             $('#id_vl_prod').val(valorProduto.toFixed(2));
         }
-
         bloqueio = false;
     });
-
     // Recalcular VALOR PRODUTO ao editar VALOR COMPRA
     $('#id_vl_compra').on('blur', function () {
         if (bloqueio) return;
         bloqueio = true;
-
         const valorCompra = parseFloat($(this).val()) || 0;
         const margem = parseFloat($('#id_margem').val()) || 0;
-
         if (valorCompra > 0 && margem !== 0) {
             const valorProduto = valorCompra * (1 + margem / 100);
             $('#id_vl_prod').val(valorProduto.toFixed(2));
         }
-
         bloqueio = false;
     });
-
     // ======= CHANGE DA TABELA =======
     $('#id_tabela').on('change', function () {
         if (editing) return; // ignora quando estiver editando
@@ -480,7 +437,6 @@ $(document).ready(function() {
         const tabelaId = $(this).val();
         const precoCompra = parseFloat($('#id_vl_compra').val()) || 0;
         if (!tabelaId) return;
-
         $.ajax({
             url: "/tabelas_preco/get/",
             method: "GET",
@@ -506,7 +462,6 @@ $(document).ready(function() {
         const tabelaId = $(this).val();
         const precoCompra = parseFloat($('#id_vl_compra').val()) || 0;
         if (!tabelaId) return;
-
         $.ajax({
             url: "/tabelas_preco/get/",
             method: "GET",
@@ -525,25 +480,20 @@ $(document).ready(function() {
             }
         });
     });
-
     // ======= ADD / EDIT / REMOVE =======
     $('#add-tab').css('background-color', '').html('<i class="fa-solid fa-plus"></i> Incluir');
-
     // Função para resetar inputs
     function resetInputs() {
         $("#id_vl_prod, #id_margem").val("0.00");
         $('#id_tabela').val(null).trigger('change');
         $("#id_tabela").focus();
     }
-
     // Clique no botão para adicionar ou salvar
     $("#add-tab").click(function () {
         let tabId = $('#id_tabela').val();
         let tabNome = $('#id_tabela option:selected').text();
         let mrg = $("#id_margem").val();
         let vl_p = $("#id_vl_prod").val();
-
-        // Validações
         if (!tabId) {
             Toastify({ text: 'Selecione uma tabela antes de adicionar!', duration: 5000, gravity: "top", position: "center", backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)', stopOnFocus: true }).showToast();
             return;
@@ -552,25 +502,19 @@ $(document).ready(function() {
             Toastify({ text: 'Preço de Venda deve ser informado!', duration: 5000, gravity: "top", position: "center", backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)', stopOnFocus: true }).showToast();
             return;
         }
-
         if (trEdit) {
-            // === Atualizar linha existente ===
             let idx = trEdit.data("id");
             trEdit.find("td:eq(0)").html(`${tabNome}<input type="hidden" name="tab_preco[${idx}][tabela]" value="${tabId}">`);
             trEdit.find("td:eq(1)").html(`${mrg}<input type="hidden" name="tab_preco[${idx}][margem]" value="${mrg}">`);
             trEdit.find("td:eq(2)").html(`${vl_p}<input type="hidden" name="tab_preco[${idx}][vl_prod]" value="${vl_p}">`);
             trEdit = null;
             $("#id_tabela").prop("disabled", false);
-            // Volta o botão para "Incluir"
             $('#add-tab')
                 .css('background-color', '')
                 .html('<i class="fa-solid fa-plus"></i> Incluir');
         } else {
-            // === Criar nova linha ===
             let idx = identificador++;
             $("#tab-prec tbody tr.vazio").remove();
-
-            // Verifica duplicidade
             let tabelaJaExiste = false;
             $("#tab-prec tbody input[name*='[tabela]']").each(function() {
                 if ($(this).val() === tabId) {
@@ -578,7 +522,6 @@ $(document).ready(function() {
                     return false;
                 }
             });
-
             if (tabelaJaExiste) {
                 Toastify({ text: `Tabela "${tabNome}" já está inclusa na listagem!`, duration: 5000, gravity: "top", position: "center", backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)', stopOnFocus: true }).showToast();
             } else {
@@ -595,49 +538,37 @@ $(document).ready(function() {
                 `);
             }
         }
-
         resetInputs();
     });
-
     // ======= REMOVER LINHA =======
     $(document).on("click", ".remover", function () {
         $(this).closest("tr").remove();
     });
-
     // ======= EDITAR LINHA =======
     $(document).on("click", ".editando", function () {
         trEdit = $(this).closest("tr");
         const idx = trEdit.data("id");
-
         const tabId = trEdit.find(`input[name="tab_preco[${idx}][tabela]"]`).val();
         const mrg = trEdit.find(`input[name="tab_preco[${idx}][margem]"]`).val();
         const vl_p = trEdit.find(`input[name="tab_preco[${idx}][vl_prod]"]`).val();
-
         editing = true; // ativa flag para ignorar change da tabela
-
-
         const select = $("#id_tabela");
         if (select.find(`option[value='${tabId}']`).length === 0) {
             const tabText = trEdit.find("td:eq(0)").text().trim();
             select.append(`<option value="${tabId}">${tabText}</option>`);
         }
-
         select.val(tabId).trigger('change');
         select.prop("disabled", true);
-
         // Setar campos com os valores já salvos
         $("#id_margem").val(mrg);
         $("#id_vl_prod").val(vl_p);
         $("#id_vl_prod").focus();
-
         // Muda botão para "Salvar"
         $('#add-tab')
             .css('background-color', 'gray')
             .html('<i class="fa-solid fa-floppy-disk"></i> Salvar');
-
         editing = false; // desativa flag após setar
     });
-
     //
     let contador = 0;
     let trEditando = null; // linha que está em edição
@@ -896,7 +827,6 @@ $(document).ready(function() {
                 }
             });
             toastAguardando.showToast();
-
             iniciarTimerDeVerificacao(data.expira_em);
         });
     });
@@ -1003,7 +933,6 @@ $(document).ready(function() {
         }
         $('#descricaoSolicitacao').text(descricao);
         $('#solicitacaoId').val(solicitacaoId);
-
         $('#modalSolicitacao').modal('show');
     });
     // Quando clicar no botão aprovar
@@ -1057,19 +986,6 @@ $(document).ready(function() {
             }
         });
     }
-    // const descricao = $(this).data('description') || '';
-    // const solicitacaoId1 = $(this).data('id');
-    // if (!solicitacaoId1) {
-    //     console.error('ID da solicitação não encontrado!');
-    //     alert('Erro: ID da solicitação não encontrado.');
-    //     return;
-    // }
-    // console.log('Descrição:', descricao);
-    // console.log('ID capturado:', solicitacaoId1);
-    // $('#descricaoSolicitacao').text(descricao);
-    // $('#solicitacaoId').val(solicitacaoId1);
-    // $('#modalSolicitacao').modal('show');
-    //
     function verificarOuCriarLocalizacao(estado, cidade, bairro) {
         return fetch(`/verificar-localizacao/?estado=${estado}&cidade=${cidade}&bairro=${bairro}`)
             .then(response => response.json())
@@ -1175,19 +1091,15 @@ $(document).ready(function() {
     // Quando o botão for clicado
     $(document).on('click', '.btn-confirmar', function () {
         if ($(this).prop('disabled')) return;
-
         var $modal = $(this).closest('.modal');   // pega o modal onde o botão está
         var url = $(this).data('url');
-
         // fecha o modal
         $modal.modal('hide');
-
         // só redireciona depois que o modal terminar de fechar
         $modal.one('hidden.bs.modal', function () {
             window.location.href = url;
         });
     });
-
     // Consulta de Grupos
     function initGrupoSelect() {
         if ($('#id_grupo, #grupo, #grupo1, #campo-grupo-produto').length > 0) {
@@ -1198,7 +1110,6 @@ $(document).ready(function() {
                     if (!data.id) {
                         return data.text;
                     }
-
                     // cria o layout: ID em cima e Nome abaixo
                     var $container = $(`
                         <div style="display: flex; flex-direction: column; line-height: 1.2;">
@@ -1321,7 +1232,6 @@ $(document).ready(function() {
                     if (!data.id) {
                         return data.text;
                     }
-
                     // cria o layout: ID em cima e Nome abaixo
                     var $container = $(`
                         <div style="display: flex; flex-direction: column; line-height: 1.2;">
@@ -1383,7 +1293,6 @@ $(document).ready(function() {
                     if (!data.id) {
                         return data.text;
                     }
-
                     // cria o layout: ID em cima e Nome abaixo
                     var $container = $(`
                         <div style="display: flex; flex-direction: column; line-height: 1.2;">
@@ -1445,7 +1354,6 @@ $(document).ready(function() {
                     if (!data.id) {
                         return data.text;
                     }
-
                     // cria o layout: ID em cima e Nome abaixo
                     var $container = $(`
                         <div style="display: flex; flex-direction: column; line-height: 1.2;">
@@ -1507,7 +1415,6 @@ $(document).ready(function() {
                     if (!data.id) {
                         return data.text;
                     }
-
                     // cria o layout: ID em cima e Nome abaixo
                     var $container = $(`
                         <div style="display: flex; flex-direction: column; line-height: 1.2;">
@@ -1569,7 +1476,6 @@ $(document).ready(function() {
                     if (!data.id) {
                         return data.text;
                     }
-
                     // cria o layout: ID em cima e Nome abaixo
                     var $container = $(`
                         <div style="display: flex; flex-direction: column; line-height: 1.2;">
@@ -1628,7 +1534,6 @@ $(document).ready(function() {
                     if (!data.id) {
                         return data.text;
                     }
-
                     // cria o layout: ID em cima e Nome abaixo
                     var $container = $(`
                         <div style="display: flex; flex-direction: column; line-height: 1.2;">
@@ -1703,7 +1608,6 @@ $(document).ready(function() {
                 let compra = parseFloat($(this).find('td:nth-child(5)').text().replace(',', '.')) || 0;
                 let venda  = parseFloat($(this).find('td:nth-child(6)').text().replace(',', '.')) || 0;
                 let novaQtd = 1;
-
                 if (desc.startsWith('GUIAS') || desc.startsWith('TUBO DE AFASTAMENTO')) novaQtd = qtd * (alt_c + 0.2) * 2;
                 else if (desc.startsWith('EIXO') || desc.startsWith('SOLEIRA')) novaQtd = qtd * larg_c;
                 else if (desc.startsWith('PERFIL DESLIZANTE')) novaQtd = alt_c * 4;
@@ -1724,13 +1628,10 @@ $(document).ready(function() {
         });
         atualizarSubtotal();
     }
-
     let toastErrorShown = false;
     $('#id_pintura').on('change', function () {
         const temPintura = $(this).val();
-
         if (temPintura === 'Não') {
-
             Toastify({
                 text: '<i class="fa-solid fa-triangle-exclamation"></i> Campo Pintura está selecionado como Não, para inserir o produto, altere a opção para Sim!',
                 duration: 5000,
@@ -1740,195 +1641,22 @@ $(document).ready(function() {
                 stopOnFocus: true,
                 escapeMarkup: false,
             }).showToast();
-
             // 🔄 Primeiro atualiza tudo
             atualizarSubtotal();
             atualizarTabela();
-
             // ⌛ Depois de tudo pronto, esconde o loading
             setTimeout(() => {
                 finalizarLoading();
             }, 500); // leve delay evita bug do mobile
-
         } else {
-
             atualizarSubtotal();
             atualizarTabela();
-
             setTimeout(() => {
                 finalizarLoading();
             }, 500);
         }
     });
-
     toastErrorShown = false;
-    // Função auxiliar para adicionar produto em qualquer TableManager
-    function adicionarProduto(manager, produto, qtd) {
-        const valorCompraTotal = (parseFloat(produto.vl_compra) * qtd).toFixed(2);
-        const valorTotal = (parseFloat(produto.vl_prod) * qtd).toFixed(2);
-        manager.addItem([
-            produto.id,
-            produto.desc_prod,
-            produto.unidProd,
-            produto.vl_compra,
-            produto.vl_prod,
-            qtd,
-            valorCompraTotal,
-            valorTotal
-        ]);
-        atualizarSubtotal(); // Atualiza o subtotal após adicionar o produto
-    }
-
-    // Função auxiliar: verifica se o produto já está na tabela
-    function produtoJaExiste(produtoId) {
-        let existe = false;
-        $('#itensTableProduto tbody tr').each(function () {
-            let idTabela = $(this).find('td:nth-child(2)').text().trim(); // Ajuste para a coluna do ID
-            if (idTabela == produtoId) {
-                existe = true;
-                return false; // interrompe loop
-            }
-        });
-        return existe;
-    }
-    function produtoAdcJaExiste(produtoId) {
-        let existe = false;
-        $('#itensTableProdutoAdc tbody tr').each(function () {
-            let idTabela = $(this).find('td:nth-child(2)').text().trim(); // Ajuste para a coluna do ID
-            if (idTabela == produtoId) {
-                existe = true;
-                return false; // interrompe loop
-            }
-        });
-        return existe;
-    }
-
-    function buscarProdutosPrincipais() {
-        $.ajax({
-            url: '/produtos/lista_ajax/',
-            method: 'GET',
-            data: { tp: 'desc', tp_prod: 'Principal' },
-            success: function(response) {
-                console.log('%cProdutos Principais retornados:', 'color:yellow;', response.produtos);
-                if (!response.produtos || response.produtos.length === 0) {
-                    console.warn('Nenhum produto principal encontrado!');
-                    return;
-                }
-                const lg = parseFloat($('#id_larg').val().replace(',', '.')) || 0;
-                const at = parseFloat($('#id_alt').val().replace(',', '.')) || 0;
-                const tpLamina = $('#id_tp_lamina').val(); // valor do select
-                const produtosOrdenados = response.produtos.sort((a, b) => a.id - b.id);
-                produtosOrdenados.forEach(produto => {
-                    if (produto.desc_prod.toLowerCase().startsWith('motor')) {
-                        console.log("Ignorando MOTOR — motor só será inserido pelo cálculo.");
-                        return;
-                    }
-                    if (tpLamina === 'Fechada' && produto.desc_prod === 'LÂMINAS TRANSVISION') {
-                        console.log('Ignorado LÂMINAS TRANSVISION porque tp_lamina = Fechada');
-                        return;
-                    }
-                    if (tpLamina === 'Transvision' && produto.desc_prod === 'LÂMINAS LISAS') {
-                        console.log('Ignorado LÂMINA LISA porque tp_lamina = Transvision');
-                        return;
-                    }
-                    if ((lg > 0 || at > 0) && !produtoJaExiste(produto.id)) {
-                        adicionarProduto(prodManager, produto, 1);
-                    } else if (produtoJaExiste(produto.id)) {
-                        console.log(`Produto já existe: ${produto.desc_prod}`);
-                    }
-                });
-                setTimeout(() => {
-                    $('#itensTableProduto tbody tr').each(function () {
-                        let descricao = $(this).find('td:nth-child(3)').text().trim();
-                        if (tpLamina === 'Fechada' && descricao === 'LÂMINAS TRANSVISION') {
-                            console.log('Removendo LÂMINA TRANSVISION porque tp_lamina = Fechada');
-                            $(this).remove();
-                        }
-                        if (tpLamina === 'Transvision' && descricao === 'LÂMINAS LISAS') {
-                            console.log('Removendo LÂMINA LISA porque tp_lamina = Transvision');
-                            $(this).remove();
-                        }
-                    });
-                    // removerProdutoMotor();
-                    // buscarMotorIdeal();
-                    calcularValorForma();
-                    somaFormas();
-                    // validarProdutos();
-                    atualizarTabela();
-                    atualizarSubtotal(); // Certifique-se de que o subtotal é atualizado aqui também
-                }, 100);
-            },
-            error: function() {
-                Toastify({
-                    text: 'Erro ao buscar produtos principais!',
-                    duration: 5000,
-                    gravity: "top",
-                    position: "center",
-                    backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
-                    stopOnFocus: true,
-                    escapeMarkup: false,
-                }).showToast();
-            }
-        });
-    }
-    // Buscar produtos adicionais
-    // Função para normalizar strings (remove acentos e espaços extras)
-    function normalizarTexto(txt) {
-        return txt
-            .normalize("NFD")               // separa acentos
-            .replace(/[\u0300-\u036f]/g, "") // remove acentos
-            .toUpperCase()
-            .trim();
-    }
-    function buscarProdutosAdicionais() {
-        $.ajax({
-            url: '/produtos/lista_ajax/',
-            method: 'GET',
-            data: { tp: 'desc', tp_prod: 'Adicional' },
-            success: function(response) {
-                if (!response.produtos || response.produtos.length === 0) return;
-                const lg = parseFloat($('#id_larg').val().replace(',', '.')) || 0;
-                const at = parseFloat($('#id_alt').val().replace(',', '.')) || 0;
-                const tp_pintura = $('#id_tp_pintura').val();
-                const produtosOrdenados = response.produtos.sort((a, b) => a.id - b.id);
-                produtosOrdenados.forEach(produto => {
-                    if (tp_pintura === 'Eletrostática' && produto.desc_prod === 'PINTURA AUTOMOTIVA') return;
-                    if (tp_pintura === 'Automotiva' && produto.desc_prod === 'PINTURA ELETROSTÁTICA') return;
-                    if ((lg > 0 || at > 0) && !produtoAdcJaExiste(produto.id)) {
-                        adicionarProduto(prodAdcManager, produto, 0);
-                    } else if (produtoAdcJaExiste(produto.id)) {
-                        console.log(`Produto Adicional já existe: ${produto.desc_prod}`);
-                    }
-                });
-                setTimeout(() => {
-                    $('#itensTableProdutoAdc tbody tr').each(function () {
-                        let descricao = $(this).find('td:nth-child(3)').text().trim();
-                        if (tp_pintura === 'Eletrostática' && descricao === 'PINTURA AUTOMOTIVA') {
-                            $(this).remove();
-                        }
-                        if (tp_pintura === 'Automotiva' && descricao === 'PINTURA ELETROSTÁTICA') {
-                            $(this).remove();
-                        }
-                    });
-                    calcularValorForma();
-                    somaFormas();
-                    atualizarTabela();
-                    atualizarSubtotal();
-                }, 80);
-                verificarPintura();           // remove as pinturas erradas
-                prodAdcManager.updateHiddenInput();
-            }
-        });
-    }
-    // Chama a função para buscar produtos ao carregar a página
-    // Função para limpar a tabela e reiniciar contador
-    function resetTable(tableId, managerInstance) {
-        $("#" + tableId).find("tbody").empty();
-        if (managerInstance) {
-            managerInstance.itemCount = 1; // reinicia contador de linhas
-        }
-        return 0; // retorna o contador zerado
-    }
     function arredondarParaCima(valor, casasDecimais) {
         let fator = Math.pow(10, casasDecimais);
         return (Math.ceil(valor * fator) / fator).toFixed(casasDecimais);
@@ -1952,11 +1680,13 @@ $(document).ready(function() {
             return inteiro;                       // até .50 -> mantém inteiro
         }
     }
-    function calcFtPeso() {
-        let alt_corte = parseFloat($('#id_alt_corte').val().replace(',', '.'));
-        let tp_vao = $('#id_tp_vao').val();
+    function calcFtPeso(porta) {
+        let alt_corte = parseFloat(
+            $(`.alt-corte[data-porta="${porta}"]`).val().replace(',', '.')
+        );
+        let tp_vao = $(`.tipo-vao[data-porta="${porta}"]`).val();
         if (isNaN(alt_corte)) {
-            $('#id_fator_peso').val('');
+            $(`.ft-peso[data-porta="${porta}"]`).val('');
             return;
         }
         let resultado;
@@ -1966,10 +1696,11 @@ $(document).ready(function() {
             resultado = (alt_corte - 0.6) / 7.5;
         }
         let final = arredondarParaCima(resultado, 2) * 100;
-        $('#id_fator_peso').val(final.toFixed(2));
+        $(`.ft-peso[data-porta="${porta}"]`).val(final.toFixed(2));
     }
-    $('#id_alt').on('keyup change', function () {
-        $('#id_alt_corte').val($(this).val());
+    $(document).on('input', '.alt', function () {
+        let porta = $(this).data('porta');
+        $(`.alt-corte[data-porta="${porta}"]`).val($(this).val());
     });
     $('#id_tp_vao').val('Fora do Vão');
     function finalizarLoading() {
@@ -1977,444 +1708,410 @@ $(document).ready(function() {
             $("#loadingModal").modal("hide");
         }, 1500);
     }
-    function calcLgCorte() {
-        let largRaw = $("#id_larg").val();
+    function calcLgCorte(porta) {
+        let largRaw = $(`.larg[data-porta="${porta}"]`).val();
         if (!largRaw) return "";
         let larg = parseFloat(largRaw.replace(/,/g, ""));
         if (isNaN(larg)) return "";
-        const tpLam = $("#id_tp_vao").val();
+        const tp_vao = $(`.tipo-vao[data-porta="${porta}"]`).val();
         let calc = 0;
-        if (tpLam === "Fora do Vão") {
+        if (tp_vao === "Fora do Vão") {
             calc = larg + 0.10;
         } else {
             calc = larg - 0.08;
         }
-        if (tpLam === '1 Lado Dentro do Vão') {
+        if (tp_vao === '1 Lado Dentro do Vão') {
             calc = larg + 0.03;
         }
         return calc.toFixed(2);
     }
-    function atualizarLarguraCorte() {
-        const result = calcLgCorte();
-        $('#id_larg_corte').val(result);
-
-        let ft_p = $('#id_fator_peso').val();
+    function atualizarLarguraCorte(porta) {
+        const result = calcLgCorte(porta);
+        $(`.larg-corte[data-porta="${porta}"]`).val(result);
+        let ft_p = $(`.ft-peso[data-porta="${porta}"]`).val();
         ft_p = ft_p ? parseFloat(ft_p.replace(',', '.')) : 0;
-
         const calculo = (result * 0.8) * ft_p * 1.2;
         const pesoFinal = arredondarParaCima(calculo, 0);
-
-        console.log("calcLgCorte():", result);
-        console.log("fator peso (ft_p):", ft_p);
-        console.log("cálculo bruto:", calculo);
-        console.log("peso final:", pesoFinal);
-        $("#id_peso").val(pesoFinal);
+        $(`.peso[data-porta="${porta}"]`).val(pesoFinal);
     }
-    function calcularEixoMotor() {
-        let ft_peso = parseFloat($('#id_fator_peso').val());
-        let larg_corte = parseFloat($('#id_larg_corte').val());
+    function calcularEixoMotor(porta) {
+        let ft_peso = parseFloat($(`.ft-peso[data-porta="${porta}"]`).val());
+        let larg_corte = parseFloat($(`.larg-corte[data-porta="${porta}"]`).val());
         let qtd = 1;
         if (isNaN(ft_peso) || isNaN(larg_corte) || isNaN(qtd)) {
-            $('#id_eixo_motor').val('');
+            $(`.eix-mot[data-porta="${porta}"]`).val('');
             return;
         }
         let calc = (((larg_corte * 0.8) * ft_peso) * (1.5 * qtd));
         let final = arredondarParaCima(calc, 0);
-        $('#id_eixo_motor').val(final);
+        $(`.eix-mot[data-porta="${porta}"]`).val(final);
     }
-    function calcM2() {
-        let larg_corte = parseFloat($('#id_larg_corte').val());
-        let alt_corte = parseFloat($('#id_alt_corte').val());
-        let rolo = parseFloat($('#id_rolo').val());
-        let qtd = parseFloat($('#id_qtd').val());
-        let calc = ((rolo + alt_corte) * larg_corte) * qtd;
+    function calcM2(porta) {
+        let larg_corte = parseFloat($(`.larg-corte[data-porta="${porta}"]`).val()) || 0;
+        let alt_corte  = parseFloat($(`.alt-corte[data-porta="${porta}"]`).val()) || 0;
+        let rolo       = parseFloat($(`.rolo[data-porta="${porta}"]`).val()) || 0;
+        let calc = (rolo + alt_corte) * larg_corte;
         let aux = arredondarComAjuste(calc);
-        $('#id_m2').val(aux);
+        $(`.m2[data-porta="${porta}"]`).val(aux);
     }
-    function calcQtdLam() {
-        let alt_corte = parseFloat($('#id_alt_corte').val());
-        let rolo = parseFloat($('#id_rolo').val());
+    function calcQtdLam(porta) {
+        let alt_corte = parseFloat($(`.alt-corte[data-porta="${porta}"]`).val());
+        let rolo = parseFloat($(`.rolo[data-porta="${porta}"]`).val());
         let calc = (alt_corte + rolo) / 0.075;
         let aux = arredondarInteiro(calc);
-        $('#id_qtd_lam').val(aux);
+        $(`.qtd-laminas[data-porta="${porta}"]`).val(aux);
     }
-    let ultimoMotorGerado = null;
-    let ultimoPesoUsado = null;
-    let motorJaInserido = false;
-    function buscarMotorIdeal() {
-        const peso = parseFloat($('#id_peso').val()) || 0;
+    let motorCtrl = {};
+    function buscarMotorIdeal(porta) {
+        const peso = parseFloat($(`.peso[data-porta="${porta}"]`).val()) || 0;
+        const altura = parseFloat($(`.alt[data-porta="${porta}"]`).val()) || 0;  // supondo que você tenha um campo de altura
         if (peso < 1) return;
-        const ranges = [150,250,350,450,550,650,750,1000];
-        const modelos = ["200KG","300KG","400KG","500KG","600KG","700KG","800KG","1000KG"];
-        const motor = `MOTOR ${modelos[ranges.findIndex(r => peso <= r)] || "1500KG"}`;
-        if (motorJaInserido && peso === ultimoPesoUsado && motor === ultimoMotorGerado) {
-            return;
+        if (!motorCtrl[porta]) {
+            motorCtrl[porta] = {
+                ultimoMotor: null,
+                ultimoPeso: null,
+                inserir: false,
+                ultimaAltura: null // armazenar a última altura
+            };
         }
-        removerProdutoMotor();
-        $.get('/produtos/lista_ajax/', { s: motor, filtro: 'desc', tp_prod: 'Principal' })
-            .done(res => {
-                const p = res.produtos?.[0];
-                if (!p || verificarProduto(p.desc_prod)) return;
-                setTimeout(() => {
-                    adicionarProduto(prodManager, p, "1.00");
-                    calcularEixoMotor();
-                    ultimoPesoUsado = peso;
-                    ultimoMotorGerado = motor;
-                    motorJaInserido = true;
-                }, 1500); // 1000ms = 1 segundo
-            })
-            .fail(() => {
-                Toastify({
-                    text: 'Erro ao buscar motor ideal.',
-                    duration: 5000, gravity:"top", position:"center",
-                    backgroundColor:'linear-gradient(to right, #db1e47, #ff7373)'
-                }).showToast();
-            });
+        const ranges = [150, 250, 350, 450, 550, 650, 750, 1000];
+        const modelos = ["200KG", "300KG", "400KG", "500KG", "600KG", "700KG", "800KG", "1000KG"];
+        const idx = ranges.findIndex(r => peso <= r);
+        const motorNome = `MOTOR ${modelos[idx] || "1500KG"}`;
+        const ctrl = motorCtrl[porta];
+        if (ctrl.inserido && peso === ctrl.ultimoPeso && motorNome === ctrl.ultimoMotor && altura === ctrl.ultimaAltura) {
+            return; // Não faz nada se nada mudou
+        }
+        removerProdutoMotor(porta);
+        $.get('/produtos/lista_ajax/', {
+            s: motorNome,
+            filtro: 'desc',
+            tp_prod: 'Principal'
+        })
+        .done(res => {
+            const p = res.produtos?.[0];
+            if (!p) return;
+            if (verificarProdutoMotor(porta, p.desc_prod)) return;
+            setTimeout(() => {
+                const $tbody = $(`#tblProd_${porta} tbody`);
+                const linha = $tbody.find('tr').length + 1; // ✅ numeração correta
+                $tbody.append(`
+                    <tr data-porta="${porta}" data-item-id="${p.id}">
+                        <td data-label="#" class="mobile-2col">${linha}</td>
+                        <td data-label="Cód:" class="mobile-2col">${p.id}</td>
+                        <td data-label="Desc.:" class="mobile-2col">${p.desc_prod}</td>
+                        <td data-label="Unid:" class="mobile-2col">${p.unidProd}</td>
+                        <td class="text-danger fw-bold mobile-3col" data-label="Vl. Compra:">${p.vl_compra}</td>
+                        <td class="vl-unit text-success fw-bold mobile-3col" data-label="Vl. Unit:">${p.vl_prod}</td>
+                        <td class="qtd-produto mobile-3col" data-label="Qtde:">1.00</td>
+                        <td class="tot-compra text-danger fw-bold mobile-3col" data-label="Tot. Compra:">0.00</td>
+                        <td class="vl-total text-success fw-bold mobile-3col" data-label="Vl. Total:">0.00</td>
+                        <td data-label="Ações:" class="mobile-3col">
+                            <i class="fas fa-edit editBtn" style="color: #13c43f; cursor:pointer;" data-bs-toggle="modal" data-bs-target="#editItemModal"></i>
+                            <i class="fas fa-trash deleteBtn" style="color: #db1e47; cursor:pointer;"></i>
+                        </td>
+                    </tr>
+                `);
+                calcularEixoMotor(porta);
+                atualizarTabelaPorta(porta);
+                atualizarSubtotal();
+                ctrl.ultimoPeso  = peso;
+                ctrl.ultimoMotor = motorNome;
+                ctrl.ultimaAltura = altura; // Atualiza a altura registrada
+                ctrl.inserido    = true;
+                atualizarJSONPortas(); // 👈 GARANTE que o motor entre
+            }, 500);
+        })
+        .fail(() => {
+            Toastify({
+                text: 'Erro ao buscar motor ideal.',
+                duration: 5000,
+                gravity: "top",
+                position: "center",
+                backgroundColor: 'linear-gradient(to right, #db1e47, #ff7373)'
+            }).showToast();
+        });
     }
-    function removerProdutoMotor() {
-        $('#itensTableProduto tbody tr').filter((_, tr) =>
-            $(tr).find('td:nth-child(3)').text().toLowerCase().startsWith('motor')
-        ).remove();
+    function removerProdutoMotor(porta) {
+        $(`#tblProd_${porta} tbody tr`).each(function () {
+            const desc = $(this).find('td:eq(2)').text().toLowerCase().trim();
+            if (desc.startsWith('motor')) {
+                $(this).remove();
+            }
+        });
+        if (motorCtrl[porta]) {
+            motorCtrl[porta].inserido = false;
+        }
     }
-    function verificarProduto(nome) {
-        const n = nome.toLowerCase();
-        return $('#itensTableProduto tbody tr').filter((_, tr) =>
-            $(tr).find('td:nth-child(3)').text().toLowerCase() === n
-        ).length > 0;
+    function verificarProdutoMotor(porta, nome) {
+        const nomeBusca = nome.toLowerCase().trim();
+        let existe = false;
+        $(`#tblProd_${porta} tbody tr`).each(function () {
+            const desc = $(this).find('td:eq(2)').text().toLowerCase().trim();
+            if (desc === nomeBusca) {
+                existe = true;
+            }
+        });
+        return existe;
     }
-    function verificarPintura() {
+    function resetarControleMotor() {
+        motorCtrl = {};
+    }
+    function verificarPintura(porta) {
         const temPintura = $("#id_pintura").val();
         const tp_pintura = $("#id_tp_pintura").val();
-        const prodCerto =
-            tp_pintura === "Eletrostática"
-                ? "PINTURA ELETROSTÁTICA"
-                : "PINTURA AUTOMOTIVA";
-        const prodErrado =
-            tp_pintura === "Eletrostática"
-                ? "PINTURA AUTOMOTIVA"
-                : "PINTURA ELETROSTÁTICA";
+        const $tbody = $(`#tblAdc_${porta} tbody`);
         if (temPintura === "Não") {
-            $('#itensTableProdutoAdc tbody tr').each(function () {
-                const desc = $(this).find('td:nth-child(3)').text().toUpperCase().trim();
+            $tbody.find('tr').each(function () {
+                const desc = $(this).find('td:nth-child(3)').text().toUpperCase();
                 if (desc.includes("PINTURA")) {
                     $(this).remove();
                 }
             });
+            atualizarTabelaPorta(porta);
             atualizarSubtotal();
-            calcularValorForma();
-            somaFormas();
-            atualizarTabela();
-            setTimeout(() => {
-                finalizarLoading();
-            }, 500);
             return;
         }
-        $('#itensTableProdutoAdc tbody tr').each(function () {
-            const desc = $(this).find('td:nth-child(3)').text().toUpperCase().trim();
-            if (desc === prodErrado.toUpperCase()) {
+        const pinturaCorreta =
+            tp_pintura === "Eletrostática"
+                ? "PINTURA ELETROSTÁTICA"
+                : "PINTURA AUTOMOTIVA";
+        const pinturaErrada =
+            tp_pintura === "Eletrostática"
+                ? "PINTURA AUTOMOTIVA"
+                : "PINTURA ELETROSTÁTICA";
+        $tbody.find('tr').each(function () {
+            const desc = $(this).find('td:nth-child(3)').text().toUpperCase();
+            if (desc === pinturaErrada) {
                 $(this).remove();
             }
         });
         let existe = false;
-        $('#itensTableProdutoAdc tbody tr').each(function () {
-            const desc = $(this).find('td:nth-child(3)').text().toUpperCase().trim();
-            if (desc === prodCerto.toUpperCase()) {
+        $tbody.find('tr').each(function () {
+            const desc = $(this).find('td:nth-child(3)').text().toUpperCase();
+            if (desc === pinturaCorreta) {
                 existe = true;
             }
         });
         if (existe) {
+            atualizarTabelaPorta(porta);
             atualizarSubtotal();
-            calcularValorForma();
-            somaFormas();
-            atualizarTabela();
-            setTimeout(() => {
-                finalizarLoading();
-            }, 500);
             return;
         }
-        if (tp_pintura === "Eletrostática" && prodCerto !== "PINTURA ELETROSTÁTICA") {
-            setTimeout(() => {
-                finalizarLoading();
-            }, 500);
-            return;
-        }
-        if (tp_pintura === "Automotiva" && prodCerto !== "PINTURA AUTOMOTIVA") {
-            setTimeout(() => {
-                finalizarLoading();
-            }, 500);
-            return;
-        }
-        $.ajax({
-            url: '/produtos/lista_ajax/',
-            method: 'GET',
-            data: { tp: 'desc', filtro: 'PINTURA' },
-            success: function (response) {
-                if (!response.produtos || !response.produtos.length) {
-                    setTimeout(() => {
-                        finalizarLoading();
-                    }, 500);
-                    return;
-                }
-                let jaExiste = false;
-                $('#itensTableProdutoAdc tbody tr').each(function () {
-                    const desc = $(this).find('td:nth-child(3)').text().toUpperCase().trim();
-                    if (desc === prodCerto.toUpperCase()) {
-                        jaExiste = true;
-                    }
-                });
-                if (jaExiste) {
-                    setTimeout(() => {
-                        finalizarLoading();
-                    }, 500);
-                    return;
-                }
-                let pinturaProd = response.produtos.find(
-                    p => p.desc_prod.toUpperCase().trim() === prodCerto.toUpperCase()
-                );
-                if (!pinturaProd) {
-                    setTimeout(() => {
-                        finalizarLoading();
-                    }, 500);
-                    return;
-                }
-                setTimeout(() => {
-                    adicionarProduto(prodAdcManager, pinturaProd, "1.00");
-                    atualizarSubtotal();
-                    calcularValorForma();
-                    somaFormas();
-                    atualizarTabela();
-                    setTimeout(() => {
-                        finalizarLoading();
-                    }, 500);
-                }, 200);
-            },
-            error: function () {
-                setTimeout(() => {
-                    finalizarLoading();
-                }, 500);
-            }
+        $.get('/produtos/lista_ajax/', {
+            tp: 'desc',
+            tp_prod: 'Adicional',
+            s: pinturaCorreta
+        })
+        .done(resp => {
+            const p = resp.produtos?.find(
+                prod => prod.desc_prod.toUpperCase() === pinturaCorreta
+            );
+            if (!p) return;
+            const linha = $tbody.find('tr').length + 1;
+            $tbody.append(`
+                <tr data-porta="${porta}" data-item-id="${p.id}">
+                    <td data-label="#" class="mobile-2col">${linha}</td>
+                    <td data-label="Cód:" class="mobile-2col">${p.id}</td>
+                    <td data-label="Desc.:" class="mobile-2col">${p.desc_prod}</td>
+                    <td data-label="Unid:" class="mobile-2col">${p.unidProd}</td>
+                    <td class="text-danger fw-bold mobile-3col" data-label="Vl. Compra:">${p.vl_compra}</td>
+                    <td class="vl-unit text-success fw-bold mobile-3col" data-label="Vl. Unit:">${p.vl_prod}</td>
+                    <td class="qtd-produto mobile-3col" data-label="Qtde:">0</td>
+                    <td class="tot-compra text-danger fw-bold mobile-3col" data-label="Tot. Compra:">0.00</td>
+                    <td class="vl-total text-success fw-bold mobile-3col" data-label="Vl. Total:">0.00</td>
+                    <td data-label="Ações:" class="mobile-3col">
+                        <i class="fas fa-edit editBtn" data-bs-toggle="modal" data-bs-target="#editItemAdcModal" style="color: #13c43f; cursor: pointer;"></i>
+                        <i class="fas fa-trash deleteBtn" style="color: #db1e47; cursor: pointer;"></i>
+                    </td>
+                </tr>
+            `);
+            // 🔥 AGORA SIM A QUANTIDADE VAI SER m2
+            atualizarTabelaPorta(porta);
+            atualizarSubtotal();
         });
     }
-    $('#id_larg').on('keyup change', atualizarLarguraCorte);
-    $('#id_tp_vao').on('change', atualizarLarguraCorte);
-
-   $('#id_alt').on('blur', function () {
-        $("#loadingModal").modal("show");
-        calcFtPeso();
-        atualizarLarguraCorte();
-        calcularEixoMotor();
-        calcM2();
-        calcQtdLam();
-        buscarMotorIdeal();
-        verificarPintura();
+    function atualizarPinturaPorta(porta) {
+        const temPintura = $('#id_pintura').val();       // Sim / Não
+        const tpPintura  = $('#id_tp_pintura').val();    // Eletrostática / Automotiva
+        const $tabela = $(`#tblAdc_${porta} tbody`);
+        if (!$tabela.length) return;
+        const m2 = parseFloat($(`.m2[data-porta="${porta}"]`).val()) || 0;
+        const DESC_ELET = 'PINTURA ELETROSTÁTICA';
+        const DESC_AUTO = 'PINTURA AUTOMOTIVA';
+        $tabela.find('tr').each(function () {
+            const desc = $(this).find('td:eq(2)').text().toUpperCase().trim();
+            if (desc === DESC_ELET || desc === DESC_AUTO) {
+                $(this).remove();
+            }
+        });
+        if (temPintura === 'Não') {
+            atualizarTabelaPorta(porta);
+            atualizarSubtotal();
+            return;
+        }
+        const pinturaCorreta = tpPintura === 'Automotiva'
+            ? DESC_AUTO
+            : DESC_ELET;
+        $.get('/produtos/lista_ajax/', {
+            s: pinturaCorreta,
+            filtro: 'desc',
+            tp_prod: 'Adicional'
+        })
+        .done(res => {
+            const p = res.produtos?.[0];
+            if (!p) return;
+            const jaExiste = $tabela.find('tr').filter(function () {
+                return $(this).find('td:eq(2)').text().toUpperCase().trim() === pinturaCorreta;
+            }).length > 0;
+            if (jaExiste) return;
+            const idx = $tabela.find('tr').length + 1;
+            $tabela.append(`
+                <tr data-porta="${porta}" data-item-id="${p.id}">
+                    <td data-label="#" class="mobile-2col">${idx+1}</td>
+                    <td data-label="Cód:" class="mobile-2col">${p.id}</td>
+                    <td data-label="Desc.:" class="mobile-2col">${p.desc_prod}</td>
+                    <td data-label="Unid:" class="mobile-2col">${p.unidProd}</td>
+                    <td class="text-danger fw-bold mobile-3col" data-label="Vl. Compra:">${p.vl_compra}</td>
+                    <td class="vl-unit text-success fw-bold mobile-3col" data-label="Vl. Unit:">${p.vl_prod}</td>
+                    <td class="qtd-produto mobile-3col" data-label="Qtde:">${m2.toFixed(2)}</td>
+                    <td class="tot-compra text-danger fw-bold mobile-3col" data-label="Tot. Compra:">0.00</td>
+                    <td class="vl-total text-success fw-bold mobile-3col" data-label="Vl. Total:">0.00</td>
+                    <td data-label="Ações:" class="mobile-3col">
+                        <i class="fas fa-edit editBtn" style="color: #13c43f; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#editItemAdcModal"></i>
+                        <i class="fas fa-trash deleteBtn" style="color:#db1e47;cursor:pointer"></i>
+                    </td>
+                </tr>
+            `);
+            atualizarTabelaPorta(porta);
+            atualizarSubtotal();
+        })
+        .fail(() => {
+            Toastify({
+                text: 'Erro ao buscar pintura.',
+                duration: 5000,
+                gravity: "top",
+                position: "center",
+                backgroundColor: 'linear-gradient(to right, #db1e47, #ff7373)'
+            }).showToast();
+        });
+    }
+    $('#id_pintura').on('change', function () {
+        $('.porta-container').each(function () {
+            const porta = $(this).data('porta');
+            atualizarPinturaPorta(porta);
+            setTimeout(() => {
+                finalizarLoading();
+            }, 500);
+        });
+    });
+    function atualizarLaminarPorta(porta) {
+        const tpLam = $(`.tipo-lamina[data-porta="${porta}"]`).val(); // Fechada / Transvision
+        const $tabela = $(`#tblProd_${porta} tbody`);
+        if (!$tabela.length) return;
+        const m2 = parseFloat($(`.m2[data-porta="${porta}"]`).val()) || 0;
+        // descrições padronizadas
+        const DESC_LISA  = 'LÂMINAS LISAS';
+        const DESC_TRANS = 'LÂMINAS TRANSVISION';
+        // remove qualquer lâmina existente
+        $tabela.find('tr').each(function () {
+            const desc = $(this).find('td:eq(2)').text().toUpperCase().trim();
+            if (desc === DESC_LISA || desc === DESC_TRANS) {
+                $(this).remove();
+            }
+        });
+        // define qual lâmina deve entrar
+        const laminaCorreta = tpLam === 'Transvision'
+            ? DESC_TRANS
+            : DESC_LISA;
+        // busca produto correto
+        $.get('/produtos/lista_ajax/', {
+            s: laminaCorreta,
+            filtro: 'desc',
+            tp_prod: 'Principal'
+        })
+        .done(res => {
+            const p = res.produtos?.[0];
+            if (!p) return;
+            // segurança extra contra duplicação
+            const jaExiste = $tabela.find('tr').filter(function () {
+                return $(this).find('td:eq(2)').text().toUpperCase().trim() === laminaCorreta;
+            }).length > 0;
+            if (jaExiste) return;
+            // próxima numeração correta
+            const idx = $tabela.find('tr').length + 1;
+            // insere a lâmina correta
+            $tabela.append(`
+                <tr data-porta="${porta}">
+                    <td data-label="#" class="mobile-2col">${idx}</td>
+                    <td data-label="Cód:" class="mobile-2col">${p.id}</td>
+                    <td data-label="Desc.:" class="mobile-2col">${p.desc_prod}</td>
+                    <td data-label="Unid:" class="mobile-2col">${p.unidProd}</td>
+                    <td class="text-danger fw-bold mobile-3col" data-label="Vl. Compra:">${p.vl_compra}</td>
+                    <td class="vl-unit text-success fw-bold mobile-3col" data-label="Vl. Unit:">${p.vl_prod}</td>
+                    <td class="qtd-produto mobile-3col" data-label="Qtde:">${m2.toFixed(2)}</td>
+                    <td class="tot-compra text-danger fw-bold mobile-3col" data-label="Tot. Compra:">0.00</td>
+                    <td class="vl-total text-success fw-bold mobile-3col" data-label="Vl. Total:">0.00</td>
+                    <td data-label="Ações:" class="mobile-3col">
+                        <i class="fas fa-edit editBtn" style="color: #13c43f; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#editItemModal"></i>
+                        <i class="fas fa-trash deleteBtn" style="color: #db1e47; cursor:pointer;"></i>
+                    </td>
+                </tr>
+            `);
+            // recalcula totais
+            atualizarTabelaPorta(porta);
+            atualizarSubtotal();
+        })
+        .fail(() => {
+            Toastify({
+                text: 'Erro ao buscar lâminas.',
+                duration: 5000,
+                gravity: "top",
+                position: "center",
+                backgroundColor: 'linear-gradient(to right, #db1e47, #ff7373)'
+            }).showToast();
+        });
+    }
+    $(document).on('change', '.tipo-lamina', function () {
+        const porta = $(this).data('porta');
+        const larg = $(`.larg[data-porta="${porta}"]`).val().trim();
+        const alt  = $(`.alt[data-porta="${porta}"]`).val().trim();
+        buscarProdutosPrincipais(porta, larg, alt);
+        atualizarTabelaPorta(porta);
+        atualizarSubtotal();
         setTimeout(() => {
             finalizarLoading();
         }, 500);
     });
-    $("#adicionaisBtn").on("click", function () {
-        const temPintura = $("#id_pintura").val();
-        if (temPintura === "Não") {
-            $('#itensTableProdutoAdc tbody tr').each(function () {
-                const desc = $(this).find('td:nth-child(3)').text().toUpperCase().trim();
-                if (desc === "PINTURA ELETROSTÁTICA" || desc === "PINTURA AUTOMOTIVA") {
-                    $(this).remove();
-                }
-            });
-            atualizarSubtotal();
-            calcularValorForma();
-            atualizarTabela();
-            somaFormas();
-            return; // impede que o resto da lógica de pinturas rode
-        }
-        prodAdcManager.updateHiddenInput();
+    $(document).on('keyup change', '.larg', function () {
+        let porta = $(this).data('porta');
+        atualizarLarguraCorte(porta);
     });
-
+    $(document).on('change', '.tipo-vao', function () {
+        let porta = $(this).data('porta');
+        atualizarLarguraCorte(porta);
+    });
+    $('#id_tp_pintura').on('change', function () {
+        $('.porta-container').each(function () {
+            const porta = $(this).data('porta');
+            atualizarPinturaPorta(porta);
+        });
+    });
+    $("#prod_servBtn, #adicionaisBtn, #form_pgtoBtn").on("click", function () {
+        atualizarSubtotal();
+        calcularValorForma();
+        somaFormas();
+        console.log('Chamou aqui');
+        atualizarJSONPortas();
+        gerarJSONFormas();
+    });
+    atualizarJSONPortas();
+    gerarJSONFormas();
     $("#id_tp_pintura, #id_pintura").change(function () {
+        const porta = $(this).data("porta");
         $("#loadingModal").modal("show");
-        verificarPintura();
+        verificarPintura(porta);
     });
-
-
-    // function validarProdutos() {
-
-    //     const tpLam = $('#id_tp_lamina').val();
-    //     const tp_pintura = $("#id_tp_pintura").val();
-
-    //     // Verifique se está editando um orçamento existente
-    //     const isEditing = $('#id_num_orcamento').val() !== ''; // Ajuste conforme necessário
-
-    //     // --- PINTURA ---
-    //     if (temPintura === 'Não') {
-    //         // Remove qualquer tipo de pintura
-    //         $('#itensTableProdutoAdc tbody tr').each(function () {
-    //             let desc = $(this).find('td:nth-child(3)').text().toUpperCase().trim();
-    //             if (desc === 'PINTURA ELETROSTÁTICA' || desc === "PINTURA AUTOMOTIVA") {
-    //                 $(this).remove();
-    //             }
-    //         });
-    //         $('#itensTableProduto tbody tr').each(function () {
-    //             let desc = $(this).find('td:nth-child(3)').text().toUpperCase().trim();
-    //             if (desc === 'PINTURA ELETROSTÁTICA' || desc === "PINTURA AUTOMOTIVA") {
-    //                 $(this).remove();
-    //             }
-    //         });
-    //         atualizarSubtotal();
-    //         return; // não precisa continuar
-    //     }
-
-    //     // Se tem pintura, controla o tipo
-    //     if (temPintura === 'Sim') {
-    //         // --- Remove o tipo de pintura oposto ---
-    //         if (tp_pintura === 'Eletrostática') {
-    //             removerProdutoPorDescricao('PINTURA AUTOMOTIVA');
-    //         } else if (tp_pintura === 'Automotiva') {
-    //             removerProdutoPorDescricao('PINTURA ELETROSTÁTICA');
-    //         }
-
-    //         if (!isEditing && !carregandoPagina) {
-    //             // Verifica se já existe pintura (de qualquer tipo)
-    //             let existePintura = false;
-    //             $('#itensTableProdutoAdc tbody tr').each(function () {
-    //                 let desc = $(this).find('td:nth-child(3)').text().toUpperCase().trim();
-    //                 if (desc === 'PINTURA ELETROSTÁTICA' || desc === 'PINTURA AUTOMOTIVA') {
-    //                     existePintura = true;
-    //                     return false;
-    //                 }
-    //             });
-
-    //             // Só busca no servidor se realmente não existe
-    //             if (!existePintura) {
-    //                 $.ajax({
-    //                     url: '/produtos/lista_ajax/',
-    //                     method: 'GET',
-    //                     data: { tp: 'desc', filtro: 'PINTURA' },
-    //                     success: function(response) {
-    //                         if (response.produtos && response.produtos.length > 0) {
-    //                             let pinturaProd = null;
-
-    //                             if (tp_pintura === "Eletrostática") {
-    //                                 pinturaProd = response.produtos.find(
-    //                                     p => p.desc_prod.toUpperCase().trim() === 'PINTURA ELETROSTÁTICA'
-    //                                 );
-    //                             } else if (tp_pintura === "Automotiva") {
-    //                                 pinturaProd = response.produtos.find(
-    //                                     p => p.desc_prod.toUpperCase().trim() === 'PINTURA AUTOMOTIVA'
-    //                                 );
-    //                             }
-
-    //                             // Verifica se o produto já existe em alguma tabela
-    //                             function produtoJaExiste(descProduto) {
-    //                                 let existe = false;
-    //                                 $('#itensTableProduto tbody tr, #itensTableProdutoAdc tbody tr').each(function () {
-    //                                     let desc = $(this).find('td:nth-child(3)').text().toUpperCase().trim();
-    //                                     if (desc === descProduto) {
-    //                                         existe = true;
-    //                                         return false;
-    //                                     }
-    //                                 });
-    //                                 return existe;
-    //                             }
-
-    //                             if (
-    //                                 adicionaisLiberado &&
-    //                                 pinturaProd &&
-    //                                 !produtoJaExiste('PINTURA ELETROSTÁTICA') &&
-    //                                 !produtoJaExiste('PINTURA AUTOMOTIVA')
-    //                             ) {
-    //                                 console.log("PINTURA Adicionada");
-    //                                 setTimeout(() => {
-    //                                     adicionarProduto(prodAdcManager, pinturaProd, 1);
-    //                                     atualizarSubtotal();
-    //                                     calcularValorForma();
-    //                                     atualizarTabela();
-    //                                 }, 100);
-    //                             } else {
-    //                                 console.log("PINTURA ELETROSTÁTICA/AUTOMOTIVA já existe em alguma tabela, não foi adicionada.");
-    //                             }
-    //                         }
-    //                     }
-    //                 });
-    //             }
-    //         }
-    //         atualizarSubtotal();
-    //     }
-    //     carregandoPagina = false;
-
-    //     // --- Função auxiliar para remoção ---
-    //     function removerProdutoPorDescricao(descProduto) {
-    //         descProduto = descProduto.toUpperCase();
-    //         $('#itensTableProduto tbody tr, #itensTableProdutoAdc tbody tr').each(function () {
-    //             let desc = $(this).find('td:nth-child(3)').text().toUpperCase().trim();
-    //             if (desc === descProduto) {
-    //                 $(this).remove();
-    //             }
-    //         });
-    //     }
-    //     // --- LÂMINAS ---
-    //     if (tpLam === "Fechada") {
-    //         $('#itensTableProduto tbody tr').each(function () {
-    //             let desc = $(this).find('td:nth-child(3)').text().toUpperCase().trim();
-    //             if (desc === 'LÂMINAS TRANSVISION') {
-    //                 $(this).remove();
-    //             }
-    //         });
-    //     } else if (tpLam === "Transvision") {
-    //         $('#itensTableProduto tbody tr').each(function () {
-    //             let desc = $(this).find('td:nth-child(3)').text().toUpperCase().trim();
-    //             if (desc === 'LÂMINAS LISAS') {
-    //                 $(this).remove();
-    //             }
-    //         });
-    //     }
-    // }
-
-
-    // function calcularValor() {
-    //     let tp_vao = $('#id_tp_vao').val();
-    //     let valorE = parseFloat($('#id_larg').val().replace(',', '.'));
-    //     if (isNaN(valorE)) {
-    //         $('#id_larg_corte').val('');
-    //         return;
-    //     // Converte valorE para centésimos inteiro, soma ajuste e volta para número com 2 decimais
-    //     let valorCentimos = Math.round(valorE * 100);          // ex: 2.88 -> 288
-    //     let resultadoCentimos = valorCentimos + ajusteCentimos; // ex: 288 + 10 -> 298
-    //     let resultado = resultadoCentimos / 100;               // -> 2.98
-
-    //     if ($('#id_alt').val().trim() !== "") {
-    //         $('#id_larg_corte').val(resultado.toFixed(2));
-    //     }
-
-    //     let ft_peso = parseFloat($('#id_fator_peso').val());
-    //     if (isNaN(ft_peso)) {
-    //         ft_peso = "0.00"; // ou return se preferir não calcular peso
-    //     }
-    //     let calc = (((resultado * 0.8) * ft_peso) * 1.2);
-    //     let final = arredondarParaCima(calc, 0);
-    //     $('#id_peso').val(final);
-    //     // Remove motores antigos
-    //     $('#itensTableProduto tbody tr').each(function () {
-    //         const descricao = $(this).find('td:nth-child(3)').text().toLowerCase().trim();
-    //         if (descricao.startsWith('motor')) {
-    //             $(this).remove();
-    //         }
-    //     });
-    //     // Cálculo de m²
-    //     let larg_corte = parseFloat($('#id_larg_corte').val());
-    //     let rolo = parseFloat($('#id_rolo').val().replace(',', '.'));
-    //     let alt_corte = parseFloat($('#id_alt_corte').val().replace(',', '.'));
-    //     let quantidade = parseFloat($('#id_qtd').val().replace(',', '.'));
-    //     if (isNaN(ft_peso) || isNaN(larg_corte) || isNaN(rolo) || isNaN(alt_corte) || isNaN(quantidade)) {
-    //         $('#id_m2').val('');
-    //         return;
-    //     }
-    //     calc = ((rolo + alt_corte) * larg_corte) * quantidade;
-    //     let aux = arredondarComAjuste(calc);
-    //     $('#id_m2').val(aux);
-    // }
-    // function removerProdutoMotor1500() {
-    //     // Lógica para remover o produto motor da tabela
-    //     $('#itensTableProduto tr[data-id^="MOTOR 1500KG"]').remove(); // Exemplo de remoção, ajuste conforme necessário
-    // }
     let debounceTimeout;
     function atualizarCalculoCompletoDebounced() {
         clearTimeout(debounceTimeout);
@@ -2424,60 +2121,71 @@ $(document).ready(function() {
         }, 200);
     }
     $('#id_alt, #id_tp_vao, #id_larg, #id_qtd, #id_rolo, #id_alt_corte, #id_larg_corte').on('blur', atualizarCalculoCompletoDebounced);
-    $('#id_desconto, #desconto, #id_acrescimo, #acrescimo').mask('000,000,000,000,000.00', {reverse: true});
+    $('#id_desconto, #id_acrescimo').mask('000,000,000,000,000.00', {reverse: true});
+    $('#desconto, #acrescimo').mask('000.000.000.000.000,00', {reverse: true});
     $('#id_vl_prod, #id_vl_prod_adc, #editValorItemInput, #editValorItemAdcInput, .editable, .inpFrete, #id_vl_form_pgto').mask('0000.00', {reverse: true});
-    $('#editQtdInput, #editQtdAdcInput, #id_qtd_prod, #id_qtd_prod_adc, #id_alt, #id_alt_corte, #id_larg, #id_rolo, #id_larg_corte, #id_vl_compra').mask('000,000.00', {reverse: true});
+    $('#editQtdInput, #editQtdAdcInput, #id_qtd_prod, #id_qtd_prod_adc, #id_vl_compra').mask('000,000.00', {reverse: true});
+    $('.larg, .alt, .id_larg, .larg-corte, .alt-corte, .qtd-laminas, .m2').mask('000,000.00', {reverse: true});
+    $('#id_vl_p_s').mask('000.00', {reverse: true});
     // Função para converter valor em formato brasileiro para float
-    var subtotal = 0;
     var desconto = 0;
-    var acrescimo = 0;
-    var custoTotal = 0;
     var total = 0;
     function atualizarSubtotal() {
-        subtotal = 0;
-        custoTotal = 0;
-        let motorValor = 0;
-
-        $('#itensTableProduto tbody tr, #itensTableProdutoAdc tbody tr').each(function() {
-            const valorCompraNumero = parseFloat($(this).find('td:nth-child(8)').text()) || 0;
-            const valorNumero = parseFloat($(this).find('td:nth-child(9)').text()) || 0;
-            const desc = $(this).find('td:nth-child(3)').text().toUpperCase().trim();
-
-            // Caso o item seja um motor, armazene o valor
-            if (desc.startsWith('MOTOR')) {
-                motorValor += valorCompraNumero;  // ou valorNumero, dependendo do que você precisa
-            }
-
-            const largura = parseFloat($('#id_larg').val()) || 0;
-            const altura = parseFloat($('#id_alt').val()) || 0;
-            if (largura > 0 && altura > 0) custoTotal += valorCompraNumero;
-            subtotal += valorNumero;
+        return new Promise(resolve => {
+            let subtotal   = 0;
+            let custoTotal = 0;
+            let vl_p_s = parseFloat($('#id_vl_p_s').val()) || 0;
+            $('[id^="tblProd_"] tbody tr, [id^="tblAdc_"] tbody tr').each(function () {
+                const compra = parseFloat(
+                    $(this).find('.tot-compra').text().replace(',', '.')
+                ) || 0;
+                const venda = parseFloat(
+                    $(this).find('.vl-total').text().replace(',', '.')
+                ) || 0;
+                custoTotal += compra;
+                subtotal   += venda;
+            });
+            subtotal += vl_p_s;
+            $('#custoTotal_txt').text(
+                'R$ ' + custoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+            );
+            $('#subtotal_txt').text(
+                'R$ ' + subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+            );
+            $('#id_subtotal').val(subtotal.toFixed(2));
+            $('#id_vl_form_pgto').val(subtotal.toFixed(2));
+            const descontoRaw = $('#id_desconto').length
+                ? $('#id_desconto').val()
+                : '0';
+            const acrescimoRaw = $('#id_acrescimo').length
+                ? $('#id_acrescimo').val()
+                : '0';
+            const desconto = parseFloat(
+                String(descontoRaw).replace(',', '.')
+            ) || 0;
+            const acrescimo = parseFloat(
+                String(acrescimoRaw).replace(',', '.')
+            ) || 0;
+            const total = subtotal - desconto + acrescimo;
+            $('#desconto').text('R$ ' + desconto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+            );
+            $('#acrescimo').text(
+                'R$ ' + acrescimo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+            );
+            $('#total_txt').text(
+                'R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+            );
+            $('#id_total').val(total.toFixed(2));
+            const margemLucro = subtotal > 0
+                ? ((subtotal - custoTotal) / subtotal) * 100
+                : 0;
+            $('#margem_txt').text(margemLucro.toFixed(2) + '%');
+            calcularValorForma();
+            somaFormas();
+            resolve();
         });
-
-        // Inclua o valor do motor no subtotal
-        subtotal += motorValor;
-
-        // Exibir os resultados
-        $('#custoTotal_txt').text('R$ ' + custoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-        $('#subtotal_txt').text('R$ ' + subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-        $('#id_subtotal').val(subtotal.toFixed(2));
-        $('#id_vl_form_pgto').val(subtotal.toFixed(2));
-
-        desconto = parseFloat($('#id_desconto').val()) || 0;
-        acrescimo = parseFloat($('#id_acrescimo').val()) || 0;
-        total = subtotal - desconto + acrescimo;
-
-        $('#desconto').text('R$ ' + desconto.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-        $('#acrescimo').text('R$ ' + acrescimo.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-        $('#total_txt').text('R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-        $('#id_total').val(total.toFixed(2));
-
-        const margemLucro = subtotal > 0 ? ((subtotal - custoTotal) / subtotal) * 100 : 0;
-        $('#margem_txt').text(margemLucro.toFixed(2) + '%');
-        calcularValorForma();
-        somaFormas();
     }
-
+    atualizarSubtotal();
     function parseValor(valor) {
         if (!valor) return 0;
         let limpo = valor.toString().replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
@@ -2485,30 +2193,22 @@ $(document).ready(function() {
     }
     function calcularValorForma() {
         const totalValor = parseValor($('#id_total').val() || $('#total_txt').text());
-
         let totalPago = 0;
         $('#itensTableForm tbody tr').each(function() {
             const valor = parseValor($(this).find('td:nth-child(3)').text());
             totalPago += valor;
         });
-
         let restante = totalValor - totalPago;
-
         // arredondar para 2 casas
         restante = Math.max(0, Math.round(restante * 100) / 100);
-
-
         $('#id_vl_form_pgto').val(restante.toFixed(2));
     }
-
     function verificarTotalFormas() {
         const totalValor = parseValor($('#id_total').val() || $('#total_txt').text());
-
         let totalFormas = 0;
         $('#itensTableForm tbody tr').each(function () {
             totalFormas += parseValor($(this).find('td:nth-child(3)').text());
         });
-
         // arredondar
         const totalArred = parseFloat(totalValor.toFixed(2));
         const formasArred = parseFloat(totalFormas.toFixed(2));
@@ -2539,11 +2239,536 @@ $(document).ready(function() {
         );
         return true;
     }
-    $('#openModalBtn').on('click', function (e) {
+    // Atualização ao digitar
+    $('#id_desconto, #id_acrescimo').on('input', function () {
+        atualizarSubtotal();
+        calcularValorForma();
+        somaFormas();
+    });
+    function gerarPortas() {
+        const qtd = parseInt($('#qtd_portas').val());
+        if (isNaN(qtd) || qtd < 1) {
+            Toastify({
+                text: '<i class="fa-solid fa-triangle-exclamation"></i> Informe uma quantidade válida de Portas!',
+                duration: 5000,
+                gravity: "top",
+                position: "center",
+                stopOnFocus: true,
+                escapeMarkup: false,
+                backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)",
+            }).showToast();
+            return;
+        }
+        resetarControleMotor();
+        $("#tabelaPortasResumo tbody").empty();
+        $("#accordionProdutos").empty();
+        $("#accordionAdicionais").empty();
+        for (let i = 1; i <= qtd; i++) {
+            $("#tabelaPortasResumo tbody").append(`
+                <tr id="linha_resumo_${i}" class="linha-porta" data-porta="${i}">
+                    <td data-label="Porta:" class="num-porta mobile-3col">${i}</td>
+                    <td data-label="Larg.:" class="mobile-3col"><input type="text" class="form-control form-control-sm larg" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="Alt.:" class="mobile-3col"><input type="text" class="form-control form-control-sm alt" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="Lg. Corte:" class="mobile-3col"><input readonly class="form-control form-control-sm larg-corte" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="At. Corte:" class="mobile-3col"><input readonly class="form-control form-control-sm alt-corte" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="Qtd. Lâm.:" class="mobile-3col"><input readonly class="form-control form-control-sm qtd-laminas" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="M²:" class="mobile-3col"><input readonly class="form-control form-control-sm m2" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="Ft. Peso:" class="mobile-3col"><input readonly class="form-control form-control-sm ft-peso" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="Peso:" class="mobile-3col"><input readonly class="form-control form-control-sm peso" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="Eix. Mot.:" class="mobile-3col"><input readonly class="form-control form-control-sm eix-mot" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="Rolo:" class="mobile-3col"><input readonly class="form-control form-control-sm rolo" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="Tp. Lâm.:" class="mobile-3col">
+                        <select class="form-select form-select-sm tipo-lamina" data-porta="${i}">
+                            <option value="Fechada">Fechada</option>
+                            <option value="Transvision">Transvision</option>
+                        </select>
+                    </td>
+                    <td data-label="Tp. Vão:" class="mobile-2col">
+                        <select class="form-select form-select-sm tipo-vao" data-porta="${i}">
+                            <option value="Fora do Vão">Fora do Vão</option>
+                            <option value="Dentro do Vão">Dentro do Vão</option>
+                            <option value="1 Lado Dentro do Vão">1 Lado Dentro do Vão</option>
+                        </select>
+                    </td>
+                    <td data-label="Exc.:" class="text-center mobile-2col">
+                        <button type="button" class="btn btn-danger btn-sm removerPorta" data-porta="${i}">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                </tr>
+            `);
+            $(`.rolo[data-porta="${i}"]`).val("0.60");
+            $("#accordionProdutos").append(criarAcordeonProdutos(i));
+            $("#accordionAdicionais").append(criarAcordeonAdicionais(i));
+            recalcularTotaisPorta(i);
+        }
+        aplicarMascaras();
+    }
+    function aplicarMascaras() {
+        $('.larg, .alt, .id_larg, .larg-corte, .alt-corte, .qtd-laminas, .m2, .ft-peso, .peso')
+            .mask('000,000.00', { reverse: true });
+    }
+    function criarAcordeonProdutos(num) {
+        return `
+        <div class="accordion-item acc-produto porta-${num}" id="accProd_${num}" data-porta="${num}">
+            <h2 class="accordion-header" id="headingProd_${num}">
+                <button class="accordion-button collapsed fw-bold" type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapseProd_${num}">
+                    Produtos – Porta ${num}
+                </button>
+            </h2>
+            <div id="collapseProd_${num}" class="accordion-collapse collapse">
+                <div class="accordion-body table-container w-100">
+                    <table class="table table-bordered table-sm table-striped tabela-produtos"
+                        id="tblProd_${num}">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Cód.</th>
+                                <th>Descrição</th>
+                                <th>Unidade</th>
+                                <th>Vl. Compra</th>
+                                <th>Vl. Un.</th>
+                                <th>Qtde.</th>
+                                <th>Tot. Compra</th>
+                                <th>Vl. Tot.</th>
+                                <th style="width: 70px;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <!-- 🔥 Totais da porta -->
+                    <div class="d-flex justify-content-end gap-4 mt-2 porta-totais"
+                        data-porta="${num}">
+                        <span>
+                            <strong>Total Compra:</strong>
+                            <span style="padding-left: 10px; padding-right: 10px;" class="border border-danger-subtle rounded-4 bg-danger-subtle fw-bold" id="totCompra_porta_${num}">0</span>
+                        </span>
+                        <span>
+                            <strong>Total Venda:</strong>
+                            <span style="padding-left: 10px; padding-right: 10px;" class="border border-success-subtle rounded-4 bg-success-subtle fw-bold" id="totVenda_porta_${num}">0</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }
+    function criarAcordeonAdicionais(num) {
+        return `
+        <div class="accordion-item acc-adicional porta-${num}" id="accAdc_${num}" data-porta="${num}">
+            <h2 class="accordion-header" id="headingAdc_${num}">
+                <button class="accordion-button collapsed fw-bold" type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapseAdc_${num}">
+                    Adicionais – Porta ${num}
+                </button>
+            </h2>
+            <div id="collapseAdc_${num}" class="accordion-collapse collapse">
+                <div class="accordion-body table-container w-100">
+                    <table class="table table-bordered table-sm table-striped tabela-adicionais"
+                        id="tblAdc_${num}">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Cód.</th>
+                                <th>Descrição</th>
+                                <th>Unidade</th>
+                                <th>Vl. Compra</th>
+                                <th>Vl. Un.</th>
+                                <th>Qtde.</th>
+                                <th>Tot. Compra</th>
+                                <th>Vl. Tot.</th>
+                                <th style="width: 70px;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <!-- 🔥 Totais dos adicionais por porta -->
+                    <div class="d-flex justify-content-end gap-4 mt-2 porta-totais"
+                        data-porta="${num}">
+                        <span>
+                            <strong>Total Compra:</strong>
+                            <span style="padding-left: 10px; padding-right: 10px;" class="border border-danger-subtle rounded-4 bg-danger-subtle fw-bold" id="totCompraAdc_porta_${num}">0</span>
+                        </span>
+                        <span>
+                            <strong>Total Venda:</strong>
+                            <span style="padding-left: 10px; padding-right: 10px;" class="border border-success-subtle rounded-4 bg-success-subtle fw-bold" id="totVendaAdc_porta_${num}">0</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }
+    function formatarBR(valor) {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        }).format(valor);
+    }
+    function recalcularTotaisPorta(porta) {
+        let totalCompra = 0;
+        let totalVenda = 0;
+        let totalCompraAdc = 0;
+        let totalVendaAdc = 0;
+        // Produtos
+        $("#tblProd_" + porta + " tbody tr").each(function () {
+            const compra = parseFloat(
+                $(this).find(".tot-compra").text().replace(",", ".")
+            ) || 0;
+            const venda = parseFloat(
+                $(this).find(".vl-total").text().replace(",", ".")
+            ) || 0;
+            totalCompra += compra;
+            totalVenda += venda;
+        });
+        // Adicionais
+        $("#tblAdc_" + porta + " tbody tr").each(function () {
+            const compra = parseFloat(
+                $(this).find(".tot-compra").text().replace(",", ".")
+            ) || 0;
+            const venda = parseFloat(
+                $(this).find(".vl-total").text().replace(",", ".")
+            ) || 0;
+            totalCompraAdc += compra;
+            totalVendaAdc += venda;
+        });
+        $("#totCompra_porta_" + porta).text(formatarBR(totalCompra));
+        $("#totVenda_porta_" + porta).text(formatarBR(totalVenda));
+        $("#totCompraAdc_porta_" + porta).text(formatarBR(totalCompraAdc));
+        $("#totVendaAdc_porta_" + porta).text(formatarBR(totalVendaAdc));
+    }
+    $(".porta-totais").each(function () {
+        const porta = $(this).data("porta");
+        recalcularTotaisPorta(porta);
+    });
+    $(document).on("blur", ".alt", function () {
+        const porta = $(this).data("porta");
+        const largura = parseFloat($(`.larg[data-porta="${porta}"]`).val()) || 0;
+        const altura = parseFloat($(`.alt[data-porta="${porta}"]`).val()) || 0;
+        // Verifica se largura e altura são válidas
+        if (!largura || !altura) return;
+        // Verificações e cálculos relativos aos produtos
+        buscarProdutosPrincipais(porta, largura, altura);
+        buscarProdutosAdicionais(porta, largura, altura);
+        verificarPintura(porta);
+        atualizarLaminarPorta(porta);
+        setTimeout(() => {
+            atualizarPinturaPorta(porta);
+        }, 500);
+        // Calculos relacionados ao motor
+        $("#loadingModal").modal("show");
+        calcFtPeso(porta);
+        atualizarLarguraCorte(porta);
+        calcularEixoMotor(porta);
+        calcM2(porta);
+        atualizarLaminarPorta(porta);
+        calcQtdLam(porta);
+        // buscarMotorIdeal(porta);  // Chama a função para buscar o motor ideal
+        setTimeout(() => {
+            finalizarLoading();
+        }, 500);
+    });
+    $(document).on("click", ".removerPorta", function () {
+        const porta = $(this).data("porta");
+        $("#linha_resumo_" + porta).remove();
+        $("#accProd_" + porta).remove();
+        $("#accAdc_" + porta).remove();
+        reindexarPortas();
+        aplicarMascaras();
+    });
+    $(document).on('click', '.deleteBtn', function() {
+        // Remove a linha correspondente na tabela correta
+        $(this).closest('tr').remove();
+        atualizarSubtotal();
+    });
+    function reindexarPortas() {
+        let novoIndice = 1;
+        $("#tabelaPortasResumo tbody tr").each(function () {
+            $(this).attr("id", "linha_resumo_" + novoIndice);
+            $(this).find(".num-porta").text(novoIndice);
+            $(this).find("input, select").each(function () {
+                $(this).attr("data-porta", novoIndice);
+            });
+            $(this).find(".removerPorta").attr("data-porta", novoIndice);
+            novoIndice++;
+        });
+        novoIndice = 1;
+        $("#accordionProdutos .acc-produto").each(function () {
+            $(this).attr("id", "accProd_" + novoIndice);
+            $(this).attr("data-porta", novoIndice);
+            $(this).find(".accordion-header").attr("id", "headingProd_" + novoIndice);
+            $(this).find(".accordion-button")
+                .attr("data-bs-target", "#collapseProd_" + novoIndice)
+                .text("Produtos – Porta " + novoIndice);
+            $(this).find(".accordion-collapse").attr("id", "collapseProd_" + novoIndice);
+            $(this).find(".tabela-produtos").attr("id", "tblProd_" + novoIndice);
+            novoIndice++;
+        });
+        novoIndice = 1;
+        $("#accordionAdicionais .acc-adicional").each(function () {
+            $(this).attr("id", "accAdc_" + novoIndice);
+            $(this).attr("data-porta", novoIndice);
+            $(this).find(".accordion-header").attr("id", "headingAdc_" + novoIndice);
+            $(this).find(".accordion-button")
+                .attr("data-bs-target", "#collapseAdc_" + novoIndice)
+                .text("Adicionais – Porta " + novoIndice);
+            $(this).find(".accordion-collapse").attr("id", "collapseAdc_" + novoIndice);
+            $(this).find(".tabela-adicionais").attr("id", "tblAdc_" + novoIndice);
+            novoIndice++;
+        });
+        $("#qtd_portas").val($("#tabelaPortasResumo tbody tr").length);
+        if (typeof atualizarJSONPortas === "function") {
+            atualizarJSONPortas();
+        }
+    }
+    function atualizarTabelaPorta(porta) {
+        const tp_pintura = $('#id_tp_pintura').val();
+        const qtd = 1;
+        const larg   = parseFloat($(`.larg[data-porta="${porta}"]`).val()) || 0;
+        const larg_c = parseFloat($(`.larg-corte[data-porta="${porta}"]`).val()) || 0;
+        const alt    = parseFloat($(`.alt[data-porta="${porta}"]`).val()) || 0;
+        const alt_c  = parseFloat($(`.alt-corte[data-porta="${porta}"]`).val()) || 0;
+        const m2     = parseFloat($(`.m2[data-porta="${porta}"]`).val()) || 0;
+        let totalCompraProd = 0;
+        let totalVendaProd  = 0;
+        let totalCompraAdc  = 0;
+        let totalVendaAdc   = 0;
+        $(`#tblProd_${porta} tbody tr`).each(function () {
+            const $tr = $(this);
+            const desc   = $tr.find('td:eq(2)').text().toUpperCase().trim();
+            const compra = parseFloat($tr.find('td:eq(4)').text().replace(',', '.')) || 0;
+            const venda  = parseFloat($tr.find('.vl-unit').text().replace(',', '.')) || 0;
+            let qtdCalc = 0;
+            if (desc.startsWith('GUIAS') || desc.startsWith('TUBO DE AFASTAMENTO'))
+                qtdCalc = qtd * (alt_c + 0.2) * 2;
+            else if (desc.startsWith('EIXO') || desc.startsWith('SOLEIRA'))
+                qtdCalc = qtd * larg_c;
+            else if (desc.startsWith('PERFIL DESLIZANTE'))
+                qtdCalc = alt_c * 4;
+            else if (desc.startsWith('TRAVA LÂMINA'))
+                qtdCalc = alt * 10;
+            else if (desc.startsWith('LÂMINAS LISAS') || desc.startsWith('LÂMINAS TRANSVISION'))
+                qtdCalc = m2;
+            else if (desc.startsWith('MOTOR'))
+                qtdCalc = 1;
+            else
+                qtdCalc = 0;
+            const totCompra = compra * qtdCalc;
+            const totVenda  = venda  * qtdCalc;
+            $tr.find('.qtd-produto').text(qtdCalc.toFixed(2));
+            $tr.find('.tot-compra').text(totCompra.toFixed(2));
+            $tr.find('.vl-total').text(totVenda.toFixed(2));
+            totalCompraProd += totCompra;
+            totalVendaProd  += totVenda;
+        });
+        $(`#tblAdc_${porta} tbody tr`).each(function () {
+            const $tr = $(this);
+            const desc   = $tr.find('td:eq(2)').text().toUpperCase().trim();
+            const compra = parseFloat($tr.find('td:eq(4)').text().replace(',', '.')) || 0;
+            const venda  = parseFloat($tr.find('.vl-unit').text().replace(',', '.')) || 0;
+            let qtdCalc = 0;
+            if (
+                (tp_pintura === "Eletrostática" && desc.startsWith("PINTURA ELETROSTÁTICA")) ||
+                (tp_pintura === "Automotiva" && desc.startsWith("PINTURA AUTOMOTIVA"))
+            ) {
+                qtdCalc = m2;
+            }
+            else if (
+                desc.startsWith('TRANSPORTE') ||
+                desc.startsWith('MÃO DE OBRA')
+            )
+                qtdCalc = 1;
+            else
+                qtdCalc = 0;
+            const totCompra = compra * qtdCalc;
+            const totVenda  = venda  * qtdCalc;
+            $tr.find('.qtd-produto').text(qtdCalc.toFixed(2));
+            $tr.find('.tot-compra').text(totCompra.toFixed(2));
+            $tr.find('.vl-total').text(totVenda.toFixed(2));
+            totalCompraAdc += totCompra;
+            totalVendaAdc  += totVenda;
+        });
+        $(`#totCompra_porta_${porta}`).text("R$ " +
+            totalCompraProd.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+        );
+        $(`#totVenda_porta_${porta}`).text("R$ " +
+            totalVendaProd.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+        );
+        $(`#totCompraAdc_porta_${porta}`).text("R$ " +
+            totalCompraAdc.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+        );
+        $(`#totVendaAdc_porta_${porta}`).text("R$ " +
+            totalVendaAdc.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+        );
+    }
+    const medidasCtrl = {};
+    function buscarProdutosPrincipais(num, lg, at) {
+        medidasCtrl[num] ??= { larg: null, alt: null };
+        prodManager.data[Number(num)] ??= [];
+        const ctrl = medidasCtrl[num];
+        if (ctrl.larg === lg && ctrl.alt === at) return;
+        ctrl.larg = lg;
+        ctrl.alt = at;
+        const tpLamina = $(`.tipo-lamina[data-porta="${num}"]`).val();
+        const $tbody = $("#tblProd_" + num + " tbody");
+        $.get('/produtos/lista_ajax/', { tp: "desc", tp_prod: "Principal" }, function (resp) {
+            $tbody.empty();
+            let contador = 1;
+            resp.produtos.forEach((p) => {
+                const desc = p.desc_prod.toUpperCase();
+                if (desc.includes("MOTOR")) return;
+                if (desc.includes("LÂMINAS")) {
+                    if (tpLamina === "Fechada" && desc.includes("TRANSVISION")) return;
+                    if (tpLamina === "Transvision" && desc.includes("LISAS")) return;
+                }
+                prodManager.data[Number(num)].push({
+                    id: p.id,                    // 👈 IMPORTANTE
+                    cod: p.id,
+                    desc: p.desc_prod,
+                    unid: p.unidProd,
+                    vl_compra: parseFloat(p.vl_compra),
+                    vl_unit: parseFloat(p.vl_prod),
+                    qtd: 0,
+                    total: 0
+                });
+                $tbody.append(`
+                    <tr data-porta="${num}" data-item-id="${p.id}">
+                        <td data-label="#" class="mobile-2col">${contador}</td>
+                        <td data-label="Cód:" class="mobile-2col">${p.id}</td>
+                        <td data-label="Desc.:" class="mobile-2col">${p.desc_prod}</td>
+                        <td data-label="Unid:" class="mobile-2col">${p.unidProd}</td>
+                        <td class="text-danger fw-bold mobile-3col" data-label="Vl. Compra:">${p.vl_compra}</td>
+                        <td class="vl-unit text-success fw-bold mobile-3col" data-label="Vl. Unit:">${p.vl_prod}</td>
+                        <td class="qtd-produto mobile-3col" data-label="Qtde:">0.00</td>
+                        <td class="tot-compra text-danger fw-bold mobile-3col" data-label="Tot. Compra:">0.00</td>
+                        <td class="vl-total text-success fw-bold mobile-3col" data-label="Vl. Total:">0.00</td>
+                        <td data-label="Ações:" class="mobile-3col">
+                            <i class="fas fa-edit editBtn" style="color: #13c43f; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#editItemModal"></i>
+                            <i class="fas fa-trash deleteBtn" style="color: #db1e47; cursor: pointer;"></i>
+                        </td>
+                    </tr>
+                `);
+                contador++;
+            });
+            buscarMotorIdeal(num, lg, at);
+            atualizarJSONPortas();
+            atualizarTabelaPorta(num);
+        });
+    }
+    function buscarProdutosAdicionais(porta) {
+        prodAdcManager.data[Number(porta)] ??= [];
+        $.get('/produtos/lista_ajax/', {
+            tp: "desc",
+            tp_prod: "Adicional"
+        }, function (resp) {
+            const tabela = $(`#tblAdc_${porta} tbody`).empty();
+            let contador = 1;
+            resp.produtos.forEach((p) => {
+                prodAdcManager.data[Number(porta)].push({
+                    id: p.id,                    // 👈 IMPORTANTE
+                    cod: p.id,
+                    desc: p.desc_prod,
+                    unid: p.unidProd,
+                    vl_compra: parseFloat(p.vl_compra),
+                    vl_unit: parseFloat(p.vl_prod),
+                    qtd: 0,
+                    total: 0
+                });
+                tabela.append(`
+                    <tr data-porta="${porta}" data-item-id="${p.id}">
+                        <td data-label="#" class="mobile-2col">${contador}</td>
+                        <td data-label="Cód:" class="mobile-2col">${p.id}</td>
+                        <td data-label="Desc.:" class="mobile-2col">${p.desc_prod}</td>
+                        <td data-label="Unid:" class="mobile-2col">${p.unidProd}</td>
+                        <td class="text-danger fw-bold mobile-3col" data-label="Vl. Compra:">${p.vl_compra}</td>
+                        <td class="vl-unit text-success fw-bold mobile-3col" data-label="Vl. Unit:">${p.vl_prod}</td>
+                        <td class="qtd-produto mobile-3col" data-label="Qtde:">0</td>
+                        <td class="tot-compra text-danger fw-bold mobile-3col" data-label="Tot. Compra:">0.00</td>
+                        <td class="vl-total text-success fw-bold mobile-3col" data-label="Vl. Total:">0.00</td>
+                        <td data-label="Ações:" class="mobile-3col">
+                            <i class="fas fa-edit editBtn" data-bs-toggle="modal" data-bs-target="#editItemAdcModal" style="color: #13c43f; cursor: pointer;"></i>
+                            <i class="fas fa-trash deleteBtn" style="color: #db1e47; cursor: pointer;"></i>
+                        </td>
+                    </tr>
+                `);
+                contador++;
+            });
+            verificarPintura(porta);
+            atualizarTabelaPorta(porta);
+            atualizarSubtotal();
+            atualizarJSONPortas();
+        });
+    }
+    function atualizarJSONPortas() {
+        let portas = [];
+        console.log("=== INICIANDO atualizarJSONPortas ===");
+        $(".linha-porta").each(function () {
+            const $linha = $(this);
+            const portaNum = parseInt($linha.data("porta"));
+            console.log("Processando porta:", portaNum);
+            let dadosPorta = {
+                numero: portaNum,
+                largura: parseFloat($(`.larg[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
+                altura: parseFloat($(`.alt[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
+                qtd_lam: parseFloat($(`.qtd-laminas[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
+                m2: parseFloat($(`.m2[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
+                larg_corte: parseFloat($(`.larg-corte[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
+                alt_corte: parseFloat($(`.alt-corte[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
+                rolo: parseFloat($(`.rolo[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
+                peso: parseFloat($(`.peso[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
+                ft_peso: parseFloat($(`.ft-peso[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
+                eix_mot: parseFloat($(`.eix-mot[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
+                tipo_lamina: $(`.tipo-lamina[data-porta="${portaNum}"]`).val(),
+                tipo_vao: $(`.tipo-vao[data-porta="${portaNum}"]`).val(),
+                produtos: [],
+                adicionais: []
+            };
+            $(`#tblProd_${portaNum} tbody tr`).each(function () {
+                const $tr = $(this);
+                const codProd = $tr.find("td:eq(1)").text().trim();
+                const qtd = parseFloat($tr.find(".qtd-produto").text().trim()) || 0;
+                if (codProd) {
+                    dadosPorta.produtos.push({
+                        codProd: codProd,
+                        qtdProd: qtd // pode ser 0
+                    });
+                }
+            });
+            $(`#tblAdc_${portaNum} tbody tr`).each(function () {
+                const $tr = $(this);
+                const codProd = $tr.find("td:eq(1)").text().trim();
+                const qtd = parseFloat($tr.find(".qtd-produto").text().trim()) || 0;
+                if (codProd) {
+                    dadosPorta.adicionais.push({
+                        codProd: codProd,
+                        qtdProd: qtd // pode ser 0
+                    });
+                }
+            });
+            console.log("JSON da porta:", dadosPorta);
+            portas.push(dadosPorta);
+        });
+        console.log("=== JSON FINAL ===");
+        console.log(portas);
+        $("#id_json_portas").val(JSON.stringify(portas));
+        return true;
+    }
+    $('#openModalBtn').on('click', async function (e) {
         e.preventDefault();
         e.stopPropagation();
+        await atualizarSubtotal();
         const temPintura = $("#id_pintura").val();
         const corSelecionada = $("#id_cor").val();
+        // Filial
+        const filialData = $('#id_vinc_fil').select2('data');
+        const filial = filialData[0]?.id;
+        // Técnico/Solicitante
+        const solicitanteData = $('#id_solicitante').select2('data');
+        const solicitante = solicitanteData[0]?.id;
+        // Cliente
+        const clienteData = $('#id_cli').select2('data');
+        const cliente = clienteData[0]?.id;
         if (temPintura === "Sim" && (!corSelecionada || corSelecionada === "")) {
             Toastify({
                 text: '<i class="fa-solid fa-triangle-exclamation"></i> Escolha uma cor da pintura antes de gravar!',
@@ -2554,6 +2779,46 @@ $(document).ready(function() {
                 escapeMarkup: false,
                 backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)",
             }).showToast();
+            $("#medidasBtn").click();
+            return false;
+        }
+        if (!filial) {
+            Toastify({
+                text: '<i class="fa-solid fa-triangle-exclamation"></i> Filial deve ser informada!',
+                duration: 5000,
+                gravity: "top",
+                position: "center",
+                stopOnFocus: true,
+                escapeMarkup: false,
+                backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)",
+            }).showToast();
+            $("#clienteBtn").click();
+            return false;
+        }
+        if (!solicitante) {
+            Toastify({
+                text: '<i class="fa-solid fa-triangle-exclamation"></i> Solicitante deve ser informado!',
+                duration: 5000,
+                gravity: "top",
+                position: "center",
+                stopOnFocus: true,
+                escapeMarkup: false,
+                backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)",
+            }).showToast();
+            $("#clienteBtn").click();
+            return false;
+        }
+        if (!cliente) {
+            Toastify({
+                text: '<i class="fa-solid fa-triangle-exclamation"></i> Cliente deve ser informado!',
+                duration: 5000,
+                gravity: "top",
+                position: "center",
+                stopOnFocus: true,
+                escapeMarkup: false,
+                backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)",
+            }).showToast();
+            $("#clienteBtn").click();
             return false;
         }
         if (!verificarTotalFormas()) {
@@ -2570,166 +2835,263 @@ $(document).ready(function() {
         }
         $('#staticBackdrop').modal('show');
     });
-    // Atualização ao digitar
-    $('#id_desconto, #id_acrescimo').on('input', function () {
-        atualizarSubtotal();
-        calcularValorForma();
-        somaFormas();
+    $(document).on("click", ".btn-faturar", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = $(this).data("id");
+        const faturarModal = new bootstrap.Modal(
+            document.getElementById("faturarModal-" + id),
+            { backdrop: 'static', keyboard: false }
+        );
+        faturarModal.show();
     });
-    class TableManager {
-        constructor(tableSelector, hiddenInputSelector, type = 'produto') {
-            this.table = $(tableSelector);
-            this.hiddenInput = $(hiddenInputSelector);
-            this.currentEditingItem = null;
-            this.itemCount = this.table.find('tbody tr').length + 1;
-            this.type = type; // produto | forma
-        }
-        addItem(cells, colorIndices = {}) {
-            if (!this.currentEditingItem) {
-                const cont = String(this.itemCount).padStart(3, '0');
-                // monta as células da linha
-                const tdHtml = cells.map((val, i) => {
-                    let colComp = [3, 6];
-                    let colVend = [4, 7];
-                    let style = "";
-
-                    if (colComp.includes(i)) {
-                        style += "font-weight:bold; color:#DC143C;";
-                    }
-                    if (colVend.includes(i)) {
-                        style += "font-weight:bold; color:#2E8B57;";
-                    }
-
-                    // 👉 NOVO: Se for tabela de forma de pagamento, pintar o valor
-                    // Ajuste o "i === 1" caso sua coluna de valor seja outra
-                    if (this.table.attr('id') === 'itensTableForm' && i === 1) {
-                        style += "font-weight:bold; color:#2E8B57;";
-                    }
-
-                    if (colorIndices[i]) {
-                        style += `color:${colorIndices[i]};`;
-                    }
-
-                    return `<td style="${style}">${val}</td>`;
-                }).join('');
-
-                // monta os ícones de ação
-                let acoes = `<i class="fas fa-trash deleteBtn" style="color:#db1e47;"></i>`;
-                // não adiciona editar se for a tabela de forma de pagamento
-                if (this.table.attr('id') !== 'itensTableForm') {
-                    acoes += `<i class="fas fa-edit editBtn" style="color:#13c43f;"></i>`;
-                }
-                // adiciona a linha na tabela
-                this.table.find('tbody').append(
-                    `<tr>
-                        <td>${cont}</td>
-                        ${tdHtml}
-                        <td style="width:80px;">${acoes}</td>
-                    </tr>`
-                );
-                this.itemCount++;
-            } else {
-                this.updateItem(cells);
-            }
-            this.updateHiddenInput();
-        }
-        updateItem(cells) {
-            if (!this.currentEditingItem) return;
-
-            // células: [cód, desc, unid, vlUn, qtd]
-            const [cod, desc, unid, vlUn, qtd] = cells;
-
-            // obtem valor compra anterior (mantém igual ao original)
-            const vlCompra = parseFloat(
-                this.currentEditingItem.find('td').eq(4).text().replace(',', '.')
-            ) || 0;
-
-            const valorUnit = parseFloat(vlUn.replace(',', '.')) || 0;
-            const quantidade = parseFloat(qtd.replace(',', '.')) || 0;
-
-            const totCompra = vlCompra * quantidade;
-            const vlTot = valorUnit * quantidade;
-
-            // atualiza colunas conforme estrutura da tabela
-            const tds = this.currentEditingItem.find('td');
-            tds.eq(1).text(cod);
-            tds.eq(2).text(desc);
-            tds.eq(3).text(unid);
-            tds.eq(5).text(valorUnit.toFixed(2));
-            tds.eq(6).text(quantidade.toFixed(2));
-            tds.eq(7).text(totCompra.toFixed(2));
-            tds.eq(8).text(vlTot.toFixed(2));
-
-            this.currentEditingItem = null;
-            this.updateHiddenInput();
-            if (typeof atualizarSubtotal === 'function') atualizarSubtotal();
-        }
-
-        setEditingItem(row) { this.currentEditingItem = row; }
-        deleteItem(button) {
-            $(button).closest('tr').remove();
-            this.updateHiddenInput();
-            atualizarSubtotal();
-        }
-        updateHiddenInput() {
-            const items = this.table.find('tbody tr').map((_, tr) => {
-                const tds = $(tr).find('td');
-                // se for tabela de formas de pagamento
-                if (this.type === 'forma') {
-                    if (!tds.eq(1).text()) return null;
-                    const valorTexto = tds.eq(2).text().trim();
-                    const valorNum = parseValor(valorTexto); // 8.766,78 → 8766.78
-                    return {
-                        forma: tds.eq(1).text().trim(),
-                        valor: valorNum.toFixed(2) // JSON sempre padrão 8766.78
-                    };
-                }
-
-                // se for tabela de produtos
-                if (!tds.eq(1).text()) return null;
-                const getNum = idx => parseFloat(tds.eq(idx).text().replace(',', '.')) || 0;
-                const vlCompra = getNum(4);
-                const vlProd = getNum(5);
-                const qtd = getNum(6);
-                const prodVlCompraTot = (vlCompra * qtd).toFixed(2);
-                const prodVlTot = (vlProd * qtd).toFixed(2);
-
-
-                return {
-                    codProd: tds.eq(1).text().trim(),
-                    descProd: tds.eq(2).text().trim(),
-                    unidProd: tds.eq(3).text().trim(),
-                    vlCompra: vlCompra.toFixed(2),
-                    vlProd: vlProd.toFixed(2),
-                    qtdProd: qtd.toFixed(2),
-                    prodVlCompraTot: prodVlCompraTot,
-                    prodVlTot: prodVlTot
-                };
-            }).get().filter(Boolean);
-
-            const totalGeral = items.reduce((soma, item) => soma + parseFloat(item.prodVlTot || 0), 0);
-
-            this.hiddenInput.val(JSON.stringify(items));
-        }
-
-        clearEditing() { this.currentEditingItem = null; }
+    $(document).on("click", ".btn-confirmar-faturamento", function () {
+        const id = $(this).data("id");
+        const confirmModal = new bootstrap.Modal(
+            document.getElementById("staticBackdrop" + id),
+            { backdrop: 'static', keyboard: false }
+        );
+        confirmModal.show();
+    });
+    function zerarTotais() {
+        const zeroBR = 'R$ 0,00';
+        $('#subtotal_txt').text(zeroBR);
+        $('#total_txt').text(zeroBR);
+        $('#custoTotal_txt').text(zeroBR);
+        $('#desconto').text(zeroBR);
+        $('#acrescimo').text(zeroBR);
+        $('#margem_txt').text('0.00%');
+        $('#id_subtotal').val('0.00');
+        $('#id_total').val('0.00');
+        $('#id_vl_form_pgto').val('0.00');
     }
-    // Inicializações
-    const formaManager = new TableManager('#itensTableForm', '#id_itens_forma_pgto', 'forma');
-    const prodManager = new TableManager('#itensTableProduto', '#id_itens_prod', 'produto');
-    const prodAdcManager = new TableManager('#itensTableProdutoAdc', '#id_itens_prod_adc', 'produto');
-    // Eventos comuns
-    $('#itensTableForm, #itensTableProduto, #itensTableProdutoAdc').on('click', '.deleteBtn', function() {
-        const mgr = $(this).closest('table').is('#itensTableForm') ? formaManager : $(this).closest('table').is('#itensTableProduto') ? prodManager : prodAdcManager;
-        mgr.deleteItem(this);
+    $("#btnGerarPortas").on("click", function() {
+        zerarTotais();
+        gerarPortas();
+        aplicarMascaras();
     });
-    $(document).on('click', '.editBtn', function() {
+    $(document).on("keydown", "#tabelaPortasResumo input", function(e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            return false;
+        }
+    });
+    $(document).on("keydown", ".larg, .alt", function(e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            return false;
+        }
+    });
+    $("#createForm").on("submit", function(e) {
+        e.preventDefault();
+    });
+    const prodManager = {
+        data: {},
+        currentEditing: {
+            porta: null,
+            index: null,
+            $tr: null
+        },
+        setEditingItem($tr) {
+            this.currentEditing = {
+                porta: Number($tr.data('porta')), // 👈 AQUI
+                itemId: Number($tr.data('item-id')),
+                $tr: $tr
+            };
+        },
+        updateEditingItem(cells) {
+            const { porta, itemId, $tr } = this.currentEditing;
+            const portaKey = Number(porta);
+            console.log('DATA ATUAL ProdManager:', prodManager.data);
+            if (!this.data[portaKey]) {
+                console.warn('Porta não existe em this.data', portaKey, this.data);
+                return;
+            }
+            const item = this.data[portaKey].find(i => i.id == itemId);
+            if (!item) {
+                console.warn('Item não encontrado', porta, itemId, this.data[porta]);
+                return;
+            }
+            // DOM
+            $tr.find('td:eq(1)').text(cells[0]);
+            $tr.find('td:eq(2)').text(cells[1]);
+            $tr.find('td:eq(3)').text(cells[2]);
+            $tr.find('td:eq(5)').text(cells[3]);
+            $tr.find('td:eq(6)').text(cells[4]);
+            // DATA
+            item.cod     = cells[0];
+            item.desc    = cells[1];
+            item.unid    = cells[2];
+            item.vl_unit = parseFloat(cells[3]);
+            item.qtd     = parseFloat(cells[4]);
+            atualizarTabelaPorta(porta);
+            atualizarSubtotal();
+            atualizarJSONPortas();
+        },
+        clearEditing() {
+            this.currentEditing = { porta: null, index: null, $tr: null };
+        },
+        ensurePorta(porta) {
+            if (!this.data[porta]) this.data[porta] = [];
+        },
+        addItem(porta, item) {
+            this.ensurePorta(porta);
+            this.data[porta].push(item);
+            this.updateHiddenInput();
+        },
+        removeItem(porta, index) {
+            if (!this.data[porta]) return;
+            this.data[porta].splice(index, 1);
+            this.updateHiddenInput();
+        },
+        updateItem(porta, index, newData) {
+            if (!this.data[porta]) return;
+            Object.assign(this.data[porta][index], newData);
+            this.updateHiddenInput();
+        },
+        updateHiddenInput() {
+            $("#id_json_portas").val(JSON.stringify(this.data));
+        },
+        resetPorta(porta) {
+            this.data[porta] = [];
+            this.updateHiddenInput();
+        }
+    };
+    const prodAdcManager = {
+        data: {},
+        currentEditing: {
+            porta: null,
+            index: null,
+            $tr: null
+        },
+        setEditingItem($tr) {
+            this.currentEditing = {
+                porta: Number($tr.data('porta')), // 👈 AQUI
+                itemId: Number($tr.data('item-id')),
+                $tr: $tr
+            };
+        },
+        updateEditingItem(cells) {
+            const { porta, itemId, $tr } = this.currentEditing;
+            const portaKey = Number(porta);
+            console.log('DATA ATUAL ProdAdcManager:', prodAdcManager.data);
+            if (!this.data[portaKey]) {
+                console.warn('Porta não existe em this.data', portaKey, this.data);
+                return;
+            }
+            const item = this.data[portaKey].find(i => i.id == itemId);
+            if (!item) {
+                console.warn('Item não encontrado', porta, itemId);
+                return;
+            }
+            // 🔹 Atualiza DOM
+            $tr.find('td:eq(1)').text(cells[0]);
+            $tr.find('td:eq(2)').text(cells[1]);
+            $tr.find('td:eq(3)').text(cells[2]);
+            $tr.find('td:eq(5)').text(cells[3]);
+            $tr.find('td:eq(6)').text(cells[4]);
+            // 🔹 Atualiza dados
+            item.cod     = cells[0];
+            item.desc    = cells[1];
+            item.unid    = cells[2];
+            item.vl_unit = parseFloat(cells[3]);
+            item.qtd     = parseFloat(cells[4]);
+            atualizarTabelaPorta(porta);
+            atualizarSubtotal();
+            atualizarJSONPortas();
+        },
+        clearEditing() {
+            this.currentEditing = { porta: null, index: null, $tr: null };
+        },
+        ensurePorta(porta) {
+            if (!this.data[porta]) this.data[porta] = [];
+        },
+        addItem(porta, item) {
+            this.ensurePorta(porta);
+            this.data[porta].push(item);
+            this.updateHiddenInput();
+        },
+        removeItem(porta, index) {
+            if (!this.data[porta]) return;
+            this.data[porta].splice(index, 1);
+            this.updateHiddenInput();
+        },
+        updateItem(porta, index, newData) {
+            if (!this.data[porta]) return;
+            Object.assign(this.data[porta][index], newData);
+            this.updateHiddenInput();
+        },
+        updateHiddenInput() {
+            $("#id_json_portas").val(JSON.stringify(this.data));
+        },
+        resetPorta(porta) {
+            this.data[porta] = [];
+            this.updateHiddenInput();
+        }
+    };
+    function rebuildProdutosFromTable() {
+        prodManager.data = {};
+        $('.tabela-produtos tbody tr').each(function () {
+            const $tr = $(this);
+            const porta  = Number($tr.data('porta'));
+            const itemId = Number($tr.data('item-id'));
+            if (!porta || !itemId) return;
+            if (!prodManager.data[porta]) {
+                prodManager.data[porta] = [];
+            }
+            prodManager.data[porta].push({
+                id: itemId,
+                cod: itemId,
+                desc: $tr.find('td:eq(2)').text().trim(),
+                unid: $tr.find('td:eq(3)').text().trim(),
+                vl_compra: parseFloat($tr.find('td:eq(4)').text().replace(',', '.')) || 0,
+                vl_unit: parseFloat($tr.find('td:eq(5)').text().replace(',', '.')) || 0,
+                qtd: parseFloat($tr.find('td:eq(6)').text().replace(',', '.')) || 0,
+                total: parseFloat($tr.find('td:eq(8)').text().replace(',', '.')) || 0
+            });
+        });
+        prodManager.updateHiddenInput();
+    }
+    function rebuildAdicionaisFromTable() {
+        prodAdcManager.data = {};
+        $('.tabela-adicionais tbody tr').each(function () {
+            const $tr = $(this);
+            const porta  = Number($tr.data('porta'));
+            const itemId = Number($tr.data('item-id'));
+            if (!porta || !itemId) return;
+            if (!prodAdcManager.data[porta]) {
+                prodAdcManager.data[porta] = [];
+            }
+            prodAdcManager.data[porta].push({
+                id: itemId,
+                cod: itemId,
+                desc: $tr.find('td:eq(2)').text().trim(),
+                unid: $tr.find('td:eq(3)').text().trim(),
+                vl_compra: parseFloat($tr.find('td:eq(4)').text().replace(',', '.')) || 0,
+                vl_unit: parseFloat($tr.find('td:eq(5)').text().replace(',', '.')) || 0,
+                qtd: parseFloat($tr.find('td:eq(6)').text().replace(',', '.')) || 0,
+                total: parseFloat($tr.find('td:eq(8)').text().replace(',', '.')) || 0
+            });
+        });
+        prodAdcManager.updateHiddenInput();
+    }
+    rebuildProdutosFromTable();
+    rebuildAdicionaisFromTable();
+    $('.modal').on('hidden.bs.modal', function () {
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open');
+    });
+    // Eventos comuns
+    $(document).on('click', '.editBtn', function () {
         const $tr = $(this).closest('tr');
-
-        if ($(this).closest('table').is('#itensTableProduto')) {
+        // Identifica tabela
+        const isProd = $(this).closest('table').is('#tblProd_' + $tr.data('porta'));
+        const isAdc  = $(this).closest('table').is('#tblAdc_' + $tr.data('porta'));
+        // ======== PRODUTOS PRINCIPAIS ============
+        if (isProd) {
             prodManager.setEditingItem($tr);
             $('#editItemModal .modal-title').html(
-                `<i class="fa-solid fa-pen-to-square"></i> Edição do Item ${$tr.find('td:eq(0)').text().trim()}`
+                `<i class="fa-solid fa-pen-to-square"></i> Editar Item ${$tr.find('td:eq(0)').text().trim()}`
             );
             $('#editCódInput').val($tr.find('td:eq(1)').text().trim());
             $('#editDescInput').val($tr.find('td:eq(2)').text().trim());
@@ -2738,11 +3100,12 @@ $(document).ready(function() {
             $('#editQtdInput').val($tr.find('td:eq(6)').text().trim());
             const modalEdit = new bootstrap.Modal(document.getElementById('editItemModal'));
             modalEdit.show();
-
-        } else if ($(this).closest('table').is('#itensTableProdutoAdc')) {
-            prodAdcManager.setEditingItem($tr); // define o item em edição
+        }
+        // ======== PRODUTOS ADICIONAIS ============
+        else if (isAdc) {
+            prodAdcManager.setEditingItem($tr);
             $('#editItemAdcModal .modal-title').html(
-                `<i class="fa-solid fa-pen-to-square"></i> Edição do Item ${$tr.find('td:eq(0)').text().trim()}`
+                `<i class="fa-solid fa-pen-to-square"></i> Editar Item ${$tr.find('td:eq(1)').text().trim()}`
             );
             $('#editCódAdcInput').val($tr.find('td:eq(1)').text().trim());
             $('#editDescAdcInput').val($tr.find('td:eq(2)').text().trim());
@@ -2751,130 +3114,207 @@ $(document).ready(function() {
             $('#editQtdAdcInput').val($tr.find('td:eq(6)').text().trim());
             const modalAdc = new bootstrap.Modal(document.getElementById('editItemAdcModal'));
             modalAdc.show();
-
         }
     });
-
-    $('#saveEditBtn').on('click', function() {
-        if (prodManager.currentEditingItem) {
-            const cells = [
-                $('#editCódInput').val().trim(),
-                $('#editDescInput').val().trim(),
-                $('#editUnidInput').val().trim(),
-                $('#editValorItemInput').val().trim(),
-                $('#editQtdInput').val().trim()
-            ];
-            prodManager.updateItem(cells);
-            $('#editItemModal').modal('hide');
-            prodManager.clearEditing();
-        }
+    $('#saveEditBtn').on('click', function () {
+        const { porta, itemId } = prodManager.currentEditing;
+        if (!porta || !itemId) return;
+        const cells = [
+            $('#editCódInput').val().trim(),
+            $('#editDescInput').val().trim(),
+            $('#editUnidInput').val().trim(),
+            $('#editValorItemInput').val().trim(),
+            $('#editQtdInput').val().trim()
+        ];
+        prodManager.updateEditingItem(cells);
+        bootstrap.Modal.getInstance(
+            document.getElementById('editItemModal')
+        ).hide();
+        prodManager.clearEditing();
     });
-
-    $('.remQtd').on('click', function() {
-        let qtdAtual = parseFloat($('#editQtdInput').val()) || 0;
-        if (qtdAtual >= 0) {
-            $('#editQtdInput').val(qtdAtual - 1.00);
-        }
+    $('#saveEditAdcBtn').on('click', function () {
+        const { porta, itemId } = prodAdcManager.currentEditing;
+        if (!porta || !itemId) return;
+        const cells = [
+            $('#editCódAdcInput').val().trim(),
+            $('#editDescAdcInput').val().trim(),
+            $('#editUnidAdcInput').val().trim(),
+            $('#editValorItemAdcInput').val().trim(),
+            $('#editQtdAdcInput').val().trim()
+        ];
+        prodAdcManager.updateEditingItem(cells);
+        bootstrap.Modal.getInstance(
+            document.getElementById('editItemAdcModal')
+        ).hide();
+        prodAdcManager.clearEditing();
     });
-
-    $('.addQtd').on('click', function() {
-        let qtdAtual = parseFloat($('#editQtdInput').val()) || 0;
-        if (qtdAtual >= 0) {
-            $('#editQtdInput').val(qtdAtual + 1.00);
-        }
+    $('.remQtd').on('click', function () {
+        let qtd = parseFloat($('#editQtdInput').val()) || 0;
+        if (qtd > 0) $('#editQtdInput').val((qtd - 1).toFixed(2));
     });
-
-    $('.remQtdAdc').on('click', function() {
-        let qtdAtual = parseFloat($('#editQtdAdcInput').val()) || 0;
-        if (qtdAtual >= 0) {
-            $('#editQtdAdcInput').val(qtdAtual - 1.00);
-        }
+    $('.addQtd').on('click', function () {
+        let qtd = parseFloat($('#editQtdInput').val()) || 0;
+        $('#editQtdInput').val((qtd + 1).toFixed(2));
     });
-
-    $('.addQtdAdc').on('click', function() {
-        let qtdAtual = parseFloat($('#editQtdAdcInput').val()) || 0;
-        if (qtdAtual >= 0) {
-            $('#editQtdAdcInput').val(qtdAtual + 1.00);
-        }
+    $('.remQtdAdc').on('click', function () {
+        let qtd = parseFloat($('#editQtdAdcInput').val()) || 0;
+        if (qtd > 0) $('#editQtdAdcInput').val((qtd - 1).toFixed(2));
     });
-
-
-    $('#saveEditAdcBtn').on('click', function() {
-        if (prodAdcManager.currentEditingItem) {
-            const cells = [
-                $('#editCódAdcInput').val().trim(),
-                $('#editDescAdcInput').val().trim(),
-                $('#editUnidAdcInput').val().trim(),
-                $('#editValorItemAdcInput').val().trim(),
-                $('#editQtdAdcInput').val().trim()
-            ];
-            prodAdcManager.updateItem(cells);
-            $('#editItemAdcModal').modal('hide');
-            prodAdcManager.clearEditing();
-        }
+    $('.addQtdAdc').on('click', function () {
+        let qtd = parseFloat($('#editQtdAdcInput').val()) || 0;
+        $('#editQtdAdcInput').val((qtd + 1).toFixed(2));
     });
-    // Exemplo de adicionar produto/forma (simplificado)
+    const formaManager = {
+        addItem(cells) {
+            const idx = $('#itensTableForm tbody tr').length + 1;
+            $('#itensTableForm tbody').append(`
+                <tr>
+                    <td data-label="#" class="mobile-2col">${idx}</td>
+                    <td data-label="Forma Pgto.:" class="mobile-2col">${cells[0]}</td>
+                    <td data-label="Valor:" class="mobile-2col" style="font-weight: bold; color: #2E8B57;">${cells[1]}</td>
+                    <td data-label="Exc.:" class="mobile-2col">
+                        <i class="fas fa-trash deleteFormaBtn" style="cursor: pointer;"></i>
+                    </td>
+                </tr>
+            `);
+        }
+    };
     function addForma(formaPgto, valor) {
-        // Exibir na tabela "bonito" (opcional: pt-BR)
-        const valorExibicao = valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
+        const valorNumero = parseFloat(valor) || 0;
+        const valorExibicao = valorNumero.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        // 👉 Exibe na tabela
         formaManager.addItem([
             formaPgto,
             valorExibicao
         ]);
-
+        // 👉 Guarda valor REAL no <tr>
+        const $ultimaLinha = $('#itensTableForm tbody tr:last');
+        $ultimaLinha.data('valor', valorNumero);
         // Atualizações
         atualizarSubtotal();
-        calcularValorForma();
         verificarTotalFormas();
+        calcularValorForma();   // ← recalcula o restante
         somaFormas();
     }
-
+    function toNumberBR(v) {
+        return parseFloat(
+            String(v || '0')
+                .replace(/\./g, '')
+                .replace(',', '.')
+        ) || 0;
+    }
+    function gerarJSONFormas() {
+        const formas = [];
+        console.log("=== INICIANDO gerarJSONFormas ===");
+        $('#itensTableForm tbody tr').each(function (i) {
+            const forma = $(this).find('td:eq(1)').text().trim();
+            const valor = toNumberBR($(this).find('td:eq(2)').text());
+            console.log(`Linha ${i + 1}`, { forma, valor });
+            if (!forma || valor < 0.01) return;
+            formas.push({ forma, valor });
+        });
+        console.log("JSON Formas Pgto FINAL:", formas);
+        $('#id_json_formas_pgto').val(JSON.stringify(formas));
+        return formas;
+    }
+    $('#confirmBtn').on('click', function () {
+        gerarJSONFormas();
+        const modalConfirm = bootstrap.Modal.getInstance(
+            document.getElementById('staticBackdrop')
+        );
+        modalConfirm.hide();
+        const loadingModal = new bootstrap.Modal(
+            document.getElementById('loadingModal')
+        );
+        loadingModal.show();
+        setTimeout(() => {
+            $('#createForm')[0].submit();
+        }, 200);
+    });
     // Parser simplificado para valores monetários (aceita padrão americano ou brasileiro)
     function parseValor(str) {
         if (!str) return 0;
         str = str.trim();
-
         // Se tiver vírgula no final → formato BR
         if (str.match(/,\d{1,2}$/)) {
             return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
         }
-
         // Se tiver ponto no final → formato americano
         if (str.match(/\.\d{1,2}$/)) {
             return parseFloat(str.replace(/,/g, '')) || 0;
         }
-
         // Caso simples
         return parseFloat(str) || 0;
     }
-
     // Clique no botão de adicionar forma de pagamento
-    $('#addItemValorFormBtn').on('click', function() {
-        const formaId = $('#id_formas_pgto').val();
-        const valorStr = $('#id_vl_form_pgto').val().trim();
-        const valor = parseValor(valorStr);
-
-        if (!formaId) return alert("Selecione uma forma de pagamento");
-        if (valor <= 0) return alert("Informe um valor válido");
-
-        // Buscar descrição pelo ID via AJAX
+    $('#addItemValorFormBtn').on('click', function (e) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const selectData = $('#id_formas_pgto').select2('data');
+        const formaPgto = selectData[0]?.id;
+        const valorStr  = $('#id_vl_form_pgto').val();
+        const valor     = parseValor(valorStr);
+        if (!formaPgto) {
+            Toastify({
+                text: '<i class="fa-solid fa-triangle-exclamation"></i> Forma de Pagamento deve ser informada!',
+                duration: 5000,
+                gravity: "top",
+                position: "center",
+                stopOnFocus: true,
+                escapeMarkup: false,
+                backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)",
+            }).showToast();
+            $("#form_pgtoBtn").click();
+            return;
+        }
+        if (valor <= 0) {
+            Toastify({
+                text: '<i class="fa-solid fa-triangle-exclamation"></i> Informe um valor válido!',
+                duration: 5000,
+                gravity: "top",
+                position: "center",
+                stopOnFocus: true,
+                escapeMarkup: false,
+                backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)",
+            }).showToast();
+            return;
+        }
         $.ajax({
             url: "/formas_pgto/get/",
             method: "GET",
-            data: { id: formaId },
-            success: function(response) {
+            data: { id: formaPgto },
+            success: function (response) {
                 addForma(response.descricao, valor);
-
-                // limpa o select2
+                // limpa select e input
                 $('#id_formas_pgto').val(null).trigger('change');
-
+                $('#id_vl_form_pgto').val('');
+                calcularValorForma();
+                // ✅ AGORA SIM: a linha já existe
+                gerarJSONFormas();
             },
-            error: function() {
-                alert("Erro ao buscar a forma de pagamento");
+            error: function () {
+                Toastify({
+                    text: '<i class="fa-solid fa-triangle-exclamation"></i> Erro ao buscar a Forma de Pagamento!',
+                    duration: 5000,
+                    gravity: "top",
+                    position: "center",
+                    stopOnFocus: true,
+                    escapeMarkup: false,
+                    backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)",
+                }).showToast();
             }
         });
-
+    });
+    $(document).on('click', '.deleteFormaBtn', function () {
+        const row = $(this).closest('tr');
+        row.remove();
+        atualizarSubtotal();
+        verificarTotalFormas();
+        somaFormas();
+        gerarJSONFormas();
     });
     // Clique no botão de adicionar produto principal
     $('#addItemProdBtn').on('click', function() {
@@ -2883,14 +3323,11 @@ $(document).ready(function() {
         const unidade = $('#id_unidProd').val().trim();
         const valor = parseValor($('#id_vl_prod').val().trim());
         const quantidade = parseFloat($('#id_qtd_prod').val().trim());
-
         if (!codigo || !descricao || !unidade || isNaN(valor) || isNaN(quantidade) || quantidade <= 0) {
             return alert("Por favor, preencha todos os campos corretamente.");
         }
-
         // Adiciona o produto adicional à tabela
         prodAdcManager.addItem([codigo, descricao, unidade, valor.toFixed(2), valor.toFixed(2), quantidade.toFixed(2)]);
-
         // Limpa os campos de entrada
         $('#id_cod_prod').val('');
         $('#id_desc_prod').val('');
@@ -2906,14 +3343,11 @@ $(document).ready(function() {
         const unidade = $('#id_unidProd_adc').val().trim();
         const valor = parseValor($('#id_vl_prod_adc').val().trim());
         const quantidade = parseFloat($('#id_qtd_prod_adc').val().trim());
-
         if (!codigo || !descricao || !unidade || isNaN(valor) || isNaN(quantidade) || quantidade <= 0) {
             return alert("Por favor, preencha todos os campos corretamente.");
         }
-
         // Adiciona o produto adicional à tabela
         prodAdcManager.addItem([codigo, descricao, unidade, 0.00, valor.toFixed(2), quantidade.toFixed(2), 0.00, (valor * quantidade).toFixed(2)]);
-
         // Limpa os campos de entrada
         $('#id_cod_prod_adc').val('');
         $('#id_desc_prod_adc').val('');
@@ -2932,75 +3366,56 @@ $(document).ready(function() {
         let c2 = re / 2;
         return c2.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
-    function Calc3() {
-        let c3 = 3.6 * 4;
-        return c3.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-    function recalcularLarguraCorteFinal() {
-        // só recalcular se larg e alt existirem
-        const larg = $('#id_larg').val().trim();
-        const alt  = $('#id_alt').val().trim();
-        if (larg === "" || alt === "") return;
-
-        // calcularValor(); // recalcula largura corte, peso e motor
-    }
     let lastLg = null;
     let lastAt = null;
-
-    $(document).ready(function() {
-        const urlAtual = window.location.href;
-        $('#id_larg, #id_alt').on('blur', function () {
-            const larg = $('#id_larg').val().trim();
-            const alt = $('#id_alt').val().trim();
-            if (larg === "" || alt === "") return;
-            const lg = parseFloat(larg.replace(',', '.'));
-            const at = parseFloat(alt.replace(',', '.'));
+    $(document).ready(function () {
+        $(document).on("blur", ".larg, .alt", function () {
+            let porta = $(this).data("porta"); 
+            const larg = $(`.larg[data-porta="${porta}"]`).val().trim();
+            const alt  = $(`.alt[data-porta="${porta}"]`).val().trim();
+            if (!larg || !alt) return;
+            const lg = parseFloat(larg.replace(",", "."));
+            const at = parseFloat(alt.replace(",", "."));
             if (lg === lastLg && at === lastAt) {
                 console.log("Largura/altura não mudaram — não recalculando.");
                 return;
             }
             lastLg = lg;
             lastAt = at;
-            resetTable("itensTableProduto", prodManager);
-            resetTable("itensTableProdutoAdc", prodAdcManager);
-            buscarProdutosPrincipais();
-            buscarProdutosAdicionais();
-            // calcularValor();
-            atualizarTabela();
             atualizarSubtotal();
         });
-        $('#prod_servBtn, #adicionaisBtn').on('click', function() {
-            const larg = $('#id_larg').val().trim();
-            const alt = $('#id_alt').val().trim();
-            if (larg === "" || alt === "") {
+        $('#prod_servBtn, #adicionaisBtn').on('click', function () {
+            let porta = $(this).data("porta");  // ← AQUI TAMBÉM FUNCIONA
+            const larg = $(`.larg[data-porta="${porta}"]`).val();
+            const alt  = $(`.alt[data-porta="${porta}"]`).val();
+            if (!larg || !alt) {
                 console.log("Sem largura/altura — não recalculando.");
                 return;
             }
-            const lg = parseFloat(larg.replace(',', '.'));
-            const at = parseFloat(alt.replace(',', '.'));
+            const lg = parseFloat(larg.replace(",", "."));
+            const at = parseFloat(alt.replace(",", "."));
             if (lg === lastLg && at === lastAt) {
                 console.log("Click sem mudança — não resetando tabelas.");
                 return;
             }
-            $('#id_larg, #id_alt').blur();
+            $(`.larg[data-porta="${porta}"], .alt[data-porta="${porta}"]`).blur();
             const temPintura = $("#id_pintura").val();
             if (temPintura === "Não") {
-                $('#itensTableProdutoAdc tbody tr').each(function () {
-                    const desc = $(this).find('td:nth-child(3)').text().toUpperCase().trim();
+                $(`#tblAdc_${porta} tbody tr`).each(function () {
+                    const desc = $(this).find("td:nth-child(3)").text().toUpperCase().trim();
                     if (desc === "PINTURA ELETROSTÁTICA" || desc === "PINTURA AUTOMOTIVA") {
                         $(this).remove();
                     }
                 });
-                atualizarSubtotal();
                 calcularValorForma();
-                atualizarTabela();
+                atualizarTabelaPorta(porta);
+                atualizarSubtotal();
                 somaFormas();
-                return; // impede que o resto da lógica de pinturas rode
+                return;
             }
             prodAdcManager.updateHiddenInput();
         });
     });
-
     $('#id_cod_prod').on('blur keydown', function(event) {
         if (event.type === 'blur' || event.key === 'Enter') {
             const productId = $(this).val();
@@ -3260,7 +3675,6 @@ $(document).ready(function() {
                         $('#id_cep').val(cliente.cep);
                         $('#id_endereco').val(cliente.endereco);
                         $('#id_numero').val(cliente.numero);
-                        // Apenas preencher campos desabilitados com texto
                         $('#id_bairro_txt').val(cliente.bairro);
                         $('#id_cidade_txt').val(cliente.cidade);
                         $('#id_uf_txt').val(cliente.uf);
@@ -3282,11 +3696,9 @@ $(document).ready(function() {
     $('#add-produtos').on('click', function() {
         $('#edProdModal').modal('show');
     });
-
     $('#edProdModal').on('shown.bs.modal', function () {
         $('#id_cod_produto').trigger('focus');
     });
-
     $('#add-prod').on('click', function() {
         $('#produtoModal').modal('show');
     });
@@ -3334,7 +3746,6 @@ $(document).ready(function() {
         const gp = $(this).data('gp');
         const unid = $(this).data('unid');
         const vl = $(this).data('vl');
-
         $('#id_cod_prod').val(id);
         $('#id_desc_prod').val(desc);
         $('#id_grupoProd').val(gp);
@@ -3358,7 +3769,6 @@ $(document).ready(function() {
         $('#id_cod_prod').focus();
         $('#produtoModal').modal('hide'); // Fecha o modal após a seleção
     });
-
     function carregarProdutos(page = 1) {
         const termo = $('#campo-pesquisa-produto').val();
         const tipo = $('#campo-tipo-produto').val();
@@ -3442,8 +3852,6 @@ $(document).ready(function() {
     });
     $(document).on('click', '.select-produto', function() {
         const id = $(this).data('id');
-        const desc = $(this).data('desc');
-        const unid = $(this).data('unid');
         const vl = $(this).data('vl');
         const formsetPrefix = "{{ formset.prefix }}";
         const totalForms = document.getElementById("id_" + formsetPrefix + "-TOTAL_FORMS");
@@ -3472,7 +3880,6 @@ $(document).ready(function() {
         // Fecha o modal
         $('#produtoModal').modal('hide');
     });
-
     $('#pesquisar-produtos-adicionais').on('click', function() {
         const termo = $('#campo-pesquisa-produto-adicional').val();
         $.ajax({
@@ -3521,27 +3928,13 @@ $(document).ready(function() {
         $('#produtoAdcModal').modal('hide'); // Fecha o modal após a seleção
     });
     var cores = {
-        "Preto": "#000000",
-        "Branco": "#FFFFFF",
-        "Amarelo": "#FFFF00",
-        "Vermelho": "#FF0000",
-        "Roxo Açaí": "#6A0DAD",
-        "Azul Pepsi": "#0033A0",
-        "Azul Claro": "#ADD8E6",
-        "Cinza Claro": "#D3D3D3",
-        "Cinza Grafite": "#4F4F4F",
-        "Verde": "#008000",
-        "Bege": "#F5F5DC",
-        "Bege Areia": "#D7C9A3",
-        "Marrom": "#8B4513",
-        "Marrom Café": "#4B2E2B",
-        "Laranja": "#FFA500",
-        "Azul Royal": "#4169E1",
-        "Azul Marinho": "#000080",
-        "Verde Musgo": "#556B2F",
-        "Verde Bandeira": "#009739",
-        "Vinho": "#8B0000",
-        "Prata": "#C0C0C0"
+        "Preto": "#000000", "Branco": "#FFFFFF", "Amarelo": "#FFFF00",
+        "Vermelho": "#FF0000", "Roxo Açaí": "#6A0DAD", "Azul Pepsi": "#0033A0",
+        "Azul Claro": "#ADD8E6", "Cinza Claro": "#D3D3D3", "Cinza Grafite": "#4F4F4F",
+        "Verde": "#008000", "Bege": "#F5F5DC", "Bege Areia": "#D7C9A3", "Marrom": "#8B4513",
+        "Marrom Café": "#4B2E2B", "Laranja": "#FFA500", "Azul Royal": "#4169E1",
+        "Azul Marinho": "#000080", "Verde Musgo": "#556B2F", "Verde Bandeira": "#009739",
+        "Vinho": "#8B0000", "Prata": "#C0C0C0"
     };
     function pintarOptions() {
         $("#id_cor option").each(function () {
@@ -3577,11 +3970,9 @@ $(document).ready(function() {
     function mudarCampoChavePix() {
         let tipoChave = $('#id_tp_chave').val();
         let inputChavePix = $("#id_chave_pix");
-
         inputChavePix.unmask(); // Remove máscara anterior
         inputChavePix.prop("readonly", false); // Torna o campo editável por padrão
         inputChavePix.attr("type", "text"); // Volta ao tipo padrão
-
         if (tipoChave === 'CPF') {
             inputChavePix.mask("000.000.000-00");
         } else if (tipoChave === 'CNPJ') {
@@ -3600,17 +3991,13 @@ $(document).ready(function() {
             });
         }
     }
-
     function atualizarCampo() {
-        console.log("Função atualizarCampo() executada");
         let tipoPessoa = $("#id_pessoa").val();
-        console.log("Tipo de pessoa:", tipoPessoa);
         let labelCpfCnpj = $("label[for='id_cpf_cnpj']");
         let labelnome = $("label[for='id_razao_social']");
         let labelapelido = $("label[for='id_fantasia']");
         let labelIE = $("label[for='id_ie']");
         let inputCpfCnpj = $("#id_cpf_cnpj");
-
         if (tipoPessoa === "Física") {
             labelCpfCnpj.text("CPF*");
             labelnome.text("Nome Completo*");
@@ -3627,13 +4014,10 @@ $(document).ready(function() {
         }
     }
     $("#id_cnpj").mask("00.000.000/0000-00");
-
-    $(document).ready(function () {
-        atualizarCampo(); // Executa ao carregar a página com valor existente
-        $("#id_pessoa").change(atualizarCampo); // Executa ao mudar o valor
-        mudarCampoChavePix();
-        $("#id_tp_chave").change(mudarCampoChavePix);
-    });
+    atualizarCampo(); // Executa ao carregar a página com valor existente
+    $("#id_pessoa").change(atualizarCampo); // Executa ao mudar o valor
+    mudarCampoChavePix();
+    $("#id_tp_chave").change(mudarCampoChavePix);
     function maskInput(input) {
         setTimeout(function () {
             var v = phoneMask(input.val());
@@ -3645,19 +4029,14 @@ $(document).ready(function() {
     function phoneMask(v) {
         let r = v.replace(/\D/g, ""); // Remove tudo que não for número
         if (r.length > 11) {
-            // Se tiver mais que 11 dígitos, garante o formato correto
             r = r.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
         } else if (r.length === 11) {
-            // Celular (com 9 dígitos no número)
             r = r.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3");
         } else if (r.length === 10) {
-            // Telefone fixo (com 8 dígitos no número)
             r = r.replace(/^(\d{2})(\d{4})(\d{4})$/, "($1) $2-$3");
         } else if (r.length > 2) {
-            // Apenas DDD digitado, começando a formatar o número
             r = r.replace(/^(\d{2})(\d{0,5})/, "($1) $2");
         } else if (r.length > 0) {
-            // Apenas o primeiro número (abrindo o parêntese do DDD)
             r = r.replace(/^(\d*)/, "($1");
         }
         return r;
@@ -3668,44 +4047,29 @@ $(document).ready(function() {
     function mascaraFone(phone) {
         let cleanedPhone = phone.replace(/\D/g, '');
         if (cleanedPhone.length > 2) {
-            // Condição para números com o terceiro dígito sendo 8 ou 9
             if (cleanedPhone[2] === '8' || cleanedPhone[2] === '9') {
                 cleanedPhone = cleanedPhone.slice(0, 2) + '9' + cleanedPhone.slice(2);
                 return cleanedPhone.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
             }
-            // Nova condição para números com o terceiro dígito sendo 4, 5 ou 6
             else if (cleanedPhone[2] === '4' || cleanedPhone[2] === '5' || cleanedPhone[2] === '6') {
                 return cleanedPhone.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3');
             }
         }
         return cleanedPhone.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3');
     }
-    function formatarTelefone(ddd, numero) {
-        let telefone = ddd + numero;
-        telefone = telefone.replace(/\D/g, ""); // Remove caracteres não numéricos
-        if (telefone.length === 10) {
-            return telefone.replace(/^(\d{2})(\d{4})(\d{4})$/, "($1) $2-$3");
-        } else if (telefone.length === 11) {
-            return telefone.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3");
-        }
-        return telefone;
-    }
     $("#id_cpf_cnpj").on("blur", function () {
         let tipoPessoa = $("#id_pessoa").val();
         let cnpj = $(this).val().replace(/\D/g, ""); // Remove caracteres não numéricos
-        // Verifica se está no modo CNPJ e se o campo tem 14 números
         if (tipoPessoa === "Jurídica" && cnpj.length === 14) {
             $('#loadingModal').modal('show');
             fetch(`https://open.cnpja.com/office/${cnpj}`)
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
-                    // Razão Social e Fantasia
                     if (data.company) {
                         $('#id_razao_social').val((data.company.name || "").toUpperCase());
                         $('#id_fantasia').val((data.alias || "").toUpperCase());
                     }
-                    // Inscrição Estadual
                     if (data.registrations && data.registrations.length > 0) {
                         let ieNumber = data.registrations[0].number || "";
                         if (data.registrations[0].state === "PA") {
@@ -3713,18 +4077,14 @@ $(document).ready(function() {
                         }
                         $('#id_ie').val(ieNumber);
                     }
-                    // CEP
                     let cep = (data.address?.zip || "").replace(/^(\d{5})(\d{3})$/, '$1-$2');
                     $('#id_cep').val(cep);
-                    // Endereço abreviado
                     let endereco = (data.address?.street || "").toUpperCase();
                     $('#id_endereco').val(abreviarEndereco(endereco));
                     $('#id_numero').val(data.address?.number || "");
-                    // Estado, Cidade e Bairro
                     let estado = (data.address?.state || "").toUpperCase();
                     let cidade = (data.address?.city ? removeAccents(data.address.city) : "").toUpperCase();
                     let bairro = (data.address?.district || "").toUpperCase();
-                    // Verifica e atualiza os campos Select2
                     verificarOuCriarLocalizacao(estado, cidade, bairro)
                         .then(response => {
                             if (!response.erro) {
@@ -3736,12 +4096,10 @@ $(document).ready(function() {
                                 $('#id_bairro').append(bairroOption).trigger('change');
                             }
                         });
-                    // Telefone
                     if (data.phones && data.phones.length > 0) {
                         let telefone = (data.phones[0].area || "") + " " + (data.phones[0].number || "");
                         $('#id_tel').val(mascaraFone(telefone));
                     }
-                    // Email
                     if (data.emails && data.emails.length > 0) {
                         $('#id_email').val(data.emails[0].address || "");
                     }
@@ -3778,7 +4136,6 @@ $(document).ready(function() {
                         if (fantasia) {
                             $("#fantasia_fantasia").val(fantasia);
                             $("#container_fantasia").removeAttr("hidden"); // Exibe o campo
-
                             setTimeout(() => {
                                 $('#id_username').focus(); // Aplica o foco depois de 3 segundos
                             }, 1500);
@@ -3915,7 +4272,6 @@ $(document).ready(function() {
     }
     $(".copiar").on("click", function () {
         let link = $(this).closest(".btn-group").find(".link-rillpay").attr("href");
-
         if (!link) {
             console.error("Link não encontrado!");
             return; // Se o link não for encontrado, sair da função
@@ -3973,51 +4329,40 @@ $(document).ready(function() {
     function updateMassChangesButton() {
         const taskCheckboxes = $(".task-checkbox");
         const massChangesButton = $("#update-selected");
-
         if (!massChangesButton.length) {
             console.warn("O botão 'update-selected' não foi encontrado.");
             return;
         }
-
         const anyChecked = taskCheckboxes.is(":checked");
         massChangesButton.prop("disabled", !anyChecked);
     }
-
     // Marca ou desmarca todos
     function toggleSelectAll(forceCheck = null) {
         const selectAllCheckbox = $("#select-all");
         const taskCheckboxes = $(".task-checkbox");
-
         // Se forceCheck for nulo, usa o estado atual do checkbox
         const isChecked = forceCheck !== null ? forceCheck : selectAllCheckbox.is(":checked");
-
         // Remove estado indeterminado
         selectAllCheckbox.prop("indeterminate", false);
         selectAllCheckbox.prop("checked", isChecked);
-
         // Aplica a todos
         taskCheckboxes.prop("checked", isChecked);
         updateMassChangesButton();
     }
-
     // Clicar em qualquer parte do <th> alterna o checkbox principal
     $("th:has(#select-all)").on("click", function (e) {
         const checkbox = $("#select-all");
-
         // Evita conflito se o clique for exatamente no checkbox
         if ($(e.target).is("#select-all")) return;
-
         // Alterna o estado do checkbox
         const shouldCheck = !checkbox.prop("checked");
         toggleSelectAll(shouldCheck);
     });
-
     // Clique direto no checkbox do thead (mesma lógica)
     $("#select-all").on("click", function (e) {
         e.stopPropagation(); // Evita duplicar clique
         toggleSelectAll($(this).is(":checked"));
     });
-
     // Alterna um checkbox individual (tbody)
     function toggleTaskCheckbox(cell) {
         const checkbox = $(cell).find("input[type='checkbox']");
@@ -4027,15 +4372,12 @@ $(document).ready(function() {
             updateMassChangesButton();
         }
     }
-
     // Atualiza o estado do checkbox "selecionar todos"
     function checkIfAllSelected() {
         const selectAllCheckbox = $("#select-all");
         const taskCheckboxes = $(".task-checkbox");
-
         const total = taskCheckboxes.length;
         const checked = taskCheckboxes.filter(":checked").length;
-
         if (checked === total) {
             selectAllCheckbox.prop("checked", true);
             selectAllCheckbox.prop("indeterminate", false);
@@ -4046,21 +4388,17 @@ $(document).ready(function() {
             selectAllCheckbox.prop("indeterminate", true);
         }
     }
-
     // Corrige comportamento de labels de switches
     $(".form-check-label").click(function (e) {
         e.preventDefault();
         const switchInput = $("#" + $(this).attr("for"));
         switchInput.prop("checked", !switchInput.is(":checked"));
     });
-
     // Expõe funções globalmente (caso use inline)
     window.toggleSelectAll = toggleSelectAll;
     window.toggleTaskCheckbox = toggleTaskCheckbox;
     window.checkIfAllSelected = checkIfAllSelected;
     window.updateMassChangesButton = updateMassChangesButton;
-
-
     function closeGerarVisitasModal() {
         var modalInstance = bootstrap.Modal.getInstance($("#gerarVisitasModal")[0]);
         if (modalInstance) modalInstance.hide();
@@ -4081,6 +4419,25 @@ $(document).ready(function() {
             paddingRight: "",
         });
     }
+    $(document).on("click", ".btn-confirmar", function () {
+        const url = $(this).data("url");
+        const id  = $(this).data("orcamento-id");
+        const confirmModalEl = document.getElementById("modal-" + id);
+        const confirmModal   = bootstrap.Modal.getInstance(confirmModalEl);
+        const menuModalEl = document.getElementById("menuModal" + id);
+        const menuModal   = bootstrap.Modal.getInstance(menuModalEl);
+        if (confirmModal) {
+            confirmModal.hide();
+        }
+        setTimeout(function () {
+            if (menuModal) {
+                menuModal.hide();
+            }
+        }, 200);
+        setTimeout(function () {
+            window.location.href = url;
+        }, 400);
+    });
     // Botão "Não" no modal 'staticBackdrop'
     $("#btnRecusa").on("click", function () {
         closeStaticBackdrop();
@@ -4091,7 +4448,6 @@ $(document).ready(function() {
         let modalDelete = new bootstrap.Modal($("#modal-" + orcamentoId)[0]); // ID correto do modal
         modalDelete.show();
     });
-    var form = $('#createForm');
     $(".confirm-delete").on("click", function() {
         let filialId = $(this).attr("data-orcamento-id");
         let modalMenu = $("#menuModal" + filialId)[0];
@@ -4099,7 +4455,6 @@ $(document).ready(function() {
         // Fecha ambos os modais após a exclusão
         let modalMenuInstance = bootstrap.Modal.getInstance(modalMenu);
         let modalDeleteInstance = bootstrap.Modal.getInstance(modalDelete);
-
         if (modalMenuInstance) modalMenuInstance.hide();
         if (modalDeleteInstance) modalDeleteInstance.hide();
     });
@@ -4110,7 +4465,6 @@ $(document).ready(function() {
     $(document).on("keydown", function(event) {
         let modalConfirm = $(".modal.show[id^='modalLabel']");
         if (!modalConfirm.length) return;
-
         if (event.key.toLowerCase() === "s") {
             modalConfirm.find(".confirm-delete").trigger("click");
         } else if (event.key.toLowerCase() === "n") {
@@ -4121,21 +4475,12 @@ $(document).ready(function() {
         var actionType = $(this).data("id"); // Identifica a ação associada ao botão
         var menuModal = bootstrap.Modal.getInstance($("#menuModal" + actionType)[0]);
         var docModal = bootstrap.Modal.getInstance($("#documentModal" + actionType)[0]);// Obtem o modal atualmente aberto
-        var loadingModal = new bootstrap.Modal($("#loadingModal")[0]);
-        // Fecha o modal de menu antes de exibir o spinner
         if (menuModal) {
             menuModal.hide();
         }
         if (docModal) {
             docModal.hide();
         }
-    });
-    $("#confirmBtn").on("click", function () {
-        setTimeout(function () {
-            var loadingModal = new bootstrap.Modal($("#loadingModal")[0]);
-            loadingModal.show();
-        }, 300);
-        form.submit();
     });
     $("#staticBackdrop").on("keydown", function (e) {
         var keyCode = e.which || e.keyCode;
@@ -4147,7 +4492,6 @@ $(document).ready(function() {
     });
     $("[id^='modal-']").on("keydown", function (e) {
         const key = e.which || e.keyCode;
-
         if (key === 83) { // S
             $("#confirmBtn").click();
         }
@@ -4155,7 +4499,6 @@ $(document).ready(function() {
             closeStaticBackdrop();
         }
     });
-
     $("#btnCloseGerarVisitas").on("click", function () {
         closeGerarVisitasModal();
     });
@@ -4170,62 +4513,63 @@ $(document).ready(function() {
     });
     // Função de Desconto - Orçamentos
     function extrairNumero(str) {
-        return parseFloat(str.replace('R$ ', '').replace(/,/g, '').trim()) || 0;
+        return parseFloat(
+            str
+                .replace('R$ ', '')
+                .replace(/\./g, '') // remove separador de milhar
+                .replace(',', '.')  // vírgula vira decimal
+                .trim()
+        ) || 0;
     }
     // Função de cálculo do desconto e atualização do auxiliar
     function calcularDescontoAtualizarAuxiliar() {
         let tipo_desconto = $('#tipo_desconto').val();
-        let campoDigitado = $('#campo_desconto').val().replace(',', '.');
-        let campo_desconto = parseFloat(campoDigitado);
-
-        // Se estiver digitando algo como "1," não trava e assume o número antes da vírgula
-        if (isNaN(campo_desconto)) {
-            campo_desconto = parseFloat(campoDigitado.replace('.', '')) || 0;
+        let $campo = $('#campo_desconto');
+        let campoDigitado = $campo.val().trim();
+        // Ctrl + A + Delete → força 0.00 no input
+        if (campoDigitado === '') {
+            $campo.val('0.00');
+            campoDigitado = '0';
         }
-
+        campoDigitado = campoDigitado.replace(',', '.');
+        let campo_desconto = parseFloat(campoDigitado);
+        if (isNaN(campo_desconto)) {
+            campo_desconto = 0;
+            $campo.val('0.00');
+        }
         let subtotal_orcamento = extrairNumero($('#subtotal_txt').text());
         let labelNomeCampo = $("label[for='campo_desconto']");
         let labelNomeCampoAuxiliar = $("label[for='auxiliar_desconto']");
         let simboloInputCampo = $("#simbolo");
         let simboloInputCampoAuxiliar = $("#simboloAuxiliar");
-
         if (subtotal_orcamento === 0) {
-            $('#auxiliar_desconto').val('');
+            $('#auxiliar_desconto').val('0.00');
             return 0;
         }
-
         if (tipo_desconto === "valor") {
             labelNomeCampo.text("Valor:");
             simboloInputCampo.text("R$");
             labelNomeCampoAuxiliar.text("Percentual:");
             simboloInputCampoAuxiliar.text("%");
-
-            desconto_aplicado = campo_desconto;
-            let percentual = ((desconto_aplicado / subtotal_orcamento) * 100).toFixed(2);
-
-            $('#auxiliar_desconto').val(isNaN(percentual) ? '' : percentual);
-
-            return desconto_aplicado; // 👈 OBRIGATÓRIO
+            let percentual = (campo_desconto / subtotal_orcamento) * 100;
+            $('#auxiliar_desconto').val(
+                isNaN(percentual) ? '0.00' : percentual.toFixed(2)
+            );
+            return campo_desconto;
         } else {
-            // CAMPO PRINCIPAL = %
             labelNomeCampo.text("Percentual:");
             simboloInputCampo.text("%");
             labelNomeCampoAuxiliar.text("Valor:");
             simboloInputCampoAuxiliar.text("R$");
-
-            let valorCalculado = ((subtotal_orcamento * campo_desconto) / 100);
-
-            if (!isNaN(valorCalculado))
-                $('#auxiliar_desconto').val(valorCalculado.toFixed(2));
-            else
-                $('#auxiliar_desconto').val('');
+            let valorCalculado = (subtotal_orcamento * campo_desconto) / 100;
+            $('#auxiliar_desconto').val(
+                isNaN(valorCalculado) ? '0.00' : valorCalculado.toFixed(2)
+            );
         }
     }
-
     $("#campo_desconto, #tipo_desconto").on("input keyup change", function () {
         calcularDescontoAtualizarAuxiliar();
     });
-
     // Evento ao abrir o modal
     $('#modalDesconto').on('shown.bs.modal', function () {
         $('#tipo_desconto').focus();
@@ -4233,32 +4577,36 @@ $(document).ready(function() {
     // Evento botão confirmar
     $('#confirmarDesconto').on('click', function () {
         let desconto = calcularDescontoAtualizarAuxiliar();
-
-        // Se vier undefined, null, NaN → vira 0
         desconto = parseFloat(desconto) || 0;
-
-        // Atualiza o campo de input
         $('#id_desconto').val(desconto.toFixed(2));
-
         $('#desconto_txt').text('R$ ' + desconto.toLocaleString('pt-BR', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         }));
-
         $('#modalDesconto').modal('hide');
         atualizarSubtotal();
     });
     // Função de Acréscimo - Orçamentos
-    // Função de cálculo do acrescimo e atualização do auxiliar
     function calcularAcrescimoAtualizarAuxiliar() {
         let tipo_acrescimo = $('#tipo_acrescimo').val();
-        let campo_acrescimo = parseFloat($('#campo_acrescimo').val().replace(',', '.')) || 0;
+        let $campo = $('#campo_acrescimo');
+        let campoDigitado = $campo.val().trim();
+        // Ctrl + A + Delete → força 0.00 no input
+        if (campoDigitado === '') {
+            $campo.val('0.00');
+            campoDigitado = '0';
+        }
+        campoDigitado = campoDigitado.replace(',', '.');
+        let campo_acrescimo = parseFloat(campoDigitado);
+        if (isNaN(campo_acrescimo)) {
+            campo_acrescimo = 0;
+            $campo.val('0.00');
+        }
         let subtotal_orcamento = extrairNumero($('#subtotal_txt').text());
-        let acrescimo_aplicado = 0;
         let labelNomeCampo = $("label[for='campo_acrescimo']");
         let labelNomeCampoAuxiliar = $("label[for='auxiliar_acrescimo']");
-        let simboloInputCampoAc = $("span[id='simboloAc']");
-        let simboloInputCampoAuxiliarAc = $("span[id='simboloAuxiliarAc']");
+        let simboloInputCampoAc = $("#simboloAc");
+        let simboloInputCampoAuxiliarAc = $("#simboloAuxiliarAc");
         if (subtotal_orcamento === 0) {
             $('#auxiliar_acrescimo').val('');
             return 0;
@@ -4268,26 +4616,24 @@ $(document).ready(function() {
             simboloInputCampoAc.text("R$");
             labelNomeCampoAuxiliar.text("Percentual:");
             simboloInputCampoAuxiliarAc.text("%");
-            acrescimo_aplicado = campo_acrescimo;
-            let percentual = ((acrescimo_aplicado / subtotal_orcamento) * 100).toFixed(2);
-            $('#auxiliar_acrescimo').val(isNaN(percentual) ? '' : percentual);
+
+            let percentual = (campo_acrescimo / subtotal_orcamento) * 100;
+            $('#auxiliar_acrescimo').val(
+                isNaN(percentual) ? '0.00' : percentual.toFixed(2)
+            );
+            return campo_acrescimo;
         } else {
             labelNomeCampo.text("Percentual:");
             simboloInputCampoAc.text("%");
             labelNomeCampoAuxiliar.text("Valor:");
             simboloInputCampoAuxiliarAc.text("R$");
-            acrescimo_aplicado = ((subtotal_orcamento * campo_acrescimo) / 100).toFixed(2);
-            $('#auxiliar_acrescimo').val(isNaN(acrescimo_aplicado) ? '' : acrescimo_aplicado);
-            $('#auxiliar_acrescimo').css('color', '');
+            let valorCalculado = ((subtotal_orcamento * campo_acrescimo) / 100);
+            $('#auxiliar_acrescimo').val(
+                isNaN(valorCalculado) ? '0.00' : valorCalculado.toFixed(2)
+            );
         }
-        return parseFloat(acrescimo_aplicado);
     }
-    // Quando muda o tipo de acrescimo
-    $('#tipo_acrescimo').on('change', function() {
-        calcularAcrescimoAtualizarAuxiliar();
-    });
-    // Quando digita no campo de valor ou percentual
-    $('#campo_acrescimo').on('input change', function() {
+    $("#campo_acrescimo, #tipo_acrescimo").on("input keyup change", function () {
         calcularAcrescimoAtualizarAuxiliar();
     });
     // Evento ao abrir o modal
@@ -4297,9 +4643,7 @@ $(document).ready(function() {
     // Evento botão confirmar
     $('#confirmarAcrescimo').on('click', function () {
         let acrescimo = calcularAcrescimoAtualizarAuxiliar();
-        // Atualiza o campo de input (se desejar manter)
         $('#id_acrescimo').val(acrescimo.toFixed(2));
-        // Atualiza o texto visível
         $('#acrescimo_txt').text('R$ ' + acrescimo.toLocaleString('pt-BR', {
             minimumFractionDigits: 2, maximumFractionDigits: 2
         }));
@@ -4325,32 +4669,12 @@ $(document).ready(function() {
     });
     $('#staticBackdrop2').on("keydown", function (e) {
         var keyCode = e.which || e.keyCode;
-
         if (keyCode === 83) { // 'S' - Confirmar
             $("#confirmBtn1").click();
         } else if (keyCode === 78 || keyCode === 27) { // 'N' ou 'ESC' - Fechar apenas o modal de confirmação
             $("#btnRecusa1").click();
         }
     });
-    function buscarCoordenadas(cidade) {
-        if (!cidade) {
-            return;
-        }
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cidade)}&format=json&limit=1`;
-        $.get(url, function(dados) {
-            if (dados.length > 0) {
-                const latitude = dados[0].lat;
-                const longitude = dados[0].lon;
-                $('#id_latitude').val(latitude);
-                $('#id_longitude').val(longitude);
-                console.log(`Coordenadas de ${cidade}: Latitude ${latitude}, Longitude ${longitude}`);
-            } else {
-                console.log("Não foi possível encontrar as coordenadas para essa cidade.");
-            }
-        }).fail(function() {
-            console.error("Erro ao consultar a API de geolocalização.");
-        });
-    }
     $('#logo-preview').on('click', function() {
         $('#id_logo').click();// Simula o clique no input de arquivo
     });
@@ -4361,14 +4685,6 @@ $(document).ready(function() {
         };
         reader.readAsDataURL(event.target.files[0]);  // Lê o arquivo selecionado
     });
-    function previewImage(event) {
-        var reader = new FileReader();
-        reader.onload = function() {
-            var output = $('#logo-preview');
-            output.src = reader.result; // Atualiza a imagem de visualização
-        };
-        reader.readAsDataURL(event.target.files[0]);
-    }
     $('#tabelas-lista').addClass('table-hover');
     $('.form-control').addClass('form-control-sm');
     $('.form-select').addClass('form-select-sm');
@@ -4426,7 +4742,6 @@ $(document).ready(function() {
             verificarEstadoSwitch('#' + switchId, target);
         }, 10);
     });
-
     $(document).on('click', '#pesquisar-produtos, #pesquisar-produtos-adicionais, #button-addon3, #button-addon2, .selecionar-produto-adicional, .selecionar-produto', function(e) {
         e.preventDefault();
         $("#id_preco_unit").focus();
@@ -4459,7 +4774,6 @@ $(document).ready(function() {
             if (!data.id) {
                 return data.text;
             }
-
             // cria o layout: ID em cima e Nome abaixo
             var $container = $(`
                 <div style="display: flex; flex-direction: column; line-height: 1.2;">
@@ -4516,7 +4830,6 @@ $(document).ready(function() {
             if (!data.id) {
                 return data.text;
             }
-
             // cria o layout: ID em cima e Nome abaixo
             var $container = $(`
                 <div style="display: flex; flex-direction: column; line-height: 1.2;">
@@ -4527,7 +4840,6 @@ $(document).ready(function() {
             return $container;
         },
         templateSelection: function (data) {
-            // mostra apenas o nome após selecionar
             return data.text;
         },
         placeholder: 'Selecione uma filial',
@@ -4560,16 +4872,12 @@ $(document).ready(function() {
             document.querySelector('.select2-container--open .select2-search__field').focus();
         }, 50);
     });
-
-
     $('#vinc_emp, #id_vinc_emp').select2({
         allowClear: true,
         templateResult: function (data) {
             if (!data.id) {
                 return data.text;
             }
-
-            // cria o layout: ID em cima e Nome abaixo
             var $container = $(`
                 <div style="display: flex; flex-direction: column; line-height: 1.2;">
                     <span style="font-size: 14px;">${data.id}</span><br>
@@ -4579,7 +4887,6 @@ $(document).ready(function() {
             return $container;
         },
         templateSelection: function (data) {
-            // mostra apenas o nome após selecionar
             return data.text;
         },
         placeholder: 'Selecione uma filial',
@@ -4635,8 +4942,6 @@ $(document).ready(function() {
             if (!data.id) {
                 return data.text;
             }
-
-            // cria o layout: ID em cima e Nome abaixo
             var $container = $(`
                 <div style="display: flex; flex-direction: column; line-height: 1.2;">
                     <span style="font-size: 14px;">${data.id}</span><br>
@@ -4646,7 +4951,6 @@ $(document).ready(function() {
             return $container;
         },
         templateSelection: function (data) {
-            // mostra apenas o nome após selecionar
             return data.text;
         },
         language: {
@@ -4699,7 +5003,6 @@ $(document).ready(function() {
         var selectedCheckboxes = $('.task-checkbox:checked');
         $('#update-selected').prop('disabled', selectedCheckboxes.length === 0);
     }
-
     $('#update-selected').on('click', function() {
         var selectedCheckboxes = $('.task-checkbox:checked');
         var multiIds = selectedCheckboxes.map(function() {
@@ -4738,12 +5041,10 @@ $(document).ready(function() {
     function mascaraFone(phone) {
         let cleanedPhone = phone.replace(/\D/g, '');
         if (cleanedPhone.length > 2) {
-            // Condição para números com o terceiro dígito sendo 8 ou 9
             if (cleanedPhone[2] === '8' || cleanedPhone[2] === '9') {
                 cleanedPhone = cleanedPhone.slice(0, 2) + '9' + cleanedPhone.slice(2);
                 return cleanedPhone.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
             }
-            // Nova condição para números com o terceiro dígito sendo 4, 5 ou 6
             else if (cleanedPhone[2] === '4' || cleanedPhone[2] === '5' || cleanedPhone[2] === '6') {
                 return cleanedPhone.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3');
             }
@@ -4864,8 +5165,6 @@ $(document).ready(function() {
             if (!data.id) {
                 return data.text;
             }
-
-            // cria o layout: ID em cima e Nome abaixo
             var $container = $(`
                 <div style="display: flex; flex-direction: column; line-height: 1.2;">
                     <span style="font-size: 14px;">${data.id}</span><br>
@@ -4875,7 +5174,6 @@ $(document).ready(function() {
             return $container;
         },
         templateSelection: function (data) {
-            // mostra apenas o nome após selecionar
             return data.text;
         },
         language: {
@@ -4922,8 +5220,6 @@ $(document).ready(function() {
             if (!data.id) {
                 return data.text;
             }
-
-            // cria o layout: ID em cima e Nome abaixo
             var $container = $(`
                 <div style="display: flex; flex-direction: column; line-height: 1.2;">
                     <span style="font-size: 14px;">${data.id}</span><br>
@@ -4933,7 +5229,6 @@ $(document).ready(function() {
             return $container;
         },
         templateSelection: function (data) {
-            // mostra apenas o nome após selecionar
             return data.text;
         },
         language: {
@@ -4980,8 +5275,6 @@ $(document).ready(function() {
             if (!data.id) {
                 return data.text;
             }
-
-            // cria o layout: ID em cima e Nome abaixo
             var $container = $(`
                 <div style="display: flex; flex-direction: column; line-height: 1.2;">
                     <span style="font-size: 14px;">${data.id}</span><br>
@@ -4991,7 +5284,6 @@ $(document).ready(function() {
             return $container;
         },
         templateSelection: function (data) {
-            // mostra apenas o nome após selecionar
             return data.text;
         },
         language: {
@@ -5075,10 +5367,7 @@ $(document).ready(function() {
         listen();
     }
     $(document).ready(init);
-    // Seções do formulário de Empresas
     var endSecao = $('#enderecos');
-    var compSecao = $('#complementos');
-    var dadosRespSecao = $('#dadosResponsavel');
     function hideAllSections1() {
         $('.form-section').hide();
     }
@@ -5107,11 +5396,7 @@ $(document).ready(function() {
         showSection1('dadosResponsavel', dadosRespBt, endBt, compBt);
     });
     // Seções do Formulário de Orçamentos
-    var medidasSecao = $('#medidas');
     var clienteSecao = $('#clientes');
-    var prod_servSecao = $('#prod_serv');
-    var adicionaisSecao = $('#adicionais');
-    var form_pgtoSecao = $('#form_pgto');
     function hideAllSections() {
         $('.form-section').hide();
     }
@@ -5149,16 +5434,12 @@ $(document).ready(function() {
     $(form_pgtoBtn).on('click', function() {
         showSection('form_pgto', form_pgtoBtn, clienteBtn, medidasBtn, prod_servBtn, adicionaisBtn);
     });
-    $(document).ready(function() {
-        // Se existe a seção de orçamentos, mostra a padrão dela
-        if ($('#medidas').length > 0) {
-            showSection('medidas', medidasBtn, clienteBtn, prod_servBtn, adicionaisBtn, form_pgtoBtn);
-        }
-        // Se existe a seção de empresas, mostra a padrão dela
-        if ($('#enderecos').length > 0) {
-            showSection1('enderecos', endBt, compBt);
-        }
-    });
+    if ($('#medidas').length > 0) {
+        showSection('medidas', medidasBtn, clienteBtn, prod_servBtn, adicionaisBtn, form_pgtoBtn);
+    }
+    if ($('#enderecos').length > 0) {
+        showSection1('enderecos', endBt, compBt);
+    }
     $(document).on('click', '#info-icon', function() {
         var orderId = $(this).data('id');
         listarOrdensServico(orderId);
@@ -5167,8 +5448,6 @@ $(document).ready(function() {
     $('#loadingModal').modal({
         keyboard: true,
         backdrop: 'static'});
-    function normalize(text) {
-      return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");}
     $('#cliente, #id_cli').select2({
         placeholder: 'Selecione um cliente',
         allowClear: true,
@@ -5177,8 +5456,6 @@ $(document).ready(function() {
             if (!data.id) {
                 return data.text;
             }
-
-            // cria o layout: ID em cima e Nome abaixo
             var $container = $(`
                 <div style="display: flex; flex-direction: column; line-height: 1.2;">
                     <span style="font-size: 14px;">${data.id}</span><br>
@@ -5188,7 +5465,6 @@ $(document).ready(function() {
             return $container;
         },
         templateSelection: function (data) {
-            // mostra apenas o nome após selecionar
             return data.text;
         },
         language: {
@@ -5234,8 +5510,6 @@ $(document).ready(function() {
             if (!data.id) {
                 return data.text;
             }
-
-            // cria o layout: ID em cima e Nome abaixo
             var $container = $(`
                 <div style="display: flex; flex-direction: column; line-height: 1.2;">
                     <span style="font-size: 14px;">${data.id}</span><br>
@@ -5245,7 +5519,6 @@ $(document).ready(function() {
             return $container;
         },
         templateSelection: function (data) {
-            // mostra apenas o nome após selecionar
             return data.text;
         },
         language: {
@@ -5292,7 +5565,6 @@ $(document).ready(function() {
         if (e.key === 'Enter') {
             e.returnValue=false;
             e.cancel = true;
-            // Prevenir o envio do formulário
             e.stopPropagation();
         }
     });
@@ -5389,11 +5661,6 @@ $(document).ready(function() {
     const campoDataAniversario = $('#id_id_data_aniversario');
     campoData.on('input', function () {
         campoDataAniversario.val(campoData.val());});
-    function formatarDataParaBackend(dataInput) {
-      const partes = dataInput.split('-');
-      return `${partes[2]}-${partes[1]}-${partes[0]}`;
-
-    }
     const dataPesquisaInput = $("#data_pesquisa");
     // Obtenha a data atual no formato correto para o campo de entrada de data
     const today = new Date().toISOString().slice(0, 10);

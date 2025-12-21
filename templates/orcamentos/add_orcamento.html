@@ -3,688 +3,615 @@
 {% load crispy_forms_tags %}
 {% block title %}Gerar Orçamento{% endblock %}
 {% block content %}
-    <div class="container-fluid bg-white">
-        <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
-                <li class="breadcrumb-item"><a href="{% url 'lista-orcamentos' %}" id="item-naveg">Orçamentos</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Adicionar</li>
-            </ol>
-        </nav>
-        <div class="formularios">
-            <form method="POST" id="createForm" class="orcamentoForm" enctype="multipart/form-data">
-                {% csrf_token %}
-                {% if form %}
-                    {% if error_messages %}
-                        <div id="toast-messages" data-messages='[
-                            {"text": "{% for message in error_messages %}{{ message }}<br>{% endfor %}", "tag": "error"}
-                        ]'></div>
-                    {% endif %}
-                    <div class="card">
-                        <div class="card-header">
-                            <span>
-                                INCLUSÃO DE ORÇAMENTOS
-                            </span>
-                        </div>
-                        <div class="form-buttons" style="margin-left: 10px; margin-top: 10px;">
-                            <button type="button" class="btn btn-dark" id="medidasBtn">Medidas</button>
-                            <button type="button" class="btn btn-dark" id="clienteBtn">Cliente</button>
-                            <button type="button" class="btn btn-dark" id="prod_servBtn">Produtos</button>
-                            <button type="button" class="btn btn-dark" id="adicionaisBtn">Adicionais</button>
-                            <button type="button" class="btn btn-dark" id="form_pgtoBtn">Form. Pgto.</button>
-                        </div>
-                        <div class="card-body">
-                            <!--Cliente-->
-                            <div class="form-section" id="clientes">
-                                <div class="row g-3" style="margin-left: -8px;">
-                                    <div class="col-md-1">
-                                        {{ form.num_orcamento|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-2">
-                                        {{ form.vinc_fil|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-3">
-                                        {{ form.solicitante|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-2">
-                                        {{ form.dt_emi|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-2">
-                                        {{ form.dt_ent|as_crispy_field }}
-                                    </div>
+<div class="container-fluid bg-white">
+    <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'lista-orcamentos' %}" id="item-naveg">Orçamentos</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Adicionar</li>
+        </ol>
+    </nav>
+    <div class="formularios">
+        <form method="POST" id="createForm" class="orcamentoForm" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% if form %}
+                {% if error_messages %}
+                    <div id="toast-messages" data-messages='[
+                        {"text": "{% for message in error_messages %}{{ message }}<br>{% endfor %}", "tag": "error"}
+                    ]'></div>
+                {% endif %}
+                <div class="card">
+                    <div class="card-header">
+                        <span>INCLUSÃO DE ORÇAMENTOS</span>
+                    </div>
+                    <div class="form-buttons" style="margin-left: 10px; margin-top: 10px;">
+                        <button type="button" class="btn btn-dark" id="medidasBtn">Medidas</button>
+                        <button type="button" class="btn btn-dark" id="clienteBtn">Cliente</button>
+                        <button type="button" class="btn btn-dark" id="prod_servBtn">Produtos</button>
+                        <button type="button" class="btn btn-dark" id="adicionaisBtn">Adicionais</button>
+                        <button type="button" class="btn btn-dark" id="form_pgtoBtn">Form. Pgto.</button>
+                    </div>
+                    <div class="card-body">
+                        <!--Cliente-->
+                        <div class="form-section" id="clientes">
+                            <div class="row" style="margin-left: -8px;">
+                                <div class="col-md-1">
+                                    {{ form.num_orcamento|as_crispy_field }}
                                 </div>
-                                <hr>
-                                <div class="row g-3" style="margin-left: -8px;">
-                                    <div class="col-md-3" id="div_id_cliente">
-                                        <label for="id_cli" class="form-label requiredField">Cliente*</label>
-                                        <select name="cli" class="form-control form-control-sm border-dark-subtle" id="id_cli" required="">
-                                        </select>
-                                    </div>
-                                    <div class="col-md-2" id="div_id_cpfCnpj">
-                                        <label for="id_cpfCnpj" class="form-label requiredField">CPF/CNPJ</label>
-                                        <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_cpfCnpj" name="cpfCnpj" disabled="disabled">
-                                    </div>
-                                    <div class="col-md-3" id="div_id_email">
-                                        <label for="id_email" class="form-label requiredField">E-mail</label>
-                                        <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_email" name="email" disabled="disabled">
-                                    </div>
-                                    <div class="col-md-2" id="div_id_tel">
-                                        <label for="id_tel" class="form-label requiredField">Fone</label>
-                                        <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_tel" name="tel" disabled="disabled">
-                                    </div>
-                                    <div class="col-md-2" id="div_id_cep">
-                                        <label for="id_cep" class="form-label requiredField">CEP*</label>
-                                        <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_cep" name="cep" disabled="disabled">
-                                    </div>
-                                    <div class="col-md-4" id="div_id_endereco">
-                                        <label for="id_endereco" class="form-label requiredField">Endereço*</label>
-                                        <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_endereco" name="endereco" disabled="disabled">
-                                    </div>
-                                    <div class="col-md-1" id="div_id_numero">
-                                        <label for="id_numero" class="form-label requiredField">Nº*</label>
-                                        <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_numero" name="numero" disabled="disabled">
-                                    </div>
-                                    <div class="col-md-3" id="div_id_bairro">
-                                        <label for="id_bairro_txt" class="form-label requiredField">Bairro*</label>
-                                        <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_bairro_txt" name="bairro" disabled="disabled">
-                                    </div>
-                                    <div class="col-md-2" id="div_id_cidade">
-                                        <label for="id_cidade_txt" class="form-label">Cidade*</label>
-                                        <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_cidade_txt" name="cidade" disabled="disabled">
-                                    </div>
-                                    <div class="col-md-2" id="div_id_uf">
-                                        <label for="id_uf_txt" class="form-label requiredField">Estado*</label>
-                                        <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_uf_txt" name="uf" disabled="disabled">
-                                    </div>
-                                    <div class="col-md-12" id="div_id_obs_cli">
-                                        <label for="id_obs_cli" class="form-label">Obs</label>
-                                        <textarea class="form-control" id="id_obs_cli" name="obs_cli"></textarea>
-                                    </div>
+                                <div class="col-md-3">
+                                    {{ form.vinc_fil|as_crispy_field }}
+                                </div>
+                                <div class="col-md-3">
+                                    {{ form.solicitante|as_crispy_field }}
+                                </div>
+                                <div class="col-md-1">
+                                    {{ form.dt_emi|as_crispy_field }}
+                                </div>
+                                <div class="col-md-1">
+                                    {{ form.dt_ent|as_crispy_field }}
                                 </div>
                             </div>
-                            <!--Medidas-->
-                            <div class="form-section" id="medidas">
-                                <div class="row g-3" style="margin-left: -8px;">
-                                    <div class="col-md-1">
-                                        {{ form.qtd|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-2">
-                                        {{ form.tp_lamina|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-1" id="div_id_larg">
-                                        <label for="id_larg" class="form-label requiredField">Largura*</label>
-                                        <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" placeholder="0.00" id="id_larg" name="larg" required>
-                                    </div>
-                                    <div class="col-md-1" id="div_id_alt">
-                                        <label for="id_alt" class="form-label requiredField">Altura*</label>
-                                        <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" placeholder="0.00" id="id_alt" name="alt">
-                                    </div>
-                                    <div class="col-md-2">
-                                        {{ form.tp_vao|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-1">
-                                        {{ form.qtd_lam|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-1">
-                                        {{ form.pintura|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-1">
-                                        {{ form.tp_pintura|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-2">
-                                        {{ form.cor|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-1">
-                                        {{ form.fator_peso|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-1">
-                                        {{ form.peso|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-1">
-                                        {{ form.eixo_motor|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-1" id="div_id_larg_corte">
-                                        <label for="id_larg_corte" class="form-label">Lg. Corte</label>
-                                        <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_larg_corte" placeholder="0.00" name="larg_corte" readonly>
-                                    </div>
-                                    <div class="col-md-1" id="div_id_alt_corte">
-                                        <label for="id_alt_corte" class="form-label">At. Corte</label>
-                                        <input type="text" class="form-control form-control-sm border-dark-subtle" placeholder="0.00" id="id_alt_corte" name="alt_corte" readonly>
-                                    </div>
-                                    <div class="col-md-1">
-                                        {{ form.rolo|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-1">
-                                        {{ form.m2|as_crispy_field }}
-                                    </div>
+                            <hr>
+                            <div class="row" style="margin-left: -8px;">
+                                <div class="col-md-3">
+                                    {{ form.cli|as_crispy_field }}
+                                </div>
+                                <div class="col-md-2" id="div_id_cpfCnpj">
+                                    <label for="id_cpfCnpj" class="form-label requiredField">CPF/CNPJ</label>
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_cpfCnpj" name="cpfCnpj" disabled="disabled">
+                                </div>
+                                <div class="col-md-3" id="div_id_email">
+                                    <label for="id_email" class="form-label requiredField">E-mail</label>
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_email" name="email" disabled="disabled">
+                                </div>
+                                <div class="col-md-2" id="div_id_tel">
+                                    <label for="id_tel" class="form-label requiredField">Fone</label>
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_tel" name="tel" disabled="disabled">
+                                </div>
+                                <div class="col-md-2" id="div_id_cep">
+                                    <label for="id_cep" class="form-label requiredField">CEP*</label>
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_cep" name="cep" disabled="disabled">
+                                </div>
+                                <div class="col-md-4" id="div_id_endereco">
+                                    <label for="id_endereco" class="form-label requiredField">Endereço*</label>
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_endereco" name="endereco" disabled="disabled">
+                                </div>
+                                <div class="col-md-1" id="div_id_numero">
+                                    <label for="id_numero" class="form-label requiredField">Nº*</label>
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_numero" name="numero" disabled="disabled">
+                                </div>
+                                <div class="col-md-3" id="div_id_bairro">
+                                    <label for="id_bairro_txt" class="form-label requiredField">Bairro*</label>
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_bairro_txt" name="bairro" disabled="disabled">
+                                </div>
+                                <div class="col-md-2" id="div_id_cidade">
+                                    <label for="id_cidade_txt" class="form-label">Cidade*</label>
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_cidade_txt" name="cidade" disabled="disabled">
+                                </div>
+                                <div class="col-md-2" id="div_id_uf">
+                                    <label for="id_uf_txt" class="form-label requiredField">Estado*</label>
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_uf_txt" name="uf" disabled="disabled">
+                                </div>
+                                <div class="col-md-12">
+                                    {{ form.obs_cli|as_crispy_field }}
                                 </div>
                             </div>
-                            <!--Prod./Serviços-->
-                            <div class="form-section" id="prod_serv">
-                                <div class="row g-3" style="margin-left: -8px;">
-                                    <div class="col-md-2" id="div_id_cod_prod">
-                                        <label for="id_cod_prod" class="form-label requiredField">Cód.</label>
-                                        <div class="input-group">
-                                            <input type="text" id="id_cod_prod" class="form-control form-control-sm border-dark-subtle" placeholder="Cód. Prod." aria-label="Cód. Prod." aria-describedby="button-addon2">
-                                            <button class="btn btn-outline-dark btn-sm" type="button" id="button-addon2">🔎</button>
-                                        </div>
+                        </div>
+                        <!--Medidas-->
+                        <div class="form-section" id="medidas">
+                            <div class="row" style="margin-left: -8px;">
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-md-2">
+                                        <label for="qtd_portas" class="form-label">Nº de Portas:</label>
+                                        <input type="number" id="qtd_portas" class="form-control form-control-sm" min="1" value="1">
                                     </div>
-                                    <div class="modal fade" id="produtoModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="produtoModalLabel" aria-hidden="true">
-                                        <div class="modal-dialog  modal-lg modal-dialog-centered modal-dialog-scrollable">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title" id="produtoModalLabel">Pesquisar Produtos Principais</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <div class="input-group mb-3">
-                                                        <input type="text" id="campo-pesquisa-produto" class="form-control" placeholder="Digite a descrição do produto">
-                                                        <button class="btn btn-dark" id="pesquisar-produtos">🔎</button>
-                                                    </div>
-                                                    <div class="table-container mt-3">
-                                                        <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
-                                                            <thead class="table-dark">
-                                                                <tr>
-                                                                    <th scope="col">Opções</th>
-                                                                    <th scope="col">Código</th>
-                                                                    <th scope="col">Descrição</th>
-                                                                    <th scope="col">Unidade</th>
-                                                                    <th scope="col">Estoque</th>
-                                                                    <th scope="col">Valor</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody id="produtos-lista">
-                                                                <!-- Os produtos serão listados aqui -->
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                                                </div>
-                                            </div>
-                                        </div>
+                                    <div class="col-md-2">
+                                        <button type="button" id="btnGerarPortas" class="btn btn-dark btn-sm"><i class="fa-solid fa-square-plus"></i> Gerar</button>
                                     </div>
-
-                                    <div class="col-md-3" id="div_id_desc_prod">
-                                        <label for="id_desc_prod" class="form-label requiredField">Descrição</label>
-                                        <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_desc_prod" name="desc_prod" disabled="disabled">
+                                    <div class="col-md-8">
+                                        <small class="text-muted">Após gerar, preencha largura/altura e abra Produtos / Adicionais para visualizar os itens por porta.</small>
                                     </div>
-                                    <div class="col-md-2" id="div_id_unid_prod">
-                                        <label for="id_unidProd" class="form-label requiredField">Unidade</label>
-                                        <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_unidProduto" name="unid_prod" disabled="disabled">
-                                    </div>
-
-                                    <div class="col-md-1" id="div_id_vl_prod">
-                                        <label for="id_vl_prod" class="form-label requiredField">Valor*</label>
-                                        <input type="text" style="color: #2E8B57; font-weight: bold;" class="form-control form-control-sm border-dark-subtle valor_os" placeholder="0.00" id="id_vl_prod" name="vl_prod">
-                                    </div>
-                                    <div class="col-md-1" id="div_id_qtd_prod">
-                                        <label for="id_qtd_prod" class="form-label requiredField">Qtde.*</label>
-                                        <input type="text" class="form-control form-control-sm border-dark-subtle" placeholder="0.00" id="id_qtd_prod" name="qtd_prod">
-                                    </div>
-                                    <div class="col-md-1 d-flex align-items-end">
-                                        <button type="button" class="btn btn-success btn-sm" id="addItemProdBtn"><i class="fas fa-plus"></i></button>
-                                    </div>
-                                    <div class="col-md-1" id="div_id_vl_compra">
-                                        <input type="hidden" style="color: #DC143C; font-weight: bold;" class="form-control form-control-sm border-dark-subtle valor_os" id="id_vl_compra" name="vl_compra" disabled="disabled">
-                                    </div>
-                                    <div class="table-container">
-                                        <table class="table table-bordered table-striped" id="itensTableProduto">
+                                </div>
+                                <!-- TABELA RESUMO (linhas das portas geradas) -->
+                                <div class="card mb-3" style="margin: 0; margin-top: 10px; padding-left: 0; padding-right: 0;">
+                                    <div class="card-header text-center"><i class="fa-solid fa-align-justify"></i> <strong>Portas Geradas</strong></div>
+                                    <div class="card-body p-1">
+                                        <table class="table table-bordered table-sm table-striped mb-0" id="tabelaPortasResumo">
                                             <thead class="table-dark">
                                                 <tr>
-                                                    <th>Itens</th>
-                                                    <th>Cód.</th>
-                                                    <th>Descrição</th>
-                                                    <th>Unidade</th>
-                                                    <th>Vl. Compra</th>
-                                                    <th>Vl. Un.</th>
-                                                    <th>Qtde.</th>
-                                                    <th>Tot. Compra</th>
-                                                    <th>Vl. Tot.</th>
-                                                    <th style="width: 80px;">Ações</th>
+                                                    <th>#</th>
+                                                    <th style="width: 6%;">Largura</th>
+                                                    <th style="width: 6%;">Altura</th>
+                                                    <th style="width: 6%;">Lg. Corte</th>
+                                                    <th style="width: 6%;">At. Corte</th>
+                                                    <th style="width: 6%;">Qtd. Lâm</th>
+                                                    <th style="width: 6%;">M²</th>
+                                                    <th style="width: 6%;">Ft. Peso</th>
+                                                    <th style="width: 6%;">Peso</th>
+                                                    <th style="width: 6.5%;">Eixo Motor</th>
+                                                    <th style="width: 6%;">Rolo</th>
+                                                    <th>Tipo de Lâmina</th>
+                                                    <th>Tipo de Vão</th>
+                                                    <th style="width: 40px;">Exc.</th>
                                                 </tr>
                                             </thead>
-                                            <tbody>
-                                            </tbody>
+                                            <tbody></tbody>
                                         </table>
-                                    </div>
-
-                                    <input type="hidden" id="id_itens_prod" name="itens_prod">
-                                    <div class="modal fade" id="editItemModal" tabindex="-1" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered">
-                                            <div class="modal-content">
-                                                <form>
-                                                    <div class="modal-header" style="background-color: #191919; color: white;">
-                                                        <h5 class="modal-title"></h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <div class="row g-3">
-                                                            <div class="col-md-2">
-                                                                <label for="editCódInput" class="form-label requiredField">Código</label>
-                                                                <input type="text" class="form-control" id="editCódInput" name="editCód" disabled="disabled">
-                                                            </div>
-                                                            <div class="col-md-8">
-                                                                <label for="editDescInput" class="form-label requiredField">Descrição</label>
-                                                                <input type="text" class="form-control" id="editDescInput" name="editDesc">
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label for="editUnidInput" class="form-label requiredField">Unidade</label>
-                                                                <input type="text" class="form-control" id="editUnidInput" name="editUnid">
-                                                            </div>
-                                                        </div>
-                                                        <div class="row g-3">
-                                                            <div class="col-md-6">
-                                                                <input type="hidden" class="form-control" id="editValorCompraItemInput" name="editValorCompraItem">
-                                                                <label for="editValorItemInput" class="form-label requiredField valor_os">Valor</label>
-                                                                <input type="text" class="form-control" id="editValorItemInput" name="editValorItem">
-                                                            </div>
-                                                            <div class="col-md-6 btn-toolbar" role="toolbar" aria-label="Toolbar Produto">
-                                                                <label for="editQtdInput" class="form-label requiredField">Quantidade</label>
-                                                                <div class="input-group input-group-sm flex-md-fill">
-                                                                    <button type="button" class="btn btn-info tbn-sm remQtd"><i class="fa-solid fa-minus"></i></button>
-                                                                    <input type="text" class="form-control form-control-sm" id="editQtdInput" name="editQtd">
-                                                                    <button type="button" class="btn btn-info tbn-sm addQtd"><i class="fa-solid fa-plus"></i></button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="saveEditBtn">Salvar</button>
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="fechar-modal">Fechar</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    </div>  
                                 </div>
-                            </div>
-                            <!--Adicionais-->
-                            <div class="form-section" id="adicionais">
-                                <div class="row g-3" style="margin-left: -8px;">
-                                    <div class="col-md-2" id="div_id_cod_prod_adc">
-                                        <label for="id_cod_prod_adc" class="form-label requiredField">Cód.</label>
-                                        <div class="input-group">
-                                            <input type="text" id="id_cod_prod_adc" class="form-control form-control-sm border-dark-subtle" placeholder="Cód. Prod." aria-label="Cód. Prod. Adicional" aria-describedby="button-addon3">
-                                            <button class="btn btn-outline-dark btn-sm" type="button" id="button-addon3">🔎</button>
-                                        </div>
-                                    </div>
-                                    <div class="modal fade" id="produtoAdcModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="produtoAdcModalLabel" aria-hidden="true">
-                                        <div class="modal-dialog  modal-lg modal-dialog-centered modal-dialog-scrollable">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title" id="produtoAdcModalLabel">Pesquisar Produtos Adicionais</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <div class="input-group mb-3">
-                                                        <input type="text" id="campo-pesquisa-produto-adicional" class="form-control" placeholder="Digite a descrição do produto">
-                                                        <button class="btn btn-dark" id="pesquisar-produtos-adicionais">🔎</button>
-                                                    </div>
-                                                    <div class="table-container mt-3">
-                                                        <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
-                                                            <thead class="table-dark">
-                                                                <tr>
-                                                                    <th scope="col">Opções</th>
-                                                                    <th scope="col">Código</th>
-                                                                    <th scope="col">Descrição</th>
-                                                                    <th scope="col">Unidade</th>
-                                                                    <th scope="col">Estoque</th>
-                                                                    <th scope="col">Valor</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody id="produtosAdc-lista">
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3" id="div_id_desc_prod_adc">
-                                        <label for="id_desc_prod_adc" class="form-label requiredField">Descrição</label>
-                                        <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_desc_prod_adc" name="desc_prod_adc" disabled="disabled">
-                                    </div>
-                                    <div class="col-md-2" id="div_id_unidProd_adc">
-                                        <label for="id_unidProd_adc" class="form-label requiredField">Unidade</label>
-                                        <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_unidProd_adc" name="unidProd_adc" disabled="disabled">
-                                    </div>
-
-                                    <div class="col-md-1" id="div_id_vl_prod_adc">
-                                        <label for="id_vl_prod_adc" class="form-label requiredField">Valor*</label>
-                                        <input type="text" style="color: #2E8B57; font-weight: bold;" class="form-control form-control-sm border-dark-subtle valor_os" placeholder="0.00" id="id_vl_prod_adc" name="vl_prod_adc">
-                                    </div>
-                                    <div class="col-md-1" id="div_id_qtd_prod_adc">
-                                        <label for="id_qtd_prod_adc" class="form-label requiredField">Qtde.*</label>
-                                        <input type="text" class="form-control form-control-sm border-dark-subtle" placeholder="0.00" id="id_qtd_prod_adc" name="qtd_prod_adc">
-                                    </div>
-                                    <div class="col-md-1 d-flex align-items-end">
-                                        <button type="button" class="btn btn-success btn-sm" id="addItemValorAdcBtn"><i class="fas fa-plus"></i></button>
-                                    </div>
-                                    <div class="col-md-1" id="div_id_vl_compra_adc">
-                                        <input type="hidden" style="color: #DC143C; font-weight: bold;" class="form-control form-control-sm border-dark-subtle valor_os" id="id_vl_compra_adc" name="vl_compra_adc" disabled="disabled">
-                                    </div>
-                                    <div class="table-container">
-                                        <table class="table table-bordered table-striped" id="itensTableProdutoAdc">
-                                            <thead class="table-dark">
-                                                <tr>
-                                                    <th col="auto" id="thTableAdc" style="text-align: justify;">Itens</th>
-                                                    <th col="auto" id="thTableAdc" style="text-align: justify;">Cód.</th>
-                                                    <th col="auto" id="thTableAdc" style="text-align: justify;">Descrição</th>
-                                                    <th col="auto" id="thTableAdc" style="text-align: justify;">Unidade</th>
-                                                    <th col="auto valor_os" id="thTableAdc" style="text-align: justify;">Vl. Compra</th>
-                                                    <th col="auto valor_os" id="thTableAdc" style="text-align: justify;">Vl. Un.</th>
-                                                    <th col="auto" id="thTableAdc" style="text-align: justify;">Qtde.</th>
-                                                    <th col="auto" id="thTableAdc" style="text-align: justify;">Tot. Compra</th>
-                                                    <th col="auto" id="thTableAdc" style="text-align: justify;">Vl. Tot.</th>
-                                                    <th col="auto" style="text-align: justify; width: 80px;">Ações</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <input type="hidden" id="id_itens_prod_adc" name="itens_prod_adc">
-                                    <div class="modal fade" id="editItemAdcModal" tabindex="-1" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered">
-                                            <div class="modal-content">
-                                                <form>
-                                                    <div class="modal-header" style="background-color: #191919; color: white;">
-                                                        <h5 class="modal-title"></h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <div class="row g-3">
-                                                            <div class="col-md-2">
-                                                                <label for="editCódAdcInput" class="form-label requiredField">Código</label>
-                                                                <input type="text" class="form-control" id="editCódAdcInput" name="editCódAdc" disabled="disabled">
-                                                            </div>
-                                                            <div class="col-md-8">
-                                                                <label for="editDescAdcInput" class="form-label requiredField">Descrição</label>
-                                                                <input type="text" class="form-control" id="editDescAdcInput" name="editDescAdc">
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label for="editUnidAdcInput" class="form-label requiredField">Unidade</label>
-                                                                <input type="text" class="form-control" id="editUnidAdcInput" name="editUnidAdc">
-                                                            </div>
-                                                        </div>
-                                                        <div class="row g-3">
-                                                            <div class="col-md-6">
-                                                                <input type="hidden" class="form-control" id="editValorCompraItemAdcInput" name="editValorCompraItemAdc">
-                                                                <label for="editValorItemAdcInput" class="form-label requiredField valor_os">Valor</label>
-                                                                <input type="text" class="form-control" id="editValorItemAdcInput" name="editValorItemAdc">
-                                                            </div>
-                                                            <div class="col-md-6 btn-toolbar" role="toolbar" aria-label="Toolbar de Adicionais">
-                                                                <label for="editQtdAdcInput" class="form-label requiredField">Quantidade</label>
-                                                                <div class="input-group input-group-sm flex-md-fill">
-                                                                    <button type="button" class="btn btn-info tbn-sm remQtdAdc"><i class="fa-solid fa-minus"></i></button>
-                                                                    <input type="text" class="form-control form-control-sm" id="editQtdAdcInput" name="editQtdAdc">
-                                                                    <button type="button" class="btn btn-info tbn-sm addQtdAdc"><i class="fa-solid fa-plus"></i></button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="saveEditAdcBtn">Salvar</button>
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="col-md-1">
+                                    {{ form.pintura|as_crispy_field }}
                                 </div>
+                                <div class="col-md-2">
+                                    {{ form.tp_pintura|as_crispy_field }}
+                                </div>
+                                <div class="col-md-2">
+                                    {{ form.cor|as_crispy_field }}
+                                </div>
+                                <div class="col-md-2">
+                                    {{ form.portao_social|as_crispy_field }}
+                                </div>
+                                <div class="col-md-1">
+                                    {{ form.vl_p_s|as_crispy_field }}
+                                </div>
+                                <input type="hidden" id="id_json_portas" name="json_portas">
                             </div>
-                            <!--Form. Pgto.-->
-                            <div class="form-section" id="form_pgto">
-                                <div class="row g-3" style="margin-left: -8px;">
-                                    <input type="hidden" id="id_subtotal" name="subtotal">
-                                    <input type="hidden" id="id_total" name="total">
-                                    <div class="col-md-2" id="div_id_form_pgto">
-                                        {{ form.formas_pgto|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-2" id="div_id_vl_form_pgto">
-                                        <label for="id_vl_form_pgto" class="form-label requiredField">Valor*</label>
-                                        <input type="text" placeholder="0,00" style="color: #2E8B57; font-weight: bold;" class="form-control form-control-sm border-dark-subtle valor_os" id="id_vl_form_pgto" name="vl_form_pgto">
-                                    </div>
-                                    <div class="col-md-1">
-                                        <label class="form-label">&nbsp;</label> <!-- Label vazio só para alinhar -->
-                                        <button type="button" class="btn btn-success btn-sm form-control" id="addItemValorFormBtn">
-                                            <i class="fas fa-plus"></i>
+                        </div>
+                        <!--Prod./Serviços-->
+                        <div class="form-section" id="prod_serv">
+                            <div class="row" style="margin-left: -8px;">
+                                <div class="accordion" id="accordionProdutos"></div>
+                            </div>
+                        </div>
+                        <!--Adicionais-->
+                        <div class="form-section" id="adicionais">
+                            <div class="row" style="margin-left: -8px;">
+                                <div class="accordion" id="accordionAdicionais"></div>
+                            </div>
+                        </div>
+                        <!--Form. Pgto.-->
+                        <div class="form-section" id="form_pgto">
+                            <div class="row" style="margin-left: -8px;">
+                                <input type="hidden" id="id_subtotal" name="subtotal">
+                                <input type="hidden" id="id_total" name="total">
+                                <div class="col-md-2" id="div_id_form_pgto">
+                                    {{ form.formas_pgto|as_crispy_field }}
+                                </div>
+                                <div class="col-md-2" id="div_id_vl_form_pgto">
+                                    <label for="id_vl_form_pgto" class="form-label requiredField">Valor*</label>
+                                    <input type="text" placeholder="0,00" style="color: #2E8B57; font-weight: bold;" class="form-control form-control-sm border-dark-subtle valor_os" id="id_vl_form_pgto" name="vl_form_pgto">
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label">&nbsp;</label> <!-- Label vazio só para alinhar -->
+                                    <button type="button" class="btn btn-success btn-sm form-control" id="addItemValorFormBtn">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <div class="col-md-2" id="div_id_desconto">
+                                    <label for="id_desconto" class="form-label">Desconto (-)</label>
+                                    <div class="input-group">
+                                        <input type="text" step="0.01" placeholder="0,00" min="0.01" class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly"
+                                            id="id_desconto" name="desconto" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao"
+                                            data-permissao="orcamentos.atribuir_desconto" data-acao="atribuir_desconto" id="btnDesconto">
+                                            <i class="fa-solid fa-pen-to-square"></i>
                                         </button>
                                     </div>
-                                    <div class="col-md-2" id="div_id_desconto">
-                                        <label for="id_desconto" class="form-label">Desconto (-)</label>
-                                        <div class="input-group">
-                                            <input type="text" step="0.01" placeholder="0,00" min="0.01"
-                                                   class="form-control form-control-sm border-dark-subtle valor_os"
-                                                   id="id_desconto" name="desconto" readonly="readonly"
-                                                   style="color: #2E8B57; font-weight: bold; background-color: #C0C0C0;">
-                                            <button
-                                                class="btn btn-outline-secondary btn-sm btn-permissao"
-                                                data-permissao="orcamentos.atribuir_desconto"
-                                                data-acao="atribuir_desconto"
-                                                id="btnDesconto">
-                                                <i class="fa-solid fa-pen-to-square"></i>
-                                            </button>
-                                        </div>
+                                </div>
+                                <!--Acréscimo-->
+                                <div class="col-md-2" id="div_id_acrescimo">
+                                    <label for="id_acrescimo" class="form-label">Acréscimo (+)</label>
+                                    <div class="input-group">
+                                        <input type="text" step="0.01" placeholder="0,00" min="0.01" class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly"
+                                            id="id_acrescimo" name="acrescimo" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao" data-permissao="orcamentos.atribuir_acrescimo"
+                                            data-acao="atribuir_acrescimo" data-msg-negado="Você não tem permissão para aplicar acréscimo!">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
                                     </div>
-                                    <!-- Modal -->
-                                    <div class="modal fade" id="modalDesconto" tabindex="-1" aria-labelledby="modalDescontoLabel" aria-hidden="true">
-                                      <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-                                          <div class="modal-header bg-dark text-white">
-                                            <h1 class="modal-title fs-5" id="modalDescontoLabel">Atribuir Desconto (-)</h1>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                          </div>
-                                          <div class="modal-body">
-                                            <div class="col">
-                                                <label class="form-label fw-bold" for="tipo_desconto">Tipo de desconto:</label>
-                                                <select class="form-control" id="tipo_desconto">
-                                                    <option selected value="valor">Valor (R$)</option>
-                                                    <option value="porcentagem">Porcentagem (%)</option>
-                                                </select>
-                                            </div>
-                                            <div class="col">
-                                                <label class="form-label fw-bold" for="campo_desconto">Valor:</label>
-                                                <div class="input-group mb-3">
-                                                    <span class="input-group-text" id="simbolo">R$</span>
-                                                    <input class="form-control" id="campo_desconto" type="text" placeholder="0.00" aria-describedby="simbolo">
-                                                </div>
-                                            </div>
-                                            <div class="col">
-                                                <label class="form-label fw-bold" for="auxiliar_desconto">Percentual:</label>
-                                                <div class="input-group mb-3">
-                                                    <span class="input-group-text" id="simboloAuxiliar">%</span>
-                                                    <input class="form-control" id="auxiliar_desconto" disabled="disabled" type="text" placeholder="0.00" aria-describedby="simboloAuxiliar">
-                                                </div>
-                                            </div>
-                                          </div>
-                                          <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                                            <button type="button" class="btn btn-primary" id="confirmarDesconto">Atribuir</button>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <!--Acréscimo-->
-                                    <div class="col-md-2" id="div_id_acrescimo">
-                                        <label for="id_acrescimo" class="form-label">Acréscimo (+)</label>
-                                        <div class="input-group">
-                                            <input type="text" step="0.01" placeholder="0,00" min="0.01"
-                                                class="form-control form-control-sm border-dark-subtle valor_os"
-                                                id="id_acrescimo" name="acrescimo" readonly="readonly"
-                                                style="color: #2E8B57; font-weight: bold; background-color: #C0C0C0;">
-                                            <button type="button"
-                                                class="btn btn-outline-secondary btn-sm btn-permissao"
-                                                data-permissao="orcamentos.atribuir_acrescimo"
-                                                data-acao="atribuir_acrescimo"
-                                                data-msg-negado="Você não tem permissão para aplicar acréscimo!">
-                                                <i class="fa-solid fa-pen-to-square"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <!-- Modal -->
-                                    <div class="modal fade" id="modalAcrescimo" tabindex="-1" aria-labelledby="modalAcrescimoLabel" aria-hidden="true">
-                                      <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-                                          <div class="modal-header bg-dark text-white">
-                                            <h1 class="modal-title fs-5" id="modalAcrescimoLabel">Atribuir Acréscimo (+)</h1>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                          </div>
-                                          <div class="modal-body">
-                                            <div class="col">
-                                                <label class="form-label fw-bold" for="tipo_acrescimo">Tipo de Acréscimo:</label>
-                                                <select class="form-control" id="tipo_acrescimo">
-                                                    <option selected value="valor">Valor (R$)</option>
-                                                    <option value="porcentagem">Porcentagem (%)</option>
-                                                </select>
-                                            </div>
-                                            <div class="col">
-                                                <label class="form-label fw-bold" for="campo_acrescimo">Valor:</label>
-                                                <div class="input-group mb-3">
-                                                    <span class="input-group-text" id="simboloAc">R$</span>
-                                                    <input class="form-control" id="campo_acrescimo" type="text" placeholder="0.00" aria-describedby="simboloAc">
-                                                </div>
-                                            </div>
-                                            <div class="col">
-                                                <label class="form-label fw-bold" for="auxiliar_acrescimo">Percentual:</label>
-                                                <div class="input-group mb-3">
-                                                    <span class="input-group-text" id="simboloAuxiliarAc">%</span>
-                                                    <input class="form-control" id="auxiliar_acrescimo" disabled="disabled" type="text" placeholder="0.00" aria-describedby="simboloAuxiliarAc">
-                                                </div>
-                                            </div>
-                                          </div>
-                                          <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                                            <button type="button" class="btn btn-primary" id="confirmarAcrescimo">Atribuir</button>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div style="overflow-x: auto;">
-                                        <table class="table table-bordered table-striped" id="itensTableForm" style="margin-left: 10px; width: 98.5%;">
-                                            <thead class="table-dark">
-                                                <tr>
-                                                    <th col="auto" id="thTableForm" style="text-align: justify;">Itens</th>
-                                                    <th col="auto" id="thTableForm" style="text-align: justify;">Forma Pgto.</th>
-                                                    <th col="auto valor_os" id="thTableForm" style="text-align: justify;">Valor</th>
-                                                    <th col="auto" style="text-align: justify; width: 40px;">Ações</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <!-- Os itens serão adicionados aqui -->
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <div class="card" style="margin: 0; margin-left: 10px; width: 98.5%; max-height: 40px;">
-                                        <div class="card-body" style="margin-top: -8px;">
-                                            Soma das Formas de Pagamento
-                                            <span style="float: right; padding-left: 10px; padding-right: 10px;" class="border border-secondary rounded-4 bg-primary-subtle fw-bold" id="somaFormas">R$ 0,00</span>
-                                        </div>
-                                    </div>
-                                    <input type="hidden" id="id_itens_forma_pgto" name="itens_forma_pgto">
-                                    <div class="col-md-12" id="div_id_obs_form_pgto">
-                                        <label for="id_obs_form_pgto" class="form-label">Obs</label>
-                                        <textarea class="form-control" id="id_obs_form_pgto" name="obs_form_pgto"></textarea>
-                                    </div>
+                                </div>
+                                <div style="overflow-x: auto;">
+                                    <table class="table table-bordered table-striped" id="itensTableForm">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th col="auto" id="thTableForm" style="text-align: justify;">#</th>
+                                                <th col="auto" id="thTableForm" style="text-align: justify;">Forma Pgto.</th>
+                                                <th col="auto valor_os" id="thTableForm" style="text-align: justify;">Valor</th>
+                                                <th col="auto" style="text-align: justify; width: 40px;">Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <ul class="list-group col" style="border-radius: 15px; margin: 10px 5px;">
+                                    <li class="list-group-item"><strong>Soma das Formas de Pagamento:</strong> <span style="float: right; padding-left: 10px; padding-right: 10px;" class="border border-secondary rounded-4 bg-primary-subtle fw-bold" id="somaFormas">R$ 0,00</span></li>
+                                </ul>
+                                <input type="hidden" id="id_json_formas_pgto" name="json_formas_pgto">
+                                <div class="col-md-12">
+                                    {{ form.obs_form_pgto|as_crispy_field }}
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="text-center col mb-3" style="border: 1px solid #A9A9A9; border-radius: 15px; margin-right: 5px; margin-left: 10px;">
-                                <div class="col-md-6 mx-auto">
-                                    <strong>Subtotal:</strong> <h5 id="subtotal_txt" style="background-color: #3CB371; color: white; font-weight: bold; border-radius: 15px; padding-left: 10px;">R$ 0.00</h5>
-                                </div>
-                                <div class="col-md-6 mx-auto">
-                                    <strong>Desconto (-):</strong> <h5 id="desconto" style="background-color: #20B2AA; color: white; font-weight: bold; border-radius: 15px; padding-left: 10px;">R$ 0.00</h5>
-                                </div>
-                                <div class="col-md-6 mx-auto">
-                                    <strong>Acréscimo (+):</strong> <h5 id="acrescimo" style="background-color: #F08080; color: white; font-weight: bold; border-radius: 15px; padding-left: 10px;">R$ 0.00</h5>
-                                </div>
-                            </div>
-                            <div class="text-center col mb-3" style="border: 1px solid #A9A9A9; border-radius: 15px; margin-left: 5px; margin-right: 10px;">
-                                <div class="col-md-6 mx-auto">
-                                    <strong>Custo Total:</strong> <h5 id="custoTotal_txt" style="background-color: #8B0000; color: white; font-weight: bold; border-radius: 15px; padding-left: 10px;">R$ 0.00</h5>
-                                </div>
-                                <div class="col-md-6 mx-auto">
-                                    <strong>Total:</strong> <h5 id="total_txt" style="background-color: #32CD32; color: white; font-weight: bold; border-radius: 15px; padding-left: 10px;">R$ 0.00</h5>
-                                </div>
-                                <div class="col-md-6 mx-auto">
-                                    <strong>Margem Lucro:</strong> <h5 id="margem_txt" style="background-color: #4682B4; color: white; font-weight: bold; border-radius: 15px; padding-left: 10px;">0.00%</h5>
-                                </div>
-                            </div>
+                    </div>
+                    <div class="row">
+                        <ul class="list-group col" style="border-radius: 15px; margin-right: 5px; margin-left: 10px; margin-bottom: 10px;">
+                            <li class="list-group-item"><strong>Subtotal:</strong> <span id="subtotal_txt" style="background-color: #3CB371; color: white; font-weight: bold; border-radius: 15px; padding-left: 20px; padding-right: 20px; float: right;">R$ 0.00</span></li>
+                            <li class="list-group-item"><strong>Desconto (-):</strong> <span id="desconto" style="background-color: #20B2AA; color: white; font-weight: bold; border-radius: 15px; padding-left: 20px; padding-right: 20px; float: right;">0</span></li>
+                            <li class="list-group-item"><strong>Acréscimo (+):</strong> <span id="acrescimo" style="background-color: #F08080; color: white; font-weight: bold; border-radius: 15px; padding-left: 20px; padding-right: 20px; float: right;">0</span></li>
+                        </ul>
+                        <ul class="list-group col" style="border-radius: 15px; margin-right: 5px; margin-left: 10px; margin-bottom: 10px;">
+                            <li class="list-group-item"><strong>Custo Total:</strong> <span id="custoTotal_txt" style="background-color: #8B0000; color: white; font-weight: bold; border-radius: 15px; padding-left: 20px; padding-right: 20px; float: right;">R$ 0.00</span></li>
+                            <li class="list-group-item"><strong>Total:</strong> <span id="total_txt" style="background-color: #32CD32; color: white; font-weight: bold; border-radius: 15px;  padding-left: 20px; padding-right: 20px; float: right;">R$ 0.00</span></li>
+                            <li class="list-group-item"><strong>Margem Lucro:</strong> <span id="margem_txt" style="background-color: #4682B4; color: white; font-weight: bold; border-radius: 15px;  padding-left: 20px; padding-right: 20px; float: right;">0.00%</span></li>
+                        </ul> 
+                    </div>
+                    <div class="card-footer">
+                        <div class="base_botao">
+                            <button type="button" class="btn btn-success botoes" id="openModalBtn">Criar</button>
+                            <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#loadingModal">Voltar</a>
                         </div>
-
-                        <div class="card-footer">
-                            <div class="base_botao">
-                                <button type="button" class="btn btn-success botoes" id="openModalBtn">Criar</button>
-                                <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#loadingModal">Voltar</a>
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
-            </form>
-        </div>
-        <!-- Modal -->
-        <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header titulo-modal">
-                        <h1 class="modal-title fs-5" id="staticBackdropLabel"><i class="fa-regular fa-circle-question"></i> Confirmação!</h1>
-                    </div>
-                    <div class="modal-body">
-                        <p>Você confirma a INCLUSÃO DO ORÇAMENTO?</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>
-                        <button type="button" class="btn btn-secondary" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
                     </div>
                 </div>
-            </div>
-        </div>
-        <!-- Modal de Confirmação -->
-        <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header titulo-modal">
-                        <h5 class="modal-title" id="confirmModalLabel"><i class="fa-solid fa-circle-info"></i> Atenção!</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        Você não tem permissão para realizar esta ação. Deseja enviar uma solicitação para um usuário autorizado?
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Não</button>
-                        <button type="button" class="btn btn-primary" id="confirmSend">Sim</button>
-                    </div>
+            {% endif %}
+        </form>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h1 class="modal-title fs-5" id="staticBackdropLabel"><i class="fa-regular fa-circle-question"></i> Confirmação!</h1>
                 </div>
-            </div>
-        </div>
-
-        <!-- Modal de Seleção de Usuário -->
-        <div class="modal fade" id="userSelectModal" tabindex="-1" aria-labelledby="userSelectModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header titulo-modal">
-                        <h5 class="modal-title" id="userSelectModalLabel"><i class="fa-solid fa-user-tie"></i> Selecionar Usuário</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <select id="userSelect" class="form-select">
-                            <option selected value="">--------</option>
-                            <!-- Options serão preenchidas via AJAX -->
-                        </select>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-primary" id="sendNotification"><i class="fa-solid fa-paper-plane"></i> Enviar Notificação</button>
-                    </div>
+                <div class="modal-body">
+                    <p>Você confirma a INCLUSÃO DO ORÇAMENTO?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>
+                    <button type="button" class="btn btn-secondary" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
                 </div>
             </div>
         </div>
     </div>
+    <!-- Modal de Confirmação -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h5 class="modal-title" id="confirmModalLabel"><i class="fa-solid fa-circle-info"></i> Atenção!</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Você não tem permissão para realizar esta ação. Deseja enviar uma solicitação para um usuário autorizado?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Não</button>
+                    <button type="button" class="btn btn-primary" id="confirmSend">Sim</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Seleção de Usuário -->
+    <div class="modal fade" id="userSelectModal" tabindex="-1" aria-labelledby="userSelectModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h5 class="modal-title" id="userSelectModalLabel"><i class="fa-solid fa-user-tie"></i> Selecionar Usuário</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <select id="userSelect" class="form-select">
+                        <option selected value="">--------</option>
+                        <!-- Options serão preenchidas via AJAX -->
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="sendNotification"><i class="fa-solid fa-paper-plane"></i> Enviar Notificação</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="produtoModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="produtoModalLabel" aria-hidden="true">
+        <div class="modal-dialog  modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="produtoModalLabel">Pesquisar Produtos Principais</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <input type="text" id="campo-pesquisa-produto" class="form-control" placeholder="Digite a descrição do produto">
+                        <button class="btn btn-dark" id="pesquisar-produtos">🔎</button>
+                    </div>
+                    <div class="table-container mt-3">
+                        <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th scope="col">Opções</th>
+                                    <th scope="col">Código</th>
+                                    <th scope="col">Descrição</th>
+                                    <th scope="col">Unidade</th>
+                                    <th scope="col">Estoque</th>
+                                    <th scope="col">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="produtos-lista">
+                                <!-- Os produtos serão listados aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="editItemModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form>
+                    <div class="modal-header" style="background-color: #191919; color: white;">
+                        <h5 class="modal-title"></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-2">
+                                <label for="editCódInput" class="form-label requiredField">Código</label>
+                                <input type="text" class="form-control" id="editCódInput" name="editCód" disabled="disabled">
+                            </div>
+                            <div class="col-md-8">
+                                <label for="editDescInput" class="form-label requiredField">Descrição</label>
+                                <input type="text" class="form-control" id="editDescInput" name="editDesc">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="editUnidInput" class="form-label requiredField">Unidade</label>
+                                <input type="text" class="form-control" id="editUnidInput" name="editUnid">
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <input type="hidden" class="form-control" id="editValorCompraItemInput" name="editValorCompraItem">
+                                <label for="editValorItemInput" class="form-label requiredField valor_os">Valor</label>
+                                <input type="text" class="form-control" id="editValorItemInput" name="editValorItem">
+                            </div>
+                            <div class="col-md-6 btn-toolbar" role="toolbar" aria-label="Toolbar Produto">
+                                <label for="editQtdInput" class="form-label requiredField">Quantidade</label>
+                                <div class="input-group input-group-sm flex-md-fill">
+                                    <button type="button" class="btn btn-info tbn-sm remQtd"><i class="fa-solid fa-minus"></i></button>
+                                    <input type="text" class="form-control form-control-sm" id="editQtdInput" name="editQtd">
+                                    <button type="button" class="btn btn-info tbn-sm addQtd"><i class="fa-solid fa-plus"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" id="saveEditBtn">Salvar</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="fechar-modal">Fechar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="produtoAdcModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="produtoAdcModalLabel" aria-hidden="true">
+        <div class="modal-dialog  modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="produtoAdcModalLabel">Pesquisar Produtos Adicionais</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <input type="text" id="campo-pesquisa-produto-adicional" class="form-control" placeholder="Digite a descrição do produto">
+                        <button class="btn btn-dark" id="pesquisar-produtos-adicionais">🔎</button>
+                    </div>
+                    <div class="table-container mt-3">
+                        <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th scope="col">Opções</th>
+                                    <th scope="col">Código</th>
+                                    <th scope="col">Descrição</th>
+                                    <th scope="col">Unidade</th>
+                                    <th scope="col">Estoque</th>
+                                    <th scope="col">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="produtosAdc-lista">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="editItemAdcModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form>
+                    <div class="modal-header" style="background-color: #191919; color: white;">
+                        <h5 class="modal-title"></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-2">
+                                <label for="editCódAdcInput" class="form-label requiredField">Código</label>
+                                <input type="text" class="form-control" id="editCódAdcInput" name="editCódAdc" disabled="disabled">
+                            </div>
+                            <div class="col-md-8">
+                                <label for="editDescAdcInput" class="form-label requiredField">Descrição</label>
+                                <input type="text" class="form-control" id="editDescAdcInput" name="editDescAdc">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="editUnidAdcInput" class="form-label requiredField">Unidade</label>
+                                <input type="text" class="form-control" id="editUnidAdcInput" name="editUnidAdc">
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <input type="hidden" class="form-control" id="editValorCompraItemAdcInput" name="editValorCompraItemAdc">
+                                <label for="editValorItemAdcInput" class="form-label requiredField valor_os">Valor</label>
+                                <input type="text" class="form-control" id="editValorItemAdcInput" name="editValorItemAdc">
+                            </div>
+                            <div class="col-md-6 btn-toolbar" role="toolbar" aria-label="Toolbar de Adicionais">
+                                <label for="editQtdAdcInput" class="form-label requiredField">Quantidade</label>
+                                <div class="input-group input-group-sm flex-md-fill">
+                                    <button type="button" class="btn btn-info tbn-sm remQtdAdc"><i class="fa-solid fa-minus"></i></button>
+                                    <input type="text" class="form-control form-control-sm" id="editQtdAdcInput" name="editQtdAdc">
+                                    <button type="button" class="btn btn-info tbn-sm addQtdAdc"><i class="fa-solid fa-plus"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" id="saveEditAdcBtn">Salvar</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="modalDesconto" tabindex="-1" aria-labelledby="modalDescontoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h1 class="modal-title fs-5" id="modalDescontoLabel">Atribuir Desconto (-)</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="col">
+                        <label class="form-label fw-bold" for="tipo_desconto">Tipo de desconto:</label>
+                        <select class="form-control" id="tipo_desconto">
+                            <option selected value="valor">Valor (R$)</option>
+                            <option value="porcentagem">Porcentagem (%)</option>
+                        </select>
+                    </div>
+                    <div class="col">
+                        <label class="form-label fw-bold" for="campo_desconto">Valor:</label>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="simbolo">R$</span>
+                            <input class="form-control fw-bold" id="campo_desconto" type="text" placeholder="0.00" aria-describedby="simbolo">
+                        </div>
+                    </div>
+                    <div class="col">
+                        <label class="form-label fw-bold" for="auxiliar_desconto">Percentual:</label>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="simboloAuxiliar">%</span>
+                            <input class="form-control fw-bold" id="auxiliar_desconto" disabled="disabled" type="text" placeholder="0.00" aria-describedby="simboloAuxiliar">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-primary" id="confirmarDesconto">Atribuir</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="modalAcrescimo" tabindex="-1" aria-labelledby="modalAcrescimoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h1 class="modal-title fs-5" id="modalAcrescimoLabel">Atribuir Acréscimo (+)</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="col">
+                        <label class="form-label fw-bold" for="tipo_acrescimo">Tipo de Acréscimo:</label>
+                        <select class="form-control" id="tipo_acrescimo">
+                            <option selected value="valor">Valor (R$)</option>
+                            <option value="porcentagem">Porcentagem (%)</option>
+                        </select>
+                    </div>
+                    <div class="col">
+                        <label class="form-label fw-bold" for="campo_acrescimo">Valor:</label>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="simboloAc">R$</span>
+                            <input class="form-control fw-bold" id="campo_acrescimo" type="text" placeholder="0.00" aria-describedby="simboloAc">
+                        </div>
+                    </div>
+                    <div class="col">
+                        <label class="form-label fw-bold" for="auxiliar_acrescimo">Percentual:</label>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="simboloAuxiliarAc">%</span>
+                            <input class="form-control fw-bold" id="auxiliar_acrescimo" disabled="disabled" type="text" placeholder="0.00" aria-describedby="simboloAuxiliarAc">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-primary" id="confirmarAcrescimo">Atribuir</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% comment %} <div class="col-md-2" id="div_id_cod_prod">
+        <label for="id_cod_prod" class="form-label requiredField">Cód.</label>
+        <div class="input-group">
+            <input type="text" id="id_cod_prod" class="form-control form-control-sm border-dark-subtle" placeholder="Cód. Prod." aria-label="Cód. Prod." aria-describedby="button-addon2">
+            <button class="btn btn-outline-dark btn-sm" type="button" id="button-addon2">🔎</button>
+        </div>
+    </div>
+    <div class="col-md-3" id="div_id_desc_prod">
+        <label for="id_desc_prod" class="form-label requiredField">Descrição</label>
+        <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_desc_prod" name="desc_prod" disabled="disabled">
+    </div>
+    <div class="col-md-2" id="div_id_unid_prod">
+        <label for="id_unidProd" class="form-label requiredField">Unidade</label>
+        <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_unidProduto" name="unid_prod" disabled="disabled">
+    </div>
+
+    <div class="col-md-1" id="div_id_vl_prod">
+        <label for="id_vl_prod" class="form-label requiredField">Valor*</label>
+        <input type="text" style="color: #2E8B57; font-weight: bold;" class="form-control form-control-sm border-dark-subtle valor_os" placeholder="0.00" id="id_vl_prod" name="vl_prod">
+    </div>
+    <div class="col-md-1" id="div_id_qtd_prod">
+        <label for="id_qtd_prod" class="form-label requiredField">Qtde.*</label>
+        <input type="text" class="form-control form-control-sm border-dark-subtle" placeholder="0.00" id="id_qtd_prod" name="qtd_prod">
+    </div>
+    <div class="col-md-1 d-flex align-items-end">
+        <button type="button" class="btn btn-success btn-sm" id="addItemProdBtn"><i class="fas fa-plus"></i></button>
+    </div>
+    <div class="col-md-1" id="div_id_vl_compra">
+        <input type="hidden" style="color: #DC143C; font-weight: bold;" class="form-control form-control-sm border-dark-subtle valor_os" id="id_vl_compra" name="vl_compra" disabled="disabled">
+    </div> {% endcomment %}
+    {% comment %} <div class="col-md-2" id="div_id_cod_prod_adc">
+        <label for="id_cod_prod_adc" class="form-label requiredField">Cód.</label>
+        <div class="input-group">
+            <input type="text" id="id_cod_prod_adc" class="form-control form-control-sm border-dark-subtle" placeholder="Cód. Prod." aria-label="Cód. Prod. Adicional" aria-describedby="button-addon3">
+            <button class="btn btn-outline-dark btn-sm" type="button" id="button-addon3">🔎</button>
+        </div>
+    </div>
+    <div class="col-md-3" id="div_id_desc_prod_adc">
+        <label for="id_desc_prod_adc" class="form-label requiredField">Descrição</label>
+        <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_desc_prod_adc" name="desc_prod_adc" disabled="disabled">
+    </div>
+    <div class="col-md-2" id="div_id_unidProd_adc">
+        <label for="id_unidProd_adc" class="form-label requiredField">Unidade</label>
+        <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_unidProd_adc" name="unidProd_adc" disabled="disabled">
+    </div>
+    <div class="col-md-1" id="div_id_vl_prod_adc">
+        <label for="id_vl_prod_adc" class="form-label requiredField">Valor*</label>
+        <input type="text" style="color: #2E8B57; font-weight: bold;" class="form-control form-control-sm border-dark-subtle valor_os" placeholder="0.00" id="id_vl_prod_adc" name="vl_prod_adc">
+    </div>
+    <div class="col-md-1" id="div_id_qtd_prod_adc">
+        <label for="id_qtd_prod_adc" class="form-label requiredField">Qtde.*</label>
+        <input type="text" class="form-control form-control-sm border-dark-subtle" placeholder="0.00" id="id_qtd_prod_adc" name="qtd_prod_adc">
+    </div>
+    <div class="col-md-1 d-flex align-items-end">
+        <button type="button" class="btn btn-success btn-sm" id="addItemValorAdcBtn"><i class="fas fa-plus"></i></button>
+    </div>
+    <div class="col-md-1" id="div_id_vl_compra_adc">
+        <input type="hidden" style="color: #DC143C; font-weight: bold;" class="form-control form-control-sm border-dark-subtle valor_os" id="id_vl_compra_adc" name="vl_compra_adc" disabled="disabled">
+    </div> {% endcomment %}
+</div>
 {% endblock %}

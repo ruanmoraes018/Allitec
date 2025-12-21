@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+{% load static %}
+{% load custom_filters %}
+<html lang="pt-br">
+    <style>
+        @media print {
+            @page {
+                size: A4;
+                margin: 12mm 15mm 20mm 15mm;
+                @bottom-center {
+                    content: "Página " counter(page) " de " counter(pages);
+                    font-size: 9px;
+                    font-weight: bold;
+                }
+            }
+            body {
+                font-family: Times;
+                font-size: 10px;
+                margin: 0;
+            }
+            .page-header {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 32mm;
+                display: flex;
+                align-items: flex-start;
+                gap: 6mm;
+            }
+            .header-logo img {
+                height: 28mm;
+                width: auto;
+                object-fit: contain;
+            }
+            .header-table {
+                flex: 1;
+                width: 100%;
+            }
+            .header-table table,
+            .full-table {
+                width: 100%;
+                border-collapse: collapse;
+                table-layout: fixed;
+                font-size: 12px;
+            }
+            th, td {
+                border: 1.5px solid #000;
+                padding: 4px 6px;
+                word-wrap: break-word;
+            }
+            #tit-emp {
+                text-align: center;
+                vertical-align: middle;
+            }
+            .conteudo {
+                padding-top: 25mm; /* maior que o header */
+            }
+            .page-break {
+                page-break-before: always;
+            }
+            .porta {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                table-layout: fixed;
+            }
+            td, th {
+                border: 1.5px solid #000;
+                padding: 4px;
+                font-size: 10px;
+            }
+            .titulo-porta {
+                text-align: center;
+                font-weight: bold;
+                margin: 6mm 0 3mm;
+            }
+            .itens {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 2mm;
+            }
+            .itens th {
+                background-color: #eaeaea;
+                font-weight: bold;
+            }
+            .itens th, .itens td {
+                border: 1.5px solid #000;
+                padding: 4px;
+                font-size: 10px;
+            }
+            .linha-forma {
+                display: block;
+                margin: 0 -5px 2mm -4px; /* puxa a linha para fora do padding do td */
+                padding: 0 6px;
+                border-bottom: 1.5px solid #000;
+            }
+            .assinaturas {
+                margin-top: 2mm;
+                page-break-inside: avoid;
+            }
+            .duas-colunas {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0;
+                min-height: 10mm;
+            }
+            .page-footer {
+                position: fixed;
+                bottom: 8mm;
+                left: 0;
+                right: 0;
+                text-align: center;
+                font-size: 9px;
+            }
+        }
+    </style>
+    <head>
+        <meta charset="UTF-8">
+        <title>Orçamento Porta Enrolar - {{ o.num_orcamento }}</title>
+    </head>
+    <body>
+        <header class="page-header">
+            <div class="header-logo">
+                {% if logo_base64 %}<img src="data:image/jpeg;base64,{{ logo_base64 }}" style="max-width:150px;">{% endif %}
+            </div>
+            <div class="header-table">
+                <table>
+                    <tr>
+                        <td style="width: 55%; text-align: center; background-color: yellow;"><strong>ORÇAMENTO - {{ o.fantasia_emp }}</strong></td>
+                        <td style="width: 22.5%; text-align: justify; background-color: gray;"><strong>DT. EMISSÃO</strong></td>
+                        <td style="width: 22.5%; text-align: justify;">{{ o.dt_emi|date:"d/m/Y" }}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-size: 10px; text-align: justify;"><strong>CNPJ: {{ o.vinc_fil.cnpj }} |</strong> <span><strong>FONE: {{ o.vinc_fil.tel }}</strong></span></td>
+                        <td style="background-color: gray;"><strong>Nº ORÇAMENTO</strong></td>
+                        <td>{{o.num_orcamento}}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-size: 10px; text-align: justify;"><strong>END: {{o.vinc_fil.endereco}}, Nº: {{o.vinc_fil.numero}} - BAIRRO: {{o.vinc_fil.bairro_fil}}</strong></td>
+                        <td style="background-color: gray;"><strong>DT. ENTREGA</strong></td>
+                        <td>{{ o.dt_ent|date:"d/m/Y" }}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-size: 10px; text-align: justify;"><strong>CIDADE: {{o.vinc_fil.cidade_fil}} | UF: {{o.vinc_fil.uf}} | CEP: {{o.vinc_fil.cep}}</strong></td>
+                        <td style="background-color: gray;"><strong>SOLICITANTE</strong></td>
+                        <td>{{ o.solicitante }}</td>
+                    </tr>
+                </table>
+            </div>
+        </header><!-- 👇 SEGUNDA TABELA -->
+        <main class="conteudo">
+            <table class="full-table">
+                <tr>
+                    <td style="background-color: gray;"><strong>CLIENTE</strong></td>
+                    <td colspan="2">{{ o.nome_cli }}</td>
+                    <td style="background-color: gray;"><strong>CPF/CNPJ</strong></td>
+                    <td colspan="2">{{ o.cli.cpf_cnpj }}</td>
+                </tr>
+                <tr>
+                    <td style="background-color: gray;"><strong>RG/IE</strong></td>
+                    <td colspan="2">{{ o.cli.ie }}</td>
+                    <td style="background-color: gray;"><strong>E-MAIL</strong></td>
+                    <td colspan="2">{{ o.cli.email }}</td>
+                </tr>
+                <tr>
+                    <td style="background-color: gray;"><strong>TEL / WHATSAPP</strong></td>
+                    <td colspan="2">{{ o.cli.tel }}</td>
+                    <td style="background-color: gray;"><strong>ENDEREÇO</strong></td>
+                    <td colspan="2">{{ o.cli.endereco }}</td>
+                </tr>
+                <tr>
+                    <td style="background-color: gray;"><strong>Nº</strong></td>
+                    <td colspan="1">{{ o.cli.numero }}</td>
+                    <td style="background-color: gray;"><strong>BAIRRO</strong></td>
+                    <td colspan="1">{{ o.cli.bairro }}</td>
+                    <td style="background-color: gray;"><strong>CEP</strong></td>
+                    <td colspan="1">{{ o.cli.cep }}</td>
+                </tr>
+                <tr>
+                    <td style="background-color: gray;"><strong>CIDADE</strong></td>
+                    <td colspan="2">{{ o.cli.cidade }}</td>
+                    <td style="background-color: gray;"><strong>UF</strong></td>
+                    <td colspan="2">{{ o.cli.uf }}</td>
+                </tr>
+                <tr><td colspan="6"><strong>OBS:</strong> {{ o.obs_cli }}</td></tr>
+            </table>
+        </main><!-- 👇 TERCEIRA TABELA -->
+        <main class="conteudo" style="padding-top: 5px;">
+            <table class="full-table">
+                <tr><td colspan="7" style="background-color: gray; text-align: center;"><strong>DADOS GERAIS</strong></td>
+                <tr style="background-color: yellow; text-align: center;">
+                    <td><strong>PINTURA</strong></td>
+                    <td colspan="2"><strong>TP. PINTURA</strong></td>
+                    <td colspan="2"><strong>COR</strong></td>
+                    <td><strong>PORTÃO SOCIAL</strong></td>
+                    <td><strong>VL. P. SOCIAL</strong></td>
+                </tr>
+                <tr>
+                    <td>{{ o.pintura }}</td>
+                    <td colspan="2">{% if o.pintura == "Não" %} - {% else %} {{ o.tp_pintura }} {% endif %}</td>
+                    <td colspan="2">{% if o.pintura == "Não" %} - {% else %} {{ o.cor }} {% endif %}</td>
+                    <td>{{ o.portao_social }}</td>
+                    <td>{% if o.portao_social == "Não" %}R$ 0,00 {% else %}R$ {{ o.vl_p_s|moeda_br }} {% endif %} </td>
+                </tr>
+            </table>
+        </main><!-- 👇 QUARTA TABELA -->
+        <main class="conteudo" style="padding-top: 5px; margin-bottom: -90px;">
+            <table class="full-table">
+                <tr><td colspan="7" style="background-color: gray; text-align: center;"><strong>CONDIÇÕES DE PAGAMENTO</strong></td></tr>
+                <tr style="background-color: yellow; text-align: center;">
+                    <td colspan="2"><strong>FORMAS DE PAGAMENTO</strong></td>
+                    <td colspan="3"><strong>OBSERVAÇÕES</strong></td>
+                    <td colspan="2"><strong>TOTAIS DO ORÇAMENTO</strong></td>
+                </tr>
+                <tr><!-- 👇 FORMAS (BLOCO GRANDE) -->
+                    <td colspan="2" rowspan="{{ linhas_formas }}" style="vertical-align: top;">
+                        {% for f in o.formas_pgto.all %}
+                            <div class="linha-forma">{{ f.formas_pgto.descricao }} <span style="float: right;">R$ {{ f.valor|moeda_br }}</span></div>
+                        {% endfor %}
+                    </td><!-- 👇 OBSERVAÇÕES -->
+                    <td colspan="3" rowspan="4" style="vertical-align: top;">{{ o.obs_form_pgto }}</td>
+                    <td style="background-color: #3CB371;"><strong>SUBTOTAL</strong></td>
+                    <td>R$ {{ o.subtotal|moeda_br }}</td>
+                </tr>
+                <tr>
+                    <td style="background-color: #20B2AA;"><strong>DESCONTO</strong></td>
+                    <td>R$ {{ o.desconto|moeda_br }}</td>
+                </tr>
+                <tr>
+                    <td style="background-color: #F08080;"><strong>ACRÉSCIMO</strong></td>
+                    <td>R$ {{ o.acrescimo|moeda_br }}</td>
+                </tr>
+                <tr>
+                    <td style="background-color: #32CD32;"><strong>TOTAL</strong></td>
+                    <td>R$ {{ o.total|moeda_br }}</td>
+                </tr>
+            </table>
+        </main><!-- 👇 TABELA DE PORTAS -->
+        {% for pt in o.portas.all %}
+            <main class="conteudo porta {% if not forloop.first %}page-break{% endif %}">
+                <table class="full-table">
+                    <tr style="background-color: #8B008B; color: white;">
+                        <th colspan="6"><strong>MEDIDAS – PORTA {{ pt.numero }}</strong></th>
+                    </tr>
+                    <tr style="background-color: #5F9EA0;">
+                        <th>Largura</th>
+                        <th>Altura</th>
+                        <th>Qtd. Lâminas</th>
+                        <th>M²</th>
+                        <th>Peso</th>
+                        <th>Eixo Motor</th>
+                    </tr>
+                    <tr>
+                        <td>{{ pt.largura }}</td>
+                        <td>{{ pt.altura }}</td>
+                        <td>{{ pt.qtd_lam }}</td>
+                        <td>{{ pt.m2 }}</td>
+                        <td>{{ pt.peso }}</td>
+                        <td>{{ pt.eixo_motor }}</td>
+                    </tr>
+                </table>
+                <table class="itens">
+                    <thead>
+                        <tr><th style="background-color: #D8BFD8;" colspan="6"><strong>PRODUTOS – PORTA {{ pt.numero }}</strong></th></tr>
+                        <tr>
+                            <th style="background-color: #00CED1;">Código</th>
+                            <th style="background-color: #00CED1;">Descrição</th>
+                            <th style="background-color: #00CED1;">Unidade</th>
+                            <th style="background-color: #00CED1;">Quantidade</th>
+                            <th style="background-color: #00CED1;">Vl. Unit.</th>
+                            <th style="background-color: #00CED1;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in pt.produtos.all %}
+                        <tr>
+                            <td>{{ p.produto.id }}</td>
+                            <td>{{ p.produto.desc_prod }}</td>
+                            <td>{{ p.produto.unidProd }}</td>
+                            <td>{{ p.quantidade }}</td>
+                            <td>R$ {{ p.produto.produtotabela_set.first.vl_prod|moeda_br }}</td>
+                            <td>R$ {{ p.subtotalP|moeda_br }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <table class="itens">
+                    <thead>
+                        <tr><th style="background-color: #D8BFD8;" colspan="6">ADICIONAIS – PORTA {{ pt.numero }}</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for a in pt.adicionais.all %}
+                        <tr>
+                            <td>{{ a.produto.id }}</td>
+                            <td>{{ a.produto.desc_prod }}</td>
+                            <td>{{ a.produto.unidProd }}</td>
+                            <td>{{ a.quantidade }}</td>
+                            <td>R$ {{ a.produto.produtotabela_set.first.vl_prod|moeda_br }}</td>
+                            <td>R$ {{ a.subtotalA|moeda_br }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table><!-- 👇 TABELA ASSINATURA -->
+                {% if forloop.first %}
+                    <section class="assinaturas">
+                        <table class="full-table tabela-barras-brancas">
+                            <tr>
+                                <td colspan="8" style="background-color: gray; text-align: center;"><strong>ASSINATURAS</strong></td>
+                            </tr>
+                            <tr>
+                                <td colspan="4" style="text-align: center; padding-top: 30px;"><strong>________________________________________<br>{{ o.vinc_fil.razao_social }}</strong></td>
+                                <td colspan="4" style="text-align: center; padding-top: 30px;"><strong>________________________________________<br>{{ o.nome_cli }}</strong></td>
+                            </tr>
+                        </table>
+                        <p style="font-size: 11px;"><strong>{{ o.vinc_fil.info_orcamento }}</strong></p>
+                    </section>
+                {% endif %}
+            </main>
+        {% endfor %}
+        <footer class="page-footer"></footer>
+    </body>
+</html>

@@ -49,11 +49,12 @@
                             <div class="col-md-1">
                                 <input type="file" id="id_logo" name="logo" style="display: none;" onchange="previewImage(event)">
                                 <img id="logo-preview"
-                                     class="form-control form-control-sm border-dark-subtle"
-                                     src="{% if filial.logo %}{{ filial.logo.url }}{% else %}{% static 'media/default_logo.png' %}{% endif %}"
-                                     alt="Logo da filial"
-                                     title="Clique para alterar a imagem"
-                                     style="cursor: pointer; width: 90px; height: 90px; border: 1px solid #ddd; border-radius: 5px;">
+                                    class="form-control form-control-sm border-dark-subtle"
+                                    src="{% if filial.logo %}{{ filial.logo.url }}{% else %}https://www.freeiconspng.com/thumbs/camera-icon/camera-icon-21.png{% endif %}"
+                                    alt="Logo da filial"
+                                    title="Clique para alterar a imagem"
+                                    style="cursor: pointer; width: 90px; height: 90px; border: 1px solid #ddd; border-radius: 5px;">
+
                             </div>
                             <div class="card" style="margin: 0;">
                                 <div class="form-buttons" style="margin-left: 10px; margin-top: 10px;">
