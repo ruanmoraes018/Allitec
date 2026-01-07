@@ -73,6 +73,7 @@
             text-align: center;
             font-size: 10px;
         }
+
     </style>
 </head>
 <body>
@@ -100,7 +101,7 @@ residente e domiciliada em {{ o.cli.endereco }}, Nº: {{ o.cli.numero }} - Bairr
 <p>
 <strong>CONTRATADA:</strong>
 <strong>{{ o.vinc_fil.fantasia|upper }}</strong>, inscrita no CNPJ sob o nº {{ o.vinc_fil.cnpj }}, Inscrição Estadual nº {{ o.vinc_fil.ie }},
-com sede na {{ o.vinc_fil.endereco }}, Nº: {{ o.vinc_fil.numero }} - Bairro: {{ o.vinc_fil.bairro_fil }} - {{ o.vinc_fil.cidade_fil }}/{{ o.vinc_fil.uf }}, 
+com sede na {{ o.vinc_fil.endereco }}, Nº: {{ o.vinc_fil.numero }} - Bairro: {{ o.vinc_fil.bairro_fil }} - {{ o.vinc_fil.cidade_fil }}/{{ o.vinc_fil.uf }},
 CEP: {{ o.vinc_fil.cep }}, Telefone {{ o.vinc_fil.tel }}.
 </p>
 <p>
@@ -113,9 +114,9 @@ Têm entre si justo e contratado o que segue, mediante as cláusulas e condiçõ
     {% for porta in portas %}
         <strong>{{ forloop.counter }}ª porta
         de ({{ porta.largura }}m x {{ porta.altura }}m)
-        {% if not forloop.last %}; {% endif %}.</strong> 
+        {% if not forloop.last %}; {% endif %}.</strong>
     {% endfor %}
-    {% if o.pintura == "Sim" %}Com pintura aplicada {% else %}Sem Pintura aplicada {% endif %} e 
+    {% if o.pintura == "Sim" %}Com pintura aplicada {% else %}Sem Pintura aplicada {% endif %} e
     {% if o.portao_social == "Sim" %}com Portão Social - R$ {{ o.vl_p_s|moeda_br }}{% else %}sem Portão Social{% endif %}.
 </p>
 <!-- VALOR -->

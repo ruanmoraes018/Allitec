@@ -5,7 +5,33 @@ $(document).ready(function() {
     $('.table').addClass("table-sm");
     $('[name^="nome_"]').first().focus();
     $('[name^="descricao"]').first().focus();
-    // Novo teste
+    // Função do Toastify
+    let cor_verde = "linear-gradient(to right, #00b09b, #96c93d)";
+    let cor_vermelho = "linear-gradient(to right, #ff416c, #ff4b2b)";
+    let cor_amarelo = "linear-gradient(to right, #ff9f00, #ff6f00)";
+    let cor_info = "linear-gradient(to right, #02202B, #017AB1)";
+    let cor_padrao = "linear-gradient(to right, #333, #555)";
+    function toast(msg, cor="#333") {
+        Toastify({
+            text: msg,
+            duration: 5000,
+            gravity: "top",
+            position: "center",
+            backgroundColor: cor,
+            stopOnFocus: true,
+            escapeMarkup: false,
+            onClick: function () {
+                let toastElements = document.querySelectorAll(".toastify");
+                toastElements.forEach(el => {
+                    el.style.transition = "opacity 0.5s ease-out";
+                    el.style.opacity = "0";
+                    setTimeout(() => el.remove(), 500);
+                });
+            },
+        }).showToast();
+    }
+
+    // Habilitar campo de portão social
     $('#id_portao_social').on('change', function () {
         const p_social = $(this).val();
         if (p_social === 'Não') {
@@ -67,15 +93,7 @@ $(document).ready(function() {
                 csrfmiddlewaretoken: $("input[name=csrfmiddlewaretoken]").val(),
             },
             success: function () {
-                Toastify({
-                    text: "Status atualizado com sucesso!",
-                    duration: 5000,
-                    gravity: "top",
-                    position: "center",
-                    backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
-                    stopOnFocus: true,
-                    escapeMarkup: false,
-                }).showToast();
+                toast("<i class='fa-solid fa-circle-check'></i> Status atualizado com sucesso!", cor_verde);
                 $select.prop("disabled", true);
                 $(`#cancel-status-${id}`).hide();
                 const bsModal = bootstrap.Modal.getInstance(
@@ -92,15 +110,7 @@ $(document).ready(function() {
                 }, 1500);
             },
             error: function () {
-                Toastify({
-                    text: "Erro ao atualizar o status!",
-                    duration: 5000,
-                    gravity: "top",
-                    position: "center",
-                    backgroundColor: "linear-gradient(to right, #ff416c, #ff4b2b)",
-                    stopOnFocus: true,
-                    escapeMarkup: false,
-                }).showToast();
+                toast("<i class='fa-solid fa-circle-xmark'></i> Erro ao atualizar o status!", cor_vermelho);
             }
         });
     });
@@ -140,16 +150,7 @@ $(document).ready(function() {
         const checkboxesMarcados = $('.task-checkbox:checked');
         if (checkboxesMarcados.length === 0) {
             e.preventDefault(); // impede o modal de abrir
-            Toastify({
-                text: "Selecione ao menos um produto antes de continuar.",
-                duration: 3000,
-                close: true,
-                gravity: "top", // top ou bottom
-                position: "center", // left, center ou right
-                backgroundColor: "#ffc107",
-                stopOnFocus: true,
-                escapeMarkup: false,
-            }).showToast();
+            toast("<i class='fa-solid fa-triangle-exclamation'></i> Selecione ao menos um produto antes de continuar!", cor_amarelo);
             return;
         }
         $('#attTbPrecModal').modal('show');
@@ -333,15 +334,7 @@ $(document).ready(function() {
     $("#add-cod-sec-tab").click(function () {
         let cod = $('#cod-sec').val();
         if (cod === "") {
-            Toastify({
-                text: '<i class="fa-solid fa-triangle-exclamation"></i> Código deve ser informado!',
-                duration: 5000,
-                gravity: "top",
-                position: "center",
-                backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
-                stopOnFocus: true,
-                escapeMarkup: false,
-            }).showToast();
+            toast("<i class='fa-solid fa-triangle-exclamation'></i> Código deve ser informado!", cor_amarelo);
         } else {
             // === Criar nova linha ===
             let idx = ident++;
@@ -353,15 +346,7 @@ $(document).ready(function() {
                 }
             });
             if (codigoJaExiste) {
-                Toastify({
-                    text: `<i class="fa-solid fa-triangle-exclamation"></i> O código "${cod}" já está incluso na listagem!`,
-                    duration: 5000,
-                    gravity: "top",
-                    position: "center",
-                    backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
-                    stopOnFocus: true,
-                    escapeMarkup: false,
-                }).showToast();
+                toast(`<i class="fa-solid fa-triangle-exclamation"></i> O código "${cod}" já está incluso na listagem!`, cor_amarelo);
             } else {
                 // Só adiciona se não existir
                 $("#tb-cod-sec tbody").append(`
@@ -452,7 +437,7 @@ $(document).ready(function() {
                 }
             },
             error: function() {
-                alert("Erro ao buscar a tabela de preço");
+                toast("<i class='fa-solid fa-circle-xmark'></i> Erro ao buscar a tabela de preço!", cor_vermelho);
             }
         });
     });
@@ -476,7 +461,7 @@ $(document).ready(function() {
                 }
             },
             error: function() {
-                alert("Erro ao buscar a tabela de preço");
+                toast("<i class='fa-solid fa-circle-xmark'></i> Erro ao buscar a tabela de preço!", cor_vermelho);
             }
         });
     });
@@ -495,11 +480,11 @@ $(document).ready(function() {
         let mrg = $("#id_margem").val();
         let vl_p = $("#id_vl_prod").val();
         if (!tabId) {
-            Toastify({ text: 'Selecione uma tabela antes de adicionar!', duration: 5000, gravity: "top", position: "center", backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)', stopOnFocus: true }).showToast();
+            toast("<i class='fa-solid fa-triangle-exclamation'></i> Selecione uma tabela antes de adicionar!", cor_amarelo);
             return;
         }
         if (vl_p === "0.00" || vl_p === "" || vl_p === "0") {
-            Toastify({ text: 'Preço de Venda deve ser informado!', duration: 5000, gravity: "top", position: "center", backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)', stopOnFocus: true }).showToast();
+            toast("<i class='fa-solid fa-triangle-exclamation'></i> Preço de Venda deve ser informado!", cor_amarelo);
             return;
         }
         if (trEdit) {
@@ -523,7 +508,7 @@ $(document).ready(function() {
                 }
             });
             if (tabelaJaExiste) {
-                Toastify({ text: `Tabela "${tabNome}" já está inclusa na listagem!`, duration: 5000, gravity: "top", position: "center", backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)', stopOnFocus: true }).showToast();
+                toast(`Tabela "${tabNome}" já está inclusa na listagem!`, cor_amarelo);
             } else {
                 $("#tab-prec tbody").append(`
                     <tr data-id="${idx}">
@@ -583,28 +568,15 @@ $(document).ready(function() {
             dsct = $("#id_desconto").val(),
             total = ((preco * qtd) - dsct).toFixed(2);
         if ($("#id_preco_unit").val() === "0.00") {
-            Toastify({
-                text: '<i class="fa-solid fa-triangle-exclamation"></i> Preço Unitário deve ser informado!',
-                duration: 5000,
-                gravity: "top",
-                position: "center",
-                backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
-                stopOnFocus: true,
-                escapeMarkup: false,
-            }).showToast();
+            toast("<i class='fa-solid fa-triangle-exclamation'></i> Preço Unitário deve ser informado!", cor_amarelo);
         } else if (trEditando) {
             // === Atualizar linha existente ===
             let idx = trEditando.data("id");
-            trEditando.find("td:eq(0)").html(`${cod}
-                <input type="hidden" name="produtos[${idx}][codigo]" value="${cod}">`);
-            trEditando.find("td:eq(1)").html(`${prod}
-                <input type="hidden" name="produtos[${idx}][produto]" value="${prod}">`);
-            trEditando.find("td:eq(2)").html(`${qtd}
-                <input type="hidden" name="produtos[${idx}][quantidade]" value="${qtd}">`);
-            trEditando.find("td:eq(3)").html(`${preco}
-                <input type="hidden" name="produtos[${idx}][preco_unitario]" value="${preco}">`);
-            trEditando.find("td:eq(4)").html(`${dsct}
-                <input type="hidden" name="produtos[${idx}][desconto]" value="${dsct}">`);
+            trEditando.find("td:eq(0)").html(`${cod} <input type="hidden" name="produtos[${idx}][codigo]" value="${cod}">`);
+            trEditando.find("td:eq(1)").html(`${prod} <input type="hidden" name="produtos[${idx}][produto]" value="${prod}">`);
+            trEditando.find("td:eq(2)").html(`${qtd} <input type="hidden" name="produtos[${idx}][quantidade]" value="${qtd}">`);
+            trEditando.find("td:eq(3)").html(`${preco} <input type="hidden" name="produtos[${idx}][preco_unitario]" value="${preco}">`);
+            trEditando.find("td:eq(4)").html(`${dsct} <input type="hidden" name="produtos[${idx}][desconto]" value="${dsct}">`);
             trEditando.find("td:eq(5)").text(total);
             trEditando = null; // sai do modo edição
             calcTotalEntrada();
@@ -623,15 +595,7 @@ $(document).ready(function() {
                 }
             });
             if (codigoJaExiste) {
-                Toastify({
-                    text: `<i class="fa-solid fa-triangle-exclamation"></i> O código "${cod}" já está incluso na listagem!`,
-                    duration: 5000,
-                    gravity: "top",
-                    position: "center",
-                    backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
-                    stopOnFocus: true,
-                    escapeMarkup: false,
-                }).showToast();
+                toast(`<i class="fa-solid fa-triangle-exclamation"></i> O código "${cod}" já está incluso na listagem!`, cor_amarelo);
             } else {
                 // Só adiciona se não existir
                 $("#tabela-produtos tbody").append(`
@@ -717,15 +681,7 @@ $(document).ready(function() {
                 }
             },
             error: function() {
-                Toastify({
-                    text: 'Erro ao buscar o produto. Tente novamente!',
-                    duration: 5000,
-                    gravity: "top",
-                    position: "center",
-                    backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
-                    stopOnFocus: true,
-                    escapeMarkup: false,
-                }).showToast();
+                toast("<i class='fa-solid fa-circle-xmark'></i> Erro ao buscar o produto. Tente novamente!", cor_vermelho);
             }
         });
     });
@@ -813,7 +769,7 @@ $(document).ready(function() {
             toastAguardando = Toastify({
                 text: `<i class="fa-solid fa-stopwatch"></i> Aguardando aprovação para sua solicitação!
                        <div class='spinner-grow text-dark' role='status' style='width: 1rem; height: 1rem;'>
-                       <span class='visually-hidden'>Loading...</span></div>`,
+                       <span class='visually-hidden'Carregando...</span></div>`,
                 duration: 180000,
                 close: false,
                 gravity: "top",
@@ -838,38 +794,14 @@ $(document).ready(function() {
             if (agora > expira) {
                 clearInterval(timer);
                 if (toastAguardando) toastAguardando.hideToast();
-                Toastify({
-                    text: '<i class="fa-solid fa-hourglass-start"></i> Tempo expirado. A solicitação não foi respondida!',
-                    duration: 6000,
-                    close: true,
-                    gravity: "top",
-                    position: "center",
-                    escapeMarkup: false, // Permite HTML no toast
-                    style: {
-                        background: "linear-gradient(to right, #343a40, #6c757d)",
-                        color: "#fff",
-                        borderRadius: "8px"
-                    }
-                }).showToast();
+                toast('<i class="fa-solid fa-hourglass-start"></i> Tempo expirado. A solicitação não foi respondida!', cor_info);
                 return;
             }
             $.get(`/orcamentos/verificar-solicitacao/${solicitacaoId}/`, function(data) {
                 if (data.status === 'Aprovada') {
                     clearInterval(timer);
                     if (toastAguardando) toastAguardando.hideToast();
-                    Toastify({
-                        text: '<i class="fa-solid fa-circle-check"></i> Solicitação Concedida ao usuário!',
-                        duration: 6000,
-                        close: true,
-                        gravity: "top",
-                        position: "center",
-                        escapeMarkup: false, // Permite HTML no toast
-                        style: {
-                            background: "linear-gradient(to right, #28a745, #218838)",
-                            color: "#fff",
-                            borderRadius: "8px"
-                        }
-                    }).showToast();
+                    toast("<i class='fa-solid fa-circle-check'></i> Solicitação Concedida ao usuário!", cor_verde);
                     if (acaoSelecionada === "atribuir_desconto") {
                         $('#modalDesconto').modal('show');
                     } else if (acaoSelecionada === "atribuir_acrescimo") {
@@ -878,19 +810,7 @@ $(document).ready(function() {
                 } else if (data.status === 'Negada') {
                     clearInterval(timer);
                     if (toastAguardando) toastAguardando.hideToast();
-                    Toastify({
-                        text: '<i class="fa-solid fa-circle-xmark"></i> Solicitação Negada ao usuário!',
-                        duration: 6000,
-                        close: true,
-                        gravity: "top",
-                        position: "center",
-                        escapeMarkup: false, // Permite HTML no toast
-                        style: {
-                            background: "linear-gradient(to right, #dc3545, #c82333)",
-                            color: "#fff",
-                            borderRadius: "8px"
-                        }
-                    }).showToast();
+                    toast("<i class='fa-solid fa-circle-xmark'></i> Solicitação Negada ao usuário!", cor_vermelho);
                 }
             });
         }, 5000);
@@ -916,19 +836,7 @@ $(document).ready(function() {
         const solicitacaoId = match ? match[1] : null;
         console.log('ID capturado:', solicitacaoId);
         if (!solicitacaoId) {
-            Toastify({
-                text: '<i class="fa-solid fa-circle-exclamation"></i> ID da solicitação não encontrado!',
-                duration: 6000,
-                close: true,
-                gravity: "top",
-                position: "center",
-                escapeMarkup: false, // Permite HTML no toast
-                style: {
-                    background: "linear-gradient(to right, #d58300, #ffc93b)",
-                    color: "#fff",
-                    borderRadius: "8px"
-                }
-            }).showToast();
+            toast('<i class="fa-solid fa-exclamation"></i> ID da solicitação não encontrado!', cor_info);
             return;
         }
         $('#descricaoSolicitacao').text(descricao);
@@ -956,33 +864,9 @@ $(document).ready(function() {
         }, function(response) {
             $('#modalSolicitacao').modal('hide');
             if (response.status === "Aprovada") {
-                Toastify({
-                    text: '<i class="fa-solid fa-circle-check"></i> Solicitação Concedida ao usuário!',
-                    duration: 6000,
-                    close: true,
-                    gravity: "top",
-                    position: "center",
-                    escapeMarkup: false, // Permite HTML no toast
-                    style: {
-                        background: "linear-gradient(to right, #28a745, #218838)",
-                        color: "#fff",
-                        borderRadius: "8px"
-                    }
-                }).showToast();
+                toast("<i class='fa-solid fa-circle-check'></i> Solicitação Concedida ao usuário!", cor_verde);
             } else {
-                Toastify({
-                    text: '<i class="fa-solid fa-circle-xmark"></i> Solicitação Negada ao usuário!',
-                    duration: 6000,
-                    close: true,
-                    gravity: "top",
-                    position: "center",
-                    escapeMarkup: false, // Permite HTML no toast
-                    style: {
-                        background: "linear-gradient(to right, #dc3545, #c82333)",
-                        color: "#fff",
-                        borderRadius: "8px"
-                    }
-                }).showToast();
+                toast("<i class='fa-solid fa-circle-xmark'></i> Solicitação Negada ao usuário!", cor_vermelho);
             }
         });
     }
@@ -1042,17 +926,7 @@ $(document).ready(function() {
             function () {
                 // === Ação negada ===
                 $('#loadingModal').modal('hide');
-                Toastify({
-                    text: `<span style="display: flex; align-items: center; gap: 8px;">
-                                <i class="fa-solid fa-exclamation"></i> ${msgNegado}
-                           </span>`,
-                    duration: 5000,
-                    gravity: "top",
-                    position: "center",
-                    backgroundColor: "linear-gradient(to right, #02202B, #017AB1)",
-                    stopOnFocus: true,
-                    escapeMarkup: false,
-                }).showToast();
+                toast(`<i class="fa-solid fa-exclamation"></i> ${msgNegado}`, cor_amarelo);
                 $('#confirmModal').modal('show');  // 👉 Abre o modal de confirmação para enviar a solicitação
             }
         );
@@ -1629,34 +1503,6 @@ $(document).ready(function() {
         atualizarSubtotal();
     }
     let toastErrorShown = false;
-    $('#id_pintura').on('change', function () {
-        const temPintura = $(this).val();
-        if (temPintura === 'Não') {
-            Toastify({
-                text: '<i class="fa-solid fa-triangle-exclamation"></i> Campo Pintura está selecionado como Não, para inserir o produto, altere a opção para Sim!',
-                duration: 5000,
-                gravity: "top",
-                position: "center",
-                backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
-                stopOnFocus: true,
-                escapeMarkup: false,
-            }).showToast();
-            // 🔄 Primeiro atualiza tudo
-            atualizarSubtotal();
-            atualizarTabela();
-            // ⌛ Depois de tudo pronto, esconde o loading
-            setTimeout(() => {
-                finalizarLoading();
-            }, 500); // leve delay evita bug do mobile
-        } else {
-            atualizarSubtotal();
-            atualizarTabela();
-            setTimeout(() => {
-                finalizarLoading();
-            }, 500);
-        }
-    });
-    toastErrorShown = false;
     function arredondarParaCima(valor, casasDecimais) {
         let fator = Math.pow(10, casasDecimais);
         return (Math.ceil(valor * fator) / fator).toFixed(casasDecimais);
@@ -1703,10 +1549,21 @@ $(document).ready(function() {
         $(`.alt-corte[data-porta="${porta}"]`).val($(this).val());
     });
     $('#id_tp_vao').val('Fora do Vão');
+    function iniciarLoading() {
+        $("#loadingModal").modal({
+            backdrop: 'static',
+            keyboard: false
+        }).modal("show");
+    }
+    let loadingTimeout = null;
     function finalizarLoading() {
-        setTimeout(() => {
+        if (loadingTimeout) {
+            clearTimeout(loadingTimeout);
+        }
+        loadingTimeout = setTimeout(() => {
             $("#loadingModal").modal("hide");
-        }, 1500);
+            loadingTimeout = null;
+        }, 2500);
     }
     function calcLgCorte(porta) {
         let largRaw = $(`.larg[data-porta="${porta}"]`).val();
@@ -1795,18 +1652,28 @@ $(document).ready(function() {
             setTimeout(() => {
                 const $tbody = $(`#tblProd_${porta} tbody`);
                 const linha = $tbody.find('tr').length + 1; // ✅ numeração correta
+                prodManager.data[Number(porta)].push({
+                    id: p.id,                    // 👈 IMPORTANTE
+                    cod: p.id,
+                    desc: p.desc_prod,
+                    unid: p.unidProd,
+                    vl_compra: parseFloat(p.vl_compra),
+                    vl_unit: parseFloat(p.vl_prod),
+                    qtd: 0,
+                    total: 0
+                });
                 $tbody.append(`
                     <tr data-porta="${porta}" data-item-id="${p.id}">
                         <td data-label="#" class="mobile-2col">${linha}</td>
                         <td data-label="Cód:" class="mobile-2col">${p.id}</td>
-                        <td data-label="Desc.:" class="mobile-2col">${p.desc_prod}</td>
-                        <td data-label="Unid:" class="mobile-2col">${p.unidProd}</td>
-                        <td class="text-danger fw-bold mobile-3col" data-label="Vl. Compra:">${p.vl_compra}</td>
-                        <td class="vl-unit text-success fw-bold mobile-3col" data-label="Vl. Unit:">${p.vl_prod}</td>
-                        <td class="qtd-produto mobile-3col" data-label="Qtde:">1.00</td>
-                        <td class="tot-compra text-danger fw-bold mobile-3col" data-label="Tot. Compra:">0.00</td>
-                        <td class="vl-total text-success fw-bold mobile-3col" data-label="Vl. Total:">0.00</td>
-                        <td data-label="Ações:" class="mobile-3col">
+                        <td data-label="Descrição.:" class="mobile-full">${p.desc_prod}</td>
+                        <td data-label="Unidade:" class="mobile-full">${p.unidProd}</td>
+                        <td class="text-danger fw-bold mobile-full" data-label="Vl. Compra:">${p.vl_compra}</td>
+                        <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${p.vl_prod}</td>
+                        <td class="qtd-produto mobile-full" data-label="Quantidade:">1.00</td>
+                        <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0.00</td>
+                        <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0.00</td>
+                        <td data-label="Ações:" class="mobile-full">
                             <i class="fas fa-edit editBtn" style="color: #13c43f; cursor:pointer;" data-bs-toggle="modal" data-bs-target="#editItemModal"></i>
                             <i class="fas fa-trash deleteBtn" style="color: #db1e47; cursor:pointer;"></i>
                         </td>
@@ -1823,13 +1690,7 @@ $(document).ready(function() {
             }, 500);
         })
         .fail(() => {
-            Toastify({
-                text: 'Erro ao buscar motor ideal.',
-                duration: 5000,
-                gravity: "top",
-                position: "center",
-                backgroundColor: 'linear-gradient(to right, #db1e47, #ff7373)'
-            }).showToast();
+            toast("<i class='fa-solid fa-circle-xmark'></i> Erro ao buscar motor ideal!", cor_vermelho);
         });
     }
     function removerProdutoMotor(porta) {
@@ -1857,154 +1718,78 @@ $(document).ready(function() {
     function resetarControleMotor() {
         motorCtrl = {};
     }
-    function verificarPintura(porta) {
-        const temPintura = $("#id_pintura").val();
-        const tp_pintura = $("#id_tp_pintura").val();
-        const $tbody = $(`#tblAdc_${porta} tbody`);
-        if (temPintura === "Não") {
-            $tbody.find('tr').each(function () {
-                const desc = $(this).find('td:nth-child(3)').text().toUpperCase();
-                if (desc.includes("PINTURA")) {
+    function atualizarPinturaPorta(porta) {
+        return new Promise(resolve => {
+            const temPintura = $('#id_pintura').val();       // 'S' / 'N' ou '1' / '0'
+            const tpPintura  = $('#id_tp_pintura').val();    // 'Eletrostática' / 'Automotiva'
+            const $tabela = $(`#tblAdc_${porta} tbody`);
+            if (!$tabela.length) {
+                resolve();
+                return;
+            }
+            const m2 = parseFloat($(`.m2[data-porta="${porta}"]`).val()) || 0;
+            const DESC_ELET = 'PINTURA ELETROSTÁTICA';
+            const DESC_AUTO = 'PINTURA AUTOMOTIVA';
+            /* 🔹 Remove qualquer pintura existente */
+            $tabela.find('tr').each(function () {
+                const desc = $(this).find('td:eq(2)').text().toUpperCase().trim();
+                if (desc === DESC_ELET || desc === DESC_AUTO) {
                     $(this).remove();
                 }
             });
-            atualizarTabelaPorta(porta);
-            atualizarSubtotal();
-            return;
-        }
-        const pinturaCorreta =
-            tp_pintura === "Eletrostática"
-                ? "PINTURA ELETROSTÁTICA"
-                : "PINTURA AUTOMOTIVA";
-        const pinturaErrada =
-            tp_pintura === "Eletrostática"
-                ? "PINTURA AUTOMOTIVA"
-                : "PINTURA ELETROSTÁTICA";
-        $tbody.find('tr').each(function () {
-            const desc = $(this).find('td:nth-child(3)').text().toUpperCase();
-            if (desc === pinturaErrada) {
-                $(this).remove();
+            /* 🔹 Se NÃO tiver pintura */
+            if (temPintura === 'Não') {
+                toast("<i class='fa-solid fa-triangle-exclamation'></i> Campo Pintura está selecionado como <b>Não</b>. Para inserir a pintura, altere a opção para <b>Sim</b>!", cor_amarelo);
+                atualizarTabelaPorta(porta);
+                atualizarSubtotal();
+                resolve(); // ✅ resolve aqui
+                return;
             }
-        });
-        let existe = false;
-        $tbody.find('tr').each(function () {
-            const desc = $(this).find('td:nth-child(3)').text().toUpperCase();
-            if (desc === pinturaCorreta) {
-                existe = true;
-            }
-        });
-        if (existe) {
-            atualizarTabelaPorta(porta);
-            atualizarSubtotal();
-            return;
-        }
-        $.get('/produtos/lista_ajax/', {
-            tp: 'desc',
-            tp_prod: 'Adicional',
-            s: pinturaCorreta
-        })
-        .done(resp => {
-            const p = resp.produtos?.find(
-                prod => prod.desc_prod.toUpperCase() === pinturaCorreta
-            );
-            if (!p) return;
-            const linha = $tbody.find('tr').length + 1;
-            $tbody.append(`
-                <tr data-porta="${porta}" data-item-id="${p.id}">
-                    <td data-label="#" class="mobile-2col">${linha}</td>
-                    <td data-label="Cód:" class="mobile-2col">${p.id}</td>
-                    <td data-label="Desc.:" class="mobile-2col">${p.desc_prod}</td>
-                    <td data-label="Unid:" class="mobile-2col">${p.unidProd}</td>
-                    <td class="text-danger fw-bold mobile-3col" data-label="Vl. Compra:">${p.vl_compra}</td>
-                    <td class="vl-unit text-success fw-bold mobile-3col" data-label="Vl. Unit:">${p.vl_prod}</td>
-                    <td class="qtd-produto mobile-3col" data-label="Qtde:">0</td>
-                    <td class="tot-compra text-danger fw-bold mobile-3col" data-label="Tot. Compra:">0.00</td>
-                    <td class="vl-total text-success fw-bold mobile-3col" data-label="Vl. Total:">0.00</td>
-                    <td data-label="Ações:" class="mobile-3col">
-                        <i class="fas fa-edit editBtn" data-bs-toggle="modal" data-bs-target="#editItemAdcModal" style="color: #13c43f; cursor: pointer;"></i>
-                        <i class="fas fa-trash deleteBtn" style="color: #db1e47; cursor: pointer;"></i>
-                    </td>
-                </tr>
-            `);
-            // 🔥 AGORA SIM A QUANTIDADE VAI SER m2
-            atualizarTabelaPorta(porta);
-            atualizarSubtotal();
+            /* 🔹 Define pintura correta */
+            const pinturaCorreta =
+                tpPintura === 'Automotiva'
+                    ? DESC_AUTO
+                    : DESC_ELET;
+            /* 🔹 Busca produto via AJAX */
+            $.get('/produtos/lista_ajax/', {
+                s: pinturaCorreta,
+                filtro: 'desc',
+                tp_prod: 'Adicional'
+            })
+            .done(res => {
+                const p = res.produtos?.[0];
+                if (!p) {
+                    resolve();
+                    return;
+                }
+                const idx = $tabela.find('tr').length + 1;
+                $tabela.append(`
+                    <tr data-porta="${porta}" data-item-id="${p.id}">
+                        <td data-label="#" class="mobile-2col">${idx}</td>
+                        <td data-label="Cód:" class="mobile-2col">${p.id}</td>
+                        <td data-label="Descrição.:" class="mobile-full">${p.desc_prod}</td>
+                        <td data-label="Unidade:" class="mobile-full">${p.unidProd}</td>
+                        <td class="text-danger fw-bold mobile-full" data-label="Vl. Compra:">${p.vl_compra}</td>
+                        <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${p.vl_prod}</td>
+                        <td class="qtd-produto mobile-full" data-label="Quantidade:">${m2.toFixed(2)}</td>
+                        <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0.00</td>
+                        <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0.00</td>
+                        <td data-label="Ações:" class="mobile-full">
+                            <i class="fas fa-edit editBtn" style="color:#13c43f;cursor:pointer"></i>
+                            <i class="fas fa-trash deleteBtn" style="color:#db1e47;cursor:pointer"></i>
+                        </td>
+                    </tr>
+                `);
+                atualizarTabelaPorta(porta);
+                atualizarSubtotal();
+                resolve(); // ✅ resolve SOMENTE após inserir
+            })
+            .fail(() => {
+                resolve(); // nunca trava o await
+            });
         });
     }
-    function atualizarPinturaPorta(porta) {
-        const temPintura = $('#id_pintura').val();       // Sim / Não
-        const tpPintura  = $('#id_tp_pintura').val();    // Eletrostática / Automotiva
-        const $tabela = $(`#tblAdc_${porta} tbody`);
-        if (!$tabela.length) return;
-        const m2 = parseFloat($(`.m2[data-porta="${porta}"]`).val()) || 0;
-        const DESC_ELET = 'PINTURA ELETROSTÁTICA';
-        const DESC_AUTO = 'PINTURA AUTOMOTIVA';
-        $tabela.find('tr').each(function () {
-            const desc = $(this).find('td:eq(2)').text().toUpperCase().trim();
-            if (desc === DESC_ELET || desc === DESC_AUTO) {
-                $(this).remove();
-            }
-        });
-        if (temPintura === 'Não') {
-            atualizarTabelaPorta(porta);
-            atualizarSubtotal();
-            return;
-        }
-        const pinturaCorreta = tpPintura === 'Automotiva'
-            ? DESC_AUTO
-            : DESC_ELET;
-        $.get('/produtos/lista_ajax/', {
-            s: pinturaCorreta,
-            filtro: 'desc',
-            tp_prod: 'Adicional'
-        })
-        .done(res => {
-            const p = res.produtos?.[0];
-            if (!p) return;
-            const jaExiste = $tabela.find('tr').filter(function () {
-                return $(this).find('td:eq(2)').text().toUpperCase().trim() === pinturaCorreta;
-            }).length > 0;
-            if (jaExiste) return;
-            const idx = $tabela.find('tr').length + 1;
-            $tabela.append(`
-                <tr data-porta="${porta}" data-item-id="${p.id}">
-                    <td data-label="#" class="mobile-2col">${idx+1}</td>
-                    <td data-label="Cód:" class="mobile-2col">${p.id}</td>
-                    <td data-label="Desc.:" class="mobile-2col">${p.desc_prod}</td>
-                    <td data-label="Unid:" class="mobile-2col">${p.unidProd}</td>
-                    <td class="text-danger fw-bold mobile-3col" data-label="Vl. Compra:">${p.vl_compra}</td>
-                    <td class="vl-unit text-success fw-bold mobile-3col" data-label="Vl. Unit:">${p.vl_prod}</td>
-                    <td class="qtd-produto mobile-3col" data-label="Qtde:">${m2.toFixed(2)}</td>
-                    <td class="tot-compra text-danger fw-bold mobile-3col" data-label="Tot. Compra:">0.00</td>
-                    <td class="vl-total text-success fw-bold mobile-3col" data-label="Vl. Total:">0.00</td>
-                    <td data-label="Ações:" class="mobile-3col">
-                        <i class="fas fa-edit editBtn" style="color: #13c43f; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#editItemAdcModal"></i>
-                        <i class="fas fa-trash deleteBtn" style="color:#db1e47;cursor:pointer"></i>
-                    </td>
-                </tr>
-            `);
-            atualizarTabelaPorta(porta);
-            atualizarSubtotal();
-        })
-        .fail(() => {
-            Toastify({
-                text: 'Erro ao buscar pintura.',
-                duration: 5000,
-                gravity: "top",
-                position: "center",
-                backgroundColor: 'linear-gradient(to right, #db1e47, #ff7373)'
-            }).showToast();
-        });
-    }
-    $('#id_pintura').on('change', function () {
-        $('.porta-container').each(function () {
-            const porta = $(this).data('porta');
-            atualizarPinturaPorta(porta);
-            setTimeout(() => {
-                finalizarLoading();
-            }, 500);
-        });
-    });
+    toastErrorShown = false;
     function atualizarLaminarPorta(porta) {
         const tpLam = $(`.tipo-lamina[data-porta="${porta}"]`).val(); // Fechada / Transvision
         const $tabela = $(`#tblProd_${porta} tbody`);
@@ -2063,13 +1848,7 @@ $(document).ready(function() {
             atualizarSubtotal();
         })
         .fail(() => {
-            Toastify({
-                text: 'Erro ao buscar lâminas.',
-                duration: 5000,
-                gravity: "top",
-                position: "center",
-                backgroundColor: 'linear-gradient(to right, #db1e47, #ff7373)'
-            }).showToast();
+            toast("<i class='fa-solid fa-circle-xmark'></i> Erro ao buscar lâminas!", cor_vermelho);
         });
     }
     $(document).on('change', '.tipo-lamina', function () {
@@ -2105,13 +1884,28 @@ $(document).ready(function() {
         atualizarJSONPortas();
         gerarJSONFormas();
     });
+
+    $(document).on('change', '#id_pintura, #id_tp_pintura', async function () {
+
+        iniciarLoading();
+
+        const promises = [];
+
+        $('[id^="tblAdc_"]').each(function () {
+            const porta = $(this).attr('id').split('_')[1];
+            promises.push(atualizarPinturaPorta(porta));
+        });
+
+        await Promise.all(promises);
+
+        atualizarJSONPortas();
+        gerarJSONFormas();
+        reindexarPortas();
+        finalizarLoading();
+    });
+
     atualizarJSONPortas();
     gerarJSONFormas();
-    $("#id_tp_pintura, #id_pintura").change(function () {
-        const porta = $(this).data("porta");
-        $("#loadingModal").modal("show");
-        verificarPintura(porta);
-    });
     let debounceTimeout;
     function atualizarCalculoCompletoDebounced() {
         clearTimeout(debounceTimeout);
@@ -2121,9 +1915,8 @@ $(document).ready(function() {
         }, 200);
     }
     $('#id_alt, #id_tp_vao, #id_larg, #id_qtd, #id_rolo, #id_alt_corte, #id_larg_corte').on('blur', atualizarCalculoCompletoDebounced);
-    $('#id_desconto, #id_acrescimo').mask('000,000,000,000,000.00', {reverse: true});
     $('#desconto, #acrescimo').mask('000.000.000.000.000,00', {reverse: true});
-    $('#id_vl_prod, #id_vl_prod_adc, #editValorItemInput, #editValorItemAdcInput, .editable, .inpFrete, #id_vl_form_pgto').mask('0000.00', {reverse: true});
+    $('#id_vl_prod, #id_vl_prod_adc, #editValorItemInput, #editValorItemAdcInput, .editable, .inpFrete, #id_vl_form_pgto, #id_desconto, #id_acrescimo').mask('00000.00', {reverse: true});
     $('#editQtdInput, #editQtdAdcInput, #id_qtd_prod, #id_qtd_prod_adc, #id_vl_compra').mask('000,000.00', {reverse: true});
     $('.larg, .alt, .id_larg, .larg-corte, .alt-corte, .qtd-laminas, .m2').mask('000,000.00', {reverse: true});
     $('#id_vl_p_s').mask('000.00', {reverse: true});
@@ -2248,15 +2041,7 @@ $(document).ready(function() {
     function gerarPortas() {
         const qtd = parseInt($('#qtd_portas').val());
         if (isNaN(qtd) || qtd < 1) {
-            Toastify({
-                text: '<i class="fa-solid fa-triangle-exclamation"></i> Informe uma quantidade válida de Portas!',
-                duration: 5000,
-                gravity: "top",
-                position: "center",
-                stopOnFocus: true,
-                escapeMarkup: false,
-                backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)",
-            }).showToast();
+            toast("<i class='fa-solid fa-triangle-exclamation'></i> Informe uma quantidade válida de Portas!", cor_amarelo);
             return;
         }
         resetarControleMotor();
@@ -2267,30 +2052,30 @@ $(document).ready(function() {
             $("#tabelaPortasResumo tbody").append(`
                 <tr id="linha_resumo_${i}" class="linha-porta" data-porta="${i}">
                     <td data-label="Porta:" class="num-porta mobile-3col">${i}</td>
-                    <td data-label="Larg.:" class="mobile-3col"><input type="text" class="form-control form-control-sm larg" data-porta="${i}" placeholder="0.00"></td>
-                    <td data-label="Alt.:" class="mobile-3col"><input type="text" class="form-control form-control-sm alt" data-porta="${i}" placeholder="0.00"></td>
-                    <td data-label="Lg. Corte:" class="mobile-3col"><input readonly class="form-control form-control-sm larg-corte" data-porta="${i}" placeholder="0.00"></td>
-                    <td data-label="At. Corte:" class="mobile-3col"><input readonly class="form-control form-control-sm alt-corte" data-porta="${i}" placeholder="0.00"></td>
-                    <td data-label="Qtd. Lâm.:" class="mobile-3col"><input readonly class="form-control form-control-sm qtd-laminas" data-porta="${i}" placeholder="0.00"></td>
-                    <td data-label="M²:" class="mobile-3col"><input readonly class="form-control form-control-sm m2" data-porta="${i}" placeholder="0.00"></td>
-                    <td data-label="Ft. Peso:" class="mobile-3col"><input readonly class="form-control form-control-sm ft-peso" data-porta="${i}" placeholder="0.00"></td>
-                    <td data-label="Peso:" class="mobile-3col"><input readonly class="form-control form-control-sm peso" data-porta="${i}" placeholder="0.00"></td>
-                    <td data-label="Eix. Mot.:" class="mobile-3col"><input readonly class="form-control form-control-sm eix-mot" data-porta="${i}" placeholder="0.00"></td>
-                    <td data-label="Rolo:" class="mobile-3col"><input readonly class="form-control form-control-sm rolo" data-porta="${i}" placeholder="0.00"></td>
-                    <td data-label="Tp. Lâm.:" class="mobile-3col">
+                    <td data-label="Larg.:" class="mobile-2col"><input type="text" class="form-control form-control-sm larg" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="Alt.:" class="mobile-2col"><input type="text" class="form-control form-control-sm alt" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="Lg. Corte:" class="mobile-2col"><input readonly class="form-control form-control-sm larg-corte" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="At. Corte:" class="mobile-2col"><input readonly class="form-control form-control-sm alt-corte" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="Qtd. Lâm.:" class="mobile-2col"><input readonly class="form-control form-control-sm qtd-laminas" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="M²:" class="mobile-2col"><input readonly class="form-control form-control-sm m2" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="Ft. Peso:" class="mobile-2col"><input readonly class="form-control form-control-sm ft-peso" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="Peso:" class="mobile-2col"><input readonly class="form-control form-control-sm peso" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="Eix. Mot.:" class="mobile-2col"><input readonly class="form-control form-control-sm eix-mot" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="Rolo:" class="mobile-full"><input readonly class="form-control form-control-sm rolo" data-porta="${i}" placeholder="0.00"></td>
+                    <td data-label="Tp. Lâm.:" class="mobile-full">
                         <select class="form-select form-select-sm tipo-lamina" data-porta="${i}">
                             <option value="Fechada">Fechada</option>
                             <option value="Transvision">Transvision</option>
                         </select>
                     </td>
-                    <td data-label="Tp. Vão:" class="mobile-2col">
+                    <td data-label="Tp. Vão:" class="mobile-full">
                         <select class="form-select form-select-sm tipo-vao" data-porta="${i}">
                             <option value="Fora do Vão">Fora do Vão</option>
                             <option value="Dentro do Vão">Dentro do Vão</option>
                             <option value="1 Lado Dentro do Vão">1 Lado Dentro do Vão</option>
                         </select>
                     </td>
-                    <td data-label="Exc.:" class="text-center mobile-2col">
+                    <td data-label="Exc.:" class="text-center mobile-full">
                         <button type="button" class="btn btn-danger btn-sm removerPorta" data-porta="${i}">
                             <i class="fa-solid fa-trash-can"></i>
                         </button>
@@ -2451,11 +2236,11 @@ $(document).ready(function() {
         // Verificações e cálculos relativos aos produtos
         buscarProdutosPrincipais(porta, largura, altura);
         buscarProdutosAdicionais(porta, largura, altura);
-        verificarPintura(porta);
         atualizarLaminarPorta(porta);
         setTimeout(() => {
+            console.log('Chamada da função aqui!');
             atualizarPinturaPorta(porta);
-        }, 500);
+        }, 2000);
         // Calculos relacionados ao motor
         $("#loadingModal").modal("show");
         calcFtPeso(porta);
@@ -2524,7 +2309,6 @@ $(document).ready(function() {
     }
     function atualizarTabelaPorta(porta) {
         const tp_pintura = $('#id_tp_pintura').val();
-        const qtd = 1;
         const larg   = parseFloat($(`.larg[data-porta="${porta}"]`).val()) || 0;
         const larg_c = parseFloat($(`.larg-corte[data-porta="${porta}"]`).val()) || 0;
         const alt    = parseFloat($(`.alt[data-porta="${porta}"]`).val()) || 0;
@@ -2536,24 +2320,38 @@ $(document).ready(function() {
         let totalVendaAdc   = 0;
         $(`#tblProd_${porta} tbody tr`).each(function () {
             const $tr = $(this);
-            const desc   = $tr.find('td:eq(2)').text().toUpperCase().trim();
+            const itemId = Number($tr.data('item-id'));
+            const item = prodManager.data[porta]?.find(i => i.id === itemId);
+            if (!item) return;
+            const desc   = item.desc.toUpperCase().trim();
             const compra = parseFloat($tr.find('td:eq(4)').text().replace(',', '.')) || 0;
-            const venda  = parseFloat($tr.find('.vl-unit').text().replace(',', '.')) || 0;
-            let qtdCalc = 0;
-            if (desc.startsWith('GUIAS') || desc.startsWith('TUBO DE AFASTAMENTO'))
-                qtdCalc = qtd * (alt_c + 0.2) * 2;
-            else if (desc.startsWith('EIXO') || desc.startsWith('SOLEIRA'))
-                qtdCalc = qtd * larg_c;
-            else if (desc.startsWith('PERFIL DESLIZANTE'))
-                qtdCalc = alt_c * 4;
-            else if (desc.startsWith('TRAVA LÂMINA'))
-                qtdCalc = alt * 10;
-            else if (desc.startsWith('LÂMINAS LISAS') || desc.startsWith('LÂMINAS TRANSVISION'))
-                qtdCalc = m2;
-            else if (desc.startsWith('MOTOR'))
-                qtdCalc = 1;
-            else
-                qtdCalc = 0;
+            // 🔥 Fallback para DOM (igual função antiga)
+            const venda = parseFloat(
+                item.vl_unit ?? $tr.find('.vl-unit').text().replace(',', '.')
+            ) || 0;
+            let qtdCalc = item.qtd;
+            if (!qtdCalc || qtdCalc <= 0) {
+                if (desc.startsWith('GUIAS') || desc.startsWith('TUBO DE AFASTAMENTO'))
+                    qtdCalc = (alt_c + 0.2) * 2;
+                else if (desc.startsWith('EIXO') || desc.startsWith('SOLEIRA'))
+                    qtdCalc = larg_c;
+                else if (desc.startsWith('PERFIL DESLIZANTE'))
+                    qtdCalc = alt_c * 4;
+                else if (desc.startsWith('TRAVA LÂMINA'))
+                    qtdCalc = alt * 10;
+                else if (desc.startsWith('LÂMINAS LISAS') || desc.startsWith('LÂMINAS TRANSVISION'))
+                    qtdCalc = m2;
+                else if (desc.startsWith('MOTOR'))
+                    qtdCalc = 1;
+                else
+                    qtdCalc = 0;
+                item.qtd = qtdCalc;
+            }
+            console.log('MOTOR', {
+                desc,
+                item_vl_unit: item.vl_unit,
+                dom_vl_unit: $tr.find('.vl-unit').text()
+            });
             const totCompra = compra * qtdCalc;
             const totVenda  = venda  * qtdCalc;
             $tr.find('.qtd-produto').text(qtdCalc.toFixed(2));
@@ -2562,25 +2360,32 @@ $(document).ready(function() {
             totalCompraProd += totCompra;
             totalVendaProd  += totVenda;
         });
+        // ================= ADICIONAIS =================
         $(`#tblAdc_${porta} tbody tr`).each(function () {
             const $tr = $(this);
-            const desc   = $tr.find('td:eq(2)').text().toUpperCase().trim();
+            const itemId = Number($tr.data('item-id'));
+            const item = prodAdcManager.data[porta]?.find(i => i.id === itemId);
+            if (!item) return;
+            const desc   = item.desc.toUpperCase().trim();
             const compra = parseFloat($tr.find('td:eq(4)').text().replace(',', '.')) || 0;
-            const venda  = parseFloat($tr.find('.vl-unit').text().replace(',', '.')) || 0;
-            let qtdCalc = 0;
-            if (
-                (tp_pintura === "Eletrostática" && desc.startsWith("PINTURA ELETROSTÁTICA")) ||
-                (tp_pintura === "Automotiva" && desc.startsWith("PINTURA AUTOMOTIVA"))
-            ) {
-                qtdCalc = m2;
+            const venda  = parseFloat(item.vl_unit) || 0;
+            let qtdCalc = item.qtd;
+            if (!qtdCalc || qtdCalc <= 0) {
+                if (
+                    (tp_pintura === "Eletrostática" && desc.startsWith("PINTURA ELETROSTÁTICA")) ||
+                    (tp_pintura === "Automotiva" && desc.startsWith("PINTURA AUTOMOTIVA"))
+                ) {
+                    qtdCalc = m2;
+                }
+                else if (
+                    desc.startsWith('TRANSPORTE') ||
+                    desc.startsWith('MÃO DE OBRA')
+                )
+                    qtdCalc = 1;
+                else
+                    qtdCalc = 0;
+                item.qtd = qtdCalc;
             }
-            else if (
-                desc.startsWith('TRANSPORTE') ||
-                desc.startsWith('MÃO DE OBRA')
-            )
-                qtdCalc = 1;
-            else
-                qtdCalc = 0;
             const totCompra = compra * qtdCalc;
             const totVenda  = venda  * qtdCalc;
             $tr.find('.qtd-produto').text(qtdCalc.toFixed(2));
@@ -2589,17 +2394,18 @@ $(document).ready(function() {
             totalCompraAdc += totCompra;
             totalVendaAdc  += totVenda;
         });
-        $(`#totCompra_porta_${porta}`).text("R$ " +
-            totalCompraProd.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+        // ================= TOTAIS =================
+        $(`#totCompra_porta_${porta}`).text(
+            "R$ " + totalCompraProd.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
         );
-        $(`#totVenda_porta_${porta}`).text("R$ " +
-            totalVendaProd.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+        $(`#totVenda_porta_${porta}`).text(
+            "R$ " + totalVendaProd.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
         );
-        $(`#totCompraAdc_porta_${porta}`).text("R$ " +
-            totalCompraAdc.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+        $(`#totCompraAdc_porta_${porta}`).text(
+            "R$ " + totalCompraAdc.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
         );
-        $(`#totVendaAdc_porta_${porta}`).text("R$ " +
-            totalVendaAdc.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+        $(`#totVendaAdc_porta_${porta}`).text(
+            "R$ " + totalVendaAdc.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
         );
     }
     const medidasCtrl = {};
@@ -2636,14 +2442,14 @@ $(document).ready(function() {
                     <tr data-porta="${num}" data-item-id="${p.id}">
                         <td data-label="#" class="mobile-2col">${contador}</td>
                         <td data-label="Cód:" class="mobile-2col">${p.id}</td>
-                        <td data-label="Desc.:" class="mobile-2col">${p.desc_prod}</td>
-                        <td data-label="Unid:" class="mobile-2col">${p.unidProd}</td>
-                        <td class="text-danger fw-bold mobile-3col" data-label="Vl. Compra:">${p.vl_compra}</td>
-                        <td class="vl-unit text-success fw-bold mobile-3col" data-label="Vl. Unit:">${p.vl_prod}</td>
-                        <td class="qtd-produto mobile-3col" data-label="Qtde:">0.00</td>
-                        <td class="tot-compra text-danger fw-bold mobile-3col" data-label="Tot. Compra:">0.00</td>
-                        <td class="vl-total text-success fw-bold mobile-3col" data-label="Vl. Total:">0.00</td>
-                        <td data-label="Ações:" class="mobile-3col">
+                        <td data-label="Descrição:" class="mobile-full">${p.desc_prod}</td>
+                        <td data-label="Unidade:" class="mobile-full">${p.unidProd}</td>
+                        <td class="text-danger fw-bold mobile-full" data-label="Vl. Compra:">${p.vl_compra}</td>
+                        <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${p.vl_prod}</td>
+                        <td class="qtd-produto mobile-full" data-label="Quantidade:">0.00</td>
+                        <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0.00</td>
+                        <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0.00</td>
+                        <td data-label="Ações:" class="mobile-full">
                             <i class="fas fa-edit editBtn" style="color: #13c43f; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#editItemModal"></i>
                             <i class="fas fa-trash deleteBtn" style="color: #db1e47; cursor: pointer;"></i>
                         </td>
@@ -2663,7 +2469,7 @@ $(document).ready(function() {
             tp_prod: "Adicional"
         }, function (resp) {
             const tabela = $(`#tblAdc_${porta} tbody`).empty();
-            let contador = 1;
+            let contador = 0;
             resp.produtos.forEach((p) => {
                 prodAdcManager.data[Number(porta)].push({
                     id: p.id,                    // 👈 IMPORTANTE
@@ -2679,14 +2485,14 @@ $(document).ready(function() {
                     <tr data-porta="${porta}" data-item-id="${p.id}">
                         <td data-label="#" class="mobile-2col">${contador}</td>
                         <td data-label="Cód:" class="mobile-2col">${p.id}</td>
-                        <td data-label="Desc.:" class="mobile-2col">${p.desc_prod}</td>
-                        <td data-label="Unid:" class="mobile-2col">${p.unidProd}</td>
-                        <td class="text-danger fw-bold mobile-3col" data-label="Vl. Compra:">${p.vl_compra}</td>
-                        <td class="vl-unit text-success fw-bold mobile-3col" data-label="Vl. Unit:">${p.vl_prod}</td>
-                        <td class="qtd-produto mobile-3col" data-label="Qtde:">0</td>
-                        <td class="tot-compra text-danger fw-bold mobile-3col" data-label="Tot. Compra:">0.00</td>
-                        <td class="vl-total text-success fw-bold mobile-3col" data-label="Vl. Total:">0.00</td>
-                        <td data-label="Ações:" class="mobile-3col">
+                        <td data-label="Descrição:" class="mobile-full">${p.desc_prod}</td>
+                        <td data-label="Unidade:" class="mobile-full">${p.unidProd}</td>
+                        <td class="text-danger fw-bold mobile-full" data-label="Vl. Compra:">${p.vl_compra}</td>
+                        <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${p.vl_prod}</td>
+                        <td class="qtd-produto mobile-full" data-label="Quantidade:">0</td>
+                        <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0.00</td>
+                        <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0.00</td>
+                        <td data-label="Ações:" class="mobile-full">
                             <i class="fas fa-edit editBtn" data-bs-toggle="modal" data-bs-target="#editItemAdcModal" style="color: #13c43f; cursor: pointer;"></i>
                             <i class="fas fa-trash deleteBtn" style="color: #db1e47; cursor: pointer;"></i>
                         </td>
@@ -2694,7 +2500,6 @@ $(document).ready(function() {
                 `);
                 contador++;
             });
-            verificarPintura(porta);
             atualizarTabelaPorta(porta);
             atualizarSubtotal();
             atualizarJSONPortas();
@@ -2770,67 +2575,27 @@ $(document).ready(function() {
         const clienteData = $('#id_cli').select2('data');
         const cliente = clienteData[0]?.id;
         if (temPintura === "Sim" && (!corSelecionada || corSelecionada === "")) {
-            Toastify({
-                text: '<i class="fa-solid fa-triangle-exclamation"></i> Escolha uma cor da pintura antes de gravar!',
-                duration: 5000,
-                gravity: "top",
-                position: "center",
-                stopOnFocus: true,
-                escapeMarkup: false,
-                backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)",
-            }).showToast();
+            toast("<i class='fa-solid fa-triangle-exclamation'></i> Escolha uma cor da pintura antes de gravar!", cor_amarelo);
             $("#medidasBtn").click();
             return false;
         }
         if (!filial) {
-            Toastify({
-                text: '<i class="fa-solid fa-triangle-exclamation"></i> Filial deve ser informada!',
-                duration: 5000,
-                gravity: "top",
-                position: "center",
-                stopOnFocus: true,
-                escapeMarkup: false,
-                backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)",
-            }).showToast();
+            toast("<i class='fa-solid fa-triangle-exclamation'></i> Filial deve ser informada!", cor_amarelo);
             $("#clienteBtn").click();
             return false;
         }
         if (!solicitante) {
-            Toastify({
-                text: '<i class="fa-solid fa-triangle-exclamation"></i> Solicitante deve ser informado!',
-                duration: 5000,
-                gravity: "top",
-                position: "center",
-                stopOnFocus: true,
-                escapeMarkup: false,
-                backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)",
-            }).showToast();
+            toast("<i class='fa-solid fa-triangle-exclamation'></i> Solicitante deve ser informado!", cor_amarelo);
             $("#clienteBtn").click();
             return false;
         }
         if (!cliente) {
-            Toastify({
-                text: '<i class="fa-solid fa-triangle-exclamation"></i> Cliente deve ser informado!',
-                duration: 5000,
-                gravity: "top",
-                position: "center",
-                stopOnFocus: true,
-                escapeMarkup: false,
-                backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)",
-            }).showToast();
+            toast("<i class='fa-solid fa-triangle-exclamation'></i> Cliente deve ser informado!", cor_amarelo);
             $("#clienteBtn").click();
             return false;
         }
         if (!verificarTotalFormas()) {
-            Toastify({
-                text: '<i class="fa-solid fa-triangle-exclamation"></i> Total das formas de pagamento não corresponde ao valor total!',
-                duration: 5000,
-                gravity: "top",
-                position: "center",
-                stopOnFocus: true,
-                escapeMarkup: false,
-                backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)",
-            }).showToast();
+            toast("<i class='fa-solid fa-triangle-exclamation'></i> Total das formas de pagamento não corresponde ao valor total!", cor_amarelo);
             return false;
         }
         $('#staticBackdrop').modal('show');
@@ -3258,28 +3023,12 @@ $(document).ready(function() {
         const valorStr  = $('#id_vl_form_pgto').val();
         const valor     = parseValor(valorStr);
         if (!formaPgto) {
-            Toastify({
-                text: '<i class="fa-solid fa-triangle-exclamation"></i> Forma de Pagamento deve ser informada!',
-                duration: 5000,
-                gravity: "top",
-                position: "center",
-                stopOnFocus: true,
-                escapeMarkup: false,
-                backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)",
-            }).showToast();
+            toast("<i class='fa-solid fa-triangle-exclamation'></i> Forma de Pagamento deve ser informada!", cor_amarelo);
             $("#form_pgtoBtn").click();
             return;
         }
         if (valor <= 0) {
-            Toastify({
-                text: '<i class="fa-solid fa-triangle-exclamation"></i> Informe um valor válido!',
-                duration: 5000,
-                gravity: "top",
-                position: "center",
-                stopOnFocus: true,
-                escapeMarkup: false,
-                backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)",
-            }).showToast();
+            toast("<i class='fa-solid fa-triangle-exclamation'></i> Informe um valor válido!", cor_amarelo);
             return;
         }
         $.ajax({
@@ -3296,15 +3045,7 @@ $(document).ready(function() {
                 gerarJSONFormas();
             },
             error: function () {
-                Toastify({
-                    text: '<i class="fa-solid fa-triangle-exclamation"></i> Erro ao buscar a Forma de Pagamento!',
-                    duration: 5000,
-                    gravity: "top",
-                    position: "center",
-                    stopOnFocus: true,
-                    escapeMarkup: false,
-                    backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)",
-                }).showToast();
+                toast("<i class='fa-solid fa-circle-xmark'></i> Erro ao buscar a Forma de Pagamento!", cor_vermelho);
             }
         });
     });
@@ -3368,53 +3109,51 @@ $(document).ready(function() {
     }
     let lastLg = null;
     let lastAt = null;
-    $(document).ready(function () {
-        $(document).on("blur", ".larg, .alt", function () {
-            let porta = $(this).data("porta"); 
-            const larg = $(`.larg[data-porta="${porta}"]`).val().trim();
-            const alt  = $(`.alt[data-porta="${porta}"]`).val().trim();
-            if (!larg || !alt) return;
-            const lg = parseFloat(larg.replace(",", "."));
-            const at = parseFloat(alt.replace(",", "."));
-            if (lg === lastLg && at === lastAt) {
-                console.log("Largura/altura não mudaram — não recalculando.");
-                return;
-            }
-            lastLg = lg;
-            lastAt = at;
+    $(document).on("blur", ".larg, .alt", function () {
+        let porta = $(this).data("porta");
+        const larg = $(`.larg[data-porta="${porta}"]`).val().trim();
+        const alt  = $(`.alt[data-porta="${porta}"]`).val().trim();
+        if (!larg || !alt) return;
+        const lg = parseFloat(larg.replace(",", "."));
+        const at = parseFloat(alt.replace(",", "."));
+        if (lg === lastLg && at === lastAt) {
+            console.log("Largura/altura não mudaram — não recalculando.");
+            return;
+        }
+        lastLg = lg;
+        lastAt = at;
+        atualizarSubtotal();
+    });
+    $('#prod_servBtn, #adicionaisBtn').on('click', function () {
+        let porta = $(this).data("porta");  // ← AQUI TAMBÉM FUNCIONA
+        const larg = $(`.larg[data-porta="${porta}"]`).val();
+        const alt  = $(`.alt[data-porta="${porta}"]`).val();
+        if (!larg || !alt) {
+            console.log("Sem largura/altura — não recalculando.");
+            return;
+        }
+        const lg = parseFloat(larg.replace(",", "."));
+        const at = parseFloat(alt.replace(",", "."));
+        if (lg === lastLg && at === lastAt) {
+            console.log("Click sem mudança — não resetando tabelas.");
+            return;
+        }
+        $(`.larg[data-porta="${porta}"], .alt[data-porta="${porta}"]`).blur();
+        const temPintura = $("#id_pintura").val();
+        if (temPintura === "Não") {
+            $(`#tblAdc_${porta} tbody tr`).each(function () {
+                const desc = $(this).find("td:nth-child(3)").text().toUpperCase().trim();
+                if (desc === "PINTURA ELETROSTÁTICA" || desc === "PINTURA AUTOMOTIVA") {
+                    $(this).remove();
+                }
+            });
+            calcularValorForma();
+            atualizarTabelaPorta(porta);
             atualizarSubtotal();
-        });
-        $('#prod_servBtn, #adicionaisBtn').on('click', function () {
-            let porta = $(this).data("porta");  // ← AQUI TAMBÉM FUNCIONA
-            const larg = $(`.larg[data-porta="${porta}"]`).val();
-            const alt  = $(`.alt[data-porta="${porta}"]`).val();
-            if (!larg || !alt) {
-                console.log("Sem largura/altura — não recalculando.");
-                return;
-            }
-            const lg = parseFloat(larg.replace(",", "."));
-            const at = parseFloat(alt.replace(",", "."));
-            if (lg === lastLg && at === lastAt) {
-                console.log("Click sem mudança — não resetando tabelas.");
-                return;
-            }
-            $(`.larg[data-porta="${porta}"], .alt[data-porta="${porta}"]`).blur();
-            const temPintura = $("#id_pintura").val();
-            if (temPintura === "Não") {
-                $(`#tblAdc_${porta} tbody tr`).each(function () {
-                    const desc = $(this).find("td:nth-child(3)").text().toUpperCase().trim();
-                    if (desc === "PINTURA ELETROSTÁTICA" || desc === "PINTURA AUTOMOTIVA") {
-                        $(this).remove();
-                    }
-                });
-                calcularValorForma();
-                atualizarTabelaPorta(porta);
-                atualizarSubtotal();
-                somaFormas();
-                return;
-            }
-            prodAdcManager.updateHiddenInput();
-        });
+            somaFormas();
+            return;
+        }
+        prodAdcManager.updateHiddenInput();
     });
     $('#id_cod_prod').on('blur keydown', function(event) {
         if (event.type === 'blur' || event.key === 'Enter') {
@@ -3496,170 +3235,154 @@ $(document).ready(function() {
                             }
                         }
                     } else {
-                        Toastify({
-                            text: 'Código de produto não encontrado!',
-                            duration: 5000,
-                            gravity: "top",
-                            position: "center",
-                            backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
-                            stopOnFocus: true,
-                            escapeMarkup: false,
-                        }).showToast();
+                        toast("<i class='fa-solid fa-triangle-exclamation'></i> Código de produto não encontrado!", cor_amarelo);
                     }
                 },
                 error: function() {
-                    Toastify({
-                        text: 'Erro ao buscar o produto. Tente novamente!',
-                        duration: 5000,
-                        gravity: "top",
-                        position: "center",
-                        backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
-                        stopOnFocus: true,
-                        escapeMarkup: false,
-                    }).showToast();
+                    toast("<i class='fa-solid fa-circle-xmark'></i> Erro ao buscar o produto. Tente novamente!", cor_vermelho);
                 }
             });
         }
     });
-    $('#id_cod_produto').on('blur keydown', function(event) {
-        if (event.type === 'blur' || event.key === 'Enter') {
-            const productId = $(this).val();
-            const tpProduto = $('#id_tp_produto').val(); // Obtém o valor do select
-            if (productId.trim() === '') {
-                return; // Sai da função se o campo estiver vazio
-            }
-            $.ajax({
-                url: '/produtos/lista_ajax_ent/', // Substitua pela URL correta da sua aplicação
-                method: 'GET',
-                data: {
-                    s: productId,
-                    tp: 'cod',
-                    tp_prod: '' // Inclui o tipo de produto na requisição
-                },
-                success: function(response) {
-                    if (response.produtos.length > 0) {
-                        const produto = response.produtos[0];
-                        $('#id_desc_prod').val(produto.desc_prod);
-                        $('#id_unidProduto').val(produto.unidProd);
-                        $('#id_grupoProd').val(produto.grupo);
-                        $('#id_preco_unit').focus();
-                    } else {
-                        Toastify({
-                            text: 'Código de produto não encontrado!',
-                            duration: 5000,
-                            gravity: "top",
-                            position: "center",
-                            backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
-                            stopOnFocus: true,
-                            escapeMarkup: false,
-                        }).showToast();
-                        $('#id_cod_produto').focus();
-                    }
-                },
-                error: function() {
-                    Toastify({
-                        text: 'Erro ao buscar o produto. Tente novamente!',
-                        duration: 5000,
-                        gravity: "top",
-                        position: "center",
-                        backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
-                        stopOnFocus: true,
-                        escapeMarkup: false,
-                    }).showToast();
-                }
-            });
-        }
-    });
-    $('#id_cod_prod_adc').on('blur keydown', function(event) {
-        if (event.type === 'blur' || event.key === 'Enter') {
-            const productId = $(this).val();
-            const tpProduto = $('#id_tp_produto').val(); // Obtém o valor do select
-            if (productId.trim() === '') {
-                return; // Sai da função se o campo estiver vazio
-            }
-            $.ajax({
-                url: '/produtos/lista_ajax/', // Substitua pela URL correta da sua aplicação
-                method: 'GET',
-                data: {
-                    s: productId,
-                    tp: 'cod',
-                    tp_prod: 'Adicional' // Inclui o tipo de produto na requisição
-                },
-                success: function(response) {
-                    if (response.produtos.length > 0) {
-                        const produto = response.produtos[0];
-                        $('#id_desc_prod_adc').val(produto.desc_prod);
-                        $('#id_unidProd_adc').val(produto.unidProd);
-                        $('#id_vl_compra_adc').val(produto.vl_compra);
-                        $('#id_vl_prod_adc').val(produto.vl_prod);
-                        if (produto.vl_prod === "0,00" || produto.vl_prod === "") {
-                            $('#id_vl_prod_adc').focus();
-                        } else {
-                            $('#id_qtd_prod_adc').focus();
-                        }
-                        const descricao = $('#id_desc_prod_adc').val();
-                        const tp_pintura = $("#id_tp_pintura").val();
-                        console.log('Cálculo do produto', descricao)
-                        if ((tp_pintura === "Eletrostática" && descricao === 'PINTURA ELETROSTÁTICA') || (tp_pintura === "Automotiva" && descricao === "PINTURA AUTOMOTIVA")) {
-                            console.log('Valor de id_m2 antes da leitura:', $('#id_m2').val().replace(',', '.'));
-                            let m2 = parseFloat($('#id_m2').val().replace(',', '.'));
-                            if (!isNaN(m2)) {
-                                $('#id_qtd_prod_adc').val(m2.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-                            } else {
-                                $('#id_qtd_prod_adc').val('0,00');
-                            }
-                            const temPintura = $('#id_pintura').val();
-                            let toastErrorShown = false;
-                            if (temPintura === 'Sim') {
-                                $('#id_qtd_prod_adc').val('1,00');
-                            } else {
-                                if (!toastErrorShown) { // Só exibe a mensagem se ainda não foi mostrada
-                                    toastErrorShown = true;
-                                    Toastify({
-                                        text: '<i class="fa-solid fa-triangle-exclamation"></i> Campo Pintura está selecionado como Não, para inserir o produto, altere a opção para Sim!',
-                                        duration: 5000,
-                                        gravity: "top",
-                                        position: "center",
-                                        backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
-                                        stopOnFocus: true,
-                                        escapeMarkup: false,
-                                    }).showToast();
-                                    setTimeout(() => {
-                                        finalizarLoading();
-                                    }, 500);
-                                    $('#id_cod_prod_adc').focus();
-                                }
-                                return;
-                            }
-                            atualizarSubtotal();
-                            toastErrorShown = false;
-                        }
-                    } else {
-                        Toastify({
-                            text: 'Código de produto não encontrado!',
-                            duration: 5000,
-                            gravity: "top",
-                            position: "center",
-                            backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
-                            stopOnFocus: true,
-                            escapeMarkup: false,
-                        }).showToast();
-                    }
-                },
-                error: function() {
-                    Toastify({
-                        text: 'Erro ao buscar o produto. Tente novamente!',
-                        duration: 5000,
-                        gravity: "top",
-                        position: "center",
-                        backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
-                        stopOnFocus: true,
-                        escapeMarkup: false,
-                    }).showToast();
-                }
-            });
-        }
-    });
+    // $('#id_cod_produto').on('blur keydown', function(event) {
+    //     if (event.type === 'blur' || event.key === 'Enter') {
+    //         const productId = $(this).val();
+    //         const tpProduto = $('#id_tp_produto').val(); // Obtém o valor do select
+    //         if (productId.trim() === '') {
+    //             return; // Sai da função se o campo estiver vazio
+    //         }
+    //         $.ajax({
+    //             url: '/produtos/lista_ajax_ent/', // Substitua pela URL correta da sua aplicação
+    //             method: 'GET',
+    //             data: {
+    //                 s: productId,
+    //                 tp: 'cod',
+    //                 tp_prod: '' // Inclui o tipo de produto na requisição
+    //             },
+    //             success: function(response) {
+    //                 if (response.produtos.length > 0) {
+    //                     const produto = response.produtos[0];
+    //                     $('#id_desc_prod').val(produto.desc_prod);
+    //                     $('#id_unidProduto').val(produto.unidProd);
+    //                     $('#id_grupoProd').val(produto.grupo);
+    //                     $('#id_preco_unit').focus();
+    //                 } else {
+    //                     Toastify({
+    //                         text: 'Código de produto não encontrado!',
+    //                         duration: 5000,
+    //                         gravity: "top",
+    //                         position: "center",
+    //                         backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
+    //                         stopOnFocus: true,
+    //                         escapeMarkup: false,
+    //                     }).showToast();
+    //                     $('#id_cod_produto').focus();
+    //                 }
+    //             },
+    //             error: function() {
+    //                 Toastify({
+    //                     text: 'Erro ao buscar o produto. Tente novamente!',
+    //                     duration: 5000,
+    //                     gravity: "top",
+    //                     position: "center",
+    //                     backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
+    //                     stopOnFocus: true,
+    //                     escapeMarkup: false,
+    //                 }).showToast();
+    //             }
+    //         });
+    //     }
+    // });
+    // $('#id_cod_prod_adc').on('blur keydown', function(event) {
+    //     if (event.type === 'blur' || event.key === 'Enter') {
+    //         const productId = $(this).val();
+    //         const tpProduto = $('#id_tp_produto').val(); // Obtém o valor do select
+    //         if (productId.trim() === '') {
+    //             return; // Sai da função se o campo estiver vazio
+    //         }
+    //         $.ajax({
+    //             url: '/produtos/lista_ajax/', // Substitua pela URL correta da sua aplicação
+    //             method: 'GET',
+    //             data: {
+    //                 s: productId,
+    //                 tp: 'cod',
+    //                 tp_prod: 'Adicional' // Inclui o tipo de produto na requisição
+    //             },
+    //             success: function(response) {
+    //                 if (response.produtos.length > 0) {
+    //                     const produto = response.produtos[0];
+    //                     $('#id_desc_prod_adc').val(produto.desc_prod);
+    //                     $('#id_unidProd_adc').val(produto.unidProd);
+    //                     $('#id_vl_compra_adc').val(produto.vl_compra);
+    //                     $('#id_vl_prod_adc').val(produto.vl_prod);
+    //                     if (produto.vl_prod === "0,00" || produto.vl_prod === "") {
+    //                         $('#id_vl_prod_adc').focus();
+    //                     } else {
+    //                         $('#id_qtd_prod_adc').focus();
+    //                     }
+    //                     const descricao = $('#id_desc_prod_adc').val();
+    //                     const tp_pintura = $("#id_tp_pintura").val();
+    //                     console.log('Cálculo do produto', descricao)
+    //                     if ((tp_pintura === "Eletrostática" && descricao === 'PINTURA ELETROSTÁTICA') || (tp_pintura === "Automotiva" && descricao === "PINTURA AUTOMOTIVA")) {
+    //                         console.log('Valor de id_m2 antes da leitura:', $('#id_m2').val().replace(',', '.'));
+    //                         let m2 = parseFloat($('#id_m2').val().replace(',', '.'));
+    //                         if (!isNaN(m2)) {
+    //                             $('#id_qtd_prod_adc').val(m2.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    //                         } else {
+    //                             $('#id_qtd_prod_adc').val('0,00');
+    //                         }
+    //                         const temPintura = $('#id_pintura').val();
+    //                         let toastErrorShown = false;
+    //                         if (temPintura === 'Sim') {
+    //                             $('#id_qtd_prod_adc').val('1,00');
+    //                         } else {
+    //                             if (!toastErrorShown) { // Só exibe a mensagem se ainda não foi mostrada
+    //                                 toastErrorShown = true;
+    //                                 Toastify({
+    //                                     text: '<i class="fa-solid fa-triangle-exclamation"></i> Campo Pintura está selecionado como Não, para inserir o produto, altere a opção para Sim!',
+    //                                     duration: 5000,
+    //                                     gravity: "top",
+    //                                     position: "center",
+    //                                     backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
+    //                                     stopOnFocus: true,
+    //                                     escapeMarkup: false,
+    //                                 }).showToast();
+    //                                 setTimeout(() => {
+    //                                     finalizarLoading();
+    //                                 }, 500);
+    //                                 $('#id_cod_prod_adc').focus();
+    //                             }
+    //                             return;
+    //                         }
+    //                         atualizarSubtotal();
+    //                         toastErrorShown = false;
+    //                     }
+    //                 } else {
+    //                     Toastify({
+    //                         text: 'Código de produto não encontrado!',
+    //                         duration: 5000,
+    //                         gravity: "top",
+    //                         position: "center",
+    //                         backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
+    //                         stopOnFocus: true,
+    //                         escapeMarkup: false,
+    //                     }).showToast();
+    //                 }
+    //             },
+    //             error: function() {
+    //                 Toastify({
+    //                     text: 'Erro ao buscar o produto. Tente novamente!',
+    //                     duration: 5000,
+    //                     gravity: "top",
+    //                     position: "center",
+    //                     backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
+    //                     stopOnFocus: true,
+    //                     escapeMarkup: false,
+    //                 }).showToast();
+    //             }
+    //         });
+    //     }
+    // });
     function carregarDadosCliente(clienteId) {
         if (clienteId) {
             $.ajax({
@@ -4278,14 +4001,7 @@ $(document).ready(function() {
         }
         if (navigator.clipboard) {
             navigator.clipboard.writeText(link).then(() => {
-                Toastify({
-                    text: "Link copiado!",
-                    duration: 5000,
-                    gravity: "top", // Posição da notificação
-                    position: "center", // Centralizado no topo
-                    backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)", // Verde sucesso
-                    stopOnFocus: true,
-                }).showToast();
+                toast("<i class='fa-solid fa-circle-check'></i> Link copiado!", cor_verde);
             }).catch(err => console.error("Erro ao copiar: ", err));
         } else {
             // Fallback para navegadores antigos
@@ -4294,14 +4010,7 @@ $(document).ready(function() {
             tempInput.val(link).select();
             document.execCommand("copy");
             tempInput.remove();
-            Toastify({
-                text: "Link copiado!",
-                duration: 5000,
-                gravity: "top",
-                position: "center",
-                backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
-                stopOnFocus: true,
-            }).showToast();
+            toast("<i class='fa-solid fa-circle-check'></i> Link copiado!", cor_verde);
         }
     });
     document.addEventListener("DOMContentLoaded", function() {

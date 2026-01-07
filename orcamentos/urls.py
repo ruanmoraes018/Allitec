@@ -10,8 +10,8 @@ urlpatterns = [
     path("pdf_orcamento/<int:id>/", views.pdf_orcamento_html, name='pdf-orcamento'),
     # PDF novo (HTML + Chrome)
     # path('pdf-html/<int:id>/', views.pdf_orcamento_html, name='pdf_orcamento_html'),
-    path("pdf_contrato/<int:id>/", views.gerar_contrato_pdf, name='pdf-contrato'),
-    path("contrato-html/<int:id>/", views.pdf_contrato_html, name='pdf-contrato-html'),
+    path("pdf_contrato/<int:id>/", views.pdf_contrato_html, name='pdf-contrato'),
+    # path("contrato-html/<int:id>/", views.pdf_contrato_html, name='pdf-contrato-html'),
     path("pdf_cont_v2/<int:id>/", views.pdf_contrato_v2, name='pdf-cont-v2'),
     path('fat_orc/<int:id>/', views.faturar_orcamento, name='faturar-orcamento'),
     path('canc_orc/<int:id>/', views.cancelar_orcamento, name='cancelar-orcamento'),

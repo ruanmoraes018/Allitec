@@ -46,6 +46,7 @@ from playwright.sync_api import sync_playwright
 from django.template.loader import render_to_string
 import tempfile
 import base64
+from weasyprint import HTML, CSS
 
 PortaFormSet = inlineformset_factory(
     Orcamento, PortaOrcamento,
@@ -391,7 +392,7 @@ def att_orcamento(request, id):
         orcamento.acrescimo = acres
 
         form.save()
-        
+
         portas_json = request.POST.get("json_portas")
 
         try:
@@ -816,6 +817,8 @@ def imprimir_comp_a4(request, id):
     return response
 
 from reportlab.lib.utils import simpleSplit
+from weasyprint.text.fonts import FontConfiguration
+from django.template.loader import render_to_string
 
 @login_required
 def pdf_contrato_html(request, id):
@@ -823,12 +826,18 @@ def pdf_contrato_html(request, id):
         'portas__produtos__produto',
         'portas__adicionais__produto'
     ).get(pk=id)
+
     portas = o.portas.all().order_by('numero')
     formas_pgto = o.formas_pgto.all()
     linhas_formas = max(formas_pgto.count(), 4)
+
+    # =========================
+    # LOGO EM BASE64
+    # =========================
     logo_base64 = None
     logo_path = os.path.join(settings.MEDIA_ROOT, str(o.vinc_fil.logo))
-    if os.path.exists(logo_path):
+
+    if o.vinc_fil.logo and os.path.exists(logo_path):
         with Image.open(logo_path) as img:
             if img.mode in ('RGBA', 'LA'):
                 bg = Image.new("RGB", img.size, (255, 255, 255))
@@ -836,157 +845,41 @@ def pdf_contrato_html(request, id):
                 img = bg
             else:
                 img = img.convert("RGB")
+
             buffer = BytesIO()
             img.save(buffer, format="JPEG")
-            logo_base64 = base64.b64encode(buffer.getvalue()).decode()
-    html = render_to_string(
+            logo_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+    # =========================
+    # HTML (CSS EMBUTIDO)
+    # =========================
+    html_string = render_to_string(
         'orcamentos/pdf_contrato.html',
         {
-            'o': o, "logo_base64": logo_base64,
-            "portas": portas, "linhas_formas": linhas_formas,
-        },
-        request=request
+            'o': o,
+            'portas': portas,
+            'linhas_formas': linhas_formas,
+            'logo_base64': logo_base64,
+        }
     )
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".html", mode="w", encoding="utf-8") as f:
-        f.write(html)
-        html_path = f.name
-    pdf_path = html_path.replace(".html", ".pdf")
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto(f"file:///{html_path}", wait_until="load")
-        # 🔥 ISSO É O QUE ESTÁ FALTANDO
-        page.emulate_media(media="print")
-        page.pdf(
-            path=pdf_path,
-            format="A4",
-            print_background=True,
-            margin={
-                "top": "25mm", "bottom": "20mm",
-                "left": "15mm", "right": "15mm",
-            }
-        )
-        browser.close()
-    with open(pdf_path, "rb") as f:
-        response = HttpResponse(f.read(), content_type="application/pdf")
-    os.unlink(html_path)
-    os.unlink(pdf_path)
-    response["Content-Disposition"] = f'inline; filename="CONTRATO ORÇAMENTO PORTA ENROLAR - {o.num_orcamento}.pdf"'
+
+    # =========================
+    # GERAR PDF (SEM CSS EXTERNO)
+    # =========================
+    pdf = HTML(
+        string=html_string,
+        base_url=request.build_absolute_uri('/')
+    ).write_pdf()
+
+    # =========================
+    # RESPONSE
+    # =========================
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = (
+        f'inline; filename="CONTRATO ORÇAMENTO PORTA ENROLAR - {o.num_orcamento}.pdf"'
+    )
+
     return response
-
-@login_required
-def gerar_contrato_pdf(request, id):
-    o = get_object_or_404(
-        Orcamento.objects.prefetch_related("portas"),
-        pk=id
-    )
-    pdfmetrics.registerFont(TTFont("Times", times))
-    pdfmetrics.registerFont(TTFont("Times Bold", times_bold))
-    buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=A4)
-    largura, altura = A4
-    y = altura - 80
-    p.setTitle(f"CONTRATO PORTA DE ENROLAR - {o.num_orcamento}")
-    def write_text(text, size=12, bold=False, gap=14):
-        nonlocal y
-        font = "Times Bold" if bold else "Times"
-        p.setFont(font, size)
-        max_width = largura - 60
-        for line in simpleSplit(text, font, size, max_width):
-            p.drawString(30, y, line)
-            y -= gap
-    def draw_logo():
-        logo_path = os.path.join(settings.MEDIA_ROOT, str(o.vinc_fil.logo))
-        if os.path.exists(logo_path):
-            with Image.open(logo_path) as img:
-                img = img.convert("RGB")
-                p.drawImage(
-                    ImageReader(img),
-                    (largura - 8 * cm) / 2,
-                    altura - 4 * cm,
-                    width=8 * cm,
-                    height=3 * cm
-                )
-    p.setFont("Times Bold", 16)
-    p.drawCentredString(largura / 2, y, "CONTRATO")
-    y -= 30
-    if o.cli.pessoa == "Jurídica":
-        write_text(
-            f"Sociedade Empresária, inscrita no CNPJ sob nº {o.cli.cpf_cnpj}, "
-            f"com sede em {o.cli.endereco}, {o.cli.bairro} - {o.cli.cidade}"
-        )
-    else:
-        write_text(
-            f"Pessoa Física, inscrita no CPF sob nº {o.cli.cpf_cnpj}, "
-            f"residente em {o.cli.endereco}, {o.cli.bairro} - {o.cli.cidade}"
-        )
-    y -= 10
-    write_text(f"CONTRATADA: {o.vinc_fil.razao_social}", bold=True)
-    write_text(
-        f"CNPJ: {o.vinc_fil.cnpj} – I.E: {o.vinc_fil.ie} – "
-        f"Endereço: {o.vinc_fil.endereco}, Nº {o.vinc_fil.numero} – "
-        f"{o.vinc_fil.bairro_fil} – {o.vinc_fil.cidade_fil} – "
-        f"CEP: {o.vinc_fil.cep} – Telefone: {o.vinc_fil.tel}"
-    )
-    y -= 10
-    write_text("CLÁUSULA PRIMEIRA – DO OBJETO:", bold=True)
-    portas = o.portas.all()
-    if portas.count() == 1:
-        pta = portas.first()
-        write_text(
-            f"Venda e instalação de uma porta de aço automatizada, "
-            f"medindo {pta.larg}m x {pta.alt}m."
-        )
-    else:
-        write_text(
-            f"Venda e instalação de {portas.count()} portas de aço automatizadas, "
-            f"conforme medidas descritas no orçamento."
-        )
-    y -= 10
-    write_text("CLÁUSULA SEGUNDA – DO VALOR:", bold=True)
-    write_text(
-        f"O valor total do presente contrato é de "
-        f"R$ {o.total}, conforme orçamento aprovado."
-    )
-    write_text(
-        "O pagamento será realizado conforme as condições acordadas "
-        "no ato da contratação."
-    )
-    y -= 10
-    write_text("CLÁUSULA TERCEIRA – DAS OBRIGAÇÕES:", bold=True)
-    write_text("• A CONTRATADA deverá iniciar a instalação em até 15 dias após a assinatura.")
-    write_text("• A CONTRATADA concede 1 ano de assistência técnica (exceto mau uso).")
-    write_text("• A CONTRATANTE deverá disponibilizar ponto de energia 220V.")
-    y -= 10
-    write_text("CLÁUSULA QUARTA – DA MULTA:", bold=True)
-    write_text(
-        "Em caso de inadimplência, será aplicada multa de 2% sobre o valor devido, "
-        "acrescida de juros de 1% ao mês."
-    )
-    y -= 20
-    locale.setlocale(locale.LC_TIME, "pt_BR.UTF-8")
-    data_formatada = o.dt_emi.strftime("%d de %B de %Y").upper()
-    write_text(f"Local e data: {o.vinc_fil.cidade_fil.nome_cidade}, {data_formatada}", gap=30)
-    y -= 20
-    # ==========================
-    p.drawString(40, y, "______________________________________")
-    p.drawString(300, y, "______________________________________")
-    y -= 30
-    p.setFont("Times Bold", 12)
-    p.drawString(40, y, o.vinc_fil.fantasia.upper())
-    p.drawString(300, y, o.cli.fantasia)
-    y -= 40
-    p.setFont("Times Bold", 9)
-    p.drawCentredString(
-        largura / 2,
-        y,
-        f"{o.vinc_fil.razao_social} – CNPJ: {o.vinc_fil.cnpj} – I.E: {o.vinc_fil.ie}"
-    )
-    p.showPage()
-    p.save()
-    buffer.seek(0)
-    return HttpResponse(buffer, content_type="application/pdf")
-
 
 @login_required
 def pdf_contrato_v2(request, id):
@@ -1112,18 +1005,24 @@ def pdf_contrato_v2(request, id):
     y -= 20
     # TOTAL GERAL
     p.setFont("Helvetica-Bold", 12)
+    vl_tot_fmt = f"{o.total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     p.drawString(
         30,
         y,
-        f"✔ Valor total do fornecimento e instalação: R$ {o.total:,.2f}."
+        f"✔ Valor total do fornecimento e instalação: R$ {vl_tot_fmt}."
     )
     y -= 20
     p.setFont("Helvetica", 12)
+    dez_p = o.total * Decimal('0.10')
+    vl_dsct = o.total - dez_p
+    vl_dsct_fmt = f"{vl_dsct:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
     p.drawString(
         30,
         y,
-        "Valor acima em AVISTA com 10% de desconto ou em até 10x sem Juros nos cartões!"
+        f"Valor acima em até 10x nos cartões de crédito ou À VISTA com 10% de desconto! (R$ {vl_dsct_fmt})"
     )
+
     y -= 25
 
     p.setFont("Helvetica-Bold", 12)
@@ -1167,7 +1066,6 @@ def pdf_contrato_v2(request, id):
     p.line(100, y, larg_pag - 100, y)
     y -= 15
     p.drawCentredString(larg_pag / 2, y, f"{o.cli}")
-    # --- Finalizar ---
     p.showPage()
     p.save()
     buffer.seek(0)
@@ -1183,49 +1081,44 @@ def pdf_orcamento_html(request, id):
     formas_pgto = o.formas_pgto.all()
     linhas_formas = max(formas_pgto.count(), 4)
     logo_base64 = None
-    logo_path = os.path.join(settings.MEDIA_ROOT, str(o.vinc_fil.logo))
-    if os.path.exists(logo_path):
-        with Image.open(logo_path) as img:
-            if img.mode in ('RGBA', 'LA'):
-                bg = Image.new("RGB", img.size, (255, 255, 255))
-                bg.paste(img, mask=img.split()[-1])
-                img = bg
-            else:
-                img = img.convert("RGB")
-            buffer = BytesIO()
-            img.save(buffer, format="JPEG")
-            logo_base64 = base64.b64encode(buffer.getvalue()).decode()
-    html = render_to_string(
-        'orcamentos/pdf_orcamento.html',
+    if o.vinc_fil.logo:
+        logo_path = os.path.join(settings.MEDIA_ROOT, str(o.vinc_fil.logo))
+        if os.path.exists(logo_path):
+            with Image.open(logo_path) as img:
+                if img.mode in ('RGBA', 'LA'):
+                    bg = Image.new("RGB", img.size, (255, 255, 255))
+                    bg.paste(img, mask=img.split()[-1])
+                    img = bg
+                else:
+                    img = img.convert("RGB")
+                buffer = BytesIO()
+                img.save(buffer, format="JPEG")
+                logo_base64 = base64.b64encode(buffer.getvalue()).decode()
+    html = render_to_string('orcamentos/pdf_orcamento.html',
         {
-            'o': o, "logo_base64": logo_base64,
-            "portas": portas, "linhas_formas": linhas_formas,
+            'o': o,
+            'portas': portas,
+            'linhas_formas': linhas_formas,
+            'logo_base64': logo_base64,
         },
         request=request
     )
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".html", mode="w", encoding="utf-8") as f:
-        f.write(html)
-        html_path = f.name
-    pdf_path = html_path.replace(".html", ".pdf")
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto(f"file:///{html_path}", wait_until="load")
-        # 🔥 ISSO É O QUE ESTÁ FALTANDO
-        page.emulate_media(media="print")
-        page.pdf(
-            path=pdf_path,
-            format="A4",
-            print_background=True,
-            margin={
-                "top": "25mm", "bottom": "20mm",
-                "left": "15mm", "right": "15mm",
-            }
-        )
-        browser.close()
-    with open(pdf_path, "rb") as f:
-        response = HttpResponse(f.read(), content_type="application/pdf")
-    os.unlink(html_path)
-    os.unlink(pdf_path)
-    response["Content-Disposition"] = f'inline; filename="ORÇAMENTO PORTA ENROLAR - {o.num_orcamento}.pdf"'
+    pdf = HTML(string=html, base_url=request.build_absolute_uri('/') ).write_pdf(
+        stylesheets=[
+            CSS(string="""
+                @page {
+                    size: A4;
+                    margin: 25mm 15mm 20mm 15mm;
+                }
+                body {
+                    font-family: Arial, sans-serif;
+                    font-size: 11px;
+                }
+            """)
+        ]
+    )
+    response = HttpResponse(pdf, content_type="application/pdf")
+    response["Content-Disposition"] = (
+        f'inline; filename="ORÇAMENTO PORTA ENROLAR - {o.num_orcamento}.pdf"'
+    )
     return response

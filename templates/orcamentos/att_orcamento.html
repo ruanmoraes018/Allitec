@@ -27,12 +27,12 @@
                             ALTERAÇÃO DE ORÇAMENTOS
                         </span>
                     </div>
-                    <div class="form-buttons" style="margin-left: 10px; margin-top: 10px;">
-                        <button type="button" class="btn btn-dark" id="medidasBtn">Medidas</button>
-                        <button type="button" class="btn btn-dark" id="clienteBtn">Cliente</button>
-                        <button type="button" class="btn btn-dark" id="prod_servBtn">Produtos</button>
-                        <button type="button" class="btn btn-dark" id="adicionaisBtn">Adicionais</button>
-                        <button type="button" class="btn btn-dark" id="form_pgtoBtn">Form. Pgto.</button>
+                    <div class="form-buttons text-center" style="margin-left: 10px; margin-top: 10px;">
+                        <button type="button" class="btn btn-dark" id="medidasBtn" style="margin-bottom: 5px;">Medidas</button>
+                        <button type="button" class="btn btn-dark" id="clienteBtn" style="margin-bottom: 5px;">Cliente</button>
+                        <button type="button" class="btn btn-dark" id="prod_servBtn" style="margin-bottom: 5px;">Produtos</button>
+                        <button type="button" class="btn btn-dark" id="adicionaisBtn" style="margin-bottom: 5px;">Adicionais</button>
+                        <button type="button" class="btn btn-dark" id="form_pgtoBtn" style="margin-bottom: 5px;">Form. Pgto.</button>
                     </div>
                     <div class="card-body">
                         <!--Cliente-->
@@ -141,34 +141,34 @@
                                             <tbody>
                                                 {% for pt in orcamento.portas.all %}
                                                     <tr id="linha_resumo_{{ pt.numero }}" class="linha-porta" data-porta="{{ pt.numero }}">
-                                                        <td data-label="Porta:" class="mobile-3col">{{ forloop.counter|stringformat:"01d" }}</td>
-                                                        <td data-label="Larg.:" class="mobile-3col"><input type="text" class="form-control form-control-sm larg" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.largura }}"></td>
-                                                        <td data-label="Alt.:" class="mobile-3col"><input type="text" class="form-control form-control-sm alt" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.altura }}"></td>
-                                                        <td data-label="Lg. Corte:" class="mobile-3col"><input readonly class="form-control form-control-sm larg-corte" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.larg_corte }}"></td>
-                                                        <td data-label="At. Corte:" class="mobile-3col"><input readonly class="form-control form-control-sm alt-corte" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.alt_corte }}"></td>
-                                                        <td data-label="Qtd. Lâm.:" class="mobile-3col"><input readonly class="form-control form-control-sm qtd-laminas" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.qtd_lam }}"></td>
-                                                        <td data-label="M²:" class="mobile-3col"><input readonly class="form-control form-control-sm m2" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.m2 }}"></td>
-                                                        <td data-label="Ft. Peso:" class="mobile-3col"><input readonly class="form-control form-control-sm ft-peso" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.fator_peso }}"></td>
-                                                        <td data-label="Peso:" class="mobile-3col"><input readonly class="form-control form-control-sm peso" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.peso }}"></td>
-                                                        <td data-label="Eix. Mot.:" class="mobile-3col"><input readonly class="form-control form-control-sm eix-mot" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.eixo_motor }}"></td>
+                                                        <td data-label="Porta:" class="mobile-2col">{{ forloop.counter|stringformat:"01d" }}</td>
+                                                        <td data-label="Larg.:" class="mobile-2col"><input type="text" class="form-control form-control-sm larg" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.largura }}"></td>
+                                                        <td data-label="Alt.:" class="mobile-2col"><input type="text" class="form-control form-control-sm alt" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.altura }}"></td>
+                                                        <td data-label="Lg. Corte:" class="mobile-2col"><input readonly class="form-control form-control-sm larg-corte" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.larg_corte }}"></td>
+                                                        <td data-label="At. Corte:" class="mobile-2col"><input readonly class="form-control form-control-sm alt-corte" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.alt_corte }}"></td>
+                                                        <td data-label="Qtd. Lâm.:" class="mobile-2col"><input readonly class="form-control form-control-sm qtd-laminas" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.qtd_lam }}"></td>
+                                                        <td data-label="M²:" class="mobile-2col"><input readonly class="form-control form-control-sm m2" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.m2 }}"></td>
+                                                        <td data-label="Ft. Peso:" class="mobile-2col"><input readonly class="form-control form-control-sm ft-peso" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.fator_peso }}"></td>
+                                                        <td data-label="Peso:" class="mobile-2col"><input readonly class="form-control form-control-sm peso" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.peso }}"></td>
+                                                        <td data-label="Eix. Mot.:" class="mobile-2col"><input readonly class="form-control form-control-sm eix-mot" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.eixo_motor }}"></td>
                                                         {% load l10n %}
-                                                        <td data-label="Rolo:" class="mobile-3col">
+                                                        <td data-label="Rolo:" class="mobile-full">
                                                             <input readonly class="form-control form-control-sm rolo" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.rolo|unlocalize }}">
                                                         </td>
-                                                        <td data-label="Tp. Lâm.:" class="mobile-3col">
+                                                        <td data-label="Tp. Lâm.:" class="mobile-full">
                                                             <select class="form-select form-select-sm tipo-lamina" data-porta="{{ pt.numero }}">
                                                                 <option value="Fechada" {% if pt.tipo_lamina == "Fechada" %}selected{% endif %}>Fechada</option>
                                                                 <option value="Transvision" {% if pt.tipo_lamina == "Transvision" %}selected{% endif %}>Transvision</option>
                                                             </select>
                                                         </td>
-                                                        <td data-label="Tp. Vão:" class="mobile-2col">
+                                                        <td data-label="Tp. Vão:" class="mobile-full">
                                                             <select class="form-select form-select-sm tipo-vao" data-porta="{{ pt.numero }}">
                                                                 <option value="Fora do Vão" {% if pt.tipo_vao == "Fora do Vão" %}selected{% endif %}>Fora do Vão</option>
                                                                 <option value="Dentro do Vão" {% if pt.tipo_vao == "Dentro do Vão" %}selected{% endif %}>Dentro do Vão</option>
                                                                 <option value="1 Lado Dentro do Vão" {% if pt.tipo_vao == "1 Lado Dentro do Vão" %}selected{% endif %}>1 Lado Dentro do Vão</option>
                                                             </select>
                                                         </td>
-                                                        <td data-label="Exc.:" class="text-center mobile-2col">
+                                                        <td data-label="Exc.:" class="text-center mobile-full">
                                                             <button type="button" class="btn btn-danger btn-sm removerPorta" data-porta="{{ pt.numero }}">
                                                                 <i class="fa-solid fa-trash-can"></i>
                                                             </button>
@@ -177,7 +177,7 @@
                                                 {% endfor %}
                                             </tbody>
                                         </table>
-                                    </div>  
+                                    </div>
                                 </div>
                                 <div class="col-md-1">
                                     {{ form.pintura|as_crispy_field }}
@@ -191,7 +191,7 @@
                                 <div class="col-md-2">
                                     {{ form.portao_social|as_crispy_field }}
                                 </div>
-                                <div class="col-md-1">
+                                <div class="col-md-2">
                                     {{ form.vl_p_s|as_crispy_field }}
                                 </div>
                                 <input type="hidden" id="id_json_portas" name="json_portas">
@@ -231,24 +231,24 @@
                                                             <tr data-porta="{{ pt.numero }}" data-item-id="{{ pprod.produto.id }}">
                                                                 <td data-label="#" class="mobile-2col">{{ forloop.counter }}</td>
                                                                 <td data-label="Cód:" class="mobile-2col">{{ pprod.produto.id }}</td>
-                                                                <td data-label="Desc.:" class="mobile-2col">{{ pprod.produto.desc_prod }}</td>
-                                                                <td data-label="Unid:" class="mobile-2col">{{ pprod.produto.unidProd }}</td>
-                                                                <td class="text-danger fw-bold mobile-3col" data-label="Vl. Compra:">{{ pprod.produto.vl_compra }}</td>
+                                                                <td data-label="Descrição:" class="mobile-full">{{ pprod.produto.desc_prod }}</td>
+                                                                <td data-label="Unidade:" class="mobile-full">{{ pprod.produto.unidProd }}</td>
+                                                                <td class="text-danger fw-bold mobile-full" data-label="Vl. Compra:">{{ pprod.produto.vl_compra }}</td>
                                                                 {% load l10n %}
-                                                                <td class="vl-unit text-success fw-bold mobile-3col" data-label="Vl. Unit:">
+                                                                <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">
                                                                     {{ pprod.produto.produtotabela_set.first.vl_prod|unlocalize }}
                                                                 </td>
                                                                 {% load l10n %}
-                                                                <td class="qtd-produto mobile-3col" data-label="Qtde:">
+                                                                <td class="qtd-produto mobile-full" data-label="Quantidade:">
                                                                     {{ pprod.quantidade|unlocalize }}
                                                                 </td>
-                                                                <td class="tot-compra text-danger fw-bold mobile-3col" data-label="Tot. Compra:">
+                                                                <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">
                                                                     {{ pprod.totCompraP|floatformat:2 }}
                                                                 </td>
-                                                                <td class="vl-total text-success fw-bold mobile-3col" data-label="Vl. Total:">
+                                                                <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">
                                                                     {{ pprod.subtotalP|floatformat:2 }}
                                                                 </td>
-                                                                <td data-label="Ações:" class="mobile-3col">
+                                                                <td data-label="Ações:" class="mobile-full">
                                                                     <i class="fas fa-edit editBtn" style="color:#13c43f;cursor:pointer" data-bs-toggle="modal" data-bs-target="#editItemModal"></i>
                                                                     <i class="fas fa-trash deleteBtn" style="color:#db1e47;cursor:pointer"></i>
                                                                 </td>
@@ -308,24 +308,24 @@
                                                             <tr data-porta="{{ pt.numero }}" data-item-id="{{ adc.produto.id }}">
                                                                 <td data-label="#" class="mobile-2col">{{ forloop.counter }}</td>
                                                                 <td data-label="Cód:" class="mobile-2col">{{ adc.produto.id }}</td>
-                                                                <td data-label="Desc.:" class="mobile-2col">{{ adc.produto.desc_prod }}</td>
-                                                                <td data-label="Unid:" class="mobile-2col">{{ adc.produto.unidProd }}</td>
-                                                                <td class="text-danger fw-bold mobile-3col" data-label="Vl. Compra:">{{ adc.produto.vl_compra }}</td>
+                                                                <td data-label="Descrição:" class="mobile-full">{{ adc.produto.desc_prod }}</td>
+                                                                <td data-label="Unidade:" class="mobile-full">{{ adc.produto.unidProd }}</td>
+                                                                <td class="text-danger fw-bold mobile-full" data-label="Vl. Compra:">{{ adc.produto.vl_compra }}</td>
                                                                 {% load l10n %}
-                                                                <td class="vl-unit text-success fw-bold mobile-3col" data-label="Vl. Unit:">
+                                                                <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">
                                                                     {{ adc.produto.produtotabela_set.first.vl_prod|unlocalize }}
                                                                 </td>
                                                                 {% load l10n %}
-                                                                <td class="qtd-produto mobile-3col" data-label="Qtde:">
+                                                                <td class="qtd-produto mobile-full" data-label="Quantidade:">
                                                                     {{ adc.quantidade|unlocalize }}
                                                                 </td>
-                                                                <td class="tot-compra text-danger fw-bold mobile-3col" data-label="Tot. Compra:">
+                                                                <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">
                                                                     {{ adc.totCompraA|floatformat:2 }}
                                                                 </td>
-                                                                <td class="vl-total text-success fw-bold mobile-3col" data-label="Vl. Total:">
+                                                                <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">
                                                                     {{ adc.subtotalA|floatformat:2 }}
                                                                 </td>
-                                                                <td data-label="Ações:" class="mobile-3col">
+                                                                <td data-label="Ações:" class="mobile-full">
                                                                     <i class="fas fa-edit editBtn" data-bs-toggle="modal" data-bs-target="#editItemAdcModal" style="color:#13c43f;cursor:pointer"></i>
                                                                     <i class="fas fa-trash deleteBtn" style="color:#db1e47;cursor:pointer"></i>
                                                                 </td>
@@ -372,8 +372,9 @@
                                 <div class="col-md-2" id="div_id_desconto">
                                     <label for="id_desconto" class="form-label">Desconto (-)</label>
                                     <div class="input-group">
-                                        <input type="text" step="0.01" placeholder="0,00" min="0.01" class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly"
-                                            id="id_desconto" name="desconto" value="{{ form.desconto.value }}" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
+                                        {% load l10n %}
+                                            <input type="text" step="0.01" placeholder="0,00" min="0.01" class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly"
+                                                id="id_desconto" name="desconto" value="{{ form.desconto.value|unlocalize }}" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
                                         <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao"
                                             data-permissao="orcamentos.atribuir_desconto" data-acao="atribuir_desconto" id="btnDesconto">
                                             <i class="fa-solid fa-pen-to-square"></i>
@@ -384,8 +385,9 @@
                                 <div class="col-md-2" id="div_id_acrescimo">
                                     <label for="id_acrescimo" class="form-label">Acréscimo (+)</label>
                                     <div class="input-group">
-                                        <input type="text" step="0.01" placeholder="0,00" min="0.01"
-                                            class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly" id="id_acrescimo" name="acrescimo" value="{{ form.acrescimo.value }}" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
+                                        {% load l10n %}
+                                            <input type="text" step="0.01" placeholder="0,00" min="0.01"
+                                                class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly" id="id_acrescimo" name="acrescimo" value="{{ form.acrescimo.value|unlocalize }}" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
                                         <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao"
                                                 data-permissao="orcamentos.atribuir_acrescimo" data-acao="atribuir_acrescimo" id="btnAcrescimo">
                                             <i class="fa-solid fa-pen-to-square"></i>
@@ -405,10 +407,10 @@
                                         <tbody>
                                             {% for forma in orcamento.formas_pgto.all %}
                                                 <tr>
-                                                    <td data-label="#" class="mobile-2col">{{ forloop.counter }}</td>
-                                                    <td data-label="Forma Pgto.:" class="mobile-2col">{{ forma.formas_pgto.descricao }}</td>
-                                                    <td data-label="Valor:" class="mobile-2col" style="font-weight: bold; color: #2E8B57;">{{ forma.valor|moeda_br }}</td>
-                                                    <td data-label="Exc.:" class="mobile-2col">
+                                                    <td data-label="#" class="mobile-full">{{ forloop.counter }}</td>
+                                                    <td data-label="Forma Pgto.:" class="mobile-full">{{ forma.formas_pgto.descricao }}</td>
+                                                    <td data-label="Valor:" class="mobile-full" style="font-weight: bold; color: #2E8B57;">{{ forma.valor|moeda_br }}</td>
+                                                    <td data-label="Exc.:" class="mobile-full">
                                                         <i class="fas fa-trash deleteItemBtn deleteBtn" title="Deletar" style="color: #db1e47;" data-item="{{ produto }}"></i>
                                                     </td>
                                                 </tr>
@@ -428,15 +430,15 @@
                     </div>
                     <div class="row">
                         <ul class="list-group col" style="border-radius: 15px; margin-right: 5px; margin-left: 10px; margin-bottom: 10px;">
-                            <li class="list-group-item"><strong>Subtotal:</strong> <span id="subtotal_txt" style="background-color: #3CB371; color: white; font-weight: bold; border-radius: 15px; padding-left: 20px; padding-right: 20px; float: right;">R$ 0.00</span></li>
-                            <li class="list-group-item"><strong>Desconto (-):</strong> <span id="desconto" style="background-color: #20B2AA; color: white; font-weight: bold; border-radius: 15px; padding-left: 20px; padding-right: 20px; float: right;">0</span></li>
-                            <li class="list-group-item"><strong>Acréscimo (+):</strong> <span id="acrescimo" style="background-color: #F08080; color: white; font-weight: bold; border-radius: 15px; padding-left: 20px; padding-right: 20px; float: right;">0</span></li>
+                            <li class="list-group-item"><strong>Subtotal:</strong> <span id="subtotal_txt" style="background-color: #3CB371; color: white; font-weight: bold; border-radius: 15px; padding-left: 30px; padding-right: 30px; float: right;">R$ 0.00</span></li>
+                            <li class="list-group-item"><strong>Desconto (-):</strong> <span id="desconto" style="background-color: #20B2AA; color: white; font-weight: bold; border-radius: 15px; padding-left: 30px; padding-right: 30px; float: right;">0</span></li>
+                            <li class="list-group-item"><strong>Acréscimo (+):</strong> <span id="acrescimo" style="background-color: #F08080; color: white; font-weight: bold; border-radius: 15px; padding-left: 30px; padding-right: 30px; float: right;">0</span></li>
                         </ul>
                         <ul class="list-group col" style="border-radius: 15px; margin-right: 5px; margin-left: 10px; margin-bottom: 10px;">
-                            <li class="list-group-item"><strong>Custo Total:</strong> <span id="custoTotal_txt" style="background-color: #8B0000; color: white; font-weight: bold; border-radius: 15px; padding-left: 20px; padding-right: 20px; float: right;">R$ 0.00</span></li>
-                            <li class="list-group-item"><strong>Total:</strong> <span id="total_txt" style="background-color: #32CD32; color: white; font-weight: bold; border-radius: 15px;  padding-left: 20px; padding-right: 20px; float: right;">R$ 0.00</span></li>
-                            <li class="list-group-item"><strong>Margem Lucro:</strong> <span id="margem_txt" style="background-color: #4682B4; color: white; font-weight: bold; border-radius: 15px;  padding-left: 20px; padding-right: 20px; float: right;">0.00%</span></li>
-                        </ul>     
+                            <li class="list-group-item"><strong>Custo Total:</strong> <span id="custoTotal_txt" style="background-color: #8B0000; color: white; font-weight: bold; border-radius: 15px; padding-left: 30px; padding-right: 30px; float: right;">R$ 0.00</span></li>
+                            <li class="list-group-item"><strong>Total:</strong> <span id="total_txt" style="background-color: #32CD32; color: white; font-weight: bold; border-radius: 15px;  padding-left: 30px; padding-right: 30px; float: right;">R$ 0.00</span></li>
+                            <li class="list-group-item"><strong>Mrg. Lucro:</strong> <span id="margem_txt" style="background-color: #4682B4; color: white; font-weight: bold; border-radius: 15px;  padding-left: 30px; padding-right: 30px; float: right;">0.00%</span></li>
+                        </ul>
                     </div>
                     <div class="card-footer">
                         <div class="base_botao">

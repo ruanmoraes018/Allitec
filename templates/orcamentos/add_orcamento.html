@@ -24,12 +24,12 @@
                     <div class="card-header">
                         <span>INCLUSÃO DE ORÇAMENTOS</span>
                     </div>
-                    <div class="form-buttons" style="margin-left: 10px; margin-top: 10px;">
-                        <button type="button" class="btn btn-dark" id="medidasBtn">Medidas</button>
-                        <button type="button" class="btn btn-dark" id="clienteBtn">Cliente</button>
-                        <button type="button" class="btn btn-dark" id="prod_servBtn">Produtos</button>
-                        <button type="button" class="btn btn-dark" id="adicionaisBtn">Adicionais</button>
-                        <button type="button" class="btn btn-dark" id="form_pgtoBtn">Form. Pgto.</button>
+                    <div class="form-buttons text-center" style="margin-left: 10px; margin-top: 10px;">
+                        <button type="button" class="btn btn-dark mb-1" id="medidasBtn">Medidas</button>
+                        <button type="button" class="btn btn-dark mb-1" id="clienteBtn">Cliente</button>
+                        <button type="button" class="btn btn-dark mb-1" id="prod_servBtn">Produtos</button>
+                        <button type="button" class="btn btn-dark mb-1" id="adicionaisBtn">Adicionais</button>
+                        <button type="button" class="btn btn-dark mb-1" id="form_pgtoBtn">Form. Pgto.</button>
                     </div>
                     <div class="card-body">
                         <!--Cliente-->
@@ -137,7 +137,7 @@
                                             </thead>
                                             <tbody></tbody>
                                         </table>
-                                    </div>  
+                                    </div>
                                 </div>
                                 <div class="col-md-1">
                                     {{ form.pintura|as_crispy_field }}
@@ -236,15 +236,15 @@
                     </div>
                     <div class="row">
                         <ul class="list-group col" style="border-radius: 15px; margin-right: 5px; margin-left: 10px; margin-bottom: 10px;">
-                            <li class="list-group-item"><strong>Subtotal:</strong> <span id="subtotal_txt" style="background-color: #3CB371; color: white; font-weight: bold; border-radius: 15px; padding-left: 20px; padding-right: 20px; float: right;">R$ 0.00</span></li>
-                            <li class="list-group-item"><strong>Desconto (-):</strong> <span id="desconto" style="background-color: #20B2AA; color: white; font-weight: bold; border-radius: 15px; padding-left: 20px; padding-right: 20px; float: right;">0</span></li>
-                            <li class="list-group-item"><strong>Acréscimo (+):</strong> <span id="acrescimo" style="background-color: #F08080; color: white; font-weight: bold; border-radius: 15px; padding-left: 20px; padding-right: 20px; float: right;">0</span></li>
+                            <li class="list-group-item"><strong>Subtotal:</strong> <span id="subtotal_txt" style="background-color: #3CB371; color: white; font-weight: bold; border-radius: 15px; padding-left: 30px; padding-right: 30px; float: right;">R$ 0.00</span></li>
+                            <li class="list-group-item"><strong>Desconto (-):</strong> <span id="desconto" style="background-color: #20B2AA; color: white; font-weight: bold; border-radius: 15px; padding-left: 30px; padding-right: 30px; float: right;">0</span></li>
+                            <li class="list-group-item"><strong>Acréscimo (+):</strong> <span id="acrescimo" style="background-color: #F08080; color: white; font-weight: bold; border-radius: 15px; padding-left: 30px; padding-right: 30px; float: right;">0</span></li>
                         </ul>
                         <ul class="list-group col" style="border-radius: 15px; margin-right: 5px; margin-left: 10px; margin-bottom: 10px;">
-                            <li class="list-group-item"><strong>Custo Total:</strong> <span id="custoTotal_txt" style="background-color: #8B0000; color: white; font-weight: bold; border-radius: 15px; padding-left: 20px; padding-right: 20px; float: right;">R$ 0.00</span></li>
-                            <li class="list-group-item"><strong>Total:</strong> <span id="total_txt" style="background-color: #32CD32; color: white; font-weight: bold; border-radius: 15px;  padding-left: 20px; padding-right: 20px; float: right;">R$ 0.00</span></li>
-                            <li class="list-group-item"><strong>Margem Lucro:</strong> <span id="margem_txt" style="background-color: #4682B4; color: white; font-weight: bold; border-radius: 15px;  padding-left: 20px; padding-right: 20px; float: right;">0.00%</span></li>
-                        </ul> 
+                            <li class="list-group-item"><strong>Custo Total:</strong> <span id="custoTotal_txt" style="background-color: #8B0000; color: white; font-weight: bold; border-radius: 15px; padding-left: 30px; padding-right: 30px; float: right;">R$ 0.00</span></li>
+                            <li class="list-group-item"><strong>Total:</strong> <span id="total_txt" style="background-color: #32CD32; color: white; font-weight: bold; border-radius: 15px;  padding-left: 30px; padding-right: 30px; float: right;">R$ 0.00</span></li>
+                            <li class="list-group-item"><strong>Mrg. Lucro:</strong> <span id="margem_txt" style="background-color: #4682B4; color: white; font-weight: bold; border-radius: 15px;  padding-left: 30px; padding-right: 30px; float: right;">0.00%</span></li>
+                        </ul>
                     </div>
                     <div class="card-footer">
                         <div class="base_botao">

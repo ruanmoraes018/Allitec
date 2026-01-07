@@ -243,10 +243,10 @@
         {% for pt in o.portas.all %}
             <main class="conteudo porta {% if not forloop.first %}page-break{% endif %}">
                 <table class="full-table">
-                    <tr style="background-color: #8B008B; color: white;">
+                    <tr style="background-color: #8B008B; color: white; text-align: center;">
                         <th colspan="6"><strong>MEDIDAS – PORTA {{ pt.numero }}</strong></th>
                     </tr>
-                    <tr style="background-color: #5F9EA0;">
+                    <tr style="background-color: #5F9EA0; text-align: center;">
                         <th>Largura</th>
                         <th>Altura</th>
                         <th>Qtd. Lâminas</th>
@@ -262,17 +262,31 @@
                         <td>{{ pt.peso }}</td>
                         <td>{{ pt.eixo_motor }}</td>
                     </tr>
+                    <tr style="background-color: #5F9EA0; text-align: center;">
+                        <th>Larg. Corte</th>
+                        <th>Alt. Corte</th>
+                        <th>Rolo</th>
+                        <th>Tipo da Lâmina</th>
+                        <th colspan="2">Tipo do Vão</th>
+                    </tr>
+                    <tr>
+                        <td>{{ pt.larg_corte }}</td>
+                        <td>{{ pt.alt_corte }}</td>
+                        <td>{{ pt.rolo }}</td>
+                        <td>{{ pt.tp_lamina }}</td>
+                        <td colspan="2">{{ pt.tp_vao }}</td>
+                    </tr>
                 </table>
                 <table class="itens">
                     <thead>
-                        <tr><th style="background-color: #D8BFD8;" colspan="6"><strong>PRODUTOS – PORTA {{ pt.numero }}</strong></th></tr>
+                        <tr><th style="background-color: #D8BFD8; text-align: center;" colspan="6"><strong>PRODUTOS – PORTA {{ pt.numero }}</strong></th></tr>
                         <tr>
-                            <th style="background-color: #00CED1;">Código</th>
-                            <th style="background-color: #00CED1;">Descrição</th>
-                            <th style="background-color: #00CED1;">Unidade</th>
-                            <th style="background-color: #00CED1;">Quantidade</th>
-                            <th style="background-color: #00CED1;">Vl. Unit.</th>
-                            <th style="background-color: #00CED1;">Total</th>
+                            <th style="background-color: #00CED1; text-align: center;">Código</th>
+                            <th style="background-color: #00CED1; text-align: center;">Descrição</th>
+                            <th style="background-color: #00CED1; text-align: center;">Unidade</th>
+                            <th style="background-color: #00CED1; text-align: center;">Quantidade</th>
+                            <th style="background-color: #00CED1; text-align: center;">Vl. Unit.</th>
+                            <th style="background-color: #00CED1; text-align: center;">Total</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -290,7 +304,7 @@
                 </table>
                 <table class="itens">
                     <thead>
-                        <tr><th style="background-color: #D8BFD8;" colspan="6">ADICIONAIS – PORTA {{ pt.numero }}</th></tr>
+                        <tr><th style="background-color: #D8BFD8; text-align: center;" colspan="6">ADICIONAIS – PORTA {{ pt.numero }}</th></tr>
                     </thead>
                     <tbody>
                         {% for a in pt.adicionais.all %}
