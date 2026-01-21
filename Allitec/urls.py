@@ -20,6 +20,7 @@ urlpatterns = [
     path('formas_pgto/', include ('formas_pgto.urls')),
     path('tabelas_preco/', include ('tabelas_preco.urls')),
     path('tp_cobrancas/', include ('tipo_cobranca.urls')),
+    path('regras_produto/', include ('regras_produto.urls')),
     path('empresas/', include ('empresas.urls')),
     path('unidades/', include ('unidades.urls')),
     # path('compras/', include ('compras.urls')),

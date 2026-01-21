@@ -40,7 +40,7 @@ class ProdutoForm(forms.ModelForm):
     vl_compra = forms.CharField(
         label='Preço de Compra',
         widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
+            'class': 'form-control form-control-sm border-dark-subtle text-end',
             'style': 'color: #DC143C; font-weight: bold; background: honeydew;',
         })
     )
@@ -59,7 +59,7 @@ class ProdutoForm(forms.ModelForm):
         model = Produto
         fields = (
             'situacao', 'tp_prod', 'desc_prod', 'grupo', 'marca',
-            'unidProd', 'vl_compra', 'estoque_prod', 'lista_orc'
+            'unidProd', 'vl_compra', 'estoque_prod', 'lista_orc', 'regra'
         )
 
     def __init__(self, *args, **kwargs):

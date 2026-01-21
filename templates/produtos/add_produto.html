@@ -130,46 +130,49 @@
                                                         Exibir na Lista (Orçamentos)
                                                     </label>
                                                 </div>
-                                                <div class="row">
-                                                    <div class="card" style="margin: 0; width: 30rem;">
-                                                        <div class="card-header fw-bold bg-light text-secondary">
-                                                            Código Secundário
+                                                <div class="col-md-4">
+                                                    {{ form.regra|as_crispy_field }}
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="card" style="margin: 0; width: 30rem;">
+                                                    <div class="card-header fw-bold bg-light text-secondary">
+                                                        Código Secundário
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div class="row mb-1" style="margin-left: -8px;">
+                                                            <div class="col-md-9">
+                                                                <label for="cod-sec" class="form-label">Código:</label>
+                                                                <input type="text" id="cod-sec" class="form-control form-control-sm border-dark-subtle" name="cod-sec">
+                                                            </div>
+                                                            <div class="col-md-3 d-flex align-items-start">
+                                                                <button class="btn btn-success btn-sm w-100" type="button" id="add-cod-sec-tab" style="margin-top: 30px;">
+                                                                    <i class="fa-solid fa-plus"></i> Incluir
+                                                                </button>
+                                                            </div>
                                                         </div>
-                                                        <div class="card-body">
-                                                            <div class="row mb-1" style="margin-left: -8px;">
-                                                                <div class="col-md-9">
-                                                                    <label for="cod-sec" class="form-label">Código:</label>
-                                                                    <input type="text" id="cod-sec" class="form-control form-control-sm border-dark-subtle" name="cod-sec">
-                                                                </div>
-                                                                <div class="col-md-3 d-flex align-items-start">
-                                                                    <button class="btn btn-success btn-sm w-100" type="button" id="add-cod-sec-tab" style="margin-top: 30px;">
-                                                                        <i class="fa-solid fa-plus"></i> Incluir
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                            <div style="max-height: 100px; overflow-y: auto;">
-                                                                <table class="table table-sm table-bordered rounded-top" id="tb-cod-sec">
-                                                                    <thead class="table-secondary">
-                                                                        <tr>
-                                                                            <th scope="col">Código</th>
-                                                                            <th scope="col" style="width: 30px;">Exc.</th>
+                                                        <div style="max-height: 100px; overflow-y: auto;">
+                                                            <table class="table table-sm table-bordered rounded-top" id="tb-cod-sec">
+                                                                <thead class="table-secondary">
+                                                                    <tr>
+                                                                        <th scope="col">Código</th>
+                                                                        <th scope="col" style="width: 30px;">Exc.</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {% for c in codigos %}
+                                                                        <tr data-id="{{ forloop.counter0 }}">
+                                                                            <td>
+                                                                                {{ c.codigo }}
+                                                                                <input type="hidden" name="codigo[{{ forloop.counter0 }}][codigo]" value="{{ c.codigo }}">
+                                                                            </td>
+                                                                            <td>
+                                                                                <button type="button" class="remover btn btn-danger btn-sm mt-1 mb-1"><i class="fa-solid fa-trash"></i></button>
+                                                                            </td>
                                                                         </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        {% for c in codigos %}
-                                                                            <tr data-id="{{ forloop.counter0 }}">
-                                                                                <td>
-                                                                                    {{ c.codigo }}
-                                                                                    <input type="hidden" name="codigo[{{ forloop.counter0 }}][codigo]" value="{{ c.codigo }}">
-                                                                                </td>
-                                                                                <td>
-                                                                                    <button type="button" class="remover btn btn-danger btn-sm mt-1 mb-1"><i class="fa-solid fa-trash"></i></button>
-                                                                                </td>
-                                                                            </tr>
-                                                                        {% endfor %}
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
+                                                                    {% endfor %}
+                                                                </tbody>
+                                                            </table>
                                                         </div>
                                                     </div>
                                                 </div>

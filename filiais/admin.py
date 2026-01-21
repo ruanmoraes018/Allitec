@@ -16,6 +16,7 @@ from entradas.models import Entrada, EntradaProduto
 from formas_pgto.models import FormaPgto
 from pedidos.models import Pedido, PedidoProduto
 from tabelas_preco.models import TabelaPreco
+from regras_produto.models import RegraProduto
 
 # Inline para mostrar Filiais dentro da Empresa
 class FilialInline(admin.TabularInline):
@@ -46,6 +47,12 @@ class BancoInline(admin.TabularInline):
 #     extra = 0
 #     fields = ('num_orcamento', 'cli', 'situacao', 'dt_emi', 'desconto')
 #     show_change_link = True
+
+class RegraInline(admin.TabularInline):
+    model = RegraProduto
+    extra = 0
+    fields = ('codigo', 'descricao', 'tipo', 'vinc_emp')
+    show_change_link = True
 
 class ClienteInline(admin.TabularInline):
     model = Cliente
@@ -149,7 +156,7 @@ class EmpresaAdmin(admin.ModelAdmin):
     list_display = ('id', 'razao_social', 'cnpj')
     search_fields = ('razao_social', 'cnpj')
     inlines = [FilialInline, MensalidadeInline, BancoInline, ClienteInline, TecnicoInline, ProdutoInline, BairroInline, CidadeInline, EstadoInline,
-                GrupoInline, FormaPgtoInline, EntradaInline, PedidoInline, MarcaInline, TabelaPrecoInline
+                GrupoInline, FormaPgtoInline, EntradaInline, PedidoInline, MarcaInline, TabelaPrecoInline, RegraInline
     ]
 
 # Inlines para os modelos relacionados à Filial

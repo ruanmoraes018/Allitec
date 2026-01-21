@@ -469,6 +469,8 @@ def att_orcamento(request, id):
                     formas_pgto=fp,
                     valor=valor
                 )
+        
+        
 
         # 🔹 Número do orçamento
         orcamento.num_orcamento = f"{datetime.now():%Y-}{orcamento.id}"
@@ -476,11 +478,38 @@ def att_orcamento(request, id):
 
         messages.success(request, "Orçamento atualizado com sucesso!")
         return redirect(f'/orcamentos/lista/?s={orcamento.id}')
+    portas_json = []
 
+    for porta in orcamento.portas.all():
+        portas_json.append({
+            "numero": porta.numero,
+            "largura": float(porta.largura),
+            "altura": float(porta.altura),
+            "qtd_lam": float(porta.qtd_lam or 0),
+            "m2": float(porta.m2 or 0),
+            "larg_corte": float(porta.larg_corte or 0),
+            "alt_corte": float(porta.alt_corte or 0),
+            "rolo": float(porta.rolo or 0),
+            "peso": float(porta.peso or 0),
+            "ft_peso": float(porta.fator_peso or 0),
+            "eix_mot": float(porta.eixo_motor or 0),
+            "tipo_lamina": porta.tp_lamina,
+            "tipo_vao": porta.tp_vao,
+
+            # 🔥 ESSENCIAL
+            "adicionais": [
+                {
+                    "codProd": adc.produto.id,
+                    "qtdProd": float(adc.quantidade)
+                }
+                for adc in porta.adicionais.all()
+            ]
+        })
     return render(request, "orcamentos/att_orcamento.html", {
         "form": form,
         "orcamento": orcamento,
-        "portas": orcamento.portas.all()
+        "portas": orcamento.portas.all(),
+        "portas_json": json.dumps(portas_json)
     })
 
 

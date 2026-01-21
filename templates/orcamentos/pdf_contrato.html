@@ -8,7 +8,7 @@
     <style>
         @page {
             size: A4;
-            margin: 10mm 15mm 20mm 15mm;
+            margin: 10mm 10mm 10mm 10mm;
         }
         body {
             font-family: Arial, Helvetica, sans-serif;
@@ -171,7 +171,7 @@ E, por estarem justas e contratadas, as partes assinam o presente instrumento.
 </p>
 
 <p>
-<strong>Local e data:</strong> {{ o.vinc_fil.cidade_fil }}, {{ o.dt_emi|date:"d \\d\\e F \\d\\e Y" }}.
+<strong>Local e data:</strong> <i>{{ o.vinc_fil.cidade_fil }}, {{ o.dt_emi|date:"d \\d\\e F \\d\\e Y" }}</i>.
 </p>
 
 <!-- ASSINATURAS -->
@@ -189,8 +189,8 @@ E, por estarem justas e contratadas, as partes assinam o presente instrumento.
     </div>
 </div>
 
-<footer style="margin-top: 50px;"><br>
-    {{ o.vinc_fil.fantasia|upper }} • {{ o.vinc_fil.endereco }}, Nº: {{ o.vinc_fil.numero }}<br> Bairro: {{ o.vinc_fil.bairro_fil }} - {{ o.vinc_fil.cidade_fil }}/{{ o.vinc_fil.uf}} - CEP: {{ o.vinc_fil.cep }} • {{ o.vinc_fil.tel }}
+<footer style="margin-top: 100px;"><br>
+    <strong>{{ o.vinc_fil.fantasia|upper }} • {{ o.vinc_fil.endereco }}, Nº: {{ o.vinc_fil.numero }}<br> Bairro: {{ o.vinc_fil.bairro_fil }} - {{ o.vinc_fil.cidade_fil }}/{{ o.vinc_fil.uf}} - CEP: {{ o.vinc_fil.cep }} • {{ o.vinc_fil.tel }}</strong>
 </footer>
 
 </body>

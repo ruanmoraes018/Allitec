@@ -6,6 +6,7 @@ from marcas.models import Marca
 from unidades.models import Unidade
 from tabelas_preco.models import TabelaPreco
 from django.core.exceptions import ValidationError
+from regras_produto.models import RegraProduto
 
 class Produto(models.Model):
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
@@ -36,6 +37,12 @@ class Produto(models.Model):
     vl_compra = models.CharField(max_length=50, default='0.00')
     estoque_prod = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
+    regra = models.ForeignKey(
+        RegraProduto,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL
+    )
 
     def save(self, *args, **kwargs):
         self.desc_prod = self.desc_prod.upper()

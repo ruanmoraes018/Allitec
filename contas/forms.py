@@ -4,7 +4,6 @@ from django import forms
 from django.contrib.auth.models import User, Permission
 from filiais.models import Filial
 from django.contrib.auth.forms import AuthenticationForm
-from django.db import models
 from collections import OrderedDict
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
@@ -149,6 +148,7 @@ class UsuarioCadastroForm(forms.ModelForm):
             'faturar_orcamento', 'cancelar_orcamento',
             'view_tecnico', 'add_tecnico', 'change_tecnico', 'delete_tecnico',
             'view_marca', 'add_marca', 'change_marca', 'delete_marca',
+            'view_regraproduto', 'add_regraproduto', 'change_regraproduto', 'delete_regraproduto'
             'view_pedido', 'add_pedido', 'change_pedido', 'delete_pedido', 'faturar_pedido', 'cancelar_pedido', 'atribuir_desconto_ped', 'atribuir_acrescimo_ped',
         ]
 
@@ -156,7 +156,7 @@ class UsuarioCadastroForm(forms.ModelForm):
             content_type__app_label__in=[
                 'formas_pgto', 'tipo_cobranca', 'entradas', 'bairros', 'cidades', 'estados',
                 'grupos', 'bancos', 'unidades', 'filiais', 'usuarios', 'tabelas_preco',
-                'clientes', 'fornecedores', 'produtos', 'orcamentos', 'tecnicos', 'pedidos', 'marcas',
+                'clientes', 'fornecedores', 'produtos', 'orcamentos', 'tecnicos', 'pedidos', 'marcas', 'regras_produto',
             ]
         )
         permissoes_ordenadas = sorted(
@@ -170,13 +170,14 @@ class UsuarioCadastroForm(forms.ModelForm):
 
         # Agrupamento para usar no template
         self.categorias_permissoes = OrderedDict({
-            'Complementos': ['Bairros', 'Bancos', 'Cidades', 'Estados', 'Grupos', 'Marcas', 'Unidades', 'Tabelas de Preço', 'Tipos de Cobrança', 'Formas de Pagamento'],
+            'Complementos': ['Bairros', 'Bancos', 'Cidades', 'Estados', 'Grupos', 'Marcas', 'Unidades', 'Tabelas de Preço', 'Tipos de Cobrança', 'Formas de Pagamento', 'Regras de Produto'],
             'Cadastros': ['Clientes', 'Filiais', 'Fornecedores', 'Produtos', 'Técnicos', 'Usuários'],
             'Estoque': ['Entradas de NF/Pedidos'],
             'Faturamento': ['Pedidos', 'Orçamentos'],
         })
 
         grupo_permissoes = OrderedDict({
+            'Regras de Produto': [],
             'Formas de Pagamento': [],
             'Tipos de Cobrança': [],
             'Tabelas de Preço': [],
@@ -220,6 +221,10 @@ class UsuarioCadastroForm(forms.ModelForm):
             'view_marca', 'add_marca', 'change_marca', 'delete_marca'
         ]
 
+        regras_perms = [
+            'view_regraproduto', 'add_regraproduto', 'change_regraproduto', 'delete_regraproduto'
+        ]
+
         orcamentos_perms = [
             'view_orcamento', 'add_orcamento', 'change_orcamento', 'clonar_orcamento',
             'delete_orcamento', 'atribuir_desconto', 'atribuir_acrescimo',
@@ -247,6 +252,8 @@ class UsuarioCadastroForm(forms.ModelForm):
                 grupo_permissoes['Tipos de Cobrança'].append(perm)
             elif perm.codename in entradas_perms:
                 grupo_permissoes['Entradas de NF/Pedidos'].append(perm)
+            elif perm.codename in regras_perms:
+                grupo_permissoes['Regras de Produto'].append(perm)
             elif 'cidade' in perm.codename:
                 grupo_permissoes['Cidades'].append(perm)
             elif 'estado' in perm.codename:

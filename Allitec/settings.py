@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'pedidos',
     'tabelas_preco',
+    'regras_produto',
     'marcas',
     'formas_pgto',
     'tipo_cobranca',

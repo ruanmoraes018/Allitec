@@ -1,4 +1,200 @@
 $(document).ready(function() {
+    const prodManager = {
+        data: {},
+        currentEditing: {
+            porta: null,
+            itemId: null,
+            $tr: null
+        },
+
+        ensurePorta(porta) {
+            if (!this.data[porta]) this.data[porta] = [];
+        },
+
+        setEditingItem($tr) {
+            this.currentEditing = {
+                porta: Number($tr.data('porta')),
+                itemId: Number($tr.data('item-id')),
+                $tr
+            };
+        },
+
+        addItem(porta, item) {
+            this.ensurePorta(porta);
+
+            item.id = Date.now(); // 🔥 ID único
+            item.qtd_manual = false;
+
+            this.data[porta].push(item);
+            return item.id;
+        },
+        updateEditingItem(cells) {
+            const { porta, itemId, $tr } = this.currentEditing;
+            const portaKey = Number(porta);
+
+            const item = this.data[portaKey]?.find(i => i.id === itemId);
+            if (!item) return;
+
+            // 🔹 Valores novos
+            const novoCod  = cells[0];
+            const novaDesc = cells[1];
+            const novaUnid = cells[2];
+            const novoVl   = parseFloat(cells[3]) || 0;
+            const novaQtd  = parseFloat(cells[4]);
+
+            // 🔎 Verifica mudanças reais
+            const mudou =
+                item.cod      !== novoCod ||
+                item.desc     !== novaDesc ||
+                item.unid     !== novaUnid ||
+                item.vl_unit  !== novoVl  ||
+                (
+                    !isNaN(novaQtd) &&
+                    Number(item.qtd_final ?? 0) !== novaQtd
+                );
+
+            if (!mudou) {
+                console.log('Nenhuma alteração detectada');
+                return;
+            }
+
+            /* ================== DATA (fonte da verdade) ================== */
+            item.cod     = novoCod;
+            item.desc    = novaDesc;
+            item.unid    = novaUnid;
+            item.vl_unit = novoVl;
+
+            if (!isNaN(novaQtd)) {
+                item.qtd_final  = novaQtd;
+                item.qtd_manual = true;          // 🔒 REGRA DE OURO
+                item.ativo      = novaQtd > 0;
+            }
+
+            /* ================== DOM ================== */
+            $tr.find('.td-cod').text(item.cod);
+            $tr.find('.td-desc').text(item.desc);
+            $tr.find('.td-unid').text(item.unid);
+            $tr.find('.vl-unit').text(item.vl_unit.toFixed(2));
+            $tr.find('.qtd-produto').text(item.qtd_final.toFixed(2));
+
+            /* ================== RECÁLCULO SEGURO ================== */
+            atualizarTabelaPorta(porta);
+            atualizarSubtotal();
+            atualizarJSONPortas();
+        },
+        removeItemById(porta, itemId) {
+            if (!this.data[porta]) return;
+
+            this.data[porta] = this.data[porta].filter(i => i.id !== itemId);
+        },
+
+        resetPorta(porta) {
+            this.data[porta] = [];
+        },
+
+        clearEditing() {
+            this.currentEditing = { porta: null, itemId: null, $tr: null };
+        }
+    };
+    const prodAdcManager = {
+        data: {},
+        currentEditing: {
+            porta: null,
+            itemId: null,
+            $tr: null
+        },
+
+        ensurePorta(porta) {
+            if (!this.data[porta]) this.data[porta] = [];
+        },
+
+        setEditingItem($tr) {
+            this.currentEditing = {
+                porta: Number($tr.data('porta')),
+                itemId: Number($tr.data('item-id')),
+                $tr
+            };
+        },
+
+        addItem(porta, item) {
+            this.ensurePorta(porta);
+
+            item.id = Date.now();
+            item.qtd_manual = false;
+
+            this.data[porta].push(item);
+            return item.id;
+        },
+        updateEditingItem(cells) {
+            const { porta, itemId, $tr } = this.currentEditing;
+            const portaKey = Number(porta);
+
+            const item = this.data[portaKey]?.find(i => i.id === itemId);
+            if (!item) return;
+
+            // 🔹 Valores novos
+            const novoCod  = cells[0];
+            const novaDesc = cells[1];
+            const novaUnid = cells[2];
+            const novoVl   = parseFloat(cells[3]) || 0;
+            const novaQtd  = parseFloat(cells[4]);
+
+            // 🔎 Verifica mudanças reais
+            const mudou =
+                item.cod      !== novoCod ||
+                item.desc     !== novaDesc ||
+                item.unid     !== novaUnid ||
+                item.vl_unit  !== novoVl  ||
+                (
+                    !isNaN(novaQtd) &&
+                    Number(item.qtd_final ?? 0) !== novaQtd
+                );
+
+            if (!mudou) {
+                console.log('Nenhuma alteração detectada');
+                return;
+            }
+
+            /* ================== DATA (fonte da verdade) ================== */
+            item.cod     = novoCod;
+            item.desc    = novaDesc;
+            item.unid    = novaUnid;
+            item.vl_unit = novoVl;
+
+            if (!isNaN(novaQtd)) {
+                item.qtd_final  = novaQtd;
+                item.qtd_manual = true;          // 🔒 REGRA DE OURO
+                item.ativo      = novaQtd > 0;
+            }
+
+            /* ================== DOM ================== */
+            $tr.find('.td-cod').text(item.cod);
+            $tr.find('.td-desc').text(item.desc);
+            $tr.find('.td-unid').text(item.unid);
+            $tr.find('.vl-unit').text(item.vl_unit.toFixed(2));
+            $tr.find('.qtd-produto').text(item.qtd_final.toFixed(2));
+
+            /* ================== RECÁLCULO SEGURO ================== */
+            atualizarTabelaPorta(porta);
+            atualizarSubtotal();
+            atualizarJSONPortas();
+        },
+        removeItemById(porta, itemId) {
+            if (!this.data[porta]) return;
+
+            this.data[porta] = this.data[porta].filter(i => i.id !== itemId);
+        },
+
+        resetPorta(porta) {
+            this.data[porta] = [];
+        },
+
+        clearEditing() {
+            this.currentEditing = { porta: null, itemId: null, $tr: null };
+        }
+    };
+
+
     var form = $('#createForm');
     var cadastro = 'https://allitec.pythonanywhere.com/orcamentos/add/';
     calcTotalEntrada();
@@ -1035,6 +1231,64 @@ $(document).ready(function() {
         }
     }
     initGrupoSelect();
+    // Consulta de Regras de Grupo
+    function initRegraSelect() {
+        if ($('#id_regra').length > 0) {
+            $('#id_regra').select2({
+                placeholder: 'Selecione uma regra',
+                allowClear: true,
+                templateResult: function (data) {
+                    if (!data.id) return data.text;
+                    return $(`
+                        <div style="display:flex;flex-direction:column;line-height:1.2;">
+                            <small class="text-muted">${data.codigo}</small>
+                            <strong>${data.text}</strong>
+                        </div>
+                    `);
+                },
+                templateSelection: function (data) {
+                    // mostra apenas o nome após selecionar
+                    return data.text;
+                },
+                language: {
+                    inputTooShort: function() {
+                        return 'Por favor, insira 1 ou mais caracteres';
+                    },
+                    noResults: function() {
+                        return 'Nenhum resultado encontrado';
+                    },
+                    searching: function() {
+                        return 'Procurando...';
+                    }
+                },
+                ajax: {
+                    url: '/regras_produto/lista_ajax/',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return { term: params.term };
+                    },
+                    processResults: function(data) {
+                        return {
+                            results: data.regras.map(function(regra) {
+                                return {
+                                    id: regra.id,
+                                    text: regra.descricao,
+                                    codigo: regra.codigo
+                                };
+                            })
+                        };
+                    },
+                    cache: true
+                }
+            }).on('select2:open', function () {
+                setTimeout(function() {
+                    document.querySelector('.select2-container--open .select2-search__field').focus();
+                }, 50);
+            });
+        }
+    }
+    initRegraSelect();
     // Consulta de Tabelas de Preço
     function initTabPrecoSelect() {
         if ($('#id_tabela, #tb-prec').length > 0) {
@@ -1468,40 +1722,6 @@ $(document).ready(function() {
         const novoAno = data.getFullYear();
         return `${novoDia}/${novoMes}/${novoAno}`;
     }
-    function atualizarTabela() {
-        const tp_pintura = $('#id_tp_pintura').val();
-        ['#itensTableProduto', '#itensTableProdutoAdc'].forEach(sel => {
-            $(sel + ' tbody tr').each(function () {
-                let desc = $(this).find('td:nth-child(3)').text().toUpperCase().trim();
-                let qtd  = parseFloat($('#id_qtd').val().replace(',', '.')) || 1;
-                let larg = parseFloat($('#id_larg').val().replace(',', '.')) || 0;
-                let larg_c = parseFloat($('#id_larg_corte').val().replace(',', '.')) || 0;
-                let alt  = parseFloat($('#id_alt').val().replace(',', '.')) || 0;
-                let alt_c  = parseFloat($('#id_alt_corte').val().replace(',', '.')) || 0;
-                let m2 = parseFloat($('#id_m2').val().replace(',', '.')) || 0;
-                let compra = parseFloat($(this).find('td:nth-child(5)').text().replace(',', '.')) || 0;
-                let venda  = parseFloat($(this).find('td:nth-child(6)').text().replace(',', '.')) || 0;
-                let novaQtd = 1;
-                if (desc.startsWith('GUIAS') || desc.startsWith('TUBO DE AFASTAMENTO')) novaQtd = qtd * (alt_c + 0.2) * 2;
-                else if (desc.startsWith('EIXO') || desc.startsWith('SOLEIRA')) novaQtd = qtd * larg_c;
-                else if (desc.startsWith('PERFIL DESLIZANTE')) novaQtd = alt_c * 4;
-                else if (desc.startsWith('TRAVA LÂMINA')) novaQtd = alt * 10;
-                else if (desc.startsWith('LÂMINAS LISAS')) novaQtd = m2;
-                else if (desc.startsWith('LÂMINAS TRANSVISION')) novaQtd = m2;
-                else if ((tp_pintura === "Eletrostática" && desc.startsWith('PINTURA ELETROSTÁTICA')) || (tp_pintura === "Automotiva" && desc.startsWith('PINTURA AUTOMOTIVA'))) novaQtd = m2;
-                else if (desc.startsWith('MOTOR') || desc.startsWith('TRANSPORTE') || desc.startsWith('MÃO DE OBRA')) novaQtd = 1;
-                else if (desc.startsWith('PORTINHOLA') || desc.startsWith('AÇALPÃO') || desc.startsWith('COLUNA REMOVIVEL')) novaQtd = 0;
-
-                let compraTot = (compra * novaQtd).toFixed(2);
-                let vendaTot  = (venda * novaQtd).toFixed(2);
-
-                $(this).find('td:nth-child(7)').text(novaQtd.toFixed(2));
-                $(this).find('td:nth-child(8)').text(compraTot);
-                $(this).find('td:nth-child(9)').text(vendaTot);
-            });
-        });
-        atualizarSubtotal();
-    }
     let toastErrorShown = false;
     function arredondarParaCima(valor, casasDecimais) {
         let fator = Math.pow(10, casasDecimais);
@@ -1618,249 +1838,208 @@ $(document).ready(function() {
         let aux = arredondarInteiro(calc);
         $(`.qtd-laminas[data-porta="${porta}"]`).val(aux);
     }
+    function selecionarMotorPorPeso(peso, regraJSON) {
+        for (const r of regraJSON) {
+            if (peso <= r.max) return r.produto;
+        }
+        return null;
+    }
+
     let motorCtrl = {};
+
     function buscarMotorIdeal(porta) {
+
         const peso = parseFloat($(`.peso[data-porta="${porta}"]`).val()) || 0;
-        const altura = parseFloat($(`.alt[data-porta="${porta}"]`).val()) || 0;  // supondo que você tenha um campo de altura
-        if (peso < 1) return;
-        if (!motorCtrl[porta]) {
-            motorCtrl[porta] = {
-                ultimoMotor: null,
-                ultimoPeso: null,
-                inserir: false,
-                ultimaAltura: null // armazenar a última altura
-            };
-        }
-        const ranges = [150, 250, 350, 450, 550, 650, 750, 1000];
-        const modelos = ["200KG", "300KG", "400KG", "500KG", "600KG", "700KG", "800KG", "1000KG"];
-        const idx = ranges.findIndex(r => peso <= r);
-        const motorNome = `MOTOR ${modelos[idx] || "1500KG"}`;
-        const ctrl = motorCtrl[porta];
-        if (ctrl.inserido && peso === ctrl.ultimoPeso && motorNome === ctrl.ultimoMotor && altura === ctrl.ultimaAltura) {
-            return; // Não faz nada se nada mudou
-        }
-        removerProdutoMotor(porta);
+        if (peso <= 0) return;
+
+        motorCtrl[porta] ??= { ultimoProduto: null, ultimoPeso: null };
+
+        const regra = REGRAS['MOTOR_PESO']; // 👈 carregada via AJAX
+        if (!regra) return;
+
+        const regraJSON = JSON.parse(regra.expressao);
+        const nomeMotor = selecionarMotorPorPeso(peso, regraJSON);
+        if (!nomeMotor) return;
+
+        // Evita recálculo desnecessário
+        if (
+            motorCtrl[porta].ultimoProduto === nomeMotor &&
+            motorCtrl[porta].ultimoPeso === peso
+        ) return;
+
+        removerProdutoPorRegra(porta, 'MOTOR_PESO');
+
         $.get('/produtos/lista_ajax/', {
-            s: motorNome,
-            filtro: 'desc',
+            s: nomeMotor,
+            tp: 'desc',
             tp_prod: 'Principal'
-        })
-        .done(res => {
-            const p = res.produtos?.[0];
+        }).done(resp => {
+
+            const p = resp.produtos?.[0];
             if (!p) return;
-            if (verificarProdutoMotor(porta, p.desc_prod)) return;
-            setTimeout(() => {
-                const $tbody = $(`#tblProd_${porta} tbody`);
-                const linha = $tbody.find('tr').length + 1; // ✅ numeração correta
-                prodManager.data[Number(porta)].push({
-                    id: p.id,                    // 👈 IMPORTANTE
-                    cod: p.id,
-                    desc: p.desc_prod,
-                    unid: p.unidProd,
-                    vl_compra: parseFloat(p.vl_compra),
-                    vl_unit: parseFloat(p.vl_prod),
-                    qtd: 0,
-                    total: 0
-                });
-                $tbody.append(`
-                    <tr data-porta="${porta}" data-item-id="${p.id}">
-                        <td data-label="#" class="mobile-2col">${linha}</td>
-                        <td data-label="Cód:" class="mobile-2col">${p.id}</td>
-                        <td data-label="Descrição.:" class="mobile-full">${p.desc_prod}</td>
-                        <td data-label="Unidade:" class="mobile-full">${p.unidProd}</td>
-                        <td class="text-danger fw-bold mobile-full" data-label="Vl. Compra:">${p.vl_compra}</td>
-                        <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${p.vl_prod}</td>
-                        <td class="qtd-produto mobile-full" data-label="Quantidade:">1.00</td>
-                        <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0.00</td>
-                        <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0.00</td>
-                        <td data-label="Ações:" class="mobile-full">
-                            <i class="fas fa-edit editBtn" style="color: #13c43f; cursor:pointer;" data-bs-toggle="modal" data-bs-target="#editItemModal"></i>
-                            <i class="fas fa-trash deleteBtn" style="color: #db1e47; cursor:pointer;"></i>
-                        </td>
-                    </tr>
-                `);
-                calcularEixoMotor(porta);
-                atualizarTabelaPorta(porta);
-                atualizarSubtotal();
-                ctrl.ultimoPeso  = peso;
-                ctrl.ultimoMotor = motorNome;
-                ctrl.ultimaAltura = altura; // Atualiza a altura registrada
-                ctrl.inserido    = true;
-                atualizarJSONPortas(); // 👈 GARANTE que o motor entre
-            }, 500);
-        })
-        .fail(() => {
-            toast("<i class='fa-solid fa-circle-xmark'></i> Erro ao buscar motor ideal!", cor_vermelho);
-        });
-    }
-    function removerProdutoMotor(porta) {
-        $(`#tblProd_${porta} tbody tr`).each(function () {
-            const desc = $(this).find('td:eq(2)').text().toLowerCase().trim();
-            if (desc.startsWith('motor')) {
-                $(this).remove();
-            }
-        });
-        if (motorCtrl[porta]) {
-            motorCtrl[porta].inserido = false;
-        }
-    }
-    function verificarProdutoMotor(porta, nome) {
-        const nomeBusca = nome.toLowerCase().trim();
-        let existe = false;
-        $(`#tblProd_${porta} tbody tr`).each(function () {
-            const desc = $(this).find('td:eq(2)').text().toLowerCase().trim();
-            if (desc === nomeBusca) {
-                existe = true;
-            }
-        });
-        return existe;
-    }
-    function resetarControleMotor() {
-        motorCtrl = {};
-    }
-    function atualizarPinturaPorta(porta) {
-        return new Promise(resolve => {
-            const temPintura = $('#id_pintura').val();       // 'S' / 'N' ou '1' / '0'
-            const tpPintura  = $('#id_tp_pintura').val();    // 'Eletrostática' / 'Automotiva'
-            const $tabela = $(`#tblAdc_${porta} tbody`);
-            if (!$tabela.length) {
-                resolve();
-                return;
-            }
-            const m2 = parseFloat($(`.m2[data-porta="${porta}"]`).val()) || 0;
-            const DESC_ELET = 'PINTURA ELETROSTÁTICA';
-            const DESC_AUTO = 'PINTURA AUTOMOTIVA';
-            /* 🔹 Remove qualquer pintura existente */
-            $tabela.find('tr').each(function () {
-                const desc = $(this).find('td:eq(2)').text().toUpperCase().trim();
-                if (desc === DESC_ELET || desc === DESC_AUTO) {
-                    $(this).remove();
-                }
+
+            prodManager.data[porta].push({
+                id: p.id,
+                cod: p.id,
+                desc: p.desc_prod,
+                unid: p.unidProd,
+                vl_compra: parseFloat(p.vl_compra),
+                vl_unit: parseFloat(p.vl_prod),
+                qtd: 1, // 🔥 quantidade vem da regra QTD
+                qtd_manual: false, // 👈 IMPORTANTE
+                total: p.vl_prod,
+                regra: p.regra
             });
-            /* 🔹 Se NÃO tiver pintura */
-            if (temPintura === 'Não') {
-                toast("<i class='fa-solid fa-triangle-exclamation'></i> Campo Pintura está selecionado como <b>Não</b>. Para inserir a pintura, altere a opção para <b>Sim</b>!", cor_amarelo);
-                atualizarTabelaPorta(porta);
-                atualizarSubtotal();
-                resolve(); // ✅ resolve aqui
-                return;
-            }
-            /* 🔹 Define pintura correta */
-            const pinturaCorreta =
-                tpPintura === 'Automotiva'
-                    ? DESC_AUTO
-                    : DESC_ELET;
-            /* 🔹 Busca produto via AJAX */
-            $.get('/produtos/lista_ajax/', {
-                s: pinturaCorreta,
-                filtro: 'desc',
-                tp_prod: 'Adicional'
-            })
-            .done(res => {
-                const p = res.produtos?.[0];
-                if (!p) {
-                    resolve();
-                    return;
-                }
-                const idx = $tabela.find('tr').length + 1;
-                $tabela.append(`
-                    <tr data-porta="${porta}" data-item-id="${p.id}">
-                        <td data-label="#" class="mobile-2col">${idx}</td>
-                        <td data-label="Cód:" class="mobile-2col">${p.id}</td>
-                        <td data-label="Descrição.:" class="mobile-full">${p.desc_prod}</td>
-                        <td data-label="Unidade:" class="mobile-full">${p.unidProd}</td>
-                        <td class="text-danger fw-bold mobile-full" data-label="Vl. Compra:">${p.vl_compra}</td>
-                        <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${p.vl_prod}</td>
-                        <td class="qtd-produto mobile-full" data-label="Quantidade:">${m2.toFixed(2)}</td>
-                        <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0.00</td>
-                        <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0.00</td>
-                        <td data-label="Ações:" class="mobile-full">
-                            <i class="fas fa-edit editBtn" style="color:#13c43f;cursor:pointer"></i>
-                            <i class="fas fa-trash deleteBtn" style="color:#db1e47;cursor:pointer"></i>
-                        </td>
-                    </tr>
-                `);
-                atualizarTabelaPorta(porta);
-                atualizarSubtotal();
-                resolve(); // ✅ resolve SOMENTE após inserir
-            })
-            .fail(() => {
-                resolve(); // nunca trava o await
-            });
-        });
-    }
-    toastErrorShown = false;
-    function atualizarLaminarPorta(porta) {
-        const tpLam = $(`.tipo-lamina[data-porta="${porta}"]`).val(); // Fechada / Transvision
-        const $tabela = $(`#tblProd_${porta} tbody`);
-        if (!$tabela.length) return;
-        const m2 = parseFloat($(`.m2[data-porta="${porta}"]`).val()) || 0;
-        // descrições padronizadas
-        const DESC_LISA  = 'LÂMINAS LISAS';
-        const DESC_TRANS = 'LÂMINAS TRANSVISION';
-        // remove qualquer lâmina existente
-        $tabela.find('tr').each(function () {
-            const desc = $(this).find('td:eq(2)').text().toUpperCase().trim();
-            if (desc === DESC_LISA || desc === DESC_TRANS) {
-                $(this).remove();
-            }
-        });
-        // define qual lâmina deve entrar
-        const laminaCorreta = tpLam === 'Transvision'
-            ? DESC_TRANS
-            : DESC_LISA;
-        // busca produto correto
-        $.get('/produtos/lista_ajax/', {
-            s: laminaCorreta,
-            filtro: 'desc',
-            tp_prod: 'Principal'
-        })
-        .done(res => {
-            const p = res.produtos?.[0];
-            if (!p) return;
-            // segurança extra contra duplicação
-            const jaExiste = $tabela.find('tr').filter(function () {
-                return $(this).find('td:eq(2)').text().toUpperCase().trim() === laminaCorreta;
-            }).length > 0;
-            if (jaExiste) return;
-            // próxima numeração correta
-            const idx = $tabela.find('tr').length + 1;
-            // insere a lâmina correta
-            $tabela.append(`
-                <tr data-porta="${porta}">
-                    <td data-label="#" class="mobile-2col">${idx}</td>
-                    <td data-label="Cód:" class="mobile-2col">${p.id}</td>
-                    <td data-label="Desc.:" class="mobile-2col">${p.desc_prod}</td>
-                    <td data-label="Unid:" class="mobile-2col">${p.unidProd}</td>
-                    <td class="text-danger fw-bold mobile-3col" data-label="Vl. Compra:">${p.vl_compra}</td>
-                    <td class="vl-unit text-success fw-bold mobile-3col" data-label="Vl. Unit:">${p.vl_prod}</td>
-                    <td class="qtd-produto mobile-3col" data-label="Qtde:">${m2.toFixed(2)}</td>
-                    <td class="tot-compra text-danger fw-bold mobile-3col" data-label="Tot. Compra:">0.00</td>
-                    <td class="vl-total text-success fw-bold mobile-3col" data-label="Vl. Total:">0.00</td>
-                    <td data-label="Ações:" class="mobile-3col">
-                        <i class="fas fa-edit editBtn" style="color: #13c43f; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#editItemModal"></i>
+
+            $(`#tblProd_${porta} tbody`).append(`
+                <tr data-porta="${porta}" data-item-id="${p.id}">
+                    <td data-label="Código:" class="td-cod mobile-full">${p.id}</td>
+                    <td data-label="Descrição:" class="td-desc mobile-full">${p.desc_prod}</td>
+                    <td data-label="Unidade:" class="td-unid mobile-full">${p.unidProd}</td>
+                    <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">${p.vl_compra}</td>
+                    <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${p.vl_prod}</td>
+                    <td class="qtd-produto mobile-full" data-label="Quantidade:">0.00</td>
+                    <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0.00</td>
+                    <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0.00</td>
+                    <td data-label="Ações:" class="mobile-full">
+                        <i class="fas fa-edit editBtn" style="color: #13c43f; cursor:pointer;" data-bs-toggle="modal" data-bs-target="#editItemModal"></i>
                         <i class="fas fa-trash deleteBtn" style="color: #db1e47; cursor:pointer;"></i>
                     </td>
                 </tr>
             `);
-            // recalcula totais
+
+            motorCtrl[porta].ultimoProduto = nomeMotor;
+            motorCtrl[porta].ultimoPeso = peso;
+
+            atualizarTabelaPorta(porta);
+            atualizarJSONPortas();
+            atualizarSubtotal();
+        });
+    }
+    function removerProdutoPorRegra(porta, codigoRegra) {
+
+        prodManager.data[porta] = prodManager.data[porta].filter(i => {
+            if (i.regra?.codigo === codigoRegra) {
+                $(`#tblProd_${porta} tbody tr[data-item-id="${i.id}"]`).remove();
+                return false;
+            }
+            return true;
+        });
+    }
+    function resetarControleRegras() {
+        motorCtrl = {};
+    }
+    function atualizarPinturaPorta(porta) {
+        const temPintura = $('#id_pintura').val();       // Sim / Não
+        const tpPintura  = $('#id_tp_pintura').val();    // Eletrostática / Automotiva
+        const DESC_ELET = 'PINTURA ELETROSTÁTICA';
+        const DESC_AUTO = 'PINTURA AUTOMOTIVA';
+        if (!prodAdcManager.data[porta]) {
+            prodAdcManager.data[porta] = [];
+        }
+        const itens = prodAdcManager.data[porta];
+        const $tbody = $(`#tblAdc_${porta} tbody`);
+        if (temPintura === 'Não') {
+            itens.forEach(item => {
+                if (item.desc.toUpperCase().includes('PINTURA')) {
+                    item.ativo = false;
+                    item.qtd = 0;
+                }
+            });
+            $tbody.find('tr').each(function () {
+                const desc = $(this).find('.td-desc').text().toUpperCase();
+                if (desc.includes('PINTURA')) {
+                    $(this).hide();
+                }
+            });
             atualizarTabelaPorta(porta);
             atualizarSubtotal();
-        })
-        .fail(() => {
-            toast("<i class='fa-solid fa-circle-xmark'></i> Erro ao buscar lâminas!", cor_vermelho);
+            atualizarJSONPortas();
+            return;
+        }
+        const pinturaAtiva = tpPintura === 'Automotiva'
+            ? DESC_AUTO
+            : DESC_ELET;
+        const pinturaInativa = tpPintura === 'Automotiva'
+            ? DESC_ELET
+            : DESC_AUTO;
+        let itemAtivo = itens.find(i => i.desc === pinturaAtiva);
+        if (!itemAtivo) {
+            itemAtivo = {
+                desc: pinturaAtiva,
+                qtd: 1,
+                valor: 0,
+                ativo: true
+            };
+            itens.push(itemAtivo);
+        }
+        itens.forEach(item => {
+            if (item.desc === pinturaAtiva) {
+                item.ativo = true;
+                if (!item.qtd || item.qtd <= 0) {
+                    item.qtd = 1;
+                }
+            }
+            if (item.desc === pinturaInativa) {
+                item.ativo = false;
+                item.qtd = 0;
+            }
         });
+        $tbody.find('tr').each(function () {
+            const $tr = $(this);
+            const desc = $tr.find('.td-desc').text().toUpperCase().trim();
+            if (desc === pinturaAtiva) {
+                $tr.show();
+            } 
+            else if (desc === pinturaInativa) {
+                $tr.hide();
+            }
+        });
+        atualizarTabelaPorta(porta);
+        atualizarSubtotal();
+        atualizarJSONPortas();
+    }
+    toastErrorShown = false;
+    function atualizarLaminarPorta(porta) {
+        const tpLam = $(`.tipo-lamina[data-porta="${porta}"]`).val(); // Fechada | Transvision
+        const DESC_LISA  = 'LÂMINAS LISAS';
+        const DESC_TRANS = 'LÂMINAS TRANSVISION';
+        const laminaAtiva = tpLam === 'Transvision'
+            ? DESC_TRANS
+            : DESC_LISA;
+        // ===== PROD MANAGER =====
+        const itens = prodManager.data[porta] || [];
+        itens.forEach(item => {
+            const desc = item.desc.toUpperCase().trim();
+            if (desc === DESC_LISA || desc === DESC_TRANS) {
+                item.ativo = (desc === laminaAtiva);
+
+                const medidas = medidasCtrl[porta];
+                if (!medidas || !medidas.larg || !medidas.alt) {
+                    item.qtd = 0;
+                }
+            }
+        });
+
+        // ===== TABELA =====
+        const $tbody = $(`#tblProd_${porta} tbody`);
+        $tbody.find('tr').each(function () {
+            const $tr = $(this);
+            const desc = $tr.find('.td-desc').text().toUpperCase().trim();
+            if (desc === DESC_LISA || desc === DESC_TRANS) {
+                if (desc === laminaAtiva) {
+                    $tr.show();
+                } else {
+                    $tr.hide(); // não remove, apenas esconde
+                }
+            }
+        });
+        atualizarTabelaPorta(porta);
+        atualizarSubtotal();
     }
     $(document).on('change', '.tipo-lamina', function () {
         const porta = $(this).data('porta');
-        const larg = $(`.larg[data-porta="${porta}"]`).val().trim();
-        const alt  = $(`.alt[data-porta="${porta}"]`).val().trim();
-        buscarProdutosPrincipais(porta, larg, alt);
-        atualizarTabelaPorta(porta);
-        atualizarSubtotal();
-        setTimeout(() => {
-            finalizarLoading();
-        }, 500);
+        atualizarLaminarPorta(porta);
     });
     $(document).on('keyup change', '.larg', function () {
         let porta = $(this).data('porta');
@@ -1880,7 +2059,6 @@ $(document).ready(function() {
         atualizarSubtotal();
         calcularValorForma();
         somaFormas();
-        console.log('Chamou aqui');
         atualizarJSONPortas();
         gerarJSONFormas();
     });
@@ -1904,7 +2082,6 @@ $(document).ready(function() {
         finalizarLoading();
     });
 
-    atualizarJSONPortas();
     gerarJSONFormas();
     let debounceTimeout;
     function atualizarCalculoCompletoDebounced() {
@@ -2044,7 +2221,13 @@ $(document).ready(function() {
             toast("<i class='fa-solid fa-triangle-exclamation'></i> Informe uma quantidade válida de Portas!", cor_amarelo);
             return;
         }
-        resetarControleMotor();
+
+        // 🔥 RESET TOTAL DE ESTADO
+        if (window.prodManager?.data) prodManager.data = {};
+        if (window.prodAdcManager?.data) prodAdcManager.data = {};
+
+        resetarControleRegras();
+
         $("#tabelaPortasResumo tbody").empty();
         $("#accordionProdutos").empty();
         $("#accordionAdicionais").empty();
@@ -2090,9 +2273,75 @@ $(document).ready(function() {
         aplicarMascaras();
     }
     function aplicarMascaras() {
-        $('.larg, .alt, .id_larg, .larg-corte, .alt-corte, .qtd-laminas, .m2, .ft-peso, .peso')
-            .mask('000,000.00', { reverse: true });
+        $('.larg, .alt, .id_larg, .larg-corte, .alt-corte, .qtd-laminas, .m2, .ft-peso, .peso, .qtd-prod-adc, .qtd-prod, .valor-prod, .valor-prod-adc')
+            .mask('00000.00', { reverse: true });
     }
+    function criarFormularioProduto(num) {
+        return `
+        <div class="row g-2 mb-3 form-produto" data-porta="${num}">
+
+            <div class="col-md-2">
+                <label class="form-label">Cód. Produto</label>
+                <div class="input-group">
+                    <input type="text"
+                        class="form-control form-control-sm cod-prod"
+                        data-porta="${num}"
+                        name="cod-prod"
+                        placeholder="Cód. Produto">
+                    <button class="btn btn-outline-dark btn-sm btn-busca-prod"
+                            data-porta="${num}">
+                        🔎
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Descrição</label>
+                <input type="text"
+                    class="form-control form-control-sm desc-prod"
+                    data-porta="${num}"
+                    name="desc-prod"
+                    disabled>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">Unidade</label>
+                <input type="text"
+                    class="form-control form-control-sm unid-prod"
+                    data-porta="${num}"
+                    name="unid-prod"
+                    disabled>
+            </div>
+
+            <div class="col-md-1">
+                <label class="form-label">Valor</label>
+                <input type="text"
+                    class="form-control form-control-sm valor-prod"
+                    name="valor-prod"
+                    data-porta="${num}">
+            </div>
+
+            <div class="col-md-1">
+                <label class="form-label">Qtde.</label>
+                <input type="text"
+                    class="form-control form-control-sm qtd-prod"
+                    name="qtd-prod"
+                    placeholder="0.00"
+                    data-porta="${num}">
+            </div>
+
+            <div class="col-md-1 d-flex align-items-end">
+                <button type="button"
+                        class="btn btn-success btn-sm btn-add-prod"
+                        data-porta="${num}">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+
+        </div>
+        `;
+    }
+
     function criarAcordeonProdutos(num) {
         return `
         <div class="accordion-item acc-produto porta-${num}" id="accProd_${num}" data-porta="${num}">
@@ -2105,12 +2354,13 @@ $(document).ready(function() {
             </h2>
             <div id="collapseProd_${num}" class="accordion-collapse collapse">
                 <div class="accordion-body table-container w-100">
+                    <!-- 🔥 FORMULÁRIO DO PRODUTO -->
+                    ${criarFormularioProduto(num)}
                     <table class="table table-bordered table-sm table-striped tabela-produtos"
                         id="tblProd_${num}">
                         <thead class="table-dark">
                             <tr>
-                                <th>#</th>
-                                <th>Cód.</th>
+                                <th>Código</th>
                                 <th>Descrição</th>
                                 <th>Unidade</th>
                                 <th>Vl. Compra</th>
@@ -2139,6 +2389,71 @@ $(document).ready(function() {
             </div>
         </div>`;
     }
+    function criarFormularioAdicional(num) {
+        return `
+        <div class="row g-2 mb-3 form-adicional" data-porta="${num}">
+
+            <div class="col-md-2">
+                <label class="form-label">Cód. Produto</label>
+                <div class="input-group">
+                    <input type="text"
+                        class="form-control form-control-sm cod-prod-adc"
+                        name="cod-prod-adc"
+                        data-porta="${num}"
+                        placeholder="Cód. Produto">
+                    <button class="btn btn-outline-dark btn-sm btn-busca-prod-adc"
+                            data-porta="${num}">
+                        🔎
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Descrição</label>
+                <input type="text"
+                    class="form-control form-control-sm desc-prod-adc"
+                    name="desc-prod-adc"
+                    data-porta="${num}"
+                    disabled>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">Unidade</label>
+                <input type="text"
+                    class="form-control form-control-sm unid-prod-adc"
+                    name="unid-prod-adc"
+                    data-porta="${num}"
+                    disabled>
+            </div>
+
+            <div class="col-md-1">
+                <label class="form-label">Valor</label>
+                <input type="text"
+                    class="form-control form-control-sm valor-prod-adc"
+                    name="valor-prod-adc"
+                    data-porta="${num}">
+            </div>
+
+            <div class="col-md-1">
+                <label class="form-label">Qtde.</label>
+                <input type="text"
+                    class="form-control form-control-sm qtd-prod-adc"
+                    placeholder="0.00"
+                    name="qtd-prod-adc"
+                    data-porta="${num}">
+            </div>
+
+            <div class="col-md-1 d-flex align-items-end">
+                <button type="button"
+                        class="btn btn-success btn-sm btn-add-prod-adc"
+                        data-porta="${num}">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+
+        </div>
+        `;
+    }
     function criarAcordeonAdicionais(num) {
         return `
         <div class="accordion-item acc-adicional porta-${num}" id="accAdc_${num}" data-porta="${num}">
@@ -2151,12 +2466,12 @@ $(document).ready(function() {
             </h2>
             <div id="collapseAdc_${num}" class="accordion-collapse collapse">
                 <div class="accordion-body table-container w-100">
+                    ${criarFormularioAdicional(num)}
                     <table class="table table-bordered table-sm table-striped tabela-adicionais"
                         id="tblAdc_${num}">
                         <thead class="table-dark">
                             <tr>
-                                <th>#</th>
-                                <th>Cód.</th>
+                                <th>Código</th>
                                 <th>Descrição</th>
                                 <th>Unidade</th>
                                 <th>Vl. Compra</th>
@@ -2185,6 +2500,160 @@ $(document).ready(function() {
             </div>
         </div>`;
     }
+    function adicionarProdutoNaTabela(porta, dados) {
+        const p = Number(porta);
+
+        if (!prodManager.data[p]) {
+            prodManager.data[p] = [];
+        }
+
+        let item = prodManager.data[p]
+            .find(x => String(x.cod) === String(dados.cod));
+
+        if (!item) {
+            item = {
+                id: Date.now(),               // 🔒 id REAL
+                cod: dados.cod,
+                desc: dados.desc,
+                unid: dados.unid || '',
+                vl_compra: 0,
+                vl_unit: parseFloat(dados.vl) || 0,
+
+                qtd_calc: 0,
+                qtd_final: 0,
+                qtd_manual: true,             // 🔒 NASCE MANUAL
+                ativo: true
+            };
+
+            prodManager.data[p].push(item);
+        }
+
+        // 🔒 SEMPRE qtd_final
+        item.qtd_final  = parseFloat(dados.qtd) || 0;
+        item.qtd_manual = true;
+        item.ativo      = item.qtd_final > 0;
+        item.vl_unit    = parseFloat(dados.vl) || 0;
+
+        let $row = $(`#tblProd_${p} tbody tr[data-item-id="${item.id}"]`);
+
+        if (!$row.length) {
+            $row = $(`
+                <tr data-porta="${p}" data-item-id="${item.cod}">
+                    <td data-label="Código:" class="td-cod mobile-full">${item.cod}</td>
+                    <td data-label="Descrição:" class="td-desc mobile-full">${dados.desc || item.desc}</td>
+                    <td data-label="Unidade:" class="td-unid mobile-full">${item.unid}</td>
+                    <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">0.00</td>
+                    <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">0.00</td>
+                    <td class="qtd-produto mobile-full" data-label="Quantidade:">0.00</td>
+                    <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0.00</td>
+                    <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0.00</td>
+                    <td data-label="Ações:" class="mobile-full">
+                        <i class="fas fa-edit editBtn" style="color: #13c43f; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#editItemModal"></i>
+                        <i class="fas fa-trash deleteBtn" style="color: #db1e47; cursor: pointer;"></i>
+                    </td>
+                </tr>
+            `);
+
+            $(`#tblProd_${p} tbody`).append($row);
+        }
+
+        atualizarTabelaPorta(p);
+        atualizarSubtotal();
+        atualizarJSONPortas();
+    }
+    function adicionarAdicionalNaTabela(porta, dados) {
+        const p = Number(porta);
+
+        if (!prodAdcManager.data[p]) {
+            prodAdcManager.data[p] = [];
+        }
+
+        let item = prodAdcManager.data[p]
+            .find(x => String(x.cod) === String(dados.cod));
+
+        if (!item) {
+            item = {
+                id: Date.now(),               // 🔒 id REAL
+                cod: dados.cod,
+                desc: dados.desc,
+                unid: dados.unid || '',
+                vl_compra: 0,
+                vl_unit: parseFloat(dados.vl) || 0,
+
+                qtd_calc: 0,
+                qtd_final: 0,
+                qtd_manual: true,             // 🔒 NASCE MANUAL
+                ativo: true
+            };
+
+            prodAdcManager.data[p].push(item);
+        }
+
+        // 🔒 SEMPRE qtd_final
+        item.qtd_final  = parseFloat(dados.qtd) || 0;
+        item.qtd_manual = true;
+        item.ativo      = item.qtd_final > 0;
+        item.vl_unit    = parseFloat(dados.vl) || 0;
+
+        let $row = $(`#tblAdc_${p} tbody tr[data-item-id="${item.id}"]`);
+
+        if (!$row.length) {
+            $row = $(`
+                <tr data-porta="${p}" data-item-id="${item.cod}">
+                    <td data-label="Código:" class="td-cod mobile-full">${item.cod}</td>
+                    <td data-label="Descrição:" class="td-desc mobile-full">${dados.desc || item.desc}</td>
+                    <td data-label="Unidade:" class="td-unid mobile-full">${item.unid}</td>
+                    <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">0.00</td>
+                    <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">0.00</td>
+                    <td class="qtd-produto mobile-full" data-label="Quantidade:">0.00</td>
+                    <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0.00</td>
+                    <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0.00</td>
+                    <td data-label="Ações:" class="mobile-full">
+                        <i class="fas fa-edit editBtn" style="color: #13c43f; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#editItemAdcModal"></i>
+                        <i class="fas fa-trash deleteBtn" style="color: #db1e47; cursor: pointer;"></i>
+                    </td>
+                </tr>
+            `);
+
+            $(`#tblAdc_${p} tbody`).append($row);
+        }
+
+        atualizarTabelaPorta(p);
+        atualizarSubtotal();
+        atualizarJSONPortas();
+    }
+    $(document).on("click", ".btn-add-prod", function () {
+        const porta = $(this).data("porta");
+
+        const cod  = $(`.cod-prod[data-porta="${porta}"]`).val();
+        const desc = $(`.desc-prod[data-porta="${porta}"]`).val();
+        const qtd  = parseFloat(
+            $(`.qtd-prod[data-porta="${porta}"]`).val().replace(',', '.')
+        ) || 0;
+        const vl   = parseFloat(
+            $(`.valor-prod[data-porta="${porta}"]`).val().replace(',', '.')
+        ) || 0;
+
+        if (!cod || qtd <= 0) return;
+
+        adicionarProdutoNaTabela(porta, { cod, desc, qtd, vl });
+    });
+    $(document).on("click", ".btn-add-prod-adc", function () {
+
+        const porta = $(this).data("porta");
+
+        const cod = $(`.cod-prod-adc[data-porta="${porta}"]`).val();
+        const qtd = parseFloat(
+            $(`.qtd-prod-adc[data-porta="${porta}"]`).val().replace(',', '.')
+        ) || 0;
+        const vl = parseFloat(
+            $(`.valor-prod-adc[data-porta="${porta}"]`).val().replace(',', '.')
+        ) || 0;
+
+        if (!cod || qtd <= 0) return;
+
+        adicionarAdicionalNaTabela(porta, { cod, qtd, vl });
+    });
     function formatarBR(valor) {
         return new Intl.NumberFormat('pt-BR', {
             style: 'currency',
@@ -2254,19 +2723,73 @@ $(document).ready(function() {
             finalizarLoading();
         }, 500);
     });
+    $(document).on("blur", ".larg, .alt", function () {
+        const porta = $(this).data("porta");
+        // ===== LEITURA DAS MEDIDAS =====
+        const largStr = $(`.larg[data-porta="${porta}"]`).val();
+        const altStr  = $(`.alt[data-porta="${porta}"]`).val();
+        if (!largStr || !altStr) return;
+        const lg = parseFloat(largStr.replace(",", ".")) || 0;
+        const at = parseFloat(altStr.replace(",", ".")) || 0;
+        if (lg <= 0 || at <= 0) return;
+        // ===== CONTROLE DE ALTERAÇÃO =====
+        medidasCtrl[porta] ??= { larg: null, alt: null };
+        const ctrl = medidasCtrl[porta];
+        const mudouMedida = ctrl.larg !== lg || ctrl.alt !== at;
+        if (!mudouMedida) {
+            console.log(`⏭ Porta ${porta}: medidas não mudaram`);
+            return;
+        }
+        ctrl.larg = lg;
+        ctrl.alt  = at;
+        console.log(`♻ Recalculando porta ${porta}`, { lg, at });
+        // ===== CÁLCULOS FÍSICOS =====
+        calcM2(porta);
+        calcFtPeso(porta);
+        atualizarLarguraCorte(porta);
+        calcularEixoMotor(porta);
+        // ===== ATUALIZA PRODUTOS (SEM NOVO AJAX) =====
+        atualizarTabelaPorta(porta);
+        atualizarPinturaPorta(porta);
+        // ===== MOTOR (DEPENDE DO PESO / ALTURA) =====
+        buscarMotorIdeal(porta);
+        // ===== TOTAIS / JSON =====
+        atualizarSubtotal();
+    });
     $(document).on("click", ".removerPorta", function () {
         const porta = $(this).data("porta");
+
+        // 🔥 LIMPA O ESTADO DA PORTA ANTES DE REMOVER
+        resetarPorta(porta);
+
         $("#linha_resumo_" + porta).remove();
         $("#accProd_" + porta).remove();
         $("#accAdc_" + porta).remove();
+        
         reindexarPortas();
         aplicarMascaras();
+        atualizarSubtotal();
     });
+
     $(document).on('click', '.deleteBtn', function() {
         // Remove a linha correspondente na tabela correta
         $(this).closest('tr').remove();
         atualizarSubtotal();
     });
+    function resetarPorta(porta) {
+        // limpa memória de produtos
+        if (window.prodManager?.data) {
+            prodManager.data[porta] = [];
+        }
+        if (window.prodAdcManager?.data) {
+            prodAdcManager.data[porta] = [];
+        }
+
+        // limpa tabelas se existirem
+        $(`#tblProd_${porta} tbody`).empty();
+        $(`#tblAdc_${porta} tbody`).empty();
+    }
+
     function reindexarPortas() {
         let novoIndice = 1;
         $("#tabelaPortasResumo tbody tr").each(function () {
@@ -2307,145 +2830,240 @@ $(document).ready(function() {
             atualizarJSONPortas();
         }
     }
+    let REGRAS = {};
+    function carregarRegras() {
+        return $.getJSON('/regras_produto/js/', function (data) {
+            REGRAS = data;
+            console.log('Regras carregadas:', REGRAS);
+        });
+    }
+    carregarRegras();
+    function calcularQtdPorRegra(item, ctx) {
+
+        if (!item.regra || item.regra.tipo !== 'QTD')
+            return Number(item.qtd) || 0;
+
+        const { alt, alt_c, larg, larg_c, m2 } = ctx;
+        let qtd = 0;
+
+        switch (item.regra.codigo) {
+            case 'GUIAS_ALTURA':
+            case 'TUBO_AFASTAMENTO':
+                qtd = (alt_c + 0.2) * 2;
+                break;
+            case 'EIXO_LARGURA':
+            case 'SOLEIRA_LARGURA':
+                qtd = larg_c;
+                break;
+            case 'PERFIL_DESLIZANTE':
+                qtd = alt_c * 4;
+                break;
+            case 'TRAVA_LAMINA':
+                qtd = alt * 10;
+                break;
+            case 'LAMINAS_M2':
+                qtd = m2;
+                break;
+            case 'MOTOR_UNIDADE':
+            case 'TRANSPORTE_UNIDADE':
+            case 'MAO_OBRA_UNIDADE':
+                qtd = 1;
+                break;
+            case 'QTD_PADRAO_ZERO':
+            default:
+                qtd = 0;
+        }
+
+        return Number(qtd) || 0;
+    }
+
     function atualizarTabelaPorta(porta) {
+
         const tp_pintura = $('#id_tp_pintura').val();
+
         const larg   = parseFloat($(`.larg[data-porta="${porta}"]`).val()) || 0;
         const larg_c = parseFloat($(`.larg-corte[data-porta="${porta}"]`).val()) || 0;
         const alt    = parseFloat($(`.alt[data-porta="${porta}"]`).val()) || 0;
         const alt_c  = parseFloat($(`.alt-corte[data-porta="${porta}"]`).val()) || 0;
         const m2     = parseFloat($(`.m2[data-porta="${porta}"]`).val()) || 0;
+
         let totalCompraProd = 0;
         let totalVendaProd  = 0;
         let totalCompraAdc  = 0;
         let totalVendaAdc   = 0;
+
+        /* ================= PRODUTOS PRINCIPAIS ================= */
         $(`#tblProd_${porta} tbody tr`).each(function () {
+
             const $tr = $(this);
             const itemId = Number($tr.data('item-id'));
             const item = prodManager.data[porta]?.find(i => i.id === itemId);
             if (!item) return;
-            const desc   = item.desc.toUpperCase().trim();
-            const compra = parseFloat($tr.find('td:eq(4)').text().replace(',', '.')) || 0;
-            // 🔥 Fallback para DOM (igual função antiga)
-            const venda = parseFloat(
-                item.vl_unit ?? $tr.find('.vl-unit').text().replace(',', '.')
-            ) || 0;
-            let qtdCalc = item.qtd;
-            if (!qtdCalc || qtdCalc <= 0) {
-                if (desc.startsWith('GUIAS') || desc.startsWith('TUBO DE AFASTAMENTO'))
-                    qtdCalc = (alt_c + 0.2) * 2;
-                else if (desc.startsWith('EIXO') || desc.startsWith('SOLEIRA'))
-                    qtdCalc = larg_c;
-                else if (desc.startsWith('PERFIL DESLIZANTE'))
-                    qtdCalc = alt_c * 4;
-                else if (desc.startsWith('TRAVA LÂMINA'))
-                    qtdCalc = alt * 10;
-                else if (desc.startsWith('LÂMINAS LISAS') || desc.startsWith('LÂMINAS TRANSVISION'))
-                    qtdCalc = m2;
-                else if (desc.startsWith('MOTOR'))
-                    qtdCalc = 1;
-                else
-                    qtdCalc = 0;
-                item.qtd = qtdCalc;
+
+            // 🔒 Inicialização segura
+            item.qtd_calc  ??= 0;
+            item.qtd_final ??= 0;
+            item.qtd_manual ??= false;
+
+            const compra = Number(item.vl_compra) || 0;
+            const venda  = Number(item.vl_unit)   || 0;
+
+            // 🔹 SEMPRE recalcula a quantidade técnica
+            const qtdCalc = calcularQtdPorRegra(item, { alt, alt_c, larg, larg_c, m2 });
+            item.qtd_calc = qtdCalc;
+
+            // 🔹 Define quantidade final
+            if (!item.qtd_manual) {
+                item.qtd_final = qtdCalc;
+            } else {
+                // 🔒 garantia absoluta
+                item.qtd_final = Number(item.qtd_final) || 0;
             }
-            console.log('MOTOR', {
-                desc,
-                item_vl_unit: item.vl_unit,
-                dom_vl_unit: $tr.find('.vl-unit').text()
-            });
-            const totCompra = compra * qtdCalc;
-            const totVenda  = venda  * qtdCalc;
-            $tr.find('.qtd-produto').text(qtdCalc.toFixed(2));
+
+            if (item.qtd_manual) {
+                // 🔒 manual sempre vence
+                item.ativo = item.qtd_final > 0;
+            } else {
+                item.ativo = item.qtd_final > 0;
+            }
+
+            if (!item.ativo) {
+                $tr.hide();
+                return;
+            }
+
+
+            const totCompra = compra * item.qtd_final;
+            const totVenda  = venda  * item.qtd_final;
+
+            $tr.show();
+            $tr.find('.qtd-produto').text(item.qtd_final.toFixed(2));
             $tr.find('.tot-compra').text(totCompra.toFixed(2));
             $tr.find('.vl-total').text(totVenda.toFixed(2));
+
             totalCompraProd += totCompra;
             totalVendaProd  += totVenda;
         });
-        // ================= ADICIONAIS =================
+
+        /* ================= PRODUTOS ADICIONAIS ================= */
         $(`#tblAdc_${porta} tbody tr`).each(function () {
+
             const $tr = $(this);
             const itemId = Number($tr.data('item-id'));
             const item = prodAdcManager.data[porta]?.find(i => i.id === itemId);
             if (!item) return;
-            const desc   = item.desc.toUpperCase().trim();
-            const compra = parseFloat($tr.find('td:eq(4)').text().replace(',', '.')) || 0;
-            const venda  = parseFloat(item.vl_unit) || 0;
-            let qtdCalc = item.qtd;
-            if (!qtdCalc || qtdCalc <= 0) {
-                if (
-                    (tp_pintura === "Eletrostática" && desc.startsWith("PINTURA ELETROSTÁTICA")) ||
-                    (tp_pintura === "Automotiva" && desc.startsWith("PINTURA AUTOMOTIVA"))
-                ) {
-                    qtdCalc = m2;
-                }
-                else if (
-                    desc.startsWith('TRANSPORTE') ||
-                    desc.startsWith('MÃO DE OBRA')
+
+            // 🔒 Inicialização segura
+            item.qtd_calc  ??= 0;
+            item.qtd_final ??= 0;
+            item.qtd_manual ??= false;
+
+            const compra = Number(item.vl_compra) || 0;
+            const venda  = Number(item.vl_unit)   || 0;
+
+            let qtdCalc = 0;
+
+            if (
+                item.regra?.codigo === 'PINTURA_M2' &&
+                (
+                    (tp_pintura === 'Eletrostática' && item.desc.includes('ELETROSTÁTICA')) ||
+                    (tp_pintura === 'Automotiva'     && item.desc.includes('AUTOMOTIVA'))
                 )
-                    qtdCalc = 1;
-                else
-                    qtdCalc = 0;
-                item.qtd = qtdCalc;
+            ) {
+                qtdCalc = m2;
+            } else {
+                qtdCalc = calcularQtdPorRegra(item, { alt, alt_c, larg, larg_c, m2 });
             }
-            const totCompra = compra * qtdCalc;
-            const totVenda  = venda  * qtdCalc;
-            $tr.find('.qtd-produto').text(qtdCalc.toFixed(2));
+
+            item.qtd_calc = qtdCalc;
+
+            if (!item.qtd_manual) {
+                item.qtd_final = qtdCalc;
+            } else {
+                // 🔒 garantia absoluta
+                item.qtd_final = Number(item.qtd_final) || 0;
+            }
+
+
+            if (item.qtd_manual) {
+                // 🔒 manual sempre vence
+                item.ativo = item.qtd_final > 0;
+            } else {
+                item.ativo = item.qtd_final > 0;
+            }
+
+            if (!item.ativo) {
+                $tr.hide();
+                return;
+            }
+
+
+            const totCompra = compra * item.qtd_final;
+            const totVenda  = venda  * item.qtd_final;
+
+            $tr.show();
+            $tr.find('.qtd-produto').text(item.qtd_final.toFixed(2));
             $tr.find('.tot-compra').text(totCompra.toFixed(2));
             $tr.find('.vl-total').text(totVenda.toFixed(2));
+
             totalCompraAdc += totCompra;
             totalVendaAdc  += totVenda;
         });
-        // ================= TOTAIS =================
+
+        /* ================= TOTAIS ================= */
         $(`#totCompra_porta_${porta}`).text(
             "R$ " + totalCompraProd.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
         );
+
         $(`#totVenda_porta_${porta}`).text(
             "R$ " + totalVendaProd.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
         );
+
         $(`#totCompraAdc_porta_${porta}`).text(
             "R$ " + totalCompraAdc.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
         );
+
         $(`#totVendaAdc_porta_${porta}`).text(
             "R$ " + totalVendaAdc.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
         );
     }
+
     const medidasCtrl = {};
     function buscarProdutosPrincipais(num, lg, at) {
-        medidasCtrl[num] ??= { larg: null, alt: null };
-        prodManager.data[Number(num)] ??= [];
-        const ctrl = medidasCtrl[num];
-        if (ctrl.larg === lg && ctrl.alt === at) return;
-        ctrl.larg = lg;
-        ctrl.alt = at;
+        const p = Number(num);
+        prodManager.data[p] = [];
+        medidasCtrl[p] = { larg: lg, alt: at };
         const tpLamina = $(`.tipo-lamina[data-porta="${num}"]`).val();
         const $tbody = $("#tblProd_" + num + " tbody");
         $.get('/produtos/lista_ajax/', { tp: "desc", tp_prod: "Principal" }, function (resp) {
             $tbody.empty();
             let contador = 1;
-            resp.produtos.forEach((p) => {
-                const desc = p.desc_prod.toUpperCase();
+            resp.produtos.forEach((pdt) => {
+                const desc = pdt.desc_prod.toUpperCase();
                 if (desc.includes("MOTOR")) return;
                 if (desc.includes("LÂMINAS")) {
                     if (tpLamina === "Fechada" && desc.includes("TRANSVISION")) return;
                     if (tpLamina === "Transvision" && desc.includes("LISAS")) return;
                 }
-                prodManager.data[Number(num)].push({
-                    id: p.id,                    // 👈 IMPORTANTE
-                    cod: p.id,
-                    desc: p.desc_prod,
-                    unid: p.unidProd,
-                    vl_compra: parseFloat(p.vl_compra),
-                    vl_unit: parseFloat(p.vl_prod),
+                prodManager.data[p].push({
+                    id: pdt.id,
+                    cod: pdt.id,
+                    desc: pdt.desc_prod,
+                    unid: pdt.unidProd,
+                    vl_compra: parseFloat(pdt.vl_compra),
+                    vl_unit: parseFloat(pdt.vl_prod),
                     qtd: 0,
-                    total: 0
+                    qtd_manual: false,
+                    total: 0,
+                    regra: pdt.regra
                 });
                 $tbody.append(`
-                    <tr data-porta="${num}" data-item-id="${p.id}">
-                        <td data-label="#" class="mobile-2col">${contador}</td>
-                        <td data-label="Cód:" class="mobile-2col">${p.id}</td>
-                        <td data-label="Descrição:" class="mobile-full">${p.desc_prod}</td>
-                        <td data-label="Unidade:" class="mobile-full">${p.unidProd}</td>
-                        <td class="text-danger fw-bold mobile-full" data-label="Vl. Compra:">${p.vl_compra}</td>
-                        <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${p.vl_prod}</td>
+                    <tr data-porta="${num}" data-item-id="${pdt.id}">
+                        <td data-label="Código:" class="td-cod mobile-full">${pdt.id}</td>
+                        <td data-label="Descrição:" class="td-desc mobile-full">${pdt.desc_prod}</td>
+                        <td data-label="Unidade:" class="td-unid mobile-full">${pdt.unidProd}</td>
+                        <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">${pdt.vl_compra}</td>
+                        <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${pdt.vl_prod}</td>
                         <td class="qtd-produto mobile-full" data-label="Quantidade:">0.00</td>
                         <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0.00</td>
                         <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0.00</td>
@@ -2458,43 +3076,62 @@ $(document).ready(function() {
                 contador++;
             });
             buscarMotorIdeal(num, lg, at);
-            atualizarJSONPortas();
             atualizarTabelaPorta(num);
         });
     }
     function buscarProdutosAdicionais(porta) {
-        prodAdcManager.data[Number(porta)] ??= [];
+        const p = Number(porta);
+        if (!prodAdcManager.data[p]) {
+            prodAdcManager.data[p] = [];
+        }
         $.get('/produtos/lista_ajax/', {
             tp: "desc",
             tp_prod: "Adicional"
         }, function (resp) {
             const tabela = $(`#tblAdc_${porta} tbody`).empty();
-            let contador = 0;
-            resp.produtos.forEach((p) => {
-                prodAdcManager.data[Number(porta)].push({
-                    id: p.id,                    // 👈 IMPORTANTE
-                    cod: p.id,
-                    desc: p.desc_prod,
-                    unid: p.unidProd,
-                    vl_compra: parseFloat(p.vl_compra),
-                    vl_unit: parseFloat(p.vl_prod),
-                    qtd: 0,
-                    total: 0
-                });
+            let contador = 1;
+            resp.produtos.forEach((item) => {
+                const existente = prodAdcManager.data[p]
+                    .find(x => String(x.cod) === String(item.id));
+                const qtdInicial = existente ? existente.qtd : 0;
+                if (!existente) {
+                    prodAdcManager.data[p].push({
+                        id: item.id,
+                        cod: item.id,
+                        desc: item.desc_prod,
+                        unid: item.unidProd,
+                        vl_compra: parseFloat(item.vl_compra),
+                        vl_unit: parseFloat(item.vl_prod),
+                        qtd: qtdInicial,
+                        qtd_manual: false,
+                        total: 0,
+                        regra: item.regra,
+                        ativo: true
+                    });
+                } else {
+                    existente.desc = item.desc_prod;
+                    existente.unid = item.unidProd;
+                    existente.vl_compra = parseFloat(item.vl_compra);
+                    existente.vl_unit = parseFloat(item.vl_prod);
+                    existente.regra = item.regra;
+                    existente.ativo = true;
+                }
                 tabela.append(`
-                    <tr data-porta="${porta}" data-item-id="${p.id}">
-                        <td data-label="#" class="mobile-2col">${contador}</td>
-                        <td data-label="Cód:" class="mobile-2col">${p.id}</td>
-                        <td data-label="Descrição:" class="mobile-full">${p.desc_prod}</td>
-                        <td data-label="Unidade:" class="mobile-full">${p.unidProd}</td>
-                        <td class="text-danger fw-bold mobile-full" data-label="Vl. Compra:">${p.vl_compra}</td>
-                        <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${p.vl_prod}</td>
-                        <td class="qtd-produto mobile-full" data-label="Quantidade:">0</td>
+                    <tr data-porta="${porta}" data-item-id="${item.id}">
+                        <td data-label="Código:" class="td-cod mobile-full">${item.id}</td>
+                        <td data-label="Descrição:" class="td-desc mobile-full">${item.desc_prod}</td>
+                        <td data-label="Unidade:" class="td-unid mobile-full">${item.unidProd}</td>
+                        <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">${item.vl_compra}</td>
+                        <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${item.vl_prod}</td>
+                        <td class="qtd-produto mobile-full" data-label="Quantidade:">${qtdInicial}</td>
                         <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0.00</td>
                         <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0.00</td>
                         <td data-label="Ações:" class="mobile-full">
-                            <i class="fas fa-edit editBtn" data-bs-toggle="modal" data-bs-target="#editItemAdcModal" style="color: #13c43f; cursor: pointer;"></i>
-                            <i class="fas fa-trash deleteBtn" style="color: #db1e47; cursor: pointer;"></i>
+                            <i class="fas fa-edit editBtn" data-bs-toggle="modal"
+                            data-bs-target="#editItemAdcModal"
+                            style="color: #13c43f; cursor: pointer;"></i>
+                            <i class="fas fa-trash deleteBtn"
+                            style="color: #db1e47; cursor: pointer;"></i>
                         </td>
                     </tr>
                 `);
@@ -2502,62 +3139,151 @@ $(document).ready(function() {
             });
             atualizarTabelaPorta(porta);
             atualizarSubtotal();
+            syncAdicionalFromTable(porta);
             atualizarJSONPortas();
         });
     }
+    function hidratarAdicionaisDaTabelaSeVazio(porta) {
+        const p = Number(porta);
+        if (prodAdcManager.data[p] && prodAdcManager.data[p].length) {
+            return;
+        }
+        prodAdcManager.data[p] = [];
+        $(`#tblAdc_${p} tbody tr`).each(function () {
+            const cod = $(this).find('.td-cod').text().trim();
+            const qtd = parseFloat($(this).find('.qtd-produto').text()) || 0;
+            if (cod) {
+                prodAdcManager.data[p].push({
+                    id: cod,
+                    cod: cod,
+                    qtd: qtd,
+                    qtd_manual: false,
+                    ativo: true
+                });
+            }
+        });
+    }
+    function syncAdicionalFromTable(porta) {
+        const p = Number(porta);
+        if (!prodAdcManager.data[p]) {
+            prodAdcManager.data[p] = [];
+        }
+        const mapa = {};
+        prodAdcManager.data[p].forEach(item => {
+            mapa[item.cod] = item;
+        });
+        $(`#tblAdc_${p} tbody tr`).each(function () {
+            const cod = $(this).find('.td-cod').text().trim();
+            const qtd = parseFloat($(this).find('.qtd-produto').text()) || 0;
+            if (!cod) return;
+            if (mapa[cod]) {
+                mapa[cod].qtd = qtd;
+            } else {
+                prodAdcManager.data[p].push({
+                    id: cod,
+                    cod: cod,
+                    qtd: qtd,
+                    qtd_manual: false,
+                    ativo: true
+                });
+            }
+        });
+    }
+    $(".linha-porta").each(function () {
+        const porta = $(this).data("porta");
+        hidratarAdicionaisDaTabelaSeVazio(porta);
+        atualizarJSONPortas();
+    });
+    
+
     function atualizarJSONPortas() {
+
         let portas = [];
+
         console.log("=== INICIANDO atualizarJSONPortas ===");
+
         $(".linha-porta").each(function () {
+
             const $linha = $(this);
             const portaNum = parseInt($linha.data("porta"));
+
             console.log("Processando porta:", portaNum);
+
             let dadosPorta = {
                 numero: portaNum,
-                largura: parseFloat($(`.larg[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
-                altura: parseFloat($(`.alt[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
-                qtd_lam: parseFloat($(`.qtd-laminas[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
-                m2: parseFloat($(`.m2[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
-                larg_corte: parseFloat($(`.larg-corte[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
-                alt_corte: parseFloat($(`.alt-corte[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
-                rolo: parseFloat($(`.rolo[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
-                peso: parseFloat($(`.peso[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
-                ft_peso: parseFloat($(`.ft-peso[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
-                eix_mot: parseFloat($(`.eix-mot[data-porta="${portaNum}"]`).val().replace(',', '.')) || 0,
-                tipo_lamina: $(`.tipo-lamina[data-porta="${portaNum}"]`).val(),
-                tipo_vao: $(`.tipo-vao[data-porta="${portaNum}"]`).val(),
+                largura: getFloat(`.larg[data-porta="${portaNum}"]`),
+                altura: getFloat(`.alt[data-porta="${portaNum}"]`),
+                qtd_lam: getFloat(`.qtd-laminas[data-porta="${portaNum}"]`),
+                m2: getFloat(`.m2[data-porta="${portaNum}"]`),
+                larg_corte: getFloat(`.larg-corte[data-porta="${portaNum}"]`),
+                alt_corte: getFloat(`.alt-corte[data-porta="${portaNum}"]`),
+                rolo: getFloat(`.rolo[data-porta="${portaNum}"]`),
+                peso: getFloat(`.peso[data-porta="${portaNum}"]`),
+                ft_peso: getFloat(`.ft-peso[data-porta="${portaNum}"]`),
+                eix_mot: getFloat(`.eix-mot[data-porta="${portaNum}"]`),
+                tipo_lamina: $(`.tipo-lamina[data-porta="${portaNum}"]`).val() || "",
+                tipo_vao: $(`.tipo-vao[data-porta="${portaNum}"]`).val() || "",
                 produtos: [],
                 adicionais: []
             };
+
+            /* =====================================================
+            PRODUTOS PRINCIPAIS (SÓ QTD > 0)
+            ===================================================== */
             $(`#tblProd_${portaNum} tbody tr`).each(function () {
-                const $tr = $(this);
-                const codProd = $tr.find("td:eq(1)").text().trim();
-                const qtd = parseFloat($tr.find(".qtd-produto").text().trim()) || 0;
-                if (codProd) {
+
+                const codProd = $(this).find(".td-cod").text().trim();
+                const qtd = parseFloat($(this).find(".qtd-produto").text()) || 0;
+
+                console.log("Produto encontrado:", codProd, "Qtd:", qtd);
+
+                if (codProd && qtd > 0) {
                     dadosPorta.produtos.push({
                         codProd: codProd,
-                        qtdProd: qtd // pode ser 0
+                        qtdProd: Number(qtd.toFixed(2))
                     });
                 }
             });
+
+            /* =====================================================
+            ADICIONAIS (SÓ QTD > 0)
+            ===================================================== */
             $(`#tblAdc_${portaNum} tbody tr`).each(function () {
-                const $tr = $(this);
-                const codProd = $tr.find("td:eq(1)").text().trim();
-                const qtd = parseFloat($tr.find(".qtd-produto").text().trim()) || 0;
-                if (codProd) {
+
+                const codProd = $(this).find(".td-cod").text().trim();
+                const qtd = parseFloat($(this).find(".qtd-produto").text()) || 0;
+
+                console.log("Adicional encontrado:", codProd, "Qtd:", qtd);
+
+                if (codProd && qtd > 0) {
                     dadosPorta.adicionais.push({
                         codProd: codProd,
-                        qtdProd: qtd // pode ser 0
+                        qtdProd: Number(qtd.toFixed(2))
                     });
                 }
             });
+
             console.log("JSON da porta:", dadosPorta);
+
             portas.push(dadosPorta);
         });
+
         console.log("=== JSON FINAL ===");
         console.log(portas);
+
         $("#id_json_portas").val(JSON.stringify(portas));
+
         return true;
+    }
+
+    function getFloat(selector) {
+        const el = $(selector);
+        if (!el.length) return 0;
+
+        const val = el.val();
+        if (!val) return 0;
+
+        return parseFloat(val.replace(',', '.')) || 0;
     }
     $('#openModalBtn').on('click', async function (e) {
         e.preventDefault();
@@ -2650,150 +3376,28 @@ $(document).ready(function() {
     $("#createForm").on("submit", function(e) {
         e.preventDefault();
     });
-    const prodManager = {
-        data: {},
-        currentEditing: {
-            porta: null,
-            index: null,
-            $tr: null
-        },
-        setEditingItem($tr) {
-            this.currentEditing = {
-                porta: Number($tr.data('porta')), // 👈 AQUI
-                itemId: Number($tr.data('item-id')),
-                $tr: $tr
-            };
-        },
-        updateEditingItem(cells) {
-            const { porta, itemId, $tr } = this.currentEditing;
-            const portaKey = Number(porta);
-            console.log('DATA ATUAL ProdManager:', prodManager.data);
-            if (!this.data[portaKey]) {
-                console.warn('Porta não existe em this.data', portaKey, this.data);
-                return;
-            }
-            const item = this.data[portaKey].find(i => i.id == itemId);
-            if (!item) {
-                console.warn('Item não encontrado', porta, itemId, this.data[porta]);
-                return;
-            }
-            // DOM
-            $tr.find('td:eq(1)').text(cells[0]);
-            $tr.find('td:eq(2)').text(cells[1]);
-            $tr.find('td:eq(3)').text(cells[2]);
-            $tr.find('td:eq(5)').text(cells[3]);
-            $tr.find('td:eq(6)').text(cells[4]);
-            // DATA
-            item.cod     = cells[0];
-            item.desc    = cells[1];
-            item.unid    = cells[2];
-            item.vl_unit = parseFloat(cells[3]);
-            item.qtd     = parseFloat(cells[4]);
-            atualizarTabelaPorta(porta);
-            atualizarSubtotal();
-            atualizarJSONPortas();
-        },
-        clearEditing() {
-            this.currentEditing = { porta: null, index: null, $tr: null };
-        },
-        ensurePorta(porta) {
-            if (!this.data[porta]) this.data[porta] = [];
-        },
-        addItem(porta, item) {
-            this.ensurePorta(porta);
-            this.data[porta].push(item);
-            this.updateHiddenInput();
-        },
-        removeItem(porta, index) {
-            if (!this.data[porta]) return;
-            this.data[porta].splice(index, 1);
-            this.updateHiddenInput();
-        },
-        updateItem(porta, index, newData) {
-            if (!this.data[porta]) return;
-            Object.assign(this.data[porta][index], newData);
-            this.updateHiddenInput();
-        },
-        updateHiddenInput() {
-            $("#id_json_portas").val(JSON.stringify(this.data));
-        },
-        resetPorta(porta) {
-            this.data[porta] = [];
-            this.updateHiddenInput();
+    
+    function aplicarRegraQuantidade(item, porta) {
+        // ❌ NÃO recalcula se foi editado manualmente
+        if (item.qtd_manual) {
+            return item.qtd;
         }
-    };
-    const prodAdcManager = {
-        data: {},
-        currentEditing: {
-            porta: null,
-            index: null,
-            $tr: null
-        },
-        setEditingItem($tr) {
-            this.currentEditing = {
-                porta: Number($tr.data('porta')), // 👈 AQUI
-                itemId: Number($tr.data('item-id')),
-                $tr: $tr
-            };
-        },
-        updateEditingItem(cells) {
-            const { porta, itemId, $tr } = this.currentEditing;
-            const portaKey = Number(porta);
-            console.log('DATA ATUAL ProdAdcManager:', prodAdcManager.data);
-            if (!this.data[portaKey]) {
-                console.warn('Porta não existe em this.data', portaKey, this.data);
-                return;
-            }
-            const item = this.data[portaKey].find(i => i.id == itemId);
-            if (!item) {
-                console.warn('Item não encontrado', porta, itemId);
-                return;
-            }
-            // 🔹 Atualiza DOM
-            $tr.find('td:eq(1)').text(cells[0]);
-            $tr.find('td:eq(2)').text(cells[1]);
-            $tr.find('td:eq(3)').text(cells[2]);
-            $tr.find('td:eq(5)').text(cells[3]);
-            $tr.find('td:eq(6)').text(cells[4]);
-            // 🔹 Atualiza dados
-            item.cod     = cells[0];
-            item.desc    = cells[1];
-            item.unid    = cells[2];
-            item.vl_unit = parseFloat(cells[3]);
-            item.qtd     = parseFloat(cells[4]);
-            atualizarTabelaPorta(porta);
-            atualizarSubtotal();
-            atualizarJSONPortas();
-        },
-        clearEditing() {
-            this.currentEditing = { porta: null, index: null, $tr: null };
-        },
-        ensurePorta(porta) {
-            if (!this.data[porta]) this.data[porta] = [];
-        },
-        addItem(porta, item) {
-            this.ensurePorta(porta);
-            this.data[porta].push(item);
-            this.updateHiddenInput();
-        },
-        removeItem(porta, index) {
-            if (!this.data[porta]) return;
-            this.data[porta].splice(index, 1);
-            this.updateHiddenInput();
-        },
-        updateItem(porta, index, newData) {
-            if (!this.data[porta]) return;
-            Object.assign(this.data[porta][index], newData);
-            this.updateHiddenInput();
-        },
-        updateHiddenInput() {
-            $("#id_json_portas").val(JSON.stringify(this.data));
-        },
-        resetPorta(porta) {
-            this.data[porta] = [];
-            this.updateHiddenInput();
+
+        // ✅ Regra automática
+        if (!item.regra) return item.qtd;
+
+        switch (item.regra.tipo) {
+            case 'M2':
+                return parseFloat($(`.m2[data-porta="${porta}"]`).val()) || 0;
+
+            case 'ALTURA':
+                return parseFloat($(`.alt[data-porta="${porta}"]`).val()) || 0;
+
+            default:
+                return item.qtd;
         }
-    };
+    }
+
     function rebuildProdutosFromTable() {
         prodManager.data = {};
         $('.tabela-produtos tbody tr').each(function () {
@@ -2807,15 +3411,14 @@ $(document).ready(function() {
             prodManager.data[porta].push({
                 id: itemId,
                 cod: itemId,
-                desc: $tr.find('td:eq(2)').text().trim(),
-                unid: $tr.find('td:eq(3)').text().trim(),
-                vl_compra: parseFloat($tr.find('td:eq(4)').text().replace(',', '.')) || 0,
-                vl_unit: parseFloat($tr.find('td:eq(5)').text().replace(',', '.')) || 0,
-                qtd: parseFloat($tr.find('td:eq(6)').text().replace(',', '.')) || 0,
-                total: parseFloat($tr.find('td:eq(8)').text().replace(',', '.')) || 0
+                desc: $tr.find('.td-desc').text().trim(),
+                unid: $tr.find('.td-unit').text().trim(),
+                vl_compra: parseFloat($tr.find('.td-vl-compra').text().replace(',', '.')) || 0,
+                vl_unit: parseFloat($tr.find('.vl-unit').text().replace(',', '.')) || 0,
+                qtd: parseFloat($tr.find('.qtd-produto').text()) || 0,
+                total: parseFloat($tr.find('.vl-total').text().replace(',', '.')) || 0
             });
         });
-        prodManager.updateHiddenInput();
     }
     function rebuildAdicionaisFromTable() {
         prodAdcManager.data = {};
@@ -2830,16 +3433,16 @@ $(document).ready(function() {
             prodAdcManager.data[porta].push({
                 id: itemId,
                 cod: itemId,
-                desc: $tr.find('td:eq(2)').text().trim(),
-                unid: $tr.find('td:eq(3)').text().trim(),
-                vl_compra: parseFloat($tr.find('td:eq(4)').text().replace(',', '.')) || 0,
-                vl_unit: parseFloat($tr.find('td:eq(5)').text().replace(',', '.')) || 0,
-                qtd: parseFloat($tr.find('td:eq(6)').text().replace(',', '.')) || 0,
-                total: parseFloat($tr.find('td:eq(8)').text().replace(',', '.')) || 0
+                desc: $tr.find('.td-desc').text().trim(),
+                unid: $tr.find('.td-unid').text().trim(),
+                vl_compra: parseFloat($tr.find('.td-vl-compra').text().replace(',', '.')) || 0,
+                vl_unit: parseFloat($tr.find('.vl-unit').text().replace(',', '.')) || 0,
+                qtd: parseFloat($tr.find('.qtd-produto').text()) || 0,
+                total: parseFloat($tr.find('.vl-total').text().replace(',', '.')) || 0
             });
         });
-        prodAdcManager.updateHiddenInput();
     }
+    
     rebuildProdutosFromTable();
     rebuildAdicionaisFromTable();
     $('.modal').on('hidden.bs.modal', function () {
@@ -2849,35 +3452,57 @@ $(document).ready(function() {
     // Eventos comuns
     $(document).on('click', '.editBtn', function () {
         const $tr = $(this).closest('tr');
-        // Identifica tabela
-        const isProd = $(this).closest('table').is('#tblProd_' + $tr.data('porta'));
-        const isAdc  = $(this).closest('table').is('#tblAdc_' + $tr.data('porta'));
-        // ======== PRODUTOS PRINCIPAIS ============
+        const porta = Number($tr.data('porta'));
+        const itemId = Number($tr.data('item-id'));
+        const isProd = $(this).closest('table').is('#tblProd_' + porta);
+        const isAdc  = $(this).closest('table').is('#tblAdc_' + porta);
         if (isProd) {
             prodManager.setEditingItem($tr);
+            const item = prodManager.data[porta]?.find(i => i.id === itemId);
+            console.log('UNIDADE ITEM:', item);
+
+            if (!item) return;
             $('#editItemModal .modal-title').html(
-                `<i class="fa-solid fa-pen-to-square"></i> Editar Item ${$tr.find('td:eq(0)').text().trim()}`
+                `<i class="fa-solid fa-pen-to-square"></i> Editar Item ${item.cod}`
             );
-            $('#editCódInput').val($tr.find('td:eq(1)').text().trim());
-            $('#editDescInput').val($tr.find('td:eq(2)').text().trim());
-            $('#editUnidInput').val($tr.find('td:eq(3)').text().trim());
-            $('#editValorItemInput').val($tr.find('td:eq(5)').text().trim());
-            $('#editQtdInput').val($tr.find('td:eq(6)').text().trim());
-            const modalEdit = new bootstrap.Modal(document.getElementById('editItemModal'));
+            $('#editCódInput').val(item.cod);
+            $('#editDescInput').val(item.desc);
+            const unid =
+                item.unid && item.unid.trim()
+                    ? item.unid
+                    : $tr.find('.td-unid').text().trim();
+
+            const vl   = item.vl_unit ?? item.vl_unitario ?? 0;
+            const qtd  = item.qtd_final ?? item.qtd ?? 0;
+
+            $('#editUnidInput').val(unid);
+            $('#editValorItemInput').val(Number(vl).toFixed(2));
+            $('#editQtdInput').val(Number(qtd).toFixed(2));
+
+            $('#editQtdInput').prop('readonly', false);
+            const modalEdit = new bootstrap.Modal(
+                document.getElementById('editItemModal')
+            );
             modalEdit.show();
         }
-        // ======== PRODUTOS ADICIONAIS ============
         else if (isAdc) {
             prodAdcManager.setEditingItem($tr);
+            const item = prodAdcManager.data[porta]?.find(i => i.id === itemId);
+            if (!item) return;
             $('#editItemAdcModal .modal-title').html(
-                `<i class="fa-solid fa-pen-to-square"></i> Editar Item ${$tr.find('td:eq(1)').text().trim()}`
+                `<i class="fa-solid fa-pen-to-square"></i> Editar Item ${item.cod}`
             );
-            $('#editCódAdcInput').val($tr.find('td:eq(1)').text().trim());
-            $('#editDescAdcInput').val($tr.find('td:eq(2)').text().trim());
-            $('#editUnidAdcInput').val($tr.find('td:eq(3)').text().trim());
-            $('#editValorItemAdcInput').val($tr.find('td:eq(5)').text().trim());
-            $('#editQtdAdcInput').val($tr.find('td:eq(6)').text().trim());
-            const modalAdc = new bootstrap.Modal(document.getElementById('editItemAdcModal'));
+            $('#editCódAdcInput').val(item.cod);
+            $('#editDescAdcInput').val(item.desc);
+            $('#editUnidAdcInput').val(item.unid);
+            $('#editValorItemAdcInput').val(item.vl_unit.toFixed(2));
+            const qtd = item.qtd_final ?? item.qtd ?? 0;
+            $('#editQtdAdcInput').val(Number(qtd).toFixed(2));
+
+            $('#editQtdAdcInput').prop('readonly', false);
+            const modalAdc = new bootstrap.Modal(
+                document.getElementById('editItemAdcModal')
+            );
             modalAdc.show();
         }
     });
@@ -2912,6 +3537,7 @@ $(document).ready(function() {
             document.getElementById('editItemAdcModal')
         ).hide();
         prodAdcManager.clearEditing();
+        syncAdicionalFromTable(porta);
     });
     $('.remQtd').on('click', function () {
         let qtd = parseFloat($('#editQtdInput').val()) || 0;
@@ -3109,21 +3735,8 @@ $(document).ready(function() {
     }
     let lastLg = null;
     let lastAt = null;
-    $(document).on("blur", ".larg, .alt", function () {
-        let porta = $(this).data("porta");
-        const larg = $(`.larg[data-porta="${porta}"]`).val().trim();
-        const alt  = $(`.alt[data-porta="${porta}"]`).val().trim();
-        if (!larg || !alt) return;
-        const lg = parseFloat(larg.replace(",", "."));
-        const at = parseFloat(alt.replace(",", "."));
-        if (lg === lastLg && at === lastAt) {
-            console.log("Largura/altura não mudaram — não recalculando.");
-            return;
-        }
-        lastLg = lg;
-        lastAt = at;
-        atualizarSubtotal();
-    });
+    
+
     $('#prod_servBtn, #adicionaisBtn').on('click', function () {
         let porta = $(this).data("porta");  // ← AQUI TAMBÉM FUNCIONA
         const larg = $(`.larg[data-porta="${porta}"]`).val();
@@ -3142,7 +3755,7 @@ $(document).ready(function() {
         const temPintura = $("#id_pintura").val();
         if (temPintura === "Não") {
             $(`#tblAdc_${porta} tbody tr`).each(function () {
-                const desc = $(this).find("td:nth-child(3)").text().toUpperCase().trim();
+                const desc = $(this).find(".td-desc").text().toUpperCase().trim();
                 if (desc === "PINTURA ELETROSTÁTICA" || desc === "PINTURA AUTOMOTIVA") {
                     $(this).remove();
                 }
@@ -3153,7 +3766,6 @@ $(document).ready(function() {
             somaFormas();
             return;
         }
-        prodAdcManager.updateHiddenInput();
     });
     $('#id_cod_prod').on('blur keydown', function(event) {
         if (event.type === 'blur' || event.key === 'Enter') {
@@ -3244,145 +3856,120 @@ $(document).ready(function() {
             });
         }
     });
-    // $('#id_cod_produto').on('blur keydown', function(event) {
-    //     if (event.type === 'blur' || event.key === 'Enter') {
-    //         const productId = $(this).val();
-    //         const tpProduto = $('#id_tp_produto').val(); // Obtém o valor do select
-    //         if (productId.trim() === '') {
-    //             return; // Sai da função se o campo estiver vazio
-    //         }
-    //         $.ajax({
-    //             url: '/produtos/lista_ajax_ent/', // Substitua pela URL correta da sua aplicação
-    //             method: 'GET',
-    //             data: {
-    //                 s: productId,
-    //                 tp: 'cod',
-    //                 tp_prod: '' // Inclui o tipo de produto na requisição
-    //             },
-    //             success: function(response) {
-    //                 if (response.produtos.length > 0) {
-    //                     const produto = response.produtos[0];
-    //                     $('#id_desc_prod').val(produto.desc_prod);
-    //                     $('#id_unidProduto').val(produto.unidProd);
-    //                     $('#id_grupoProd').val(produto.grupo);
-    //                     $('#id_preco_unit').focus();
-    //                 } else {
-    //                     Toastify({
-    //                         text: 'Código de produto não encontrado!',
-    //                         duration: 5000,
-    //                         gravity: "top",
-    //                         position: "center",
-    //                         backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
-    //                         stopOnFocus: true,
-    //                         escapeMarkup: false,
-    //                     }).showToast();
-    //                     $('#id_cod_produto').focus();
-    //                 }
-    //             },
-    //             error: function() {
-    //                 Toastify({
-    //                     text: 'Erro ao buscar o produto. Tente novamente!',
-    //                     duration: 5000,
-    //                     gravity: "top",
-    //                     position: "center",
-    //                     backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
-    //                     stopOnFocus: true,
-    //                     escapeMarkup: false,
-    //                 }).showToast();
-    //             }
-    //         });
-    //     }
-    // });
-    // $('#id_cod_prod_adc').on('blur keydown', function(event) {
-    //     if (event.type === 'blur' || event.key === 'Enter') {
-    //         const productId = $(this).val();
-    //         const tpProduto = $('#id_tp_produto').val(); // Obtém o valor do select
-    //         if (productId.trim() === '') {
-    //             return; // Sai da função se o campo estiver vazio
-    //         }
-    //         $.ajax({
-    //             url: '/produtos/lista_ajax/', // Substitua pela URL correta da sua aplicação
-    //             method: 'GET',
-    //             data: {
-    //                 s: productId,
-    //                 tp: 'cod',
-    //                 tp_prod: 'Adicional' // Inclui o tipo de produto na requisição
-    //             },
-    //             success: function(response) {
-    //                 if (response.produtos.length > 0) {
-    //                     const produto = response.produtos[0];
-    //                     $('#id_desc_prod_adc').val(produto.desc_prod);
-    //                     $('#id_unidProd_adc').val(produto.unidProd);
-    //                     $('#id_vl_compra_adc').val(produto.vl_compra);
-    //                     $('#id_vl_prod_adc').val(produto.vl_prod);
-    //                     if (produto.vl_prod === "0,00" || produto.vl_prod === "") {
-    //                         $('#id_vl_prod_adc').focus();
-    //                     } else {
-    //                         $('#id_qtd_prod_adc').focus();
-    //                     }
-    //                     const descricao = $('#id_desc_prod_adc').val();
-    //                     const tp_pintura = $("#id_tp_pintura").val();
-    //                     console.log('Cálculo do produto', descricao)
-    //                     if ((tp_pintura === "Eletrostática" && descricao === 'PINTURA ELETROSTÁTICA') || (tp_pintura === "Automotiva" && descricao === "PINTURA AUTOMOTIVA")) {
-    //                         console.log('Valor de id_m2 antes da leitura:', $('#id_m2').val().replace(',', '.'));
-    //                         let m2 = parseFloat($('#id_m2').val().replace(',', '.'));
-    //                         if (!isNaN(m2)) {
-    //                             $('#id_qtd_prod_adc').val(m2.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-    //                         } else {
-    //                             $('#id_qtd_prod_adc').val('0,00');
-    //                         }
-    //                         const temPintura = $('#id_pintura').val();
-    //                         let toastErrorShown = false;
-    //                         if (temPintura === 'Sim') {
-    //                             $('#id_qtd_prod_adc').val('1,00');
-    //                         } else {
-    //                             if (!toastErrorShown) { // Só exibe a mensagem se ainda não foi mostrada
-    //                                 toastErrorShown = true;
-    //                                 Toastify({
-    //                                     text: '<i class="fa-solid fa-triangle-exclamation"></i> Campo Pintura está selecionado como Não, para inserir o produto, altere a opção para Sim!',
-    //                                     duration: 5000,
-    //                                     gravity: "top",
-    //                                     position: "center",
-    //                                     backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
-    //                                     stopOnFocus: true,
-    //                                     escapeMarkup: false,
-    //                                 }).showToast();
-    //                                 setTimeout(() => {
-    //                                     finalizarLoading();
-    //                                 }, 500);
-    //                                 $('#id_cod_prod_adc').focus();
-    //                             }
-    //                             return;
-    //                         }
-    //                         atualizarSubtotal();
-    //                         toastErrorShown = false;
-    //                     }
-    //                 } else {
-    //                     Toastify({
-    //                         text: 'Código de produto não encontrado!',
-    //                         duration: 5000,
-    //                         gravity: "top",
-    //                         position: "center",
-    //                         backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
-    //                         stopOnFocus: true,
-    //                         escapeMarkup: false,
-    //                     }).showToast();
-    //                 }
-    //             },
-    //             error: function() {
-    //                 Toastify({
-    //                     text: 'Erro ao buscar o produto. Tente novamente!',
-    //                     duration: 5000,
-    //                     gravity: "top",
-    //                     position: "center",
-    //                     backgroundColor: 'linear-gradient(to right, #d58300, #ffc93b)',
-    //                     stopOnFocus: true,
-    //                     escapeMarkup: false,
-    //                 }).showToast();
-    //             }
-    //         });
-    //     }
-    // });
+    function calcularQtdProdutoPorContexto(produto) {
+        const ctx = {
+            larg: getFloat('#id_largura'),
+            larg_c: getFloat('#id_larg_corte'),
+            alt: getFloat('#id_altura'),
+            alt_c: getFloat('#id_alt_corte'),
+            m2: getFloat('#id_m2')
+        };
+        return calcularQtdPorRegra(produto, ctx);
+    }
+
+    function getFormProdutoByPorta(porta) {
+        return $(`.form-produto[data-porta="${porta}"]`);
+    }
+    function getFormAdcByPorta(porta) {
+        return $(`.form-adicional[data-porta="${porta}"]`);
+    }
+    function buscarProdutoPorCodigo($input, tipo) {
+
+        const porta = Number($input.data('porta'));
+        const cod = $input.val().trim();
+        if (!cod) return;
+
+        const isAdicional = tipo === 'Adicional';
+
+        const $form = isAdicional
+            ? getFormAdcByPorta(porta)
+            : getFormProdutoByPorta(porta);
+
+        console.log('🔍 Buscar', tipo, '| Porta:', porta, '| Código:', cod);
+
+        $.ajax({
+            url: '/produtos/lista_ajax/',
+            method: 'GET',
+            data: {
+                s: cod,
+                tp: 'cod',
+                tp_prod: tipo
+            },
+            success(response) {
+
+                if (!response.produtos?.length) {
+                    toast("<i class='fa-solid fa-triangle-exclamation'></i> Código de produto não encontrado!", cor_amarelo);
+                    return;
+                }
+
+                const produto = response.produtos[0];
+
+                // 🔹 mapeamento correto dos campos
+                const map = isAdicional ? {
+                    desc: '.desc-prod-adc',
+                    unid: '.unid-prod-adc',
+                    valor: '.valor-prod-adc',
+                    qtd: '.qtd-prod-adc'
+                } : {
+                    desc: '.desc-prod',
+                    unid: '.unid-prod',
+                    valor: '.valor-prod',
+                    qtd: '.qtd-prod'
+                };
+
+                $form.find(map.desc).val(produto.desc_prod);
+                $form.find(map.unid).val(produto.unidProd);
+                $form.find(map.valor).val(produto.vl_prod);
+
+                let qtdCalc = 0;
+                try {
+                    qtdCalc = calcularQtdProdutoPorContexto(produto, porta);
+                } catch (e) {
+                    console.warn('Erro regra:', e);
+                }
+
+                const $qtd = $form.find(map.qtd);
+
+                if (qtdCalc > 0) {
+                    $qtd.val(
+                        qtdCalc.toLocaleString('en-US', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        })
+                    ).data('auto', true);
+                } else {
+                    $qtd.val('').data('auto', false);
+                }
+
+                $form.find(map.valor).focus();
+            },
+            error() {
+                toast("<i class='fa-solid fa-circle-xmark'></i> Erro ao buscar o produto. Tente novamente!", cor_vermelho);
+            }
+        });
+    }
+    $(document).on('blur', '.cod-prod', function () {
+        buscarProdutoPorCodigo($(this), 'Principal');
+    });
+
+    $(document).on('keyup', '.cod-prod', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            buscarProdutoPorCodigo($(this), 'Principal');
+        }
+    });
+    $(document).on('blur', '.cod-prod-adc', function () {
+        buscarProdutoPorCodigo($(this), 'Adicional');
+    });
+
+    $(document).on('keyup', '.cod-prod-adc', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            buscarProdutoPorCodigo($(this), 'Adicional');
+        }
+    });
+
+
     function carregarDadosCliente(clienteId) {
         if (clienteId) {
             $.ajax({
@@ -5344,7 +5931,7 @@ $(document).ready(function() {
     $('#id_data_realizacao, #data_inicio, #data_fim').on('input', function(event) {
         dataFormatada1(event);
     });
-    let selectors = '#campo_1, #campo_2, #id_margem, #id_vl_prod, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
+    let selectors = '.valor-prod, .valor-prod-adc, .qtd-prod-adc, .qtd-prod, #campo_1, #campo_2, #id_margem, #id_vl_prod, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
     $(selectors).each(function() {
         if (!$(this).val()) {
             $(this).val("0.00");

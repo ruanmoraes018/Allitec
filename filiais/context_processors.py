@@ -134,6 +134,10 @@ def user_permissions(request):
             'perm_add_tabelapreco': 'tabelas_preco.add_tabelapreco' in permissoes,
             'perm_change_tabelapreco': 'tabelas_preco.change_tabelapreco' in permissoes,
             'perm_delete_tabelapreco': 'tabelas_preco.delete_tabelapreco' in permissoes,
-
+            #Regras de Produto
+            'perm_view_regraproduto': 'regras_produto.view_regraproduto' in permissoes,
+            'perm_add_regraproduto': 'regras_produto.add_regraproduto' in permissoes,
+            'perm_change_regraproduto': 'regras_produto.change_regraproduto' in permissoes,
+            'perm_delete_regraproduto': 'regras_produto.delete_regraproduto' in permissoes,
         }
     return {}

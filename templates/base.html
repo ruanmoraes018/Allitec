@@ -189,6 +189,9 @@
                                         {% if perm_view_tabelapreco %}
                                             <a href="{% url 'lista-tabelas_preco' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Tabelas de Preço</a>
                                         {% endif %}
+                                        {% if perm_view_regraproduto %}
+                                            <a href="{% url 'lista-regras' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Regras de Produto</a>
+                                        {% endif %}
                                     </div>
                                 </div>
                             {% endif %}

@@ -15,6 +15,7 @@ from unidades.models import Unidade
 from tabelas_preco.models import TabelaPreco
 from decimal import Decimal, InvalidOperation
 import re
+from django.db.models import F
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -252,8 +253,10 @@ def att_preco_lote(request):
 @login_required
 def buscar_produtos(request):
     termo = request.GET.get('s', '').strip()
-    filtro = request.GET.get('tp', 'desc')  # 'desc' ou 'cod'
-    tp_produto = request.GET.get('tp_prod', '')  # 'Principal', 'Adicional' ou vazio
+    filtro = request.GET.get('tp', 'desc')  # desc | cod
+    tp_produto = request.GET.get('tp_prod', '')  # Principal | Adicional | ''
+
+    produtos = Produto.objects.none()
 
     if filtro == 'desc':
         norm_termo = remove_accents(termo).lower()
@@ -265,21 +268,21 @@ def buscar_produtos(request):
         if tp_produto:
             produtos = produtos.filter(tp_prod__icontains=tp_produto)
 
-        produtos = produtos.order_by('id')
+    elif filtro == 'cod' and termo:
+        produtos = Produto.objects.filter(id=termo)
+        if tp_produto:
+            produtos = produtos.filter(tp_prod__icontains=tp_produto)
 
-    else:  # filtro == 'cod'
-        if termo:
-            produtos = Produto.objects.filter(id=termo)
-            if tp_produto:
-                produtos = produtos.filter(tp_prod__icontains=tp_produto)
-        else:
-            produtos = Produto.objects.none()
+    produtos = (
+        produtos
+        .select_related('regra', 'unidProd', 'grupo')
+        .order_by('id')
+    )
 
-    # 🔹 Monta o JSON incluindo valores da tabela de preços
     data = []
+
     for prod in produtos:
-        # Pega o preço da tabela relacionada (por exemplo, a primeira)
-        tabela = prod.produtotabela_set.first()  # ou use .filter(ativo=True).first() se houver campo de status
+        tabela = prod.produtotabela_set.first()
 
         data.append({
             'id': prod.id,
@@ -287,9 +290,17 @@ def buscar_produtos(request):
             'unidProd': prod.unidProd.nome_unidade if prod.unidProd else '',
             'grupo': prod.grupo.nome_grupo if prod.grupo else '',
             'estoque_prod': getattr(prod, 'estoque_prod', None),
+
             'vl_compra': prod.vl_compra,
             'vl_prod': tabela.vl_prod if tabela else None,
+
             'tp_prod': prod.tp_prod,
+
+            'regra': {
+                'codigo': prod.regra.codigo if prod.regra else None,
+                'tipo': prod.regra.tipo if prod.regra else None,
+                'expressao': prod.regra.expressao if prod.regra else None,
+            } if prod.regra else None
         })
 
     return JsonResponse({'produtos': data})
