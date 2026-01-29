@@ -29,25 +29,24 @@ $(document).ready(function() {
             return item.id;
         },
         updateEditingItem(cells) {
+            console.log('CELLS RECEBIDO:', cells);
             const { porta, itemId, $tr } = this.currentEditing;
             const portaKey = Number(porta);
 
             const item = this.data[portaKey]?.find(i => i.id === itemId);
             if (!item) return;
 
-            // 🔹 Valores novos
             const novoCod  = cells[0];
             const novaDesc = cells[1];
             const novaUnid = cells[2];
             const novoVl   = parseFloat(cells[3]) || 0;
             const novaQtd  = parseFloat(cells[4]);
 
-            // 🔎 Verifica mudanças reais
             const mudou =
-                item.cod      !== novoCod ||
-                item.desc     !== novaDesc ||
-                item.unid     !== novaUnid ||
-                item.vl_unit  !== novoVl  ||
+                item.cod     !== novoCod ||
+                item.desc    !== novaDesc ||
+                item.unid    !== novaUnid ||
+                item.vl_unit !== novoVl  ||
                 (
                     !isNaN(novaQtd) &&
                     Number(item.qtd_final ?? 0) !== novaQtd
@@ -66,7 +65,7 @@ $(document).ready(function() {
 
             if (!isNaN(novaQtd)) {
                 item.qtd_final  = novaQtd;
-                item.qtd_manual = true;          // 🔒 REGRA DE OURO
+                item.qtd_manual = true;
                 item.ativo      = novaQtd > 0;
             }
 
@@ -77,8 +76,8 @@ $(document).ready(function() {
             $tr.find('.vl-unit').text(item.vl_unit.toFixed(2));
             $tr.find('.qtd-produto').text(item.qtd_final.toFixed(2));
 
-            /* ================== RECÁLCULO SEGURO ================== */
-            atualizarTabelaPorta(porta);
+            /* ================== RECÁLCULO CORRETO ================== */
+            atualizarTabelaPorta(porta); // ✅ AGORA SIM
             atualizarSubtotal();
             atualizarJSONPortas();
         },
@@ -126,6 +125,7 @@ $(document).ready(function() {
             return item.id;
         },
         updateEditingItem(cells) {
+            console.log('CELLS RECEBIDO:', cells);
             const { porta, itemId, $tr } = this.currentEditing;
             const portaKey = Number(porta);
 
@@ -193,7 +193,42 @@ $(document).ready(function() {
             this.currentEditing = { porta: null, itemId: null, $tr: null };
         }
     };
+    console.log(prodManager.data[0]);
+    console.log(prodAdcManager.data[0]);
+    
+    function getPortasFromBackend() {
+        const el = document.getElementById('json-portas');
+        if (!el) return [];
 
+        let raw = el.textContent || el.innerText || '';
+
+        raw = raw.trim();
+
+        if (!raw) return [];
+
+        try {
+            const parsed = JSON.parse(raw);
+
+            // 🔒 GARANTIA ABSOLUTA
+            if (Array.isArray(parsed)) return parsed;
+
+            if (typeof parsed === 'string') {
+                const reparsed = JSON.parse(parsed);
+                return Array.isArray(reparsed) ? reparsed : [];
+            }
+
+            return [];
+
+        } catch (e) {
+            console.error('Erro ao parsear portas_json', e, raw);
+            return [];
+        }
+    }
+
+    portasJSON = getPortasFromBackend();
+    console.log('portasJSON:', portasJSON);
+
+    hidratarManagersFromBackend();
 
     var form = $('#createForm');
     var cadastro = 'https://allitec.pythonanywhere.com/orcamentos/add/';
@@ -1723,6 +1758,26 @@ $(document).ready(function() {
         return `${novoDia}/${novoMes}/${novoAno}`;
     }
     let toastErrorShown = false;
+    $(document).on('input', '.alt', function () {
+        let porta = $(this).data('porta');
+        $(`.alt-corte[data-porta="${porta}"]`).val($(this).val());
+    });
+    function iniciarLoading() {
+        $("#loadingModal").modal({
+            backdrop: 'static',
+            keyboard: false
+        }).modal("show");
+    }
+    let loadingTimeout = null;
+    function finalizarLoading() {
+        if (loadingTimeout) {
+            clearTimeout(loadingTimeout);
+        }
+        loadingTimeout = setTimeout(() => {
+            $("#loadingModal").modal("hide");
+            loadingTimeout = null;
+        }, 2500);
+    }
     function arredondarParaCima(valor, casasDecimais) {
         let fator = Math.pow(10, casasDecimais);
         return (Math.ceil(valor * fator) / fator).toFixed(casasDecimais);
@@ -1758,32 +1813,11 @@ $(document).ready(function() {
         let resultado;
         if (tp_vao === "Fora do Vão") {
             resultado = (alt_corte + 0.6) / 7.5;
-        } else {
+        } else if (tp_vao === "Dentro do Vão") {
             resultado = (alt_corte - 0.6) / 7.5;
         }
         let final = arredondarParaCima(resultado, 2) * 100;
         $(`.ft-peso[data-porta="${porta}"]`).val(final.toFixed(2));
-    }
-    $(document).on('input', '.alt', function () {
-        let porta = $(this).data('porta');
-        $(`.alt-corte[data-porta="${porta}"]`).val($(this).val());
-    });
-    $('#id_tp_vao').val('Fora do Vão');
-    function iniciarLoading() {
-        $("#loadingModal").modal({
-            backdrop: 'static',
-            keyboard: false
-        }).modal("show");
-    }
-    let loadingTimeout = null;
-    function finalizarLoading() {
-        if (loadingTimeout) {
-            clearTimeout(loadingTimeout);
-        }
-        loadingTimeout = setTimeout(() => {
-            $("#loadingModal").modal("hide");
-            loadingTimeout = null;
-        }, 2500);
     }
     function calcLgCorte(porta) {
         let largRaw = $(`.larg[data-porta="${porta}"]`).val();
@@ -1794,20 +1828,17 @@ $(document).ready(function() {
         let calc = 0;
         if (tp_vao === "Fora do Vão") {
             calc = larg + 0.10;
-        } else {
+        } else if (tp_vao === "Dentro do Vão") {
             calc = larg - 0.08;
-        }
-        if (tp_vao === '1 Lado Dentro do Vão') {
+        } else if (tp_vao === '1 Lado Dentro do Vão') {
             calc = larg + 0.03;
         }
-        return calc.toFixed(2);
+        $(`.larg-corte[data-porta="${porta}"]`).val(calc.toFixed(2));
     }
-    function atualizarLarguraCorte(porta) {
-        const result = calcLgCorte(porta);
-        $(`.larg-corte[data-porta="${porta}"]`).val(result);
-        let ft_p = $(`.ft-peso[data-porta="${porta}"]`).val();
-        ft_p = ft_p ? parseFloat(ft_p.replace(',', '.')) : 0;
-        const calculo = (result * 0.8) * ft_p * 1.2;
+    function calcPeso(porta) {
+        let larg_corte = parseFloat($(`.larg-corte[data-porta="${porta}"]`).val()) || 0;
+        let ft_peso = parseFloat($(`.ft-peso[data-porta="${porta}"]`).val()) || 0;
+        const calculo = (larg_corte * 0.8) * ft_peso * 1.2;
         const pesoFinal = arredondarParaCima(calculo, 0);
         $(`.peso[data-porta="${porta}"]`).val(pesoFinal);
     }
@@ -1844,80 +1875,73 @@ $(document).ready(function() {
         }
         return null;
     }
-
     let motorCtrl = {};
-
-    function buscarMotorIdeal(porta) {
-
+    async function buscarMotorIdeal(porta) {
         const peso = parseFloat($(`.peso[data-porta="${porta}"]`).val()) || 0;
         if (peso <= 0) return;
-
         motorCtrl[porta] ??= { ultimoProduto: null, ultimoPeso: null };
-
-        const regra = REGRAS['MOTOR_PESO']; // 👈 carregada via AJAX
+        const regra = REGRAS['MOTOR_PESO'];
         if (!regra) return;
-
         const regraJSON = JSON.parse(regra.expressao);
         const nomeMotor = selecionarMotorPorPeso(peso, regraJSON);
         if (!nomeMotor) return;
-
-        // Evita recálculo desnecessário
-        if (
-            motorCtrl[porta].ultimoProduto === nomeMotor &&
-            motorCtrl[porta].ultimoPeso === peso
-        ) return;
-
+        const ctrl = motorCtrl[porta];
+        if (ctrl.ultimoProduto === nomeMotor && ctrl.ultimoPeso === peso) {
+            return;
+        }
         removerProdutoPorRegra(porta, 'MOTOR_PESO');
-
-        $.get('/produtos/lista_ajax/', {
-            s: nomeMotor,
-            tp: 'desc',
-            tp_prod: 'Principal'
-        }).done(resp => {
-
-            const p = resp.produtos?.[0];
-            if (!p) return;
-
-            prodManager.data[porta].push({
-                id: p.id,
-                cod: p.id,
-                desc: p.desc_prod,
-                unid: p.unidProd,
-                vl_compra: parseFloat(p.vl_compra),
-                vl_unit: parseFloat(p.vl_prod),
-                qtd: 1, // 🔥 quantidade vem da regra QTD
-                qtd_manual: false, // 👈 IMPORTANTE
-                total: p.vl_prod,
-                regra: p.regra
-            });
-
-            $(`#tblProd_${porta} tbody`).append(`
-                <tr data-porta="${porta}" data-item-id="${p.id}">
-                    <td data-label="Código:" class="td-cod mobile-full">${p.id}</td>
-                    <td data-label="Descrição:" class="td-desc mobile-full">${p.desc_prod}</td>
-                    <td data-label="Unidade:" class="td-unid mobile-full">${p.unidProd}</td>
-                    <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">${p.vl_compra}</td>
-                    <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${p.vl_prod}</td>
-                    <td class="qtd-produto mobile-full" data-label="Quantidade:">0.00</td>
-                    <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0.00</td>
-                    <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0.00</td>
-                    <td data-label="Ações:" class="mobile-full">
-                        <i class="fas fa-edit editBtn" style="color: #13c43f; cursor:pointer;" data-bs-toggle="modal" data-bs-target="#editItemModal"></i>
-                        <i class="fas fa-trash deleteBtn" style="color: #db1e47; cursor:pointer;"></i>
-                    </td>
-                </tr>
-            `);
-
-            motorCtrl[porta].ultimoProduto = nomeMotor;
-            motorCtrl[porta].ultimoPeso = peso;
-
-            atualizarTabelaPorta(porta);
-            atualizarJSONPortas();
-            atualizarSubtotal();
+        return new Promise((resolve, reject) => {
+            $.get('/produtos/lista_ajax/', {
+                s: nomeMotor,
+                tp: 'desc',
+                tp_prod: 'Principal'
+            })
+            .done(resp => {
+                prodManager.data[porta] ??= [];
+                const p = resp.produtos?.[0];
+                if (!p) {
+                    resolve();
+                    return;
+                }
+                prodManager.data[porta].push({
+                    id: p.id,
+                    cod: p.id,
+                    desc: p.desc_prod,
+                    unid: p.unidProd,
+                    vl_compra: parseFloat(p.vl_compra),
+                    vl_unit: parseFloat(p.vl_prod),
+                    qtd: 1,
+                    qtd_manual: false,
+                    total: p.vl_prod,
+                    regra: p.regra,
+                    ativo: true
+                });
+                $(`#tblProd_${porta} tbody`).append(`
+                    <tr data-porta="${porta}" data-item-id="${p.id}">
+                        <td data-label="Código:" class="td-cod mobile-full">${p.id}</td>
+                        <td data-label="Descrição:" class="td-desc mobile-full">${p.desc_prod}</td>
+                        <td data-label="Unidade:" class="td-unid mobile-full">${p.unidProd}</td>
+                        <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">${p.vl_compra}</td>
+                        <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${p.vl_prod}</td>
+                        <td class="qtd-produto mobile-full" data-label="Quantidade:">0.00</td>
+                        <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0.00</td>
+                        <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0.00</td>
+                        <td data-label="Ações:" class="mobile-full">
+                            <i class="fas fa-edit editBtn" style="color: #13c43f; cursor:pointer;" data-bs-toggle="modal" data-bs-target="#editItemModal"></i>
+                            <i class="fas fa-trash deleteBtn" style="color: #db1e47; cursor:pointer;"></i>
+                        </td>
+                    </tr>
+                `);
+                ctrl.ultimoProduto = nomeMotor;
+                ctrl.ultimoPeso = peso;
+                atualizarJSONPortas();
+                resolve(); // ✅ motor pronto
+            })
+            .fail(err => reject(err));
         });
     }
     function removerProdutoPorRegra(porta, codigoRegra) {
-
+        if (!prodManager.data?.[porta]) return;
         prodManager.data[porta] = prodManager.data[porta].filter(i => {
             if (i.regra?.codigo === codigoRegra) {
                 $(`#tblProd_${porta} tbody tr[data-item-id="${i.id}"]`).remove();
@@ -1929,131 +1953,402 @@ $(document).ready(function() {
     function resetarControleRegras() {
         motorCtrl = {};
     }
-    function atualizarPinturaPorta(porta) {
-        const temPintura = $('#id_pintura').val();       // Sim / Não
-        const tpPintura  = $('#id_tp_pintura').val();    // Eletrostática / Automotiva
-        const DESC_ELET = 'PINTURA ELETROSTÁTICA';
-        const DESC_AUTO = 'PINTURA AUTOMOTIVA';
-        if (!prodAdcManager.data[porta]) {
-            prodAdcManager.data[porta] = [];
-        }
-        const itens = prodAdcManager.data[porta];
-        const $tbody = $(`#tblAdc_${porta} tbody`);
-        if (temPintura === 'Não') {
-            itens.forEach(item => {
-                if (item.desc.toUpperCase().includes('PINTURA')) {
-                    item.ativo = false;
-                    item.qtd = 0;
-                }
-            });
-            $tbody.find('tr').each(function () {
-                const desc = $(this).find('.td-desc').text().toUpperCase();
-                if (desc.includes('PINTURA')) {
-                    $(this).hide();
-                }
-            });
-            atualizarTabelaPorta(porta);
-            atualizarSubtotal();
-            atualizarJSONPortas();
-            return;
-        }
-        const pinturaAtiva = tpPintura === 'Automotiva'
-            ? DESC_AUTO
-            : DESC_ELET;
-        const pinturaInativa = tpPintura === 'Automotiva'
-            ? DESC_ELET
-            : DESC_AUTO;
-        let itemAtivo = itens.find(i => i.desc === pinturaAtiva);
-        if (!itemAtivo) {
-            itemAtivo = {
-                desc: pinturaAtiva,
-                qtd: 1,
-                valor: 0,
-                ativo: true
-            };
-            itens.push(itemAtivo);
-        }
-        itens.forEach(item => {
-            if (item.desc === pinturaAtiva) {
-                item.ativo = true;
-                if (!item.qtd || item.qtd <= 0) {
-                    item.qtd = 1;
-                }
-            }
-            if (item.desc === pinturaInativa) {
+    function removerPinturasDaPorta(porta) {
+        const mapa = obterMapaSelecao(REGRAS.PINTURA_TIPO);
+        const descricoes = Object.values(mapa)
+            .map(d => d.toUpperCase().trim());
+        prodAdcManager.data[porta] = (prodAdcManager.data[porta] || []).map(item => {
+            if (descricoes.includes(item.desc?.toUpperCase())) {
                 item.ativo = false;
-                item.qtd = 0;
+                item.qtd_final = 0;
+                item.qtd_calc = 0;
             }
+            return item;
         });
-        $tbody.find('tr').each(function () {
-            const $tr = $(this);
-            const desc = $tr.find('.td-desc').text().toUpperCase().trim();
-            if (desc === pinturaAtiva) {
-                $tr.show();
-            } 
-            else if (desc === pinturaInativa) {
-                $tr.hide();
+        $(`#tblAdc_${porta} tbody tr`).each(function () {
+            const desc = $(this).find('.td-desc').text().toUpperCase().trim();
+            if (descricoes.includes(desc)) {
+                $(this).remove();
             }
         });
         atualizarTabelaPorta(porta);
         atualizarSubtotal();
         atualizarJSONPortas();
     }
-    toastErrorShown = false;
-    function atualizarLaminarPorta(porta) {
-        const tpLam = $(`.tipo-lamina[data-porta="${porta}"]`).val(); // Fechada | Transvision
-        const DESC_LISA  = 'LÂMINAS LISAS';
-        const DESC_TRANS = 'LÂMINAS TRANSVISION';
-        const laminaAtiva = tpLam === 'Transvision'
-            ? DESC_TRANS
-            : DESC_LISA;
-        // ===== PROD MANAGER =====
-        const itens = prodManager.data[porta] || [];
-        itens.forEach(item => {
-            const desc = item.desc.toUpperCase().trim();
-            if (desc === DESC_LISA || desc === DESC_TRANS) {
-                item.ativo = (desc === laminaAtiva);
-
-                const medidas = medidasCtrl[porta];
-                if (!medidas || !medidas.larg || !medidas.alt) {
-                    item.qtd = 0;
+    function atualizarPinturaPorta(porta) {
+        const temPintura = $('#id_pintura').val(); // Sim / Não
+        const regraSelecao = REGRAS.PINTURA_TIPO;
+        if (!regraSelecao || regraSelecao.tipo !== 'SELECAO') return;
+        const mapa = obterMapaSelecao(regraSelecao);
+        const descricoesPintura = Object.values(mapa)
+            .map(d => d.toUpperCase().trim());
+        prodAdcManager.data[porta] ??= [];
+        if (temPintura === 'Não') {
+            const descricoesPintura = Object.values(obterMapaSelecao(REGRAS.PINTURA_TIPO))
+                .map(d => d.toUpperCase().trim());
+            prodAdcManager.data[porta].forEach(item => {
+                if (descricoesPintura.includes(item.desc?.toUpperCase())) {
+                    item.ativo = false;
+                    item.qtd_calc = 0;
+                    item.qtd_final = 0;
                 }
+            });
+            prodAdcManager.data[porta] = prodAdcManager.data[porta].filter(item =>
+                !descricoesPintura.includes(item.desc?.toUpperCase())
+            );
+            $(`#tblAdc_${porta} tbody tr`).each(function () {
+                const desc = $(this).find('.td-desc').text().toUpperCase().trim();
+                if (descricoesPintura.includes(desc)) {
+                    $(this).remove();
+                }
+            });
+            removerPinturasDaPorta(porta);
+            atualizarTabelaPorta(porta);
+            atualizarSubtotal();
+            atualizarJSONPortas();
+            return;
+        }
+        const valorSelecionado = $('#id_tp_pintura').val();
+        const descAtiva = (mapa[valorSelecionado] || '').toUpperCase().trim();
+        if (!descAtiva) return;
+        prodAdcManager.data[porta] = prodAdcManager.data[porta].filter(item =>
+            !descricoesPintura.includes(item.desc?.toUpperCase())
+        );
+        $(`#tblAdc_${porta} tbody tr`).each(function () {
+            const desc = $(this).find('.td-desc').text().toUpperCase().trim();
+            if (descricoesPintura.includes(desc)) {
+                $(this).remove();
             }
         });
-
-        // ===== TABELA =====
-        const $tbody = $(`#tblProd_${porta} tbody`);
-        $tbody.find('tr').each(function () {
-            const $tr = $(this);
-            const desc = $tr.find('.td-desc').text().toUpperCase().trim();
-            if (desc === DESC_LISA || desc === DESC_TRANS) {
-                if (desc === laminaAtiva) {
-                    $tr.show();
-                } else {
-                    $tr.hide(); // não remove, apenas esconde
-                }
-            }
-        });
-        atualizarTabelaPorta(porta);
-        atualizarSubtotal();
+        inserirPinturaSelecionada(porta, descAtiva);
     }
-    $(document).on('change', '.tipo-lamina', function () {
-        const porta = $(this).data('porta');
-        atualizarLaminarPorta(porta);
+    function inserirPinturaSelecionada(porta, pinturaAtiva) {
+        if (!pinturaAtiva) return;
+        prodAdcManager.data[porta] ??= [];
+        prodAdcManager.data[porta] = (prodAdcManager.data[porta] || [])
+            .filter(i => i.regra_origem !== 'PINTURA_TIPO');
+        $.get('/produtos/lista_ajax/', {
+            tp: 'desc',
+            tp_prod: 'Adicional',
+            s: pinturaAtiva
+        }).done(resp => {
+            const p = resp.produtos?.[0];
+            if (!p) return;
+            const item = {
+                id: p.id,
+                cod: p.id,
+                desc: p.desc_prod,
+                unid: p.unidProd,
+                vl_compra: Number(p.vl_compra),
+                vl_unit: Number(p.vl_prod),
+                qtd_calc: 0,
+                qtd_final: 0,
+                qtd_manual: false,
+                regra: p.regra,
+                ativo: true,
+                regra_origem: 'PINTURA_TIPO'
+            };
+            if (p.regra?.tipo?.toUpperCase() === 'QTD') {
+                try {
+                    const portaData = {
+                        largura: getFloat(`.larg[data-porta="${porta}"]`),
+                        altura: getFloat(`.alt[data-porta="${porta}"]`),
+                        larg_c: getFloat(`.larg-corte[data-porta="${porta}"]`),
+                        alt_c: getFloat(`.alt-corte[data-porta="${porta}"]`),
+                        m2: getFloat(`.m2[data-porta="${porta}"]`)
+                    };
+                    const qtd = Function(
+                        ...Object.keys(portaData),
+                        `return ${p.regra.expressao};`
+                    )(...Object.values(portaData));
+                    const qtdFloat = parseFloat(String(qtd).replace(',', '.')) || 0;
+                    item.qtd_calc = qtdFloat;
+                    item.qtd_final = qtdFloat;
+                } catch (e) {
+                    console.error('Erro ao calcular pintura:', e);
+                }
+            }
+            prodAdcManager.data[porta].push(item);
+            const trHtml = `
+                <tr data-porta="${porta}" data-item-id="${item.id}" data-regra-origem="PINTURA_TIPO">
+                    <td data-label="Código:" class="td-cod mobile-full">${item.cod}</td>
+                    <td data-label="Descrição:" class="td-desc mobile-full">${item.desc}</td>
+                    <td data-label="Unidade:" class="td-unid mobile-full">${item.unid}</td>
+                    <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">${item.vl_compra.toFixed(2)}</td>
+                    <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${item.vl_unit.toFixed(2)}</td>
+                    <td class="qtd-produto mobile-full" data-label="Quantidade:">${item.qtd_final.toFixed(2)}</td>
+                    <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0,00</td>
+                    <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0,00</td>
+                    <td>
+                        <i class="fas fa-edit editBtn" style="color:#13c43f;cursor:pointer" data-bs-toggle="modal" data-bs-target="#editItemAdcModal"></i>
+                        <i class="fas fa-trash deleteBtn" style="color:#db1e47;cursor:pointer"></i>
+                    </td>
+                </tr>
+            `;
+            $(`#tblAdc_${porta} tbody`).append(trHtml);
+            const totCompra = item.qtd_final * item.vl_compra;
+            const vlTotal   = item.qtd_final * item.vl_unit;
+            const tr = $(`#tblAdc_${porta} tbody tr[data-item-id="${item.id}"]`);
+            tr.find('.tot-compra').text(totCompra.toFixed(2));
+            tr.find('.vl-total').text(vlTotal.toFixed(2));
+            atualizarSubtotal();
+            atualizarJSONPortas();
+        });
+    }
+    toastErrorShown = false;
+    function obterMapaSelecao(regra) {
+        try {
+            return JSON.parse(regra.expressao || '{}');
+        } catch (e) {
+            console.error('Regra SELECAO inválida', regra.expressao);
+            return {};
+        }
+    }
+    function atualizarLaminarPorta(porta) {
+        const valorSelecionado = $(`.tipo-lamina[data-porta="${porta}"]`).val();
+        const regraSelecao = REGRAS.LAMINA_TIPO;
+        if (!regraSelecao || regraSelecao.tipo !== 'SELECAO') return;
+        const mapa = obterMapaSelecao(regraSelecao);
+        const descAtiva = (mapa[valorSelecionado] || '').toUpperCase().trim();
+        if (!descAtiva) return;
+        prodManager.data[porta] ??= [];
+        if (prodManager.data[porta].length === 0) {
+            return; // ainda não há base
+        }
+        const m2 = getFloat(`.m2[data-porta="${porta}"]`);
+        prodManager.data[porta] = prodManager.data[porta].filter(item => {
+            const qtd = Number(item.qtd_final ?? item.qtd_calc ?? 0);
+            return Math.abs(qtd - m2) > 0.0001;
+        });
+        $(`#tblProd_${porta} tbody tr`).each(function () {
+            const qtdTxt = $(this)
+                .find('.qtd-produto')
+                .text()
+                .replace(',', '.');
+            const qtd = parseFloat(qtdTxt) || 0;
+            if (Math.abs(qtd - m2) < 0.0001) {
+                $(this).remove();
+            }
+        });
+        inserirLaminaSelecionada(porta);
+    }
+    function inserirLaminaSelecionada(porta) {
+        const laminaAtiva = getDescricaoLaminaAtiva(porta);
+        if (!laminaAtiva) return;
+        prodManager.data[porta] ??= [];
+        if (prodManager.data[porta].some(i => i.desc?.toUpperCase() === laminaAtiva)) {
+            return;
+        }
+        $.get('/produtos/lista_ajax/', {
+            tp: 'desc',
+            tp_prod: 'Principal',
+            s: laminaAtiva
+        }).done(resp => {
+            const p = resp.produtos?.[0];
+            if (!p) return;
+            const item = {
+                id: p.id,
+                cod: p.id,
+                desc: p.desc_prod,
+                unid: p.unidProd,
+                vl_compra: Number(p.vl_compra),
+                vl_unit: Number(p.vl_prod),
+                qtd_calc: 0,
+                qtd_final: 0,
+                qtd_manual: false,
+                regra: p.regra,
+                ativo: true,
+                regra_origem: 'LAMINA_TIPO'
+            };
+            if (p.regra?.tipo?.toUpperCase() === 'QTD') {
+                try {
+                    const portaData = {
+                        largura: getFloat(`.larg[data-porta="${porta}"]`),
+                        altura: getFloat(`.alt[data-porta="${porta}"]`),
+                        larg_c: getFloat(`.larg-corte[data-porta="${porta}"]`),
+                        alt_c: getFloat(`.alt-corte[data-porta="${porta}"]`),
+                        m2: getFloat(`.m2[data-porta="${porta}"]`)
+                    };
+                    const qtd = Function(
+                        ...Object.keys(portaData),
+                        `return ${p.regra.expressao};`
+                    )(...Object.values(portaData));
+                    const qtdFloat = parseFloat(String(qtd).replace(',', '.'));
+                    item.qtd_calc = qtdFloat || 0;
+                    item.qtd_final = qtdFloat || 0;
+                } catch (e) {
+                    console.error('Erro ao calcular quantidade da regra:', e);
+                }
+            }
+            prodManager.data[porta].push(item);
+            const trHtml = `
+                <tr data-porta="${porta}" data-item-id="${item.id}" data-regra-origem="LAMINA_TIPO">
+                    <td data-label="Código:" class="td-cod mobile-full">${item.cod}</td>
+                    <td data-label="Descrição:" class="td-desc mobile-full">${item.desc}</td>
+                    <td data-label="Unidade:" class="td-unid mobile-full">${item.unid}</td>
+                    <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">
+                        ${item.vl_compra.toFixed(2)}
+                    </td>
+                    <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">
+                        ${item.vl_unit.toFixed(2)}
+                    </td>
+                    <td class="qtd-produto mobile-full" data-label="Quantidade:">
+                        ${item.qtd_final.toFixed(2)}
+                    </td>
+                    <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0,00</td>
+                    <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0,00</td>
+                    <td data-label="Ações:" class="mobile-full">
+                        <i class="fas fa-edit editBtn" style="color:#13c43f;cursor:pointer"
+                        data-bs-toggle="modal" data-bs-target="#editItemModal"></i>
+                        <i class="fas fa-trash deleteBtn" style="color:#db1e47;cursor:pointer"></i>
+                    </td>
+                </tr>
+            `;
+            $(`#tblProd_${porta} tbody`).append(trHtml);
+            const tr = $(`#tblProd_${porta} tbody tr[data-item-id="${item.id}"]`);
+            const totCompra = item.qtd_final * item.vl_compra;
+            const vlTotal = item.qtd_final * item.vl_unit;
+            tr.find('.tot-compra').text(totCompra.toFixed(2).replace('.', ','));
+            tr.find('.vl-total').text(vlTotal.toFixed(2).replace('.', ','));
+            atualizarSubtotal();
+            atualizarJSONPortas();
+            reposicionarLaminaPrimeiro(porta);
+        });
+    }
+    function atualizarPinturaPorta(porta) {
+        const temPintura = $('#id_pintura').val();
+        const mapa = obterMapaSelecao(REGRAS.PINTURA_TIPO);
+        const descricoesPintura = Object.values(mapa).map(d => d.toUpperCase().trim());
+        prodAdcManager.data[porta] ??= [];
+        if (temPintura === 'Não') {
+            prodAdcManager.data[porta] = prodAdcManager.data[porta].filter(i => i.regra_origem !== 'PINTURA_TIPO');
+            $(`#tblAdc_${porta} tbody tr`).each(function() {
+                const desc = $(this).find('.td-desc').text().toUpperCase().trim();
+                if (descricoesPintura.includes(desc)) $(this).remove();
+            });
+            atualizarTabelaPorta(porta);
+            atualizarSubtotal();
+            atualizarJSONPortas();
+            return;
+        }
+        const valorSelecionado = $('#id_tp_pintura').val();
+        const descAtiva = (mapa[valorSelecionado] || '').toUpperCase().trim();
+        if (!descAtiva) return;
+        prodAdcManager.data[porta] = prodAdcManager.data[porta].filter(i => i.regra_origem !== 'PINTURA_TIPO');
+        $(`#tblAdc_${porta} tbody tr`).each(function() {
+            const desc = $(this).find('.td-desc').text().toUpperCase().trim();
+            if (descricoesPintura.includes(desc)) $(this).remove();
+        });
+        inserirPinturaSelecionada(porta, descAtiva);
+    }
+    function inserirPinturaSelecionada(porta, pinturaAtiva) {
+        if (!pinturaAtiva) return;
+        prodAdcManager.data[porta] ??= [];
+        $.get('/produtos/lista_ajax/', { tp:'desc', tp_prod:'Adicional', s:pinturaAtiva })
+        .done(resp => {
+            const p = resp.produtos?.[0];
+            if (!p) return;
+            const item = {
+                id: p.id, cod: p.id, desc: p.desc_prod, unid: p.unidProd,
+                vl_compra: Number(p.vl_compra), vl_unit: Number(p.vl_prod),
+                qtd_calc: 0, qtd_final: 0, qtd_manual: false, regra: p.regra,
+                ativo: true, regra_origem: 'PINTURA_TIPO'
+            };
+            if (p.regra?.tipo?.toUpperCase() === 'QTD') {
+                try {
+                    const portaData = {
+                        largura: getFloat(`.larg[data-porta="${porta}"]`),
+                        altura: getFloat(`.alt[data-porta="${porta}"]`),
+                        larg_c: getFloat(`.larg-corte[data-porta="${porta}"]`),
+                        alt_c: getFloat(`.alt-corte[data-porta="${porta}"]`),
+                        m2: getFloat(`.m2[data-porta="${porta}"]`)
+                    };
+                    const qtd = Function(...Object.keys(portaData), `return ${p.regra.expressao};`)(...Object.values(portaData));
+                    const qtdFloat = parseFloat(String(qtd).replace(',', '.')) || 0;
+                    item.qtd_calc = item.qtd_final = qtdFloat;
+                } catch(e) { console.error('Erro ao calcular pintura:', e); }
+            }
+            prodAdcManager.data[porta].push(item);
+            const trHtml = `<tr data-porta="${porta}" data-item-id="${item.id}" data-regra-origem="PINTURA_TIPO">
+                <td data-label="Código:" class="td-cod mobile-full">${item.cod}</td>
+                <td data-label="Descrição:" class="td-desc mobile-full">${item.desc}</td>
+                <td data-label="Unidade:" class="td-unid mobile-full">${item.unid}</td>
+                <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">${item.vl_compra.toFixed(2)}</td>
+                <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${item.vl_unit.toFixed(2)}</td>
+                <td class="qtd-produto mobile-full" data-label="Quantidade:">${item.qtd_final.toFixed(2)}</td>
+                <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0,00</td>
+                <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0,00</td>
+                <td><i class="fas fa-edit editBtn" style="color:#13c43f;cursor:pointer" data-bs-toggle="modal" data-bs-target="#editItemAdcModal"></i>
+                    <i class="fas fa-trash deleteBtn" style="color:#db1e47;cursor:pointer"></i>
+                </td>
+            </tr>`;
+            $(`#tblAdc_${porta} tbody`).append(trHtml);
+            const totCompra = item.qtd_final * item.vl_compra;
+            const vlTotal = item.qtd_final * item.vl_unit;
+            const tr = $(`#tblAdc_${porta} tbody tr[data-item-id="${item.id}"]`);
+            tr.find('.tot-compra').text(totCompra.toFixed(2));
+            tr.find('.vl-total').text(vlTotal.toFixed(2));
+            atualizarSubtotal();
+            atualizarJSONPortas();
+        });
+    }
+    
+    $(document).on("change", ".tipo-lamina", function () {
+        iniciarLoading();
+        atualizarLaminarPorta($(this).data("porta"));
+        finalizarLoading();
     });
     $(document).on('keyup change', '.larg', function () {
         let porta = $(this).data('porta');
-        atualizarLarguraCorte(porta);
+        calcLgCorte(porta);
     });
-    $(document).on('change', '.tipo-vao', function () {
-        let porta = $(this).data('porta');
-        atualizarLarguraCorte(porta);
-    });
-    $('#id_tp_pintura').on('change', function () {
-        $('.porta-container').each(function () {
-            const porta = $(this).data('porta');
-            atualizarPinturaPorta(porta);
+    // $(document).on('change', '.tipo-vao', function () {
+    //     let porta = $(this).data('porta');
+    //     iniciarLoading();
+    //     calcLgCorte(porta); // 1️⃣ define larg-corte
+    //     calcFtPeso(porta);            // 2️⃣ define ft-peso
+    //     calcM2(porta);                // 3️⃣ usa larg-corte correta
+    //     calcQtdLam(porta);            // 4️⃣ independente
+    //     calcularEixoMotor(porta);
+    //     calcPeso(porta);
+    //     atualizarLaminarPorta(porta);
+    //     atualizarPinturaPorta(porta);
+    //     atualizarTabelaPorta(porta);
+    //     atualizarSubtotal();
+    //     atualizarJSONPortas();
+    //     gerarJSONFormas();
+    //     finalizarLoading();
+    // });
+    $(document).on('change', '.tipo-vao', async function() {
+        iniciarLoading();
+        const tpLamina = $(this).val();
+        const mapaLaminas = Object.values(obterMapaSelecao(REGRAS.LAMINA_TIPO)).map(d => d.toUpperCase().trim());
+        const promises = [];
+        
+        $('[id^="tblProd_"]').each(function() {
+            const porta = $(this).attr('id').split('_')[1];
+            if (tpLamina === 'Eletrostática' || tpLamina === 'Automotiva') {
+                limparLaminas(porta);
+            } else {
+                atualizarLaminarPorta(porta);
+            }
         });
+
+        await Promise.all(promises);
+        calcLgCorte(porta); // 1️⃣ define larg-corte
+        calcFtPeso(porta);            // 2️⃣ define ft-peso
+        calcM2(porta);                // 3️⃣ usa larg-corte correta
+        calcQtdLam(porta);            // 4️⃣ independente
+        calcularEixoMotor(porta);
+        calcPeso(porta);
+        atualizarLaminarPorta(porta);
+        atualizarPinturaPorta(porta);
+        atualizarTabelaPorta(porta);
+        atualizarSubtotal();
+        atualizarJSONPortas();
+        gerarJSONFormas();
+        reindexarPortas();
+        finalizarLoading();
     });
     $("#prod_servBtn, #adicionaisBtn, #form_pgtoBtn").on("click", function () {
         atualizarSubtotal();
@@ -2062,25 +2357,73 @@ $(document).ready(function() {
         atualizarJSONPortas();
         gerarJSONFormas();
     });
+    // function desativarPinturas(porta) {
+    //     const mapaPinturas = Object.values(obterMapaSelecao(REGRAS.PINTURA_TIPO))
+    //         .map(d => d.toUpperCase().trim());
 
-    $(document).on('change', '#id_pintura, #id_tp_pintura', async function () {
+    //     prodAdcManager.data[porta] = (prodAdcManager.data[porta] || [])
+    //         .filter(item => !descricoesPintura.includes(item.desc?.toUpperCase()));
 
+    // }
+    function limparPinturas(porta) {
+        const mapaPinturas = Object.values(obterMapaSelecao(REGRAS.PINTURA_TIPO))
+            .map(d => d.toUpperCase().trim());
+
+        // remove do manager
+        prodAdcManager.data[porta] = (prodAdcManager.data[porta] || [])
+            .filter(i => i.regra_origem !== 'PINTURA_TIPO');
+
+        // remove do DOM
+        $(`#tblAdc_${porta} tbody tr`).each(function() {
+            const desc = $(this).find('.td-desc').text().toUpperCase().trim();
+            if (mapaPinturas.includes(desc)) $(this).remove();
+        });
+
+        atualizarSubtotal();
+        atualizarJSONPortas();
+    }
+    function limparLaminas(porta) {
+        const mapaLaminas = Object.values(obterMapaSelecao(REGRAS.LAMINA_TIPO))
+            .map(d => d.toUpperCase().trim());
+
+        // remove do manager
+        prodManager.data[porta] = (prodManager.data[porta] || [])
+            .filter(i => i.regra_origem !== 'LAMINA_TIPO');
+
+        // remove do DOM
+        $(`#tblProd_${porta} tbody tr`).each(function() {
+            const desc = $(this).find('.td-desc').text().toUpperCase().trim();
+            if (mapaLaminas.includes(desc)) $(this).remove();
+        });
+        atualizarSubtotal();
+        atualizarJSONPortas();
+    }
+
+    $(document).on('change', '#id_pintura, #id_tp_pintura', async function() {
         iniciarLoading();
-
+        const temPintura = $(this).val();
+        const mapaPinturas = Object.values(obterMapaSelecao(REGRAS.PINTURA_TIPO)).map(d => d.toUpperCase().trim());
         const promises = [];
 
-        $('[id^="tblAdc_"]').each(function () {
+        $('[id^="tblAdc_"]').each(function() {
             const porta = $(this).attr('id').split('_')[1];
-            promises.push(atualizarPinturaPorta(porta));
+            if (temPintura === 'Não') {
+                limparPinturas(porta);
+            } else {
+                atualizarPinturaPorta(porta);
+            }
         });
 
         await Promise.all(promises);
-
-        atualizarJSONPortas();
+        if (temPintura !== 'Não') {
+            atualizarSubtotal();
+            atualizarJSONPortas();
+        }
         gerarJSONFormas();
         reindexarPortas();
         finalizarLoading();
     });
+
 
     gerarJSONFormas();
     let debounceTimeout;
@@ -2100,61 +2443,88 @@ $(document).ready(function() {
     // Função para converter valor em formato brasileiro para float
     var desconto = 0;
     var total = 0;
+
     function atualizarSubtotal() {
         return new Promise(resolve => {
+
             let subtotal   = 0;
             let custoTotal = 0;
-            let vl_p_s = parseFloat($('#id_vl_p_s').val()) || 0;
+            let vl_p_s = parseFloat(
+                String($('#id_vl_p_s').val() || '0')
+                    .replace(/\./g, '')
+                    .replace(',', '.')
+            ) || 0;
+
+            // ===== PRODUTOS E ADICIONAIS (TABELA) =====
             $('[id^="tblProd_"] tbody tr, [id^="tblAdc_"] tbody tr').each(function () {
-                const compra = parseFloat(
-                    $(this).find('.tot-compra').text().replace(',', '.')
-                ) || 0;
-                const venda = parseFloat(
-                    $(this).find('.vl-total').text().replace(',', '.')
-                ) || 0;
+
+                const compraTxt = $(this).find('.tot-compra').text().trim();
+                const vendaTxt  = $(this).find('.vl-total').text().trim();
+
+                const compra = parseValor(compraTxt);
+                const venda  = parseValor(vendaTxt);
+
+
                 custoTotal += compra;
                 subtotal   += venda;
             });
+
             subtotal += vl_p_s;
+
+            // ===== UI =====
             $('#custoTotal_txt').text(
                 'R$ ' + custoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
             );
+
             $('#subtotal_txt').text(
                 'R$ ' + subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
             );
+
             $('#id_subtotal').val(subtotal.toFixed(2));
             $('#id_vl_form_pgto').val(subtotal.toFixed(2));
+
+            // ===== DESCONTO / ACRÉSCIMO =====
             const descontoRaw = $('#id_desconto').length
                 ? $('#id_desconto').val()
                 : '0';
+
             const acrescimoRaw = $('#id_acrescimo').length
                 ? $('#id_acrescimo').val()
                 : '0';
-            const desconto = parseFloat(
-                String(descontoRaw).replace(',', '.')
-            ) || 0;
-            const acrescimo = parseFloat(
-                String(acrescimoRaw).replace(',', '.')
-            ) || 0;
+
+            const desconto  = parseValor(descontoRaw);
+            const acrescimo = parseValor(acrescimoRaw);
+
             const total = subtotal - desconto + acrescimo;
-            $('#desconto').text('R$ ' + desconto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+
+            $('#desconto').text(
+                'R$ ' + desconto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
             );
+
             $('#acrescimo').text(
                 'R$ ' + acrescimo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
             );
+
             $('#total_txt').text(
                 'R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
             );
+
             $('#id_total').val(total.toFixed(2));
+
             const margemLucro = subtotal > 0
                 ? ((subtotal - custoTotal) / subtotal) * 100
                 : 0;
+
             $('#margem_txt').text(margemLucro.toFixed(2) + '%');
+
             calcularValorForma();
             somaFormas();
+
             resolve();
         });
     }
+
+
     atualizarSubtotal();
     function parseValor(valor) {
         if (!valor) return 0;
@@ -2270,12 +2640,20 @@ $(document).ready(function() {
             $("#accordionAdicionais").append(criarAcordeonAdicionais(i));
             recalcularTotaisPorta(i);
         }
-        aplicarMascaras();
     }
-    function aplicarMascaras() {
-        $('.larg, .alt, .id_larg, .larg-corte, .alt-corte, .qtd-laminas, .m2, .ft-peso, .peso, .qtd-prod-adc, .qtd-prod, .valor-prod, .valor-prod-adc')
-            .mask('00000.00', { reverse: true });
-    }
+    $(document).on(
+        'focus',
+        '.larg, .alt, .id_larg, .larg-corte, .alt-corte, .qtd-laminas, ' +
+        '.m2, .ft-peso, .peso, .qtd-prod-adc, .qtd-prod, .valor-prod, .valor-prod-adc',
+        function () {
+            if (!$(this).data('mask-applied')) {
+                $(this)
+                    .mask('00000.00', { reverse: true })
+                    .data('mask-applied', true);
+            }
+        }
+    );
+
     function criarFormularioProduto(num) {
         return `
         <div class="row g-2 mb-3 form-produto" data-porta="${num}">
@@ -2304,7 +2682,7 @@ $(document).ready(function() {
                     disabled>
             </div>
 
-            <div class="col-md-2">
+            <div class="col-md-1">
                 <label class="form-label">Unidade</label>
                 <input type="text"
                     class="form-control form-control-sm unid-prod"
@@ -2313,28 +2691,31 @@ $(document).ready(function() {
                     disabled>
             </div>
 
-            <div class="col-md-1">
+            <div class="col-md-2">
                 <label class="form-label">Valor</label>
                 <input type="text"
-                    class="form-control form-control-sm valor-prod"
+                    class="form-control form-control-sm valor-prod text-end"
                     name="valor-prod"
+                    value="0.00"
+                    style='color: darkgreen; font-weight: bold; background: honeydew;'
                     data-porta="${num}">
             </div>
 
-            <div class="col-md-1">
+            <div class="col-md-2">
                 <label class="form-label">Qtde.</label>
                 <input type="text"
                     class="form-control form-control-sm qtd-prod"
                     name="qtd-prod"
                     placeholder="0.00"
+                    value="0.00"
                     data-porta="${num}">
             </div>
 
-            <div class="col-md-1 d-flex align-items-end">
+            <div class="col-md-2 d-flex align-items-end">
                 <button type="button"
                         class="btn btn-success btn-sm btn-add-prod"
                         data-porta="${num}">
-                    <i class="fas fa-plus"></i>
+                    <i class="fas fa-plus"></i> Incluir
                 </button>
             </div>
 
@@ -2417,7 +2798,7 @@ $(document).ready(function() {
                     disabled>
             </div>
 
-            <div class="col-md-2">
+            <div class="col-md-1">
                 <label class="form-label">Unidade</label>
                 <input type="text"
                     class="form-control form-control-sm unid-prod-adc"
@@ -2426,28 +2807,31 @@ $(document).ready(function() {
                     disabled>
             </div>
 
-            <div class="col-md-1">
+            <div class="col-md-2">
                 <label class="form-label">Valor</label>
                 <input type="text"
-                    class="form-control form-control-sm valor-prod-adc"
+                    class="form-control form-control-sm valor-prod-adc text-end"
                     name="valor-prod-adc"
+                    value="0.00"
+                    style='color: darkgreen; font-weight: bold; background: honeydew;'
                     data-porta="${num}">
             </div>
 
-            <div class="col-md-1">
+            <div class="col-md-2">
                 <label class="form-label">Qtde.</label>
                 <input type="text"
                     class="form-control form-control-sm qtd-prod-adc"
                     placeholder="0.00"
+                    value="0.00"
                     name="qtd-prod-adc"
                     data-porta="${num}">
             </div>
 
-            <div class="col-md-1 d-flex align-items-end">
+            <div class="col-md-2 d-flex align-items-end">
                 <button type="button"
                         class="btn btn-success btn-sm btn-add-prod-adc"
                         data-porta="${num}">
-                    <i class="fas fa-plus"></i>
+                    <i class="fas fa-plus"></i> Incluir
                 </button>
             </div>
 
@@ -2508,14 +2892,14 @@ $(document).ready(function() {
         }
 
         let item = prodManager.data[p]
-            .find(x => String(x.cod) === String(dados.cod));
+            .find(x => Number(x.cod) === Number(dados.cod));
 
         if (!item) {
             item = {
-                id: Date.now(),               // 🔒 id REAL
-                cod: dados.cod,
+                id: Number(dados.cod),               // 🔒 id REAL
+                cod: Number(dados.cod),
                 desc: dados.desc,
-                unid: dados.unid || '',
+                unid: dados.unid,
                 vl_compra: 0,
                 vl_unit: parseFloat(dados.vl) || 0,
 
@@ -2534,7 +2918,8 @@ $(document).ready(function() {
         item.ativo      = item.qtd_final > 0;
         item.vl_unit    = parseFloat(dados.vl) || 0;
 
-        let $row = $(`#tblProd_${p} tbody tr[data-item-id="${item.id}"]`);
+        let $row = $(`#tblProd_${p} tbody tr[data-item-id="${item.cod}"]`);
+
 
         if (!$row.length) {
             $row = $(`
@@ -2556,7 +2941,19 @@ $(document).ready(function() {
 
             $(`#tblProd_${p} tbody`).append($row);
         }
+        /* 🔒 SINCRONIZA VISUAL */
+        $row.find('.vl-unit')
+            .text(item.vl_unit.toFixed(2));
 
+        $row.find('.qtd-produto')
+            .text(item.qtd_final.toFixed(2));
+        const totCompra = item.qtd_final * item.vl_compra;
+        const vlTotal   = item.qtd_final * item.vl_unit;
+        $row.find('.tot-compra')
+            .text(totCompra.toFixed(2));
+
+        $row.find('.vl-total')
+            .text(vlTotal.toFixed(2));
         atualizarTabelaPorta(p);
         atualizarSubtotal();
         atualizarJSONPortas();
@@ -2569,14 +2966,14 @@ $(document).ready(function() {
         }
 
         let item = prodAdcManager.data[p]
-            .find(x => String(x.cod) === String(dados.cod));
+            .find(x => Number(x.cod) === Number(dados.cod));
 
         if (!item) {
             item = {
-                id: Date.now(),               // 🔒 id REAL
-                cod: dados.cod,
+                id: Number(dados.cod),   
+                cod: Number(dados.cod),
                 desc: dados.desc,
-                unid: dados.unid || '',
+                unid: dados.unid,
                 vl_compra: 0,
                 vl_unit: parseFloat(dados.vl) || 0,
 
@@ -2595,7 +2992,7 @@ $(document).ready(function() {
         item.ativo      = item.qtd_final > 0;
         item.vl_unit    = parseFloat(dados.vl) || 0;
 
-        let $row = $(`#tblAdc_${p} tbody tr[data-item-id="${item.id}"]`);
+        let $row = $(`#tblAdc_${p} tbody tr[data-item-id="${item.cod}"]`);
 
         if (!$row.length) {
             $row = $(`
@@ -2617,16 +3014,28 @@ $(document).ready(function() {
 
             $(`#tblAdc_${p} tbody`).append($row);
         }
+        /* 🔒 SINCRONIZA VISUAL */
+        $row.find('.vl-unit')
+            .text(item.vl_unit.toFixed(2));
 
+        $row.find('.qtd-produto')
+            .text(item.qtd_final.toFixed(2));
+        const totCompra = item.qtd_final * item.vl_compra;
+        const vlTotal   = item.qtd_final * item.vl_unit;
+        $row.find('.tot-compra')
+            .text(totCompra.toFixed(2));
+
+        $row.find('.vl-total')
+            .text(vlTotal.toFixed(2));
         atualizarTabelaPorta(p);
         atualizarSubtotal();
         atualizarJSONPortas();
     }
     $(document).on("click", ".btn-add-prod", function () {
         const porta = $(this).data("porta");
-
         const cod  = $(`.cod-prod[data-porta="${porta}"]`).val();
         const desc = $(`.desc-prod[data-porta="${porta}"]`).val();
+        const unid = $(`.unid-prod[data-porta="${porta}"]`).val();
         const qtd  = parseFloat(
             $(`.qtd-prod[data-porta="${porta}"]`).val().replace(',', '.')
         ) || 0;
@@ -2634,25 +3043,43 @@ $(document).ready(function() {
             $(`.valor-prod[data-porta="${porta}"]`).val().replace(',', '.')
         ) || 0;
 
-        if (!cod || qtd <= 0) return;
+        if (!cod || !desc || qtd <= 0) {
+            alert('Produto principal incompleto');
+            return;
+        }
 
-        adicionarProdutoNaTabela(porta, { cod, desc, qtd, vl });
+        adicionarProdutoNaTabela(porta, { cod, desc, unid, qtd, vl });
+        $('.cod-prod, .desc-prod, .unid-prod, .valor-prod, .qtd-prod').val('');
+        $('.cod-prod').focus();
     });
     $(document).on("click", ".btn-add-prod-adc", function () {
-
         const porta = $(this).data("porta");
-
-        const cod = $(`.cod-prod-adc[data-porta="${porta}"]`).val();
+        const cod  = $(`.cod-prod-adc[data-porta="${porta}"]`).val();
+        const desc = $(`.desc-prod-adc[data-porta="${porta}"]`).val();
+        const unid = $(`.unid-prod-adc[data-porta="${porta}"]`).val();
         const qtd = parseFloat(
             $(`.qtd-prod-adc[data-porta="${porta}"]`).val().replace(',', '.')
         ) || 0;
         const vl = parseFloat(
             $(`.valor-prod-adc[data-porta="${porta}"]`).val().replace(',', '.')
         ) || 0;
-
-        if (!cod || qtd <= 0) return;
-
-        adicionarAdicionalNaTabela(porta, { cod, qtd, vl });
+        if (!cod || !desc || qtd <= 0) {
+            alert('Produto adicional incompleto');
+            return;
+        }
+        adicionarAdicionalNaTabela(porta, {
+            cod,
+            desc,
+            unid,
+            qtd,
+            vl
+        });
+        $(`.cod-prod-adc[data-porta="${porta}"],
+        .desc-prod-adc[data-porta="${porta}"],
+        .unid-prod-adc[data-porta="${porta}"],
+        .valor-prod-adc[data-porta="${porta}"],
+        .qtd-prod-adc[data-porta="${porta}"]`).val('');
+        $(`.cod-prod-adc[data-porta="${porta}"]`).focus();
     });
     function formatarBR(valor) {
         return new Intl.NumberFormat('pt-BR', {
@@ -2696,86 +3123,122 @@ $(document).ready(function() {
         const porta = $(this).data("porta");
         recalcularTotaisPorta(porta);
     });
-    $(document).on("blur", ".alt", function () {
+    // function aplicarRegraLaminaTipo(porta) {
+    //     const tipoSelecionado = $("#id_lamina_tipo").val();
+    //     if (!tipoSelecionado) return;
+
+    //     const regra = {
+    //         "Fechada": "LÂMINAS LISAS",
+    //         "Transvision": "LÂMINAS TRANSVISION"
+    //     };
+
+    //     const descPermitida = regra[tipoSelecionado];
+    //     if (!descPermitida) return;
+
+    //     prodManager.data[porta].forEach(item => {
+    //         if (!item.desc?.toUpperCase().includes("LÂMINAS")) return;
+
+    //         if (item.desc.toUpperCase() === descPermitida.toUpperCase()) {
+    //             item.ativo = true;
+    //         } else {
+    //             item.ativo = false;
+    //             item.qtd_calc = 0;
+    //             item.qtd_final = 0;
+
+    //             $(`#tblProd_${porta} tbody tr[data-item-id="${item.id}"]`).remove();
+    //         }
+    //     });
+    // }
+    function reposicionarMotor(porta) {
+        const $tbody = $(`#tblProd_${porta} tbody`);
+
+        const $motorRow = $tbody.find("tr").filter(function () {
+            return $(this).find(".td-desc").text().toUpperCase().includes("MOTOR");
+        });
+
+        if ($motorRow.length) {
+            $motorRow.detach().appendTo($tbody);
+        }
+    }
+    function reposicionarLaminaPrimeiro(porta) {
+
+        const $tbody = $(`#tblProd_${porta} tbody`);
+
+        const $laminaRow = $tbody.find("tr").filter(function () {
+            return $(this)
+                .find(".td-desc")
+                .text()
+                .toUpperCase()
+                .includes("LÂMINAS");
+        });
+
+        if ($laminaRow.length) {
+            $laminaRow.detach().prependTo($tbody);
+        }
+    }
+    $(document).on("blur", ".larg, .alt", async function () {
         const porta = $(this).data("porta");
-        const largura = parseFloat($(`.larg[data-porta="${porta}"]`).val()) || 0;
-        const altura = parseFloat($(`.alt[data-porta="${porta}"]`).val()) || 0;
-        // Verifica se largura e altura são válidas
-        if (!largura || !altura) return;
-        // Verificações e cálculos relativos aos produtos
-        buscarProdutosPrincipais(porta, largura, altura);
-        buscarProdutosAdicionais(porta, largura, altura);
-        atualizarLaminarPorta(porta);
-        setTimeout(() => {
-            console.log('Chamada da função aqui!');
-            atualizarPinturaPorta(porta);
-        }, 2000);
-        // Calculos relacionados ao motor
-        $("#loadingModal").modal("show");
-        calcFtPeso(porta);
-        atualizarLarguraCorte(porta);
-        calcularEixoMotor(porta);
-        calcM2(porta);
-        atualizarLaminarPorta(porta);
-        calcQtdLam(porta);
-        // buscarMotorIdeal(porta);  // Chama a função para buscar o motor ideal
-        setTimeout(() => {
-            finalizarLoading();
-        }, 500);
-    });
-    $(document).on("blur", ".larg, .alt", function () {
-        const porta = $(this).data("porta");
-        // ===== LEITURA DAS MEDIDAS =====
-        const largStr = $(`.larg[data-porta="${porta}"]`).val();
-        const altStr  = $(`.alt[data-porta="${porta}"]`).val();
-        if (!largStr || !altStr) return;
-        const lg = parseFloat(largStr.replace(",", ".")) || 0;
-        const at = parseFloat(altStr.replace(",", ".")) || 0;
+        const lg = parseFloat($(`.larg[data-porta="${porta}"]`).val().replace(",", ".")) || 0;
+        const at = parseFloat($(`.alt[data-porta="${porta}"]`).val().replace(",", ".")) || 0;
         if (lg <= 0 || at <= 0) return;
-        // ===== CONTROLE DE ALTERAÇÃO =====
-        medidasCtrl[porta] ??= { larg: null, alt: null };
+        medidasCtrl[porta] ??= {};
         const ctrl = medidasCtrl[porta];
         const mudouMedida = ctrl.larg !== lg || ctrl.alt !== at;
         if (!mudouMedida) {
-            console.log(`⏭ Porta ${porta}: medidas não mudaram`);
+            atualizarSubtotal();
             return;
         }
         ctrl.larg = lg;
         ctrl.alt  = at;
-        console.log(`♻ Recalculando porta ${porta}`, { lg, at });
-        // ===== CÁLCULOS FÍSICOS =====
+        iniciarLoading();
         calcM2(porta);
         calcFtPeso(porta);
-        atualizarLarguraCorte(porta);
+        calcLgCorte(porta);
+        calcPeso(porta);
         calcularEixoMotor(porta);
-        // ===== ATUALIZA PRODUTOS (SEM NOVO AJAX) =====
+        calcQtdLam(porta);
+        await buscarProdutosPrincipais(porta, lg, at);
+        await buscarProdutosAdicionais(porta);
+        await buscarMotorIdeal(porta);
         atualizarTabelaPorta(porta);
-        atualizarPinturaPorta(porta);
-        // ===== MOTOR (DEPENDE DO PESO / ALTURA) =====
-        buscarMotorIdeal(porta);
-        // ===== TOTAIS / JSON =====
+        atualizarLaminarPorta(porta);
+        reposicionarMotor(porta);
+        reposicionarLaminaPrimeiro(porta);
         atualizarSubtotal();
+        calcularValorForma();
+        somaFormas();
+        finalizarLoading();
     });
     $(document).on("click", ".removerPorta", function () {
         const porta = $(this).data("porta");
-
-        // 🔥 LIMPA O ESTADO DA PORTA ANTES DE REMOVER
         resetarPorta(porta);
-
         $("#linha_resumo_" + porta).remove();
         $("#accProd_" + porta).remove();
         $("#accAdc_" + porta).remove();
-        
         reindexarPortas();
-        aplicarMascaras();
         atualizarSubtotal();
+    });
+    $(document).on('click', '.deleteBtn', function () {
+        const $tr   = $(this).closest('tr');
+        const porta = Number($tr.data('porta'));
+        const cod   = Number($tr.data('item-id'));
+
+        const lista = prodAdcManager.data[porta];
+        if (!lista) return;
+
+        const item = lista.find(x => Number(x.cod) === cod);
+        if (item) {
+            item.ativo = false;     // 🔒 desativa de verdade
+            item.qtd_final = 0;
+        }
+
+        $tr.remove();
+
+        recalcularTotaisPorta(porta);
+        atualizarSubtotal();
+        atualizarJSONPortas();
     });
 
-    $(document).on('click', '.deleteBtn', function() {
-        // Remove a linha correspondente na tabela correta
-        $(this).closest('tr').remove();
-        atualizarSubtotal();
-    });
     function resetarPorta(porta) {
         // limpa memória de produtos
         if (window.prodManager?.data) {
@@ -2878,12 +3341,13 @@ $(document).ready(function() {
     }
 
     function atualizarTabelaPorta(porta) {
-
+        console.log('>>> atualizarTabelaPorta CHAMADA:', porta);
         const tp_pintura = $('#id_tp_pintura').val();
+        const ctrl = medidasCtrl[porta] || {};
 
-        const larg   = parseFloat($(`.larg[data-porta="${porta}"]`).val()) || 0;
+        const larg   = Number(ctrl.larg)   || 0;
+        const alt    = Number(ctrl.alt)    || 0;
         const larg_c = parseFloat($(`.larg-corte[data-porta="${porta}"]`).val()) || 0;
-        const alt    = parseFloat($(`.alt[data-porta="${porta}"]`).val()) || 0;
         const alt_c  = parseFloat($(`.alt-corte[data-porta="${porta}"]`).val()) || 0;
         const m2     = parseFloat($(`.m2[data-porta="${porta}"]`).val()) || 0;
 
@@ -2891,52 +3355,66 @@ $(document).ready(function() {
         let totalVendaProd  = 0;
         let totalCompraAdc  = 0;
         let totalVendaAdc   = 0;
+        console.log(
+            'TR PROD:',
+            $(`#tblProd_${porta} tbody tr`).length,
+            'TR ADC:',
+            $(`#tblAdc_${porta} tbody tr`).length
+        );
 
-        /* ================= PRODUTOS PRINCIPAIS ================= */
         $(`#tblProd_${porta} tbody tr`).each(function () {
-
             const $tr = $(this);
             const itemId = Number($tr.data('item-id'));
             const item = prodManager.data[porta]?.find(i => i.id === itemId);
             if (!item) return;
-
-            // 🔒 Inicialização segura
+            if (item.vl_compra == null) {
+                const txt = $tr.find('.td-vl-compra').text().trim().replace(',', '.');
+                item.vl_compra = Number(txt) || 0;
+            }
+            if (item.vl_unit == null) {
+                const txtVenda = $tr.find('.vl-unit').text().trim().replace(',', '.');
+                item.vl_unit = Number(txtVenda) || 0;
+            }
+            item.vl_compra = Number(item.vl_compra) || 0;
+            item.vl_unit   = Number(item.vl_unit)   || 0;
             item.qtd_calc  ??= 0;
             item.qtd_final ??= 0;
-            item.qtd_manual ??= false;
 
-            const compra = Number(item.vl_compra) || 0;
-            const venda  = Number(item.vl_unit)   || 0;
-
-            // 🔹 SEMPRE recalcula a quantidade técnica
-            const qtdCalc = calcularQtdPorRegra(item, { alt, alt_c, larg, larg_c, m2 });
-            item.qtd_calc = qtdCalc;
-
-            // 🔹 Define quantidade final
-            if (!item.qtd_manual) {
-                item.qtd_final = qtdCalc;
-            } else {
-                // 🔒 garantia absoluta
-                item.qtd_final = Number(item.qtd_final) || 0;
-            }
-
-            if (item.qtd_manual) {
-                // 🔒 manual sempre vence
-                item.ativo = item.qtd_final > 0;
-            } else {
-                item.ativo = item.qtd_final > 0;
-            }
-
-            if (!item.ativo) {
+            if (item.ativo === false) {
                 $tr.hide();
                 return;
             }
 
+            const qtdCalc = calcularQtdPorRegra(item, { alt, alt_c, larg, larg_c, m2 });
+            item.qtd_calc = qtdCalc;
 
-            const totCompra = compra * item.qtd_final;
-            const totVenda  = venda  * item.qtd_final;
+            if (!item.qtd_manual) {
+                item.qtd_final = qtdCalc;
+            } else {
+                item.qtd_final = Number(item.qtd_final) || 0;
+            }
 
+            if (item.qtd_final <= 0) {
+                item.ativo = false;
+                $tr.hide();
+                return;
+            }
+
+            item.ativo = true;
             $tr.show();
+
+            const totCompra = item.vl_compra * item.qtd_final;
+            const totVenda  = item.vl_unit   * item.qtd_final;
+
+            console.log('DEBUG CALC:', {
+                cod: item.cod,
+                qtd: item.qtd_final,
+                vl_compra: item.vl_compra,
+                vl_unit: item.vl_unit,
+                compra_calc: totCompra,
+                venda_calc: totVenda
+            });
+
             $tr.find('.qtd-produto').text(item.qtd_final.toFixed(2));
             $tr.find('.tot-compra').text(totCompra.toFixed(2));
             $tr.find('.vl-total').text(totVenda.toFixed(2));
@@ -2945,21 +3423,40 @@ $(document).ready(function() {
             totalVendaProd  += totVenda;
         });
 
-        /* ================= PRODUTOS ADICIONAIS ================= */
         $(`#tblAdc_${porta} tbody tr`).each(function () {
-
             const $tr = $(this);
             const itemId = Number($tr.data('item-id'));
             const item = prodAdcManager.data[porta]?.find(i => i.id === itemId);
             if (!item) return;
+            // 🚫 bloqueia pintura se estiver "Não"
+            if (
+                $('#id_pintura').val() === 'Não' &&
+                item.regra_origem === 'PINTURA_TIPO'
+            ) {
+                item.ativo = false;
+                item.qtd_calc = 0;
+                item.qtd_final = 0;
+                $tr.hide();
+                return;
+            }
 
-            // 🔒 Inicialização segura
+            if (item.vl_compra == null) {
+                const txt = $tr.find('.td-vl-compra').text().trim().replace(',', '.');
+                item.vl_compra = Number(txt) || 0;
+            }
+            if (item.vl_unit == null) {
+                const txtVenda = $tr.find('.vl-unit').text().trim().replace(',', '.');
+                item.vl_unit = Number(txtVenda) || 0;
+            }
+            item.vl_compra = Number(item.vl_compra) || 0;
+            item.vl_unit   = Number(item.vl_unit)   || 0;
             item.qtd_calc  ??= 0;
             item.qtd_final ??= 0;
-            item.qtd_manual ??= false;
 
-            const compra = Number(item.vl_compra) || 0;
-            const venda  = Number(item.vl_unit)   || 0;
+            if (item.ativo === false) {
+                $tr.hide();
+                return;
+            }
 
             let qtdCalc = 0;
 
@@ -2980,28 +3477,21 @@ $(document).ready(function() {
             if (!item.qtd_manual) {
                 item.qtd_final = qtdCalc;
             } else {
-                // 🔒 garantia absoluta
                 item.qtd_final = Number(item.qtd_final) || 0;
             }
 
-
-            if (item.qtd_manual) {
-                // 🔒 manual sempre vence
-                item.ativo = item.qtd_final > 0;
-            } else {
-                item.ativo = item.qtd_final > 0;
-            }
-
-            if (!item.ativo) {
+            if (item.qtd_final <= 0) {
+                item.ativo = false;
                 $tr.hide();
                 return;
             }
 
-
-            const totCompra = compra * item.qtd_final;
-            const totVenda  = venda  * item.qtd_final;
-
+            item.ativo = true;
             $tr.show();
+
+            const totCompra = item.vl_compra * item.qtd_final;
+            const totVenda  = item.vl_unit   * item.qtd_final;
+
             $tr.find('.qtd-produto').text(item.qtd_final.toFixed(2));
             $tr.find('.tot-compra').text(totCompra.toFixed(2));
             $tr.find('.vl-total').text(totVenda.toFixed(2));
@@ -3010,139 +3500,218 @@ $(document).ready(function() {
             totalVendaAdc  += totVenda;
         });
 
-        /* ================= TOTAIS ================= */
-        $(`#totCompra_porta_${porta}`).text(
-            "R$ " + totalCompraProd.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
-        );
-
-        $(`#totVenda_porta_${porta}`).text(
-            "R$ " + totalVendaProd.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
-        );
-
-        $(`#totCompraAdc_porta_${porta}`).text(
-            "R$ " + totalCompraAdc.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
-        );
-
-        $(`#totVendaAdc_porta_${porta}`).text(
-            "R$ " + totalVendaAdc.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
-        );
+        $(`#totCompra_porta_${porta}`).text("R$ " + totalCompraProd.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+        $(`#totVenda_porta_${porta}`).text("R$ " + totalVendaProd.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+        $(`#totCompraAdc_porta_${porta}`).text("R$ " + totalCompraAdc.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+        $(`#totVendaAdc_porta_${porta}`).text("R$ " + totalVendaAdc.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
     }
 
-    const medidasCtrl = {};
+    function getDescricaoLaminaAtiva(porta) {
+        const regra = REGRAS.LAMINA_TIPO;
+        if (!regra || regra.tipo !== 'SELECAO') return null;
+
+        const mapa = JSON.parse(regra.expressao);
+        const valor = $(`.tipo-lamina[data-porta="${porta}"]`).val();
+
+        return mapa[valor]?.toUpperCase().trim() || null;
+    }
+    function getDescricaoPinturaAtiva(porta) {
+        const regra = REGRAS.PINTURA_TIPO;
+        if (!regra || regra.tipo !== 'SELECAO') return null;
+
+        const mapa = JSON.parse(regra.expressao);
+        const valor = $('#id_tp_pintura').val();
+
+        return mapa[valor]?.toUpperCase().trim() || null;
+    }
+
+    medidasCtrl = [];
     function buscarProdutosPrincipais(num, lg, at) {
-        const p = Number(num);
-        prodManager.data[p] = [];
-        medidasCtrl[p] = { larg: lg, alt: at };
-        const tpLamina = $(`.tipo-lamina[data-porta="${num}"]`).val();
-        const $tbody = $("#tblProd_" + num + " tbody");
-        $.get('/produtos/lista_ajax/', { tp: "desc", tp_prod: "Principal" }, function (resp) {
-            $tbody.empty();
-            let contador = 1;
-            resp.produtos.forEach((pdt) => {
-                const desc = pdt.desc_prod.toUpperCase();
-                if (desc.includes("MOTOR")) return;
-                if (desc.includes("LÂMINAS")) {
-                    if (tpLamina === "Fechada" && desc.includes("TRANSVISION")) return;
-                    if (tpLamina === "Transvision" && desc.includes("LISAS")) return;
+        return new Promise((resolve) => {
+
+            const p = Number(num);
+            prodManager.data[p] ??= [];
+
+            prodManager.data[p] = prodManager.data[p].filter(i =>
+                i.desc?.toUpperCase().includes("MOTOR")
+            );
+
+            const $tbody = $("#tblProd_" + num + " tbody");
+
+            $tbody.find("tr").each(function () {
+                const desc = $(this).find(".td-desc").text().toUpperCase();
+                if (!desc.includes("MOTOR")) {
+                    $(this).remove();
                 }
-                prodManager.data[p].push({
-                    id: pdt.id,
-                    cod: pdt.id,
-                    desc: pdt.desc_prod,
-                    unid: pdt.unidProd,
-                    vl_compra: parseFloat(pdt.vl_compra),
-                    vl_unit: parseFloat(pdt.vl_prod),
-                    qtd: 0,
-                    qtd_manual: false,
-                    total: 0,
-                    regra: pdt.regra
-                });
-                $tbody.append(`
-                    <tr data-porta="${num}" data-item-id="${pdt.id}">
-                        <td data-label="Código:" class="td-cod mobile-full">${pdt.id}</td>
-                        <td data-label="Descrição:" class="td-desc mobile-full">${pdt.desc_prod}</td>
-                        <td data-label="Unidade:" class="td-unid mobile-full">${pdt.unidProd}</td>
-                        <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">${pdt.vl_compra}</td>
-                        <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${pdt.vl_prod}</td>
-                        <td class="qtd-produto mobile-full" data-label="Quantidade:">0.00</td>
-                        <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0.00</td>
-                        <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0.00</td>
-                        <td data-label="Ações:" class="mobile-full">
-                            <i class="fas fa-edit editBtn" style="color: #13c43f; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#editItemModal"></i>
-                            <i class="fas fa-trash deleteBtn" style="color: #db1e47; cursor: pointer;"></i>
-                        </td>
-                    </tr>
-                `);
-                contador++;
             });
-            buscarMotorIdeal(num, lg, at);
-            atualizarTabelaPorta(num);
+
+            $.get('/produtos/lista_ajax/', {
+                tp: "desc",
+                tp_prod: "Principal"
+            }, function (resp) {
+                const laminaAtiva = getDescricaoLaminaAtiva(num);
+                console.log('TIPO LÂMINA:', $(`.tipo-lamina[data-porta="${num}"]`).val());
+                console.log('MAPA:', JSON.parse(REGRAS.LAMINA_TIPO.expressao));
+                console.log('LAMINA ATIVA:', laminaAtiva);      
+                resp.produtos.forEach(pdt => {
+
+                    const desc = pdt.desc_prod.toUpperCase().trim();
+                    if (desc.includes("MOTOR")) return;
+                    // 🔒 SELEÇÃO DE LÂMINA VIA JS
+                    if (desc.includes("LÂMINAS")) {
+                        if (!laminaAtiva) return;
+                        if (desc !== laminaAtiva) return;
+                    }
+
+                    prodManager.data[p].push({
+                        id: pdt.id,
+                        cod: pdt.id,
+                        desc: pdt.desc_prod,
+                        unid: pdt.unidProd,
+                        vl_compra: parseFloat(pdt.vl_compra),
+                        vl_unit: parseFloat(pdt.vl_prod),
+                        qtd_calc: 0,
+                        qtd_final: 0,
+                        qtd_manual: false,
+                        regra: pdt.regra,
+                        // 🚫 lâmina SEMPRE nasce desativada
+                        ativo: true
+                    });
+
+                    $tbody.append(`
+                        <tr data-porta="${num}" data-item-id="${pdt.id}">
+                            <td data-label="Código:" class="td-cod mobile-full">${pdt.id}</td>
+                            <td data-label="Descrição:" class="td-desc mobile-full">${pdt.desc_prod}</td>
+                            <td data-label="Unidade:" class="td-unid mobile-full">${pdt.unidProd}</td>
+                            <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">${pdt.vl_compra}</td>
+                            <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${pdt.vl_prod}</td>
+                            <td class="qtd-produto mobile-full" data-label="Quantidade:">0.00</td>
+                            <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0.00</td>
+                            <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0.00</td>
+                            <td data-label="Ações:" class="mobile-full">
+                                <i class="fas fa-edit editBtn" data-bs-toggle="modal"
+                                data-bs-target="#editItemModal"
+                                style="color: #13c43f; cursor: pointer;"></i>
+                                <i class="fas fa-trash deleteBtn"
+                                style="color: #db1e47; cursor: pointer;"></i>
+                            </td>
+                        </tr>
+                        
+                    `);
+                });
+
+                resolve(); // 🔔 AVISA: terminou
+            });
         });
     }
-    function buscarProdutosAdicionais(porta) {
+    async function buscarProdutosAdicionais(porta) {
         const p = Number(porta);
+
         if (!prodAdcManager.data[p]) {
             prodAdcManager.data[p] = [];
         }
-        $.get('/produtos/lista_ajax/', {
-            tp: "desc",
-            tp_prod: "Adicional"
-        }, function (resp) {
-            const tabela = $(`#tblAdc_${porta} tbody`).empty();
-            let contador = 1;
-            resp.produtos.forEach((item) => {
-                const existente = prodAdcManager.data[p]
-                    .find(x => String(x.cod) === String(item.id));
-                const qtdInicial = existente ? existente.qtd : 0;
-                if (!existente) {
-                    prodAdcManager.data[p].push({
-                        id: item.id,
-                        cod: item.id,
-                        desc: item.desc_prod,
-                        unid: item.unidProd,
-                        vl_compra: parseFloat(item.vl_compra),
-                        vl_unit: parseFloat(item.vl_prod),
-                        qtd: qtdInicial,
-                        qtd_manual: false,
-                        total: 0,
-                        regra: item.regra,
-                        ativo: true
-                    });
-                } else {
-                    existente.desc = item.desc_prod;
-                    existente.unid = item.unidProd;
-                    existente.vl_compra = parseFloat(item.vl_compra);
-                    existente.vl_unit = parseFloat(item.vl_prod);
-                    existente.regra = item.regra;
-                    existente.ativo = true;
+
+        return new Promise((resolve, reject) => {
+
+            $.get('/produtos/lista_ajax/', {
+                tp: "desc",
+                tp_prod: "Adicional"
+            })
+            .done(function (resp) {
+
+                const temPintura   = $('#id_pintura').val(); // Sim / Não
+                const pinturaAtiva = getDescricaoPinturaAtiva(porta);
+
+                const mapaPinturas = Object.values(
+                    obterMapaSelecao(REGRAS.PINTURA_TIPO)
+                ).map(d => d.toUpperCase().trim());
+
+                /* ======================================================
+                🚫 REMOVE ABSOLUTAMENTE PINTURA SE FOR "NÃO"
+                ====================================================== */
+                if (temPintura === 'Não') {
+                    prodAdcManager.data[p] = prodAdcManager.data[p].filter(
+                        item => item.regra_origem !== 'PINTURA_TIPO'
+                    );
                 }
-                tabela.append(`
-                    <tr data-porta="${porta}" data-item-id="${item.id}">
-                        <td data-label="Código:" class="td-cod mobile-full">${item.id}</td>
-                        <td data-label="Descrição:" class="td-desc mobile-full">${item.desc_prod}</td>
-                        <td data-label="Unidade:" class="td-unid mobile-full">${item.unidProd}</td>
-                        <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">${item.vl_compra}</td>
-                        <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${item.vl_prod}</td>
-                        <td class="qtd-produto mobile-full" data-label="Quantidade:">${qtdInicial}</td>
-                        <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0.00</td>
-                        <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0.00</td>
-                        <td data-label="Ações:" class="mobile-full">
-                            <i class="fas fa-edit editBtn" data-bs-toggle="modal"
-                            data-bs-target="#editItemAdcModal"
-                            style="color: #13c43f; cursor: pointer;"></i>
-                            <i class="fas fa-trash deleteBtn"
-                            style="color: #db1e47; cursor: pointer;"></i>
-                        </td>
-                    </tr>
-                `);
-                contador++;
-            });
-            atualizarTabelaPorta(porta);
-            atualizarSubtotal();
-            syncAdicionalFromTable(porta);
-            atualizarJSONPortas();
+
+                const tabela = $(`#tblAdc_${porta} tbody`).empty();
+
+                resp.produtos.forEach(item => {
+                    const desc = item.desc_prod.toUpperCase().trim();
+                    const isPintura = mapaPinturas.includes(desc);
+
+                    /* ======================================================
+                    🔒 CONTROLE DE PINTURA
+                    ====================================================== */
+                    if (isPintura) {
+                        if (temPintura === 'Não') return;
+                        if (!pinturaAtiva || desc !== pinturaAtiva) return;
+                    }
+
+                    const existente = prodAdcManager.data[p]
+                        .find(x => Number(x.cod) === Number(item.id));
+
+                    const qtdInicial = existente
+                        ? Number(existente.qtd_final ?? 0)
+                        : 0;
+
+                    if (!existente) {
+                        prodAdcManager.data[p].push({
+                            id: item.id,
+                            cod: item.id,
+                            desc: item.desc_prod,
+                            unid: item.unidProd,
+                            vl_compra: Number(item.vl_compra) || 0,
+                            vl_unit: Number(item.vl_prod) || 0,
+                            qtd_calc: qtdInicial,
+                            qtd_final: qtdInicial,
+                            qtd_manual: false,
+                            regra: item.regra,
+                            ativo: true,
+                            regra_origem: isPintura ? 'PINTURA_TIPO' : null
+                        });
+                    } else {
+                        existente.desc = item.desc_prod;
+                        existente.unid = item.unidProd;
+                        existente.vl_compra = Number(item.vl_compra) || 0;
+                        existente.vl_unit = Number(item.vl_prod) || 0;
+                        existente.regra = item.regra;
+                        existente.ativo = true;
+                    }
+
+                    tabela.append(`
+                        <tr data-porta="${porta}" data-item-id="${item.id}">
+                            <td class="td-cod mobile-full">${item.id}</td>
+                            <td class="td-desc mobile-full">${item.desc_prod}</td>
+                            <td class="td-unid mobile-full">${item.unidProd}</td>
+                            <td class="td-vl-compra text-danger fw-bold mobile-full">${item.vl_compra}</td>
+                            <td class="vl-unit text-success fw-bold mobile-full">${item.vl_prod}</td>
+                            <td class="qtd-produto mobile-full">${qtdInicial.toFixed(2)}</td>
+                            <td class="tot-compra text-danger fw-bold mobile-full">0.00</td>
+                            <td class="vl-total text-success fw-bold mobile-full">0.00</td>
+                            <td class="mobile-full">
+                                <i class="fas fa-edit editBtn" data-bs-toggle="modal"
+                                data-bs-target="#editItemAdcModal"
+                                style="color:#13c43f;cursor:pointer"></i>
+                                <i class="fas fa-trash deleteBtn"
+                                style="color:#db1e47;cursor:pointer"></i>
+                            </td>
+                        </tr>
+                    `);
+                });
+
+                atualizarTabelaPorta(porta);
+                atualizarSubtotal();
+                atualizarJSONPortas();
+
+                resolve();
+            })
+            .fail(err => reject(err));
         });
     }
+
+
     function hidratarAdicionaisDaTabelaSeVazio(porta) {
         const p = Number(porta);
         if (prodAdcManager.data[p] && prodAdcManager.data[p].length) {
@@ -3194,85 +3763,126 @@ $(document).ready(function() {
         hidratarAdicionaisDaTabelaSeVazio(porta);
         atualizarJSONPortas();
     });
-    
-
-    function atualizarJSONPortas() {
-
-        let portas = [];
-
-        console.log("=== INICIANDO atualizarJSONPortas ===");
-
-        $(".linha-porta").each(function () {
-
-            const $linha = $(this);
-            const portaNum = parseInt($linha.data("porta"));
-
-            console.log("Processando porta:", portaNum);
-
-            let dadosPorta = {
-                numero: portaNum,
-                largura: getFloat(`.larg[data-porta="${portaNum}"]`),
-                altura: getFloat(`.alt[data-porta="${portaNum}"]`),
-                qtd_lam: getFloat(`.qtd-laminas[data-porta="${portaNum}"]`),
-                m2: getFloat(`.m2[data-porta="${portaNum}"]`),
-                larg_corte: getFloat(`.larg-corte[data-porta="${portaNum}"]`),
-                alt_corte: getFloat(`.alt-corte[data-porta="${portaNum}"]`),
-                rolo: getFloat(`.rolo[data-porta="${portaNum}"]`),
-                peso: getFloat(`.peso[data-porta="${portaNum}"]`),
-                ft_peso: getFloat(`.ft-peso[data-porta="${portaNum}"]`),
-                eix_mot: getFloat(`.eix-mot[data-porta="${portaNum}"]`),
-                tipo_lamina: $(`.tipo-lamina[data-porta="${portaNum}"]`).val() || "",
-                tipo_vao: $(`.tipo-vao[data-porta="${portaNum}"]`).val() || "",
+    function hidratarManagersFromBackend() {
+        let portas = getPortasFromBackend();
+        if (!Array.isArray(portas) || portas.length === 0) {
+            portas = [{
+                numero: 1, largura: 0,
+                altura: 0, qtd_lam: 0,
+                m2: 0, larg_corte: 0,
+                alt_corte: 0, rolo: 0,
+                peso: 0, ft_peso: 0,
+                eix_mot: 0, tipo_lamina: "", tipo_vao: "",
                 produtos: [],
                 adicionais: []
-            };
+            }];
+        }
+        prodManager.data = {};
+        prodAdcManager.data = {};
+        const temPintura = $('#id_pintura').val(); // Sim / Não
+        portas.forEach(porta => {
+            const p = porta.numero;
+            if (!p) return;
+            prodManager.data[p] = [];
+            prodAdcManager.data[p] = [];
+            (porta.produtos || []).forEach(item => {
+                const isLamina = porta.tipo_lamina !== "";
+                prodManager.data[p].push({
+                    id: Number(item.codProd),
+                    cod: Number(item.codProd),
+                    regra: null,
+                    qtd_calc: Number(item.qtdProd),
+                    qtd_final: Number(item.qtdProd),
+                    qtd_manual: true,
+                    ativo: item.ativo !== false,
+                    regra_origem: isLamina ? 'LAMINA_TIPO' : item.regra_origem || null
+                });
+            });
+            (porta.adicionais || []).forEach(item => {
 
-            /* =====================================================
-            PRODUTOS PRINCIPAIS (SÓ QTD > 0)
-            ===================================================== */
-            $(`#tblProd_${portaNum} tbody tr`).each(function () {
+                const produto = $(`#tblAdc_${p} tbody tr[data-item-id="${item.codProd}"]`);
+                const regraOrigemDom = produto.data('regra-origem') || null;
 
-                const codProd = $(this).find(".td-cod").text().trim();
-                const qtd = parseFloat($(this).find(".qtd-produto").text()) || 0;
+                const isPintura = regraOrigemDom === 'PINTURA_TIPO';
 
-                console.log("Produto encontrado:", codProd, "Qtd:", qtd);
+                const ativo = !(isPintura && temPintura === 'Não');
 
-                if (codProd && qtd > 0) {
-                    dadosPorta.produtos.push({
-                        codProd: codProd,
-                        qtdProd: Number(qtd.toFixed(2))
-                    });
-                }
+                prodAdcManager.data[p].push({
+                    id: Number(item.codProd),
+                    cod: Number(item.codProd),
+                    regra: null,
+                    qtd_calc: Number(item.qtdProd),
+                    qtd_final: ativo ? Number(item.qtdProd) : 0,
+                    qtd_manual: true,
+                    ativo: ativo,
+                    regra_origem: isPintura ? 'PINTURA_TIPO' : null
+                });
             });
 
-            /* =====================================================
-            ADICIONAIS (SÓ QTD > 0)
-            ===================================================== */
-            $(`#tblAdc_${portaNum} tbody tr`).each(function () {
-
-                const codProd = $(this).find(".td-cod").text().trim();
-                const qtd = parseFloat($(this).find(".qtd-produto").text()) || 0;
-
-                console.log("Adicional encontrado:", codProd, "Qtd:", qtd);
-
-                if (codProd && qtd > 0) {
-                    dadosPorta.adicionais.push({
-                        codProd: codProd,
-                        qtdProd: Number(qtd.toFixed(2))
-                    });
-                }
-            });
-
-            console.log("JSON da porta:", dadosPorta);
-
-            portas.push(dadosPorta);
+            if (temPintura === 'Não') {
+                $(`#tblAdc_${p} tbody tr`).each(function () {
+                    const desc = $(this).find('.td-desc').text().toUpperCase().trim();
+                    const mapaPinturas = Object.values(obterMapaSelecao(REGRAS.PINTURA_TIPO))
+                        .map(d => d.toUpperCase().trim());
+                    if (mapaPinturas.includes(desc)) {
+                        $(this).remove();
+                    }
+                });
+            }
         });
-
-        console.log("=== JSON FINAL ===");
-        console.log(portas);
-
+        console.log('Managers OK', prodManager.data, prodAdcManager.data);
+        return portas;
+    }
+    function atualizarJSONPortas() {
+        let portas = [];
+        $('table[id^="tblProd_"]').each(function() {
+            const tableId = $(this).attr('id'); // tblProd_1
+            const p = tableId.split('_')[1];
+            const produtos = [];
+            (prodManager.data[p] || []).forEach(item => {
+                if (item.ativo && item.qtd_final > 0) {
+                    produtos.push({
+                        codProd: Number(item.cod),
+                        qtdProd: Number(item.qtd_final),
+                        ativo: true
+                    });
+                }
+            });
+            const adicionais = [];
+            const semPintura = $('#id_pintura').val() === 'Não';
+            (prodAdcManager.data[p] || []).forEach(item => {
+                if (
+                    item.ativo &&
+                    item.qtd_final > 0 &&
+                    !(item.regra_origem === 'PINTURA_TIPO' && $('#id_pintura').val() === 'Não')
+                ) {
+                    adicionais.push({
+                        codProd: Number(item.cod),
+                        qtdProd: Number(item.qtd_final),
+                        ativo: true
+                    });
+                }
+            });
+            portas.push({
+                numero: Number(p),
+                produtos,
+                adicionais,
+                largura: getFloat(`.larg[data-porta="${p}"]`),
+                altura: getFloat(`.alt[data-porta="${p}"]`),
+                qtd_lam: getFloat(`.qtd-laminas[data-porta="${p}"]`),
+                m2: getFloat(`.m2[data-porta="${p}"]`),
+                larg_corte: getFloat(`.larg-corte[data-porta="${p}"]`),
+                alt_corte: getFloat(`.alt-corte[data-porta="${p}"]`),
+                rolo: getFloat(`.rolo[data-porta="${p}"]`),
+                peso: getFloat(`.peso[data-porta="${p}"]`),
+                ft_peso: getFloat(`.ft-peso[data-porta="${p}"]`),
+                eix_mot: getFloat(`.eix-mot[data-porta="${p}"]`),
+                tipo_lamina: $(`.tipo-lamina[data-porta="${p}"]`).val() || "",
+                tipo_vao: $(`.tipo-vao[data-porta="${p}"]`).val() || ""
+            });
+        });
+        console.log("JSON FINAL:", portas);
         $("#id_json_portas").val(JSON.stringify(portas));
-
         return true;
     }
 
@@ -3359,7 +3969,6 @@ $(document).ready(function() {
     $("#btnGerarPortas").on("click", function() {
         zerarTotais();
         gerarPortas();
-        aplicarMascaras();
     });
     $(document).on("keydown", "#tabelaPortasResumo input", function(e) {
         if (e.key === "Enter") {
@@ -3397,54 +4006,64 @@ $(document).ready(function() {
                 return item.qtd;
         }
     }
+    function rebuildManagersFromBackend(portasJson) {
 
-    function rebuildProdutosFromTable() {
         prodManager.data = {};
-        $('.tabela-produtos tbody tr').each(function () {
-            const $tr = $(this);
-            const porta  = Number($tr.data('porta'));
-            const itemId = Number($tr.data('item-id'));
-            if (!porta || !itemId) return;
-            if (!prodManager.data[porta]) {
-                prodManager.data[porta] = [];
-            }
-            prodManager.data[porta].push({
-                id: itemId,
-                cod: itemId,
-                desc: $tr.find('.td-desc').text().trim(),
-                unid: $tr.find('.td-unit').text().trim(),
-                vl_compra: parseFloat($tr.find('.td-vl-compra').text().replace(',', '.')) || 0,
-                vl_unit: parseFloat($tr.find('.vl-unit').text().replace(',', '.')) || 0,
-                qtd: parseFloat($tr.find('.qtd-produto').text()) || 0,
-                total: parseFloat($tr.find('.vl-total').text().replace(',', '.')) || 0
-            });
-        });
-    }
-    function rebuildAdicionaisFromTable() {
         prodAdcManager.data = {};
-        $('.tabela-adicionais tbody tr').each(function () {
-            const $tr = $(this);
-            const porta  = Number($tr.data('porta'));
-            const itemId = Number($tr.data('item-id'));
-            if (!porta || !itemId) return;
-            if (!prodAdcManager.data[porta]) {
-                prodAdcManager.data[porta] = [];
-            }
-            prodAdcManager.data[porta].push({
-                id: itemId,
-                cod: itemId,
-                desc: $tr.find('.td-desc').text().trim(),
-                unid: $tr.find('.td-unid').text().trim(),
-                vl_compra: parseFloat($tr.find('.td-vl-compra').text().replace(',', '.')) || 0,
-                vl_unit: parseFloat($tr.find('.vl-unit').text().replace(',', '.')) || 0,
-                qtd: parseFloat($tr.find('.qtd-produto').text()) || 0,
-                total: parseFloat($tr.find('.vl-total').text().replace(',', '.')) || 0
-            });
+        medidasCtrl = {};
+
+        portasJson.forEach((p, idx) => {
+
+            const porta = p.numero ?? idx;
+
+            // 🔹 MEDIDAS
+            medidasCtrl[porta] = {
+                larg: p.largura,
+                alt: p.altura,
+                m2: p.m2,
+                larg_c: p.larg_corte,
+                alt_c: p.alt_corte,
+                peso: p.peso,
+                ft_peso: p.ft_peso,
+                eix_mot: p.eix_mot
+            };
+
+            // 🔹 PRODUTOS
+            prodManager.data[porta] = p.produtos.map(item => ({
+                codProd: Number(item.codProd),
+                qtdProd: Number(item.qtdProd),
+                qtd_calc: Number(item.qtdProd),
+                qtd_final: Number(item.qtdProd),
+                qtd_manual: true,   // 🔐 veio do banco
+                ativo: Number(item.qtdProd) > 0,
+                regra: item.regra
+            }));
+
+            // 🔹 ADICIONAIS
+            prodAdcManager.data[porta] = p.adicionais.map(item => ({
+                codProd: Number(item.codProd),
+                qtdProd: Number(item.qtdProd),
+                qtd_calc: Number(item.qtdProd),
+                qtd_final: Number(item.qtdProd),
+                qtd_manual: true,
+                ativo: Number(item.qtdProd) > 0,
+                regra: item.regra
+            }));
         });
     }
-    
-    rebuildProdutosFromTable();
-    rebuildAdicionaisFromTable();
+    if (typeof PORTAS_BACKEND !== "undefined" && PORTAS_BACKEND.length) {
+
+        rebuildManagersFromBackend(PORTAS_BACKEND);
+
+        PORTAS_BACKEND.forEach(p => {
+            atualizarTabelaPorta(p.numero);
+            reposicionarLaminaPrimeiro(p.numero);
+            reposicionarMotor(p.numero);
+        });
+
+        atualizarSubtotal();
+    }
+
     $('.modal').on('hidden.bs.modal', function () {
         $('.modal-backdrop').remove();
         $('body').removeClass('modal-open');
@@ -3458,6 +4077,12 @@ $(document).ready(function() {
         const isAdc  = $(this).closest('table').is('#tblAdc_' + porta);
         if (isProd) {
             prodManager.setEditingItem($tr);
+            console.log('DEBUG EDIT:', {
+                porta,
+                itemId,
+                dataPorta: prodManager.data[porta]
+            });
+
             const item = prodManager.data[porta]?.find(i => i.id === itemId);
             console.log('UNIDADE ITEM:', item);
 
@@ -3465,21 +4090,29 @@ $(document).ready(function() {
             $('#editItemModal .modal-title').html(
                 `<i class="fa-solid fa-pen-to-square"></i> Editar Item ${item.cod}`
             );
-            $('#editCódInput').val(item.cod);
-            $('#editDescInput').val(item.desc);
-            const unid =
-                item.unid && item.unid.trim()
-                    ? item.unid
-                    : $tr.find('.td-unid').text().trim();
+            const cod  = item.cod ?? $tr.find('.td-cod').text().trim();
+            const desc = item.desc ?? $tr.find('.td-desc').text().trim();
+            const unid = item.unid ?? $tr.find('.td-unid').text().trim();
 
-            const vl   = item.vl_unit ?? item.vl_unitario ?? 0;
-            const qtd  = item.qtd_final ?? item.qtd ?? 0;
+            const vl =
+                item.vl_unit ??
+                item.vl_unitario ??
+                parseFloat($tr.find('.vl-unit').text().replace(',', '.')) ??
+                0;
 
+
+            const qtd =
+                item.qtd_final ??
+                item.qtd ??
+                parseFloat($tr.find('.qtd-produto').text().replace(',', '.')) ??
+                0;
+
+            $('#editCódInput').val(cod);
+            $('#editDescInput').val(desc);
             $('#editUnidInput').val(unid);
             $('#editValorItemInput').val(Number(vl).toFixed(2));
             $('#editQtdInput').val(Number(qtd).toFixed(2));
 
-            $('#editQtdInput').prop('readonly', false);
             const modalEdit = new bootstrap.Modal(
                 document.getElementById('editItemModal')
             );
@@ -3492,14 +4125,28 @@ $(document).ready(function() {
             $('#editItemAdcModal .modal-title').html(
                 `<i class="fa-solid fa-pen-to-square"></i> Editar Item ${item.cod}`
             );
-            $('#editCódAdcInput').val(item.cod);
-            $('#editDescAdcInput').val(item.desc);
-            $('#editUnidAdcInput').val(item.unid);
-            $('#editValorItemAdcInput').val(item.vl_unit.toFixed(2));
-            const qtd = item.qtd_final ?? item.qtd ?? 0;
-            $('#editQtdAdcInput').val(Number(qtd).toFixed(2));
+            const cod  = item.cod ?? $tr.find('.td-cod').text().trim();
+            const desc = item.desc ?? $tr.find('.td-desc').text().trim();
+            const unid = item.unid ?? $tr.find('.td-unid').text().trim();
 
-            $('#editQtdAdcInput').prop('readonly', false);
+            const vl =
+                item.vl_unit ??
+                item.vl_unitario ??
+                parseFloat($tr.find('.vl-unit').text().replace(',', '.')) ??
+                0;
+
+
+            const qtd =
+                item.qtd_final ??
+                item.qtd ??
+                parseFloat($tr.find('.qtd-produto').text().replace(',', '.')) ??
+                0;
+
+            $('#editCódAdcInput').val(cod);
+            $('#editDescAdcInput').val(desc);
+            $('#editUnidAdcInput').val(unid);
+            $('#editValorItemAdcInput').val(Number(vl).toFixed(2));
+            $('#editQtdAdcInput').val(Number(qtd).toFixed(2));
             const modalAdc = new bootstrap.Modal(
                 document.getElementById('editItemAdcModal')
             );
@@ -3570,26 +4217,32 @@ $(document).ready(function() {
             `);
         }
     };
-    function addForma(formaPgto, valor) {
+    function addForma(formaId, formaPgto, valor) {
         const valorNumero = parseFloat(valor) || 0;
         const valorExibicao = valorNumero.toLocaleString('pt-BR', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         });
-        // 👉 Exibe na tabela
+
         formaManager.addItem([
             formaPgto,
             valorExibicao
         ]);
-        // 👉 Guarda valor REAL no <tr>
+
         const $ultimaLinha = $('#itensTableForm tbody tr:last');
-        $ultimaLinha.data('valor', valorNumero);
-        // Atualizações
+
+        // ✅ GUARDA O ID DA FORMA NA LINHA
+        $ultimaLinha
+            .attr('data-forma-id', formaId)
+            .data('forma-id', formaId)
+            .data('valor', valorNumero);
+
         atualizarSubtotal();
         verificarTotalFormas();
-        calcularValorForma();   // ← recalcula o restante
+        calcularValorForma();
         somaFormas();
     }
+
     function toNumberBR(v) {
         return parseFloat(
             String(v || '0')
@@ -3641,6 +4294,20 @@ $(document).ready(function() {
         return parseFloat(str) || 0;
     }
     // Clique no botão de adicionar forma de pagamento
+    function formaJaExiste(formaId) {
+        let existe = false;
+
+        $('#itensTableForm tbody tr').each(function () {
+            if ($(this).data('forma-id') == formaId) {
+                existe = true;
+                return false; // break
+            }
+        });
+
+        return existe;
+    }
+
+
     $('#addItemValorFormBtn').on('click', function (e) {
         e.preventDefault();
         e.stopImmediatePropagation();
@@ -3657,12 +4324,20 @@ $(document).ready(function() {
             toast("<i class='fa-solid fa-triangle-exclamation'></i> Informe um valor válido!", cor_amarelo);
             return;
         }
+        if (formaJaExiste(formaPgto)) {
+            toast(
+                "<i class='fa-solid fa-triangle-exclamation'></i> Forma de pagamento já inclusa na tabela!",
+                cor_amarelo
+            );
+            return;
+        }
+
         $.ajax({
             url: "/formas_pgto/get/",
             method: "GET",
             data: { id: formaPgto },
             success: function (response) {
-                addForma(response.descricao, valor);
+                addForma(response.id, response.descricao, valor);
                 // limpa select e input
                 $('#id_formas_pgto').val(null).trigger('change');
                 $('#id_vl_form_pgto').val('');
@@ -3752,20 +4427,7 @@ $(document).ready(function() {
             return;
         }
         $(`.larg[data-porta="${porta}"], .alt[data-porta="${porta}"]`).blur();
-        const temPintura = $("#id_pintura").val();
-        if (temPintura === "Não") {
-            $(`#tblAdc_${porta} tbody tr`).each(function () {
-                const desc = $(this).find(".td-desc").text().toUpperCase().trim();
-                if (desc === "PINTURA ELETROSTÁTICA" || desc === "PINTURA AUTOMOTIVA") {
-                    $(this).remove();
-                }
-            });
-            calcularValorForma();
-            atualizarTabelaPorta(porta);
-            atualizarSubtotal();
-            somaFormas();
-            return;
-        }
+        
     });
     $('#id_cod_prod').on('blur keydown', function(event) {
         if (event.type === 'blur' || event.key === 'Enter') {

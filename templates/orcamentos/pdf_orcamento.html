@@ -7,12 +7,14 @@
             @page {
                 size: A4;
                 margin: 10mm 10mm 10mm 10mm;
+
                 @bottom-center {
                     content: "Página " counter(page) " de " counter(pages);
                     font-size: 9px;
                     font-weight: bold;
                 }
             }
+
             body {
                 font-family: Times;
                 font-size: 10px;
@@ -209,7 +211,7 @@
                 </tr>
             </table>
         </main><!-- 👇 QUARTA TABELA -->
-        <main class="conteudo" style="padding-top: 5px;">
+        <main class="conteudo" style="padding-top: 5px; margin-bottom: -24mm;">
             <table class="full-table">
                 <tr><td colspan="7" style="background-color: gray; text-align: center;"><strong>CONDIÇÕES DE PAGAMENTO</strong></td></tr>
                 <tr style="background-color: yellow; text-align: center;">
@@ -242,7 +244,7 @@
             </table>
         </main><!-- 👇 TABELA DE PORTAS -->
         {% for pt in o.portas.all %}
-            <main class="conteudo porta {% if forloop.counter > 1 %}page-break{% endif %}" style="margin-top: -90px;">
+            <main class="conteudo porta {% if forloop.counter > 1 %}page-break{% endif %}">
                 <table class="full-table">
                     <tr style="background-color: #8B008B; color: white; text-align: center;">
                         <th colspan="6"><strong>MEDIDAS – PORTA {{ pt.numero }}</strong></th>

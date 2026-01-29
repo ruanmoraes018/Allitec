@@ -28,7 +28,6 @@ from clientes.models import Cliente
 from tecnicos.models import Tecnico
 from django.views.decorators.http import require_POST
 from produtos.models import Produto
-from reportlab.lib import colors
 from notifications.signals import notify
 from filiais.models import Filial, Usuario
 from django.contrib.auth.models import User
@@ -38,13 +37,10 @@ from decimal import Decimal, InvalidOperation
 import locale
 from reportlab.lib.utils import ImageReader
 from reportlab.lib.units import cm
-from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph
 from django.forms import inlineformset_factory
 from django.db import transaction
-from playwright.sync_api import sync_playwright
 from django.template.loader import render_to_string
-import tempfile
 import base64
 from weasyprint import HTML, CSS
 
@@ -214,14 +210,18 @@ def lista_orcamentos(request):
     })
 
 def paraDecimal(valor):
-    if not valor:
-        return Decimal('0.00')
     try:
-        valor = valor.strip()
-        if ',' in valor:
-            valor = valor.replace('.', '').replace(',', '.')
+        if valor in (None, '', 0):
+            return Decimal('0.00')
+
+        # força string
+        valor = str(valor).strip()
+
+        # remove separador de milhar
+        valor = valor.replace('.', '').replace(',', '.') if ',' in valor else valor
+
         return Decimal(valor)
-    except (InvalidOperation, AttributeError):
+    except (InvalidOperation, ValueError):
         return Decimal('0.00')
 
 @login_required
@@ -469,9 +469,6 @@ def att_orcamento(request, id):
                     formas_pgto=fp,
                     valor=valor
                 )
-        
-        
-
         # 🔹 Número do orçamento
         orcamento.num_orcamento = f"{datetime.now():%Y-}{orcamento.id}"
         orcamento.save(update_fields=['num_orcamento'])
@@ -496,7 +493,16 @@ def att_orcamento(request, id):
             "tipo_lamina": porta.tp_lamina,
             "tipo_vao": porta.tp_vao,
 
-            # 🔥 ESSENCIAL
+            # 🔥 PRODUTOS NORMAIS
+            "produtos": [
+                {
+                    "codProd": pp.produto.id,
+                    "qtdProd": float(pp.quantidade)
+                }
+                for pp in porta.produtos.all()
+            ],
+
+            # 🔥 ADICIONAIS
             "adicionais": [
                 {
                     "codProd": adc.produto.id,
@@ -511,8 +517,6 @@ def att_orcamento(request, id):
         "portas": orcamento.portas.all(),
         "portas_json": json.dumps(portas_json)
     })
-
-
 
 @login_required
 @transaction.atomic
@@ -1001,9 +1005,9 @@ def pdf_contrato_v2(request, id):
         )
 
         if o.pintura == "Sim" and tem_portinhola:
-            texto_porta += ", com Pintura e com Portinhola."
+            texto_porta += f", com Pintura de cor {o.cor} e com Portinhola."
         elif o.pintura == "Sim" and not tem_portinhola and o.portao_social == "Não":
-            texto_porta += ", com Pintura e sem Portinhola."
+            texto_porta += f", com Pintura de cor {o.cor} e sem Portinhola."
         elif o.pintura != "Sim" and tem_portinhola and o.portao_social == "Sim":
             texto_porta += ", sem Pintura e com Portinhola."
         else:
