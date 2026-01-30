@@ -169,10 +169,11 @@
                     <div class="modal-header titulo-modal">
                         <h5 class="modal-title"><i class="fa-solid fa-file-arrow-up"></i> Importar Regras de Produto</h5>
                     </div>
-                    <form method="post" action="{% url 'lista-regras' %}" enctype="multipart/form-data">
+                    <form class="was-validated" method="post" action="{% url 'lista-regras' %}" enctype="multipart/form-data">
                         {% csrf_token %}
                         <div class="modal-body">
                             {{ form_importacao.arquivo }}
+                            <div class="invalid-feedback">Arquivo de Importação inválido.</div>
                         </div>
                         <div class="modal-footer">
                             <button type="submit" class="btn btn-primary btn-sm">
