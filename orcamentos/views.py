@@ -586,11 +586,49 @@ def clonar_orcamento(request, id):
             )
         messages.success(request, "Orçamento clonado com sucesso!")
         return redirect('/orcamentos/lista/?s=' + str(novo.id))
+    portas_json = []
+
+    for porta in orcamento.portas.all():
+        portas_json.append({
+            "numero": porta.numero,
+            "largura": float(porta.largura),
+            "altura": float(porta.altura),
+            "qtd_lam": float(porta.qtd_lam or 0),
+            "m2": float(porta.m2 or 0),
+            "larg_corte": float(porta.larg_corte or 0),
+            "alt_corte": float(porta.alt_corte or 0),
+            "rolo": float(porta.rolo or 0),
+            "peso": float(porta.peso or 0),
+            "ft_peso": float(porta.fator_peso or 0),
+            "eix_mot": float(porta.eixo_motor or 0),
+            "tipo_lamina": porta.tp_lamina,
+            "tipo_vao": porta.tp_vao,
+
+            # 🔥 PRODUTOS NORMAIS
+            "produtos": [
+                {
+                    "codProd": pp.produto.id,
+                    "qtdProd": float(pp.quantidade)
+                }
+                for pp in porta.produtos.all()
+            ],
+
+            # 🔥 ADICIONAIS
+            "adicionais": [
+                {
+                    "codProd": adc.produto.id,
+                    "qtdProd": float(adc.quantidade)
+                }
+                for adc in porta.adicionais.all()
+            ]
+        })
+
     form = OrcamentoForm(instance=orcamento)
     return render(request, "orcamentos/clonar_orcamento.html", {
         "form": form,
         "orcamento": orcamento,
-        "portas": orcamento.portas.all()
+        "portas": orcamento.portas.all(),
+        "portas_json": json.dumps(portas_json)
     })
 
 @login_required

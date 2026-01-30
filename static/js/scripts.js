@@ -1975,126 +1975,6 @@ $(document).ready(function() {
         atualizarSubtotal();
         atualizarJSONPortas();
     }
-    function atualizarPinturaPorta(porta) {
-        const temPintura = $('#id_pintura').val(); // Sim / Não
-        const regraSelecao = REGRAS.PINTURA_TIPO;
-        if (!regraSelecao || regraSelecao.tipo !== 'SELECAO') return;
-        const mapa = obterMapaSelecao(regraSelecao);
-        const descricoesPintura = Object.values(mapa)
-            .map(d => d.toUpperCase().trim());
-        prodAdcManager.data[porta] ??= [];
-        if (temPintura === 'Não') {
-            const descricoesPintura = Object.values(obterMapaSelecao(REGRAS.PINTURA_TIPO))
-                .map(d => d.toUpperCase().trim());
-            prodAdcManager.data[porta].forEach(item => {
-                if (descricoesPintura.includes(item.desc?.toUpperCase())) {
-                    item.ativo = false;
-                    item.qtd_calc = 0;
-                    item.qtd_final = 0;
-                }
-            });
-            prodAdcManager.data[porta] = prodAdcManager.data[porta].filter(item =>
-                !descricoesPintura.includes(item.desc?.toUpperCase())
-            );
-            $(`#tblAdc_${porta} tbody tr`).each(function () {
-                const desc = $(this).find('.td-desc').text().toUpperCase().trim();
-                if (descricoesPintura.includes(desc)) {
-                    $(this).remove();
-                }
-            });
-            removerPinturasDaPorta(porta);
-            atualizarTabelaPorta(porta);
-            atualizarSubtotal();
-            atualizarJSONPortas();
-            return;
-        }
-        const valorSelecionado = $('#id_tp_pintura').val();
-        const descAtiva = (mapa[valorSelecionado] || '').toUpperCase().trim();
-        if (!descAtiva) return;
-        prodAdcManager.data[porta] = prodAdcManager.data[porta].filter(item =>
-            !descricoesPintura.includes(item.desc?.toUpperCase())
-        );
-        $(`#tblAdc_${porta} tbody tr`).each(function () {
-            const desc = $(this).find('.td-desc').text().toUpperCase().trim();
-            if (descricoesPintura.includes(desc)) {
-                $(this).remove();
-            }
-        });
-        inserirPinturaSelecionada(porta, descAtiva);
-    }
-    function inserirPinturaSelecionada(porta, pinturaAtiva) {
-        if (!pinturaAtiva) return;
-        prodAdcManager.data[porta] ??= [];
-        prodAdcManager.data[porta] = (prodAdcManager.data[porta] || [])
-            .filter(i => i.regra_origem !== 'PINTURA_TIPO');
-        $.get('/produtos/lista_ajax/', {
-            tp: 'desc',
-            tp_prod: 'Adicional',
-            s: pinturaAtiva
-        }).done(resp => {
-            const p = resp.produtos?.[0];
-            if (!p) return;
-            const item = {
-                id: p.id,
-                cod: p.id,
-                desc: p.desc_prod,
-                unid: p.unidProd,
-                vl_compra: Number(p.vl_compra),
-                vl_unit: Number(p.vl_prod),
-                qtd_calc: 0,
-                qtd_final: 0,
-                qtd_manual: false,
-                regra: p.regra,
-                ativo: true,
-                regra_origem: 'PINTURA_TIPO'
-            };
-            if (p.regra?.tipo?.toUpperCase() === 'QTD') {
-                try {
-                    const portaData = {
-                        largura: getFloat(`.larg[data-porta="${porta}"]`),
-                        altura: getFloat(`.alt[data-porta="${porta}"]`),
-                        larg_c: getFloat(`.larg-corte[data-porta="${porta}"]`),
-                        alt_c: getFloat(`.alt-corte[data-porta="${porta}"]`),
-                        m2: getFloat(`.m2[data-porta="${porta}"]`)
-                    };
-                    const qtd = Function(
-                        ...Object.keys(portaData),
-                        `return ${p.regra.expressao};`
-                    )(...Object.values(portaData));
-                    const qtdFloat = parseFloat(String(qtd).replace(',', '.')) || 0;
-                    item.qtd_calc = qtdFloat;
-                    item.qtd_final = qtdFloat;
-                } catch (e) {
-                    console.error('Erro ao calcular pintura:', e);
-                }
-            }
-            prodAdcManager.data[porta].push(item);
-            const trHtml = `
-                <tr data-porta="${porta}" data-item-id="${item.id}" data-regra-origem="PINTURA_TIPO">
-                    <td data-label="Código:" class="td-cod mobile-full">${item.cod}</td>
-                    <td data-label="Descrição:" class="td-desc mobile-full">${item.desc}</td>
-                    <td data-label="Unidade:" class="td-unid mobile-full">${item.unid}</td>
-                    <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">${item.vl_compra.toFixed(2)}</td>
-                    <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${item.vl_unit.toFixed(2)}</td>
-                    <td class="qtd-produto mobile-full" data-label="Quantidade:">${item.qtd_final.toFixed(2)}</td>
-                    <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0,00</td>
-                    <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0,00</td>
-                    <td>
-                        <i class="fas fa-edit editBtn" style="color:#13c43f;cursor:pointer" data-bs-toggle="modal" data-bs-target="#editItemAdcModal"></i>
-                        <i class="fas fa-trash deleteBtn" style="color:#db1e47;cursor:pointer"></i>
-                    </td>
-                </tr>
-            `;
-            $(`#tblAdc_${porta} tbody`).append(trHtml);
-            const totCompra = item.qtd_final * item.vl_compra;
-            const vlTotal   = item.qtd_final * item.vl_unit;
-            const tr = $(`#tblAdc_${porta} tbody tr[data-item-id="${item.id}"]`);
-            tr.find('.tot-compra').text(totCompra.toFixed(2));
-            tr.find('.vl-total').text(vlTotal.toFixed(2));
-            atualizarSubtotal();
-            atualizarJSONPortas();
-        });
-    }
     toastErrorShown = false;
     function obterMapaSelecao(regra) {
         try {
@@ -2104,41 +1984,82 @@ $(document).ready(function() {
             return {};
         }
     }
+    function isProdutoLamina(item) {
+
+        const regra = REGRAS.LAMINA_TIPO;
+        if (!regra || regra.tipo !== 'SELECAO') return false;
+
+        let mapa = {};
+        try {
+            mapa = JSON.parse(regra.expressao || '{}');
+        } catch {
+            return false;
+        }
+
+        const descricoesLamina = Object.values(mapa)
+            .map(d => d.toUpperCase().trim());
+
+        // 1️⃣ regra_origem explícita
+        if (item.regra_origem === 'LAMINA_TIPO') return true;
+
+        // 2️⃣ produto veio do backend sem origem, mas é lâmina
+        if (item.desc && descricoesLamina.includes(item.desc.toUpperCase().trim())) {
+            return true;
+        }
+
+        return false;
+    }
+    function removerLaminaTipo(porta) {
+
+        prodManager.data[porta] = (prodManager.data[porta] || []).filter(item => {
+            // 🔥 remove QUALQUER lâmina (backend ou frontend)
+            return !isProdutoLamina(item);
+        });
+
+        // remove do DOM também
+        $(`#tblProd_${porta} tbody tr[data-regra-origem="LAMINA_TIPO"]`).remove();
+    }
+
     function atualizarLaminarPorta(porta) {
+
         const valorSelecionado = $(`.tipo-lamina[data-porta="${porta}"]`).val();
         const regraSelecao = REGRAS.LAMINA_TIPO;
+
         if (!regraSelecao || regraSelecao.tipo !== 'SELECAO') return;
+
         const mapa = obterMapaSelecao(regraSelecao);
         const descAtiva = (mapa[valorSelecionado] || '').toUpperCase().trim();
+
         if (!descAtiva) return;
+
         prodManager.data[porta] ??= [];
-        if (prodManager.data[porta].length === 0) {
-            return; // ainda não há base
+
+        // 🔥 SEMPRE remove primeiro
+        removerLaminaTipo(porta);
+
+        // 🔥 Depois insere a nova
+        inserirLaminaSelecionada(porta);
+    }
+    const laminaEmProcesso = {};
+    function inserirLaminaSelecionada(porta) {
+        // 🔒 BLOQUEIO DE CONCORRÊNCIA
+        if (laminaEmProcesso[porta]) {
+            console.warn('Lâmina já em processamento para porta', porta);
+            return;
         }
-        const m2 = getFloat(`.m2[data-porta="${porta}"]`);
-        prodManager.data[porta] = prodManager.data[porta].filter(item => {
-            const qtd = Number(item.qtd_final ?? item.qtd_calc ?? 0);
-            return Math.abs(qtd - m2) > 0.0001;
-        });
+        laminaEmProcesso[porta] = true;
+        const laminaAtiva = getDescricaoLaminaAtiva(porta);
+        if (!laminaAtiva) return;
+        const descUpper = laminaAtiva.toUpperCase().trim();
+
+        // 🔥 REMOVE QUALQUER LÂMINA DO DOM (backend ou frontend)
         $(`#tblProd_${porta} tbody tr`).each(function () {
-            const qtdTxt = $(this)
-                .find('.qtd-produto')
-                .text()
-                .replace(',', '.');
-            const qtd = parseFloat(qtdTxt) || 0;
-            if (Math.abs(qtd - m2) < 0.0001) {
+            const desc = $(this).find('.td-desc').text().toUpperCase().trim();
+            if (desc === descUpper) {
                 $(this).remove();
             }
         });
-        inserirLaminaSelecionada(porta);
-    }
-    function inserirLaminaSelecionada(porta) {
-        const laminaAtiva = getDescricaoLaminaAtiva(porta);
-        if (!laminaAtiva) return;
         prodManager.data[porta] ??= [];
-        if (prodManager.data[porta].some(i => i.desc?.toUpperCase() === laminaAtiva)) {
-            return;
-        }
         $.get('/produtos/lista_ajax/', {
             tp: 'desc',
             tp_prod: 'Principal',
@@ -2213,6 +2134,8 @@ $(document).ready(function() {
             atualizarSubtotal();
             atualizarJSONPortas();
             reposicionarLaminaPrimeiro(porta);
+        }).always(() => {
+            laminaEmProcesso[porta] = false; // 🔓 libera
         });
     }
     function atualizarPinturaPorta(porta) {
@@ -2319,35 +2242,53 @@ $(document).ready(function() {
     //     gerarJSONFormas();
     //     finalizarLoading();
     // });
-    $(document).on('change', '.tipo-vao', async function() {
-        iniciarLoading();
-        const tpLamina = $(this).val();
-        const mapaLaminas = Object.values(obterMapaSelecao(REGRAS.LAMINA_TIPO)).map(d => d.toUpperCase().trim());
-        const promises = [];
-        
-        $('[id^="tblProd_"]').each(function() {
-            const porta = $(this).attr('id').split('_')[1];
-            if (tpLamina === 'Eletrostática' || tpLamina === 'Automotiva') {
-                limparLaminas(porta);
-            } else {
-                atualizarLaminarPorta(porta);
+    function forcarRecalculoPorLargCorte(porta, larg_c) {
+
+        larg_c = Number(larg_c) || 0;
+
+        (prodManager.data[porta] || []).forEach(item => {
+            if (!item.regra || item.regra.tipo !== 'QTD') return;
+
+            if (
+                item.regra.codigo === 'EIXO_LARGURA' ||
+                item.regra.codigo === 'SOLEIRA_LARGURA'
+            ) {
+                item.qtd_manual = false;
+                item.qtd_calc = larg_c;
+                item.qtd_final = larg_c;
+                item.ativo = larg_c > 0;
+
+                console.log('RECALC LARG_C OK:', item.cod, larg_c);
             }
         });
+    }
 
+    $(document).on('change', '.tipo-vao', async function() {
+        iniciarLoading();
+        const promises = [];
+        $('[id^="tblProd_"]').each(function() {
+            const porta = $(this).attr('id').split('_')[1];
+            calcLgCorte(porta); // 1️⃣ define larg-corte
+            // 🔥 PEGAR DA FONTE CERTA
+            const larg_c = Number(medidasCtrl[porta]?.larg_c)
+                        || parseFloat($(`.larg-corte[data-porta="${porta}"]`).val())
+                        || 0;
+
+            forcarRecalculoPorLargCorte(porta, larg_c);
+            calcFtPeso(porta);            // 2️⃣ define ft-peso
+            calcM2(porta);                // 3️⃣ usa larg-corte correta
+            calcQtdLam(porta);            // 4️⃣ independente
+            calcularEixoMotor(porta);
+            calcPeso(porta);
+            atualizarLaminarPorta(porta);
+            atualizarPinturaPorta(porta);
+            atualizarTabelaPorta(porta);
+            atualizarSubtotal();
+            atualizarJSONPortas();
+            gerarJSONFormas();
+            reindexarPortas();
+        });
         await Promise.all(promises);
-        calcLgCorte(porta); // 1️⃣ define larg-corte
-        calcFtPeso(porta);            // 2️⃣ define ft-peso
-        calcM2(porta);                // 3️⃣ usa larg-corte correta
-        calcQtdLam(porta);            // 4️⃣ independente
-        calcularEixoMotor(porta);
-        calcPeso(porta);
-        atualizarLaminarPorta(porta);
-        atualizarPinturaPorta(porta);
-        atualizarTabelaPorta(porta);
-        atualizarSubtotal();
-        atualizarJSONPortas();
-        gerarJSONFormas();
-        reindexarPortas();
         finalizarLoading();
     });
     $("#prod_servBtn, #adicionaisBtn, #form_pgtoBtn").on("click", function () {
@@ -3763,6 +3704,37 @@ $(document).ready(function() {
         hidratarAdicionaisDaTabelaSeVazio(porta);
         atualizarJSONPortas();
     });
+    function obterRegraProduto(codProd) {
+        switch (codProd) {
+            case 14: // EIXO
+                return { tipo: 'QTD', codigo: 'EIXO_LARGURA' };
+
+            case 15: // SOLEIRA
+                return { tipo: 'QTD', codigo: 'SOLEIRA_LARGURA' };
+
+            case 12:
+                return { tipo: 'QTD', codigo: 'GUIAS_ALTURA' };
+
+            case 13:
+                return { tipo: 'QTD', codigo: 'TUBO_AFASTAMENTO' };
+
+            case 16:
+                return { tipo: 'QTD', codigo: 'PERFIL_DESLIZANTE' };
+
+            case 17:
+                return { tipo: 'QTD', codigo: 'TRAVA_LAMINA' };
+
+            case 1:
+                return { tipo: 'QTD', codigo: 'LAMINAS_M2' };
+
+            case 3:
+                return { tipo: 'QTD', codigo: 'MOTOR_UNIDADE' };
+
+            default:
+                return null;
+        }
+    }
+
     function hidratarManagersFromBackend() {
         let portas = getPortasFromBackend();
         if (!Array.isArray(portas) || portas.length === 0) {
@@ -3786,17 +3758,19 @@ $(document).ready(function() {
             prodManager.data[p] = [];
             prodAdcManager.data[p] = [];
             (porta.produtos || []).forEach(item => {
-                const isLamina = porta.tipo_lamina !== "";
+                const regra = obterRegraProduto(item.codProd);
                 prodManager.data[p].push({
                     id: Number(item.codProd),
                     cod: Number(item.codProd),
-                    regra: null,
+                    regra: regra,
                     qtd_calc: Number(item.qtdProd),
                     qtd_final: Number(item.qtdProd),
                     qtd_manual: true,
                     ativo: item.ativo !== false,
-                    regra_origem: isLamina ? 'LAMINA_TIPO' : item.regra_origem || null
+                    // 🔥 NÃO inventa origem
+                    regra_origem: item.regra_origem || null
                 });
+
             });
             (porta.adicionais || []).forEach(item => {
 
@@ -3838,16 +3812,23 @@ $(document).ready(function() {
         $('table[id^="tblProd_"]').each(function() {
             const tableId = $(this).attr('id'); // tblProd_1
             const p = tableId.split('_')[1];
-            const produtos = [];
+            const mapaProdutos = new Map();
+
             (prodManager.data[p] || []).forEach(item => {
-                if (item.ativo && item.qtd_final > 0) {
-                    produtos.push({
-                        codProd: Number(item.cod),
-                        qtdProd: Number(item.qtd_final),
-                        ativo: true
-                    });
-                }
+                if (!item.ativo || item.qtd_final <= 0) return;
+
+                // 🔥 sempre sobrescreve → o último vence
+                mapaProdutos.set(item.cod, {
+                    codProd: Number(item.cod),
+                    qtdProd: Number(item.qtd_final),
+                    ativo: true
+                });
             });
+
+            const produtos = Array.from(mapaProdutos.values());
+
+
+
             const adicionais = [];
             const semPintura = $('#id_pintura').val() === 'Não';
             (prodAdcManager.data[p] || []).forEach(item => {
