@@ -1047,11 +1047,19 @@ $(document).ready(function() {
         }, 5000);
     }
     $('#userSelectModal').on('show.bs.modal', function () {
-        $.get('/orcamentos/usuarios-com-permissao/', function(data) {
+        $.get('/orcamentos/usuarios-com-permissao/', function (data) {
             const select = $('#userSelect');
             select.empty();
+
+            // opção padrão (sempre aparece)
+            select.append(`<option value="">------</option>`);
+
+            if (!data.usuarios || data.usuarios.length === 0) {
+                select.append(`<option value="">Nenhum usuário disponível</option>`);
+                return;
+            }
+
             data.usuarios.forEach(u => {
-                select.append(`<option selected value="">------</option>`);
                 select.append(`<option value="${u.id}">${u.nome}</option>`);
             });
         });
@@ -3876,47 +3884,63 @@ $(document).ready(function() {
 
         return parseFloat(val.replace(',', '.')) || 0;
     }
+    function getSelect2IdIfExists(selector) {
+        const $el = $(selector);
+
+        // campo não existe neste formulário → ignora
+        if ($el.length === 0) {
+            return undefined;
+        }
+
+        const data = $el.select2('data') || [];
+        return data.length ? data[0].id : null;
+    }
     $('#openModalBtn').on('click', async function (e) {
         e.preventDefault();
         e.stopPropagation();
+
         await atualizarSubtotal();
+
         const temPintura = $("#id_pintura").val();
         const corSelecionada = $("#id_cor").val();
-        // Filial
-        const filialData = $('#id_vinc_fil').select2('data');
-        const filial = filialData[0]?.id;
-        // Técnico/Solicitante
-        const solicitanteData = $('#id_solicitante').select2('data');
-        const solicitante = solicitanteData[0]?.id;
-        // Cliente
-        const clienteData = $('#id_cli').select2('data');
-        const cliente = clienteData[0]?.id;
+
+        const filial = getSelect2IdIfExists('#id_vinc_fil');
+        const solicitante = getSelect2IdIfExists('#id_solicitante');
+        const cliente = getSelect2IdIfExists('#id_cli');
+
         if (temPintura === "Sim" && (!corSelecionada || corSelecionada === "")) {
             toast("<i class='fa-solid fa-triangle-exclamation'></i> Escolha uma cor da pintura antes de gravar!", cor_amarelo);
             $("#medidasBtn").click();
             return false;
         }
-        if (!filial) {
+
+        // só valida se o campo existir
+        if (filial !== undefined && !filial) {
             toast("<i class='fa-solid fa-triangle-exclamation'></i> Filial deve ser informada!", cor_amarelo);
             $("#clienteBtn").click();
             return false;
         }
-        if (!solicitante) {
+
+        if (solicitante !== undefined && !solicitante) {
             toast("<i class='fa-solid fa-triangle-exclamation'></i> Solicitante deve ser informado!", cor_amarelo);
             $("#clienteBtn").click();
             return false;
         }
-        if (!cliente) {
+
+        if (cliente !== undefined && !cliente) {
             toast("<i class='fa-solid fa-triangle-exclamation'></i> Cliente deve ser informado!", cor_amarelo);
             $("#clienteBtn").click();
             return false;
         }
+
         if (!verificarTotalFormas()) {
             toast("<i class='fa-solid fa-triangle-exclamation'></i> Total das formas de pagamento não corresponde ao valor total!", cor_amarelo);
             return false;
         }
+
         $('#staticBackdrop').modal('show');
     });
+
     $(document).on("click", ".btn-faturar", function (e) {
         e.preventDefault();
         e.stopPropagation();
@@ -6306,15 +6330,17 @@ $(document).ready(function() {
         listen();
     }
     $(document).ready(init);
+    
     var endSecao = $('#enderecos');
     function hideAllSections1() {
         $('.form-section').hide();
     }
     function updateButtonStyle1(activeBt, bt1, bt2) {
-        activeBt.addClass('btn-ativo').removeClass('btn-inativo');
-        bt1.removeClass('btn-ativo btn-inativo');
-        bt2.removeClass('btn-ativo btn-inativo');
+        activeBt?.addClass('btn-ativo').removeClass('btn-inativo');
+        bt1?.removeClass('btn-ativo btn-inativo');
+        bt2?.removeClass('btn-ativo btn-inativo');
     }
+
     function showSection1(sectionId, activeBt, bt1, bt2) {
         hideAllSections1();
         $('#' + sectionId).show();

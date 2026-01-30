@@ -67,21 +67,60 @@ AdicionalFormSet = inlineformset_factory(
 
 
 def enviar_solicitacao(request):
+    # DEBUG TEMPORÁRIO (pode remover depois)
+    # print(request.POST)
+
     acao = request.POST.get('acao')
     usuario_destino_id = request.POST.get('usuario_id')
-    if not usuario_destino_id: return JsonResponse({'error': 'ID do usuário destino não enviado.'}, status=400)
-    try: usuario_destino = User.objects.get(id=usuario_destino_id)
-    except User.DoesNotExist: return JsonResponse({'error': 'Usuário destino não encontrado.'}, status=404)
-    try: usuario_logado = Usuario.objects.get(user=request.user)
-    except Usuario.DoesNotExist: return JsonResponse({'error': 'Usuário logado não possui perfil vinculado.'}, status=404)
-    try: usuario_destino_ext = Usuario.objects.get(user=usuario_destino)
-    except Usuario.DoesNotExist: return JsonResponse({'error': 'Usuário destino não possui perfil vinculado.'}, status=404)
-    if usuario_logado.filial != usuario_destino_ext.filial: return HttpResponseForbidden('Usuário destino não pertence à sua filial.')
+
+    if not usuario_destino_id:
+        return JsonResponse(
+            {'error': 'ID do usuário destino não enviado.'},
+            status=400
+        )
+
+    try:
+        usuario_destino = Usuario.objects.get(id=usuario_destino_id)
+    except Usuario.DoesNotExist:
+        return JsonResponse(
+            {'error': 'Usuário destino não encontrado.'},
+            status=404
+        )
+
+    usuario_logado = request.user  # já é Usuario
+
+    # Regra de empresa (obrigatória)
+    if usuario_logado.empresa != usuario_destino.empresa:
+        return HttpResponseForbidden(
+            'Usuário destino não pertence à sua empresa.'
+        )
+
     expiracao = timezone.now() + timedelta(minutes=3)
-    solicitacao = SolicitacaoPermissao.objects.create(solicitante=request.user, autorizado_por=usuario_destino, acao=acao, expira_em=expiracao)
-    data_formatada = timezone.localtime(solicitacao.expira_em).strftime('%d/%m/%Y %H:%M')
-    notify.send(request.user, recipient=usuario_destino, verb=f'Solicitação de permissão ID {solicitacao.id} - {data_formatada}', description=f'{request.user.last_name } solicitou permissão para {acao.replace("_", " ")}', data={'solicitacao_id': solicitacao.id})
-    return JsonResponse({'status': 'enviado', 'id': solicitacao.id, 'expira_em': solicitacao.expira_em.isoformat()})
+
+    solicitacao = SolicitacaoPermissao.objects.create(
+        solicitante=usuario_logado,
+        autorizado_por=usuario_destino,
+        acao=acao,
+        expira_em=expiracao
+    )
+
+    data_formatada = timezone.localtime(
+        solicitacao.expira_em
+    ).strftime('%d/%m/%Y %H:%M')
+
+    notify.send(
+        usuario_logado,
+        recipient=usuario_destino,
+        verb=f'Solicitação de permissão ID {solicitacao.id} - {data_formatada}',
+        description=f'{usuario_logado.last_name} solicitou permissão para {acao.replace("_", " ")}',
+        data={'solicitacao_id': solicitacao.id}
+    )
+
+    return JsonResponse({
+        'status': 'enviado',
+        'id': solicitacao.id,
+        'expira_em': solicitacao.expira_em.isoformat()
+    })
 
 def verificar_status_solicitacao(request, solicitacao_id):
     try: solicitacao = SolicitacaoPermissao.objects.get(id=solicitacao_id)
@@ -109,12 +148,20 @@ def responder_solicitacao(request):
 
 @login_required
 def usuarios_com_permissao(request):
-    try:
-        usuario_logado = Usuario.objects.get(user=request.user)
-        filial = usuario_logado.filial
-    except Usuario.DoesNotExist: return JsonResponse({'usuarios': []})  # Usuário logado não possui vínculo
-    usuarios = Usuario.objects.filter(gerar_senha_lib=True, filial=filial).select_related('user')
-    lista = [{'id': u.user.id, 'nome': u.user.get_full_name() or u.user.username} for u in usuarios]
+    usuario_logado = request.user
+    usuarios = Usuario.objects.filter(
+        empresa=usuario_logado.empresa,
+        gerar_senha_lib=True
+    ).order_by('codigo_local')
+    lista = [
+        {
+            'id': u.id,
+            'codigo_local': u.codigo_local,
+            'username': u.username,
+            'nome': u.get_full_name() or u.username
+        }
+        for u in usuarios
+    ]
     return JsonResponse({'usuarios': lista})
 
 def remove_accents(input_str):

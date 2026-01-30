@@ -137,7 +137,7 @@ def add_usuario(request):
         return redirect('/usuarios/lista/')
 
     usuario_logado = request.user
-    filial = usuario_logado.filial
+    filial = usuario_logado.filial_user
 
     if not filial:
         messages.error(request, 'Usuário não está vinculado a uma filial.')

@@ -116,7 +116,7 @@ Têm entre si justo e contratado o que segue, mediante as cláusulas e condiçõ
         de ({{ porta.largura }}m x {{ porta.altura }}m)
         {% if not forloop.last %}; {% endif %}.</strong>
     {% endfor %}
-    {% if o.pintura == "Sim" %}Com pintura aplicada {% else %}Sem Pintura aplicada {% endif %} e
+    {% if o.pintura == "Sim" %}Com pintura aplicada na cor {{ o.cor }} {% else %}Sem Pintura aplicada {% endif %} e
     {% if o.portao_social == "Sim" %}com Portão Social - R$ {{ o.vl_p_s|moeda_br }}{% else %}sem Portão Social{% endif %}.
 </p>
 <!-- VALOR -->
