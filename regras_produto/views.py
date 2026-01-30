@@ -2,10 +2,11 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-
+import pandas as pd
+from django.db import transaction
 from produtos.models import Produto
 from .models import RegraProduto
-from .forms import RegraProdutoForm
+from .forms import RegraProdutoForm, ImportarRegraProdutoForm
 import unicodedata
 from django.http import JsonResponse
 from filiais.models import Usuario
@@ -18,14 +19,62 @@ def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
     return ''.join([c for c in nfkd_form if not unicodedata.combining(c)])
 
+COLUNAS_OBRIGATORIAS = [
+    "codigo",
+    "descricao",
+    "tipo",
+    "expressao",
+    "ativo",
+]
+
+
 @verifica_permissao('regras_produto.view_regraproduto')
 @login_required
+@transaction.atomic
 def lista_regras(request):
+    if request.method == "POST":
+        form = ImportarRegraProdutoForm(request.POST, request.FILES)
+        if form.is_valid():
+            arquivo = form.cleaned_data["arquivo"]
+            try:
+                df = pd.read_excel(arquivo)
+            except Exception:
+                messages.error(request, "Erro ao ler o arquivo Excel. Tente novamente a importação.")
+                return redirect("lista_regras")
+            colunas_faltando = [
+                col for col in COLUNAS_OBRIGATORIAS if col not in df.columns
+            ]
+            if colunas_faltando:
+                messages.error(request, f"Colunas obrigatórias ausentes: {', '.join(colunas_faltando)}.")
+                return redirect("lista_regras")
+            erros = []
+            for idx, row in df.iterrows():
+                linha = idx + 2
+                for col in COLUNAS_OBRIGATORIAS:
+                    if pd.isna(row[col]) or str(row[col]).strip() == "":
+                        erros.append(
+                            f"Linha {linha}: coluna '{col}' está vazia."
+                        )
+                if row["tipo"] not in ["QTD", "SELECAO"]:
+                    erros.append(f"Linha {linha}: tipo inválido ({row['tipo']}).")
+            if erros:
+                for erro in erros:
+                    messages.error(request, erro)
+                return redirect("lista_regras")
+            empresa = request.user.vinc_emp
+            for _, row in df.iterrows():
+                RegraProduto.objects.update_or_create(
+                    vinc_emp=empresa,
+                    codigo=row["codigo"],
+                    defaults={"descricao": row["descricao"], "tipo": row["tipo"], "expressao": row["expressao"], "ativo": bool(row["ativo"]),}
+                )
+            messages.success(request, "Regras de produto importadas com sucesso!")
+            return redirect("lista_regras")
+    form = ImportarRegraProdutoForm()
     s = request.GET.get('s')
     tp = request.GET.get('tp')
     reg = request.GET.get('reg', '10')
     regras = RegraProduto.objects.filter(vinc_emp=request.user.empresa)
-
     if tp == 'desc' and s:
         norm_s = remove_accents(s).lower()
         regras = regras.filter(descricao__icontains=norm_s).order_by('descricao')
@@ -34,25 +83,17 @@ def lista_regras(request):
             regras = regras.filter(id__iexact=s).order_by('descricao')
         except ValueError:
             regras = RegraProduto.objects.none()
-
     if reg == 'todos':
         num_pagina = regras.count() or 1
     else:
         try:
-            num_pagina = int(reg) if int(reg) > 0 else 1
+            num_pagina = int(reg) if int(reg) > 0 else 10
         except ValueError:
-            num_pagina = 10  # Valor padrão
-
+            num_pagina = 10
     paginator = Paginator(regras, num_pagina)
     page = request.GET.get('page')
     regras = paginator.get_page(page)
-
-    return render(request, 'regras_produto/lista.html', {
-        'regras': regras,
-        's': s,
-        'tp': tp,
-        'reg': reg,
-    })
+    return render(request, 'regras_produto/lista.html', {'regras': regras, 'form_importacao': form, 's': s, 'tp': tp, 'reg': reg,})
 
 @login_required
 def lista_regras_ajax(request):

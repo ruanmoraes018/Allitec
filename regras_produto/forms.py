@@ -12,13 +12,11 @@ class RegraProdutoForm(forms.ModelForm):
         widget=forms.TextInput(attrs={
             'class': 'form-control form-control-sm border-dark-subtle text-uppercase'
         }))
-    
     ativo = forms.ChoiceField(
         label='Ativo',
         choices=[(True, 'Sim'), (False, 'Não')],
         widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle'})
     )
-
     class Meta:
         model = RegraProduto
         fields = [
@@ -49,9 +47,6 @@ class RegraProdutoForm(forms.ModelForm):
                 'class': 'form-check-input'
             }),
         }
-    
-
-
     def clean_expressao(self):
         expr = self.cleaned_data['expressao']
         tipo = self.cleaned_data.get('tipo')
@@ -60,13 +55,11 @@ class RegraProdutoForm(forms.ModelForm):
             'alt', 'alt_c',
             'm2', 'peso'
         }
-
         if tipo == 'QTD':
             try:
                 tree = ast.parse(expr, mode='eval')
             except SyntaxError:
                 raise forms.ValidationError("Expressão inválida.")
-
             for node in ast.walk(tree):
                 if isinstance(node, ast.Name):
                     if node.id not in VARIAVEIS_PERMITIDAS:
@@ -81,5 +74,15 @@ class RegraProdutoForm(forms.ModelForm):
                      ast.Constant, ast.Call)
                 ):
                     raise forms.ValidationError("Operação não permitida.")
-
         return expr
+    
+class ImportarRegraProdutoForm(forms.Form):
+    arquivo = forms.FileField(
+        label="Planilha de Regras (.xlsx)",
+        help_text="Arquivo no formato Excel",
+        widget=forms.ClearableFileInput(attrs={
+            'type': 'file',
+            'class': 'form-control form-control-sm border-dark-subtle',
+            'accept': '.xlsx'
+        })
+    )
