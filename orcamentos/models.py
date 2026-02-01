@@ -163,6 +163,11 @@ class PortaProduto(models.Model):
         Produto, on_delete=models.PROTECT, related_name="portas_produtos"
     )
     quantidade = models.DecimalField(max_digits=10, decimal_places=2)
+    regra_origem = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True
+    )
     @property
     def subtotalP(self):
         tabela = self.produto.produtotabela_set.first()

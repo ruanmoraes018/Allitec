@@ -287,13 +287,17 @@
                                                         </thead>
                                                         <tbody>
                                                             {% for pprod in pt.produtos.all %}
-                                                            <tr 
-                                                                data-porta="{{ pt.numero }}" 
-                                                                data-item-id="{{ pprod.produto.id }}"
-                                                                {% if pprod.produto.regra and pprod.produto.regra.codigo == 'LAMINAS_M2' %}
-                                                                    data-regra-origem="LAMINA_TIPO"
-                                                                {% endif %}
-                                                            >
+                                                                <tr
+                                                                    data-porta="{{ pt.numero }}"
+                                                                    data-item-id="{{ pprod.produto.id }}"
+                                                                    {% if pprod.regra_origem %}
+                                                                        data-regra-origem="{{ pprod.regra_origem }}"
+                                                                    {% elif pprod.produto.regra and pprod.produto.regra.codigo == 'LAMINAS_M2' %}
+                                                                        data-regra-origem="LAMINA_TIPO"
+                                                                    {% elif pprod.produto.regra and pprod.produto.regra.tipo == 'QTD' and pprod.produto.regra.codigo == 'MOTOR_UNIDADE' %}
+                                                                        data-regra-origem="MOTOR_PESO"
+                                                                    {% endif %}
+                                                                >
                                                                 <td data-label="Código:" class="td-cod mobile-full">{{ pprod.produto.id }}</td>
                                                                 <td data-label="Descrição:" class="td-desc mobile-full">{{ pprod.produto.desc_prod }}</td>
                                                                 <td data-label="Unidade:" class="td-unid mobile-full">{{ pprod.produto.unidProd }}</td>

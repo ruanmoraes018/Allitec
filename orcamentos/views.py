@@ -332,6 +332,7 @@ def add_orcamento(request):
                 for item in p.get("produtos", []):
                     cod = item.get("codProd")
                     qtd = Decimal(item.get("qtdProd", "0"))
+                    regra_origem = item.get("regra_origem")
                     if not cod:
                         continue
                     try:
@@ -341,7 +342,8 @@ def add_orcamento(request):
                     pp = PortaProduto.objects.create(
                         porta=porta,
                         produto=produto,
-                        quantidade=qtd
+                        quantidade=qtd,
+                        regra_origem=regra_origem
                     )
                 # 4. Adicionais da porta
                 for item in p.get("adicionais", []):
@@ -480,11 +482,13 @@ def att_orcamento(request, id):
                         continue
                     cod = item.get("codProd")
                     qtd = item.get("qtdProd")
+                    regra_origem = item.get("regra_origem")
                     if cod:
                         PortaProduto.objects.create(
                             porta=porta,
                             produto_id=cod,
-                            quantidade=qtd
+                            quantidade=qtd,
+                            regra_origem=regra_origem
                         )
 
                 for item in p.get("adicionais", []):
@@ -544,7 +548,8 @@ def att_orcamento(request, id):
             "produtos": [
                 {
                     "codProd": pp.produto.id,
-                    "qtdProd": float(pp.quantidade)
+                    "qtdProd": float(pp.quantidade),
+                    "regra_origem": pp.regra_origem
                 }
                 for pp in porta.produtos.all()
             ],

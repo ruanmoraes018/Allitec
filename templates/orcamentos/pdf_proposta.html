@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+    <head>
+        <meta charset="UTF-8">
+        <title>Proposta de Sistema - {{ p.nome_emp }}</title>
+        <style>
+            @page { size: A4; margin: 12mm 15mm 20mm 15mm; }
+            body { font-family: "Times New Roman", Times, serif; font-size: 15px; margin: 0; }
+            table { width: 100%; border-collapse: collapse; }
+            td, th { border: 1px solid #000; padding: 5px 5px; vertical-align: middle; }
+            p {text-align: justify;}
+            .no-border td { border: none; }
+            .logos td { border: none; }
+            .logo { max-width: 225px; max-height: 80px; width: auto; height: auto; }
+            .center { text-align: center; }
+            .title { font-size: 22px; font-weight: bold; padding: 6px 0; }
+            .section-title { font-weight: bold; text-align: center; border: 1px solid #000; padding: 5px; margin-top: 8px; margin-bottom: 24px; }
+            .label { text-align: center; }
+            .footer { margin-top: 60px; text-align: center; }
+            .signature { margin-top: 80px; border-top: 1px solid #333; display: inline-block; padding-top: 5px; min-width: 500px; }
+            .small { font-size: 12px; color: #555; }
+            .data {float: right; margin-top: 50px;}
+            .endereco {position: absolute; bottom: 0; left: 15%; }
+        </style>
+    </head>
+    <body>
+        <table class="logos">
+            <tr>
+                <td style="text-align:left;"> {% if lg_allian %} <img class="logo" src="data:image/jpeg;base64,{{ lg_allian }}"> {% endif %} </td>
+                <td style="text-align:right;"> <h4>Nº Proposta: {{ p.num_prop }}</h4></td>
+            </tr>
+        </table>
+        <br>
+        <p>Aos cuidados da empresa <strong>{{p.nome_emp}}</strong>.</p>
+        <p>A empresa <strong>{{ p.empresa }}</strong>, vem por meio desta, apresentar a proposta de venda de serviços / produtos conforme a tabela abaixo:</p>
+        <table>
+            <tr>
+                <td><div class="label"><strong>DESCRIÇÃO</strong></div></td>
+                <td><div class="label"><strong>VALOR UNIT.</strong></div></td>
+                <td><div class="label"><strong>QUANTIDADE</strong></div></td>
+                <td><div class="label"><strong>DESCONTO</strong></div></td>
+                <td><div class="label"><strong>VL. TOTAL</strong></div></td>
+            </tr>
+            <tr>
+                <td>{{ p.desc_imp }} SISTEMA <strong>{{ p.sistema }} - ATÉ {{ p.qtd_usu}} USUÁRIOS</strong></td>
+                <td><div class="label">R$ {{ p.vl_imp }}</div></td>
+                <td><div class="label">{{ p.qtd_fil }}</div></td>
+                <td><div class="label">R$ {{ p.dsct_imp }}</div></td>
+                <td><div class="label">R$ {{ p.vl_fin_imp }}</div></td>
+            </tr>
+            <tr>
+                <td>{{ p.desc_ass }} SISTEMA <strong>{{ p.sistema }}</strong></td>
+                <td><div class="label">R$ {{ p.vl_ass }}</div></td>
+                <td><div class="label">{{ p.qtd_ass }}</div></td>
+                <td><div class="label">R$ {{ p.dsct_ass }}</div></td>
+                <td><div class="label">R$ {{ p.vl_fin_ass }}</div></td>
+            </tr>
+        </table>
+        <h4>FORMAS DE PAGAMENTO</h4>
+        <ul>
+            <li>O Pagamento da Implantação {{ p.sistema }} - R$ {{ p.vl_fin_imp }} pode ser feito em Espécie/Pix/Cartões;</li>
+            <li>A Assessoria será em Boleto/PIX e será enviada via Whatsapp Mensalmente.</li>
+        </ul>
+        <h4>OBSERVAÇÕES:</h4>
+        <ul>
+            <li>A Implantação e Treinamento do Sistema será realizado por meio Presencial/Remoto (À Distância);</li>
+            <li>Caso o Cliente venha desistir do Sistema, a {{ p.empresa }} não realiza a devolução de valores;</li>
+            <li>Caso o Treinamento venha ser em outra cidade, o custo de Deslocamento/Alimentação será gratuito até a segunda vez. Após isto, o custo do Deslocamento/Alimentação será de responsabilidade total do Cliente;</li>
+            <li>Ao assinar esta proposta, o Cliente reconhecerá os valores acima. A Proposta será anexada ao contrato e entregue no ato da implantação.</li>
+            {% if p.obs %}
+                <li>{{ p.obs }}</li>
+            {% endif %}
+        </ul>
+        <div class="data">{{ p.cidade }}, {{ dt_format }}.</div>
+        <div class="footer">
+            <div class="signature">
+                <span class="small">{{ p.nome_emp }}</span>
+                <div class="endereco">
+                    <span><strong><u>ALLIAN SISTEMAS</u></strong></span><br>
+                    <span><strong>AV. MOURA CARVALHO, 1633 - TATAJUBA, CAPITÃO POÇO/PA</strong></span><br>
+                    <span><strong>ESCRITÓRIO INTERNO DA LOJA TEC-SEG</strong></span>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

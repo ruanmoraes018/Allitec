@@ -227,8 +227,9 @@ $(document).ready(function() {
 
     portasJSON = getPortasFromBackend();
     console.log('portasJSON:', portasJSON);
-
+    let motorCtrl = {};
     hidratarManagersFromBackend();
+    hidratarControleMotorFromBackend();
 
     var form = $('#createForm');
     var cadastro = 'https://allitec.pythonanywhere.com/orcamentos/add/';
@@ -1883,73 +1884,111 @@ $(document).ready(function() {
         }
         return null;
     }
-    let motorCtrl = {};
     async function buscarMotorIdeal(porta) {
+
         const peso = parseFloat($(`.peso[data-porta="${porta}"]`).val()) || 0;
         if (peso <= 0) return;
-        motorCtrl[porta] ??= { ultimoProduto: null, ultimoPeso: null };
+
         const regra = REGRAS['MOTOR_PESO'];
         if (!regra) return;
+
         const regraJSON = JSON.parse(regra.expressao);
-        const nomeMotor = selecionarMotorPorPeso(peso, regraJSON);
-        if (!nomeMotor) return;
-        const ctrl = motorCtrl[porta];
-        if (ctrl.ultimoProduto === nomeMotor && ctrl.ultimoPeso === peso) {
+        const motorIdeal = selecionarMotorPorPeso(peso, regraJSON);
+        if (!motorIdeal) return;
+
+        /* =====================================================
+        ☠️ 1️⃣ LIMPEZA TOTAL (DOM + JSON) — SEM PERGUNTAR
+        ===================================================== */
+
+        // DOM: remove qualquer linha que tenha MOTOR no texto
+        $(`#tblProd_${porta} tbody tr`).filter(function () {
+            return $(this).find('.td-desc').text().toUpperCase().includes('MOTOR');
+        }).remove();
+
+        // JSON: remove qualquer produto MOTOR
+        if (prodManager.data?.[porta]) {
+            prodManager.data[porta] = prodManager.data[porta].filter(p => {
+                return !(
+                    p.desc?.toUpperCase()?.includes('MOTOR') ||
+                    p.regra_origem === 'MOTOR_PESO'
+                );
+            });
+        }
+
+        /* =====================================================
+        2️⃣ DECIDE SE PRECISA INSERIR MOTOR
+        ===================================================== */
+
+        // Se não achou motor ideal (peso abaixo do mínimo), não insere
+        if (!motorIdeal) {
+            atualizarJSONPortas();
             return;
         }
-        removerProdutoPorRegra(porta, 'MOTOR_PESO');
+
+        /* =====================================================
+        3️⃣ INSERE O MOTOR CORRETO (UM ÚNICO)
+        ===================================================== */
+
         return new Promise((resolve, reject) => {
             $.get('/produtos/lista_ajax/', {
-                s: nomeMotor,
+                s: motorIdeal,
                 tp: 'desc',
                 tp_prod: 'Principal'
             })
             .done(resp => {
-                prodManager.data[porta] ??= [];
                 const p = resp.produtos?.[0];
                 if (!p) {
                     resolve();
                     return;
                 }
+
+                prodManager.data[porta] ??= [];
                 prodManager.data[porta].push({
                     id: p.id,
                     cod: p.id,
                     desc: p.desc_prod,
                     unid: p.unidProd,
-                    vl_compra: parseFloat(p.vl_compra),
-                    vl_unit: parseFloat(p.vl_prod),
-                    qtd: 1,
-                    qtd_manual: false,
-                    total: p.vl_prod,
-                    regra: p.regra,
+                    vl_compra: Number(p.vl_compra) || 0,
+                    vl_unit: Number(p.vl_prod) || 0,
+                    qtd_calc: 1,
+                    qtd_final: 1,
+                    qtd_manual: true,
+                    regra: { codigo: 'MOTOR_PESO' },
+                    regra_origem: 'MOTOR_PESO',
                     ativo: true
                 });
+
                 $(`#tblProd_${porta} tbody`).append(`
                     <tr data-porta="${porta}" data-item-id="${p.id}">
-                        <td data-label="Código:" class="td-cod mobile-full">${p.id}</td>
-                        <td data-label="Descrição:" class="td-desc mobile-full">${p.desc_prod}</td>
-                        <td data-label="Unidade:" class="td-unid mobile-full">${p.unidProd}</td>
-                        <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">${p.vl_compra}</td>
-                        <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${p.vl_prod}</td>
-                        <td class="qtd-produto mobile-full" data-label="Quantidade:">0.00</td>
-                        <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0.00</td>
-                        <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0.00</td>
-                        <td data-label="Ações:" class="mobile-full">
-                            <i class="fas fa-edit editBtn" style="color: #13c43f; cursor:pointer;" data-bs-toggle="modal" data-bs-target="#editItemModal"></i>
-                            <i class="fas fa-trash deleteBtn" style="color: #db1e47; cursor:pointer;"></i>
+                        <td class="td-cod mobile-full">${p.id}</td>
+                        <td class="td-desc mobile-full">${p.desc_prod}</td>
+                        <td class="td-unid mobile-full">${p.unidProd}</td>
+                        <td class="td-vl-compra text-danger fw-bold mobile-full">${p.vl_compra}</td>
+                        <td class="vl-unit text-success fw-bold mobile-full">${p.vl_prod}</td>
+                        <td class="qtd-produto mobile-full">1.00</td>
+                        <td class="tot-compra text-danger fw-bold mobile-full">${p.vl_compra}</td>
+                        <td class="vl-total text-success fw-bold mobile-full">${p.vl_prod}</td>
+                        <td class="mobile-full">
+                            <i class="fas fa-edit editBtn" data-bs-toggle="modal"
+                            data-bs-target="#editItemModal"
+                            style="color:#13c43f;cursor:pointer"></i>
+                            <i class="fas fa-trash deleteBtn"
+                            style="color:#db1e47;cursor:pointer"></i>
                         </td>
                     </tr>
                 `);
-                ctrl.ultimoProduto = nomeMotor;
-                ctrl.ultimoPeso = peso;
+
                 atualizarJSONPortas();
-                resolve(); // ✅ motor pronto
+                resolve();
             })
             .fail(err => reject(err));
         });
     }
+
+
     function removerProdutoPorRegra(porta, codigoRegra) {
         if (!prodManager.data?.[porta]) return;
+
         prodManager.data[porta] = prodManager.data[porta].filter(i => {
             if (i.regra?.codigo === codigoRegra) {
                 $(`#tblProd_${porta} tbody tr[data-item-id="${i.id}"]`).remove();
@@ -1957,7 +1996,13 @@ $(document).ready(function() {
             }
             return true;
         });
+
+        // 🔥 RESET ABSOLUTO DO CONTROLE
+        if (codigoRegra === 'MOTOR_PESO') {
+            motorCtrl[porta] = { produtoAtual: null };
+        }
     }
+
     function resetarControleRegras() {
         motorCtrl = {};
     }
@@ -3125,7 +3170,7 @@ $(document).ready(function() {
             $laminaRow.detach().prependTo($tbody);
         }
     }
-    $(document).on("blur", ".larg, .alt", async function () {
+    $(document).on("blur", ".alt", async function () {
         const porta = $(this).data("porta");
         const lg = parseFloat($(`.larg[data-porta="${porta}"]`).val().replace(",", ".")) || 0;
         const at = parseFloat($(`.alt[data-porta="${porta}"]`).val().replace(",", ".")) || 0;
@@ -3601,9 +3646,13 @@ $(document).ready(function() {
                     const existente = prodAdcManager.data[p]
                         .find(x => Number(x.cod) === Number(item.id));
 
-                    const qtdInicial = existente
-                        ? Number(existente.qtd_final ?? 0)
-                        : 0;
+                    let qtdInicial = 0;
+
+                    // 🚨 Pintura NUNCA herda QTD antiga
+                    if (existente && existente.qtd_manual) {
+                        qtdInicial = Number(existente.qtd_final) || 0;
+                    }
+
 
                     if (!existente) {
                         prodAdcManager.data[p].push({
@@ -3627,6 +3676,12 @@ $(document).ready(function() {
                         existente.vl_unit = Number(item.vl_prod) || 0;
                         existente.regra = item.regra;
                         existente.ativo = true;
+
+                        // 🔒 NÃO sobrescreve QTD de pintura
+                        if (existente.regra?.codigo !== 'PINTURA_M2') {
+                            existente.qtd_calc  = qtdInicial;
+                            existente.qtd_final = qtdInicial;
+                        }
                     }
 
                     tabela.append(`
@@ -3742,6 +3797,23 @@ $(document).ready(function() {
                 return null;
         }
     }
+    function obterMotorAutomaticoDaPorta(porta) {
+        const itens = prodManager.data?.[porta] || [];
+        return itens.find(i => i.regra_origem === 'MOTOR_PESO') || null;
+    }
+    function hidratarControleMotorFromBackend() {
+        motorCtrl = {};
+
+        Object.keys(prodManager.data || {}).forEach(porta => {
+            const motor = obterMotorAutomaticoDaPorta(porta);
+            if (motor) {
+                motorCtrl[porta] = {
+                    produtoAtual: motor.regra?.produto || motor.cod
+                };
+            }
+        });
+    }
+
 
     function hidratarManagersFromBackend() {
         let portas = getPortasFromBackend();
@@ -3767,6 +3839,8 @@ $(document).ready(function() {
             prodAdcManager.data[p] = [];
             (porta.produtos || []).forEach(item => {
                 const regra = obterRegraProduto(item.codProd);
+                const tr = $(`#tblProd_${p} tbody tr[data-item-id="${item.codProd}"]`);
+                const regraOrigemDom = tr.data('regra-origem') || null;
                 prodManager.data[p].push({
                     id: Number(item.codProd),
                     cod: Number(item.codProd),
@@ -3776,7 +3850,7 @@ $(document).ready(function() {
                     qtd_manual: true,
                     ativo: item.ativo !== false,
                     // 🔥 NÃO inventa origem
-                    regra_origem: item.regra_origem || null
+                    regra_origem: regraOrigemDom
                 });
 
             });
@@ -3788,14 +3862,14 @@ $(document).ready(function() {
                 const isPintura = regraOrigemDom === 'PINTURA_TIPO';
 
                 const ativo = !(isPintura && temPintura === 'Não');
-
+                
                 prodAdcManager.data[p].push({
                     id: Number(item.codProd),
                     cod: Number(item.codProd),
                     regra: null,
                     qtd_calc: Number(item.qtdProd),
                     qtd_final: ativo ? Number(item.qtdProd) : 0,
-                    qtd_manual: true,
+                    qtd_manual: false,
                     ativo: ativo,
                     regra_origem: isPintura ? 'PINTURA_TIPO' : null
                 });
@@ -3823,12 +3897,13 @@ $(document).ready(function() {
             const mapaProdutos = new Map();
 
             (prodManager.data[p] || []).forEach(item => {
+                const qtd = Number(item.qtd_final ?? item.qtd_calc ?? item.qtd ?? 0);
                 if (!item.ativo || item.qtd_final <= 0) return;
 
                 // 🔥 sempre sobrescreve → o último vence
                 mapaProdutos.set(item.cod, {
                     codProd: Number(item.cod),
-                    qtdProd: Number(item.qtd_final),
+                    qtdProd: qtd,
                     ativo: true
                 });
             });
