@@ -139,7 +139,14 @@ class FilialForm(forms.ModelForm):
             'rows': 2
         })
     )
-
+    info_local = forms.CharField(
+        label='Info. Local Atendimento - Propostas',
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control form-control-sm border-dark-subtle',
+            'rows': 2
+        })
+    )
     info_orcamento = forms.CharField(
         label='Informações Rodapé - Orçamento',
         required=False,
@@ -155,7 +162,7 @@ class FilialForm(forms.ModelForm):
         model = Filial
         fields = (
             'situacao', 'cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro_fil', 'cidade_fil', 'uf', 'tel', 'email', 'dt_criacao', 'logo', 'tp_chave', 'chave_pix', 'banco_fil', 'info_comp', 'complem',
-            'beneficiario', 'info_orcamento', 'layout_contrato'
+            'beneficiario', 'info_orcamento', 'layout_contrato', 'info_local'
         )
 
 class FilialReadOnlyForm(forms.ModelForm):

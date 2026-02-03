@@ -43,6 +43,7 @@ from django.db import transaction
 from django.template.loader import render_to_string
 import base64
 from weasyprint import HTML, CSS
+from django.contrib.staticfiles import finders
 
 PortaFormSet = inlineformset_factory(
     Orcamento, PortaOrcamento,
@@ -953,13 +954,8 @@ def pdf_contrato_html(request, id):
     portas = o.portas.all().order_by('numero')
     formas_pgto = o.formas_pgto.all()
     linhas_formas = max(formas_pgto.count(), 4)
-
-    # =========================
-    # LOGO EM BASE64
-    # =========================
     logo_base64 = None
     logo_path = os.path.join(settings.MEDIA_ROOT, str(o.vinc_fil.logo))
-
     if o.vinc_fil.logo and os.path.exists(logo_path):
         with Image.open(logo_path) as img:
             if img.mode in ('RGBA', 'LA'):
@@ -972,10 +968,6 @@ def pdf_contrato_html(request, id):
             buffer = BytesIO()
             img.save(buffer, format="JPEG")
             logo_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-
-    # =========================
-    # HTML (CSS EMBUTIDO)
-    # =========================
     html_string = render_to_string(
         'orcamentos/pdf_contrato.html',
         {
@@ -985,23 +977,58 @@ def pdf_contrato_html(request, id):
             'logo_base64': logo_base64,
         }
     )
-
-    # =========================
-    # GERAR PDF (SEM CSS EXTERNO)
-    # =========================
     pdf = HTML(
         string=html_string,
         base_url=request.build_absolute_uri('/')
     ).write_pdf()
-
-    # =========================
-    # RESPONSE
-    # =========================
     response = HttpResponse(pdf, content_type='application/pdf')
     response['Content-Disposition'] = (
         f'inline; filename="CONTRATO ORÇAMENTO PORTA ENROLAR - {o.num_orcamento}.pdf"'
     )
+    return response
 
+def img_base64(path):
+    if not path: return None
+    if not os.path.exists(path): return None
+    with Image.open(path) as img:
+        if img.mode in ('RGBA', 'LA'):
+            bg = Image.new("RGB", img.size, (255, 255, 255))
+            bg.paste(img, mask=img.split()[-1])
+            img = bg
+        else: img = img.convert("RGB")
+        buffer = BytesIO()
+        img.save(buffer, format="JPEG", quality=75)
+        return base64.b64encode(buffer.getvalue()).decode()
+
+@login_required
+def pdf_proposta_html(request, id):
+    o = Orcamento.objects.get(pk=id)
+    portas = o.portas.all().order_by('numero')
+    for porta in portas:
+        porta.tem_portinhola = porta.adicionais.filter(
+            produto__desc_prod__iexact="PORTINHOLA",
+            quantidade__gte=1
+        ).exists()
+        porta.tem_alcapao = porta.adicionais.filter(
+            produto__desc_prod__iexact="ALÇAPÃO",
+            quantidade__gte=1
+        ).exists()
+    lg_emp = img_base64(o.vinc_fil.logo.path)
+    finders.find('img/telefone.png')
+    icone_tel = finders.find('img/telefone.png')
+    icone_email = finders.find('img/email.png')
+    icone_loc = finders.find('img/local.png')
+    ic_t = img_base64(icone_tel)
+    ic_e = img_base64(icone_email)
+    ic_l = img_base64(icone_loc)
+    dez_p = o.total * Decimal('0.10')
+    vl_tot_dsct = o.total - dez_p
+    locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
+    dt_format = o.dt_emi.strftime('%d de %B de %Y').upper()
+    html = render_to_string('orcamentos/pdf_proposta.html', {'o': o, 'lg_emp': lg_emp, 'portas': portas, 'vl_tot_dsct': vl_tot_dsct, 'ic_t': ic_t, 'ic_e': ic_e, 'ic_l': ic_l, 'dt_format': dt_format})
+    pdf = HTML(string=html).write_pdf()
+    response = HttpResponse(pdf, content_type="application/pdf")
+    response["Content-Disposition"] = ( f'inline; filename="PROPOSTA COMERCIAL - {o.num_orcamento}.pdf"' )
     return response
 
 @login_required

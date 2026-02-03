@@ -1,13 +1,15 @@
 <!DOCTYPE html>
+{% load static %}
+{% load custom_filters %}
 <html lang="pt-br">
     <head>
         <meta charset="UTF-8">
-        <title>Proposta de Sistema - {{ p.nome_emp }}</title>
+        <title>Proposta Comercial - {{ o.num_orcamento }}</title>
         <style>
-            @page { size: A4; margin: 12mm 15mm 20mm 15mm; }
-            body { font-family: "Times New Roman", Times, serif; font-size: 15px; margin: 0; }
+            @page { size: A4; margin: 10mm 10mm 10mm 10mm; }
+            body { font-family: Helvetica; font-size: 14px; margin: 0; }
             table { width: 100%; border-collapse: collapse; }
-            td, th { border: 1px solid #000; padding: 5px 5px; vertical-align: middle; }
+            td, th { border: 1px solid #000; padding: 2px 2px; vertical-align: middle; }
             p {text-align: justify;}
             .no-border td { border: none; }
             .logos td { border: none; }
@@ -17,69 +19,61 @@
             .section-title { font-weight: bold; text-align: center; border: 1px solid #000; padding: 5px; margin-top: 8px; margin-bottom: 24px; }
             .label { text-align: center; }
             .footer { margin-top: 60px; text-align: center; }
-            .signature { margin-top: 80px; border-top: 1px solid #333; display: inline-block; padding-top: 5px; min-width: 500px; }
+            .signature { margin-top: 20px; border-top: 1px solid #333; display: inline-block; padding-top: 5px; min-width: 500px; font-weight: bold;}
             .small { font-size: 12px; color: #555; }
-            .data {float: right; margin-top: 50px;}
+            .data {float: right; font-weight: bold;}
             .endereco {position: absolute; bottom: 0; left: 15%; }
+            .icone {width: 20px; height: auto; vertical-align: middle;}
+            .lg {width: 150px; height: auto; vertical-align: middle;}
         </style>
     </head>
     <body>
         <table class="logos">
             <tr>
-                <td style="text-align:left;"> {% if lg_allian %} <img class="logo" src="data:image/jpeg;base64,{{ lg_allian }}"> {% endif %} </td>
-                <td style="text-align:right;"> <h4>Nº Proposta: {{ p.num_prop }}</h4></td>
+                <td style="text-align:left;"> {% if lg_emp %} <img class="logo lg" src="data:image/jpeg;base64,{{ lg_emp }}"> {% endif %} </td>
             </tr>
         </table>
         <br>
-        <p>Aos cuidados da empresa <strong>{{p.nome_emp}}</strong>.</p>
-        <p>A empresa <strong>{{ p.empresa }}</strong>, vem por meio desta, apresentar a proposta de venda de serviços / produtos conforme a tabela abaixo:</p>
-        <table>
-            <tr>
-                <td><div class="label"><strong>DESCRIÇÃO</strong></div></td>
-                <td><div class="label"><strong>VALOR UNIT.</strong></div></td>
-                <td><div class="label"><strong>QUANTIDADE</strong></div></td>
-                <td><div class="label"><strong>DESCONTO</strong></div></td>
-                <td><div class="label"><strong>VL. TOTAL</strong></div></td>
-            </tr>
-            <tr>
-                <td>{{ p.desc_imp }} SISTEMA <strong>{{ p.sistema }} - ATÉ {{ p.qtd_usu}} USUÁRIOS</strong></td>
-                <td><div class="label">R$ {{ p.vl_imp }}</div></td>
-                <td><div class="label">{{ p.qtd_fil }}</div></td>
-                <td><div class="label">R$ {{ p.dsct_imp }}</div></td>
-                <td><div class="label">R$ {{ p.vl_fin_imp }}</div></td>
-            </tr>
-            <tr>
-                <td>{{ p.desc_ass }} SISTEMA <strong>{{ p.sistema }}</strong></td>
-                <td><div class="label">R$ {{ p.vl_ass }}</div></td>
-                <td><div class="label">{{ p.qtd_ass }}</div></td>
-                <td><div class="label">R$ {{ p.dsct_ass }}</div></td>
-                <td><div class="label">R$ {{ p.vl_fin_ass }}</div></td>
-            </tr>
-        </table>
-        <h4>FORMAS DE PAGAMENTO</h4>
+        <h3 style="text-align: center;"><strong><u>Proposta Comercial de Instalação de Porta de Enrolar Automática</u></strong></h3>
+        <p>A {{o.fantasia_emp}}, apresenta a seguinte proposta para fornecimento e instalação de porta de enrolar automática:</p>
+        <h4>✔ Descrição do Serviço:</h4>
         <ul>
-            <li>O Pagamento da Implantação {{ p.sistema }} - R$ {{ p.vl_fin_imp }} pode ser feito em Espécie/Pix/Cartões;</li>
-            <li>A Assessoria será em Boleto/PIX e será enviada via Whatsapp Mensalmente.</li>
+            <li>Fornecimento de porta de enrolar automática sob medida;</li>
+            <li>Estrutura em aço galvanizado {%if o.pintura == "Sim"%}com pintura {{o.tp_pintura}}{%else%} sem pintura aplicada{%endif%};</li>
+            <li>Motor automatizador com 2 controles remoto;</li>
+            <li>Instalação completa e testes de funcionamento.</li>
         </ul>
-        <h4>OBSERVAÇÕES:</h4>
+        <h4>✔ Diferenciais {{o.fantasia_emp}}:</h4>
         <ul>
-            <li>A Implantação e Treinamento do Sistema será realizado por meio Presencial/Remoto (À Distância);</li>
-            <li>Caso o Cliente venha desistir do Sistema, a {{ p.empresa }} não realiza a devolução de valores;</li>
-            <li>Caso o Treinamento venha ser em outra cidade, o custo de Deslocamento/Alimentação será gratuito até a segunda vez. Após isto, o custo do Deslocamento/Alimentação será de responsabilidade total do Cliente;</li>
-            <li>Ao assinar esta proposta, o Cliente reconhecerá os valores acima. A Proposta será anexada ao contrato e entregue no ato da implantação.</li>
-            {% if p.obs %}
-                <li>{{ p.obs }}</li>
-            {% endif %}
+            <li>Profissionais qualificados;</li>
+            <li>Equipamentos de alta durabilidade;</li>
+            <li>Garantia de 12 meses;</li>
+            <li>Suporte técnico LOCAL e especializado.</li>
         </ul>
-        <div class="data">{{ p.cidade }}, {{ dt_format }}.</div>
+        <h4>✔ Especificações das Portas:</h4>
+        <ul>
+            {% for p in portas %}
+                <li>
+                    Porta Nº {{ p.numero }}:
+                    {{ p.altura }}m de Altura x {{ p.largura }}m de Largura, {% if p.tem_portinhola %}com Portinhola{%else%}sem Portinhola{% endif %} e {%if p.tem_alcapao %}com Alcapão{%else%}sem Alçapão{%endif%}.
+                </li>
+            {% endfor %}
+        </ul>
+        <h4><i>Observações: {%if o.portao_social == "Sim"%}Com instalação de Portão Social, Valor R$ {{o.vl_p_s}}{%else%}Sem instalação de Portão Social{%endif%}.</i></h4>
+        <h4>✔ Valor total do fornecimento e instalação: R$ {{o.total|moeda_br}}.</h4>
+        <p>Valor acima em até 10x nos <strong>cartões de crédito</strong> ou À VISTA com 10% de desconto ({{vl_tot_dsct|moeda_br}})!</p>
+        <p><strong>✔ Forma de Pagamento:</strong> 50% no ato do fechamento e valor restante ao finalizar a instalação.</p>
+        <p><strong>✔ Prazo de Instalação:</strong> Até 20 dias úteis após a aprovação e pagamento, podendo variar de acordo com a estrutura do local de instalação.</p>
+        <h4><i>Atenção: Necessário ponto de energia elétrica 220V adequado para funcionamento do motor.</i></h4>
+        <p>Qualquer dúvida ou necessidade de ajuste, estamos à disposição.</p>
+        <h4>{{o.vinc_fil.info_comp}}</h4>
+        <div><img class="logo icone" src="data:image/jpeg;base64,{{ ic_t }}"> <strong>{{o.vinc_fil.tel}}</strong></div>
+        <div><img class="logo icone" src="data:image/jpeg;base64,{{ ic_e }}"> <strong>{{o.vinc_fil.email}}</strong></div>
+        <div><img class="logo icone" src="data:image/jpeg;base64,{{ ic_l }}"> <strong>{{o.vinc_fil.info_local}}</strong></div>
+        <div class="data">{{ o.vinc_fil.cidade_fil }} - {{o.vinc_fil.uf}}, {{ dt_format }}.</div>
         <div class="footer">
             <div class="signature">
-                <span class="small">{{ p.nome_emp }}</span>
-                <div class="endereco">
-                    <span><strong><u>ALLIAN SISTEMAS</u></strong></span><br>
-                    <span><strong>AV. MOURA CARVALHO, 1633 - TATAJUBA, CAPITÃO POÇO/PA</strong></span><br>
-                    <span><strong>ESCRITÓRIO INTERNO DA LOJA TEC-SEG</strong></span>
-                </div>
+                <span class="small">{{ o.nome_cli }}</span>
             </div>
         </div>
     </body>

@@ -115,9 +115,15 @@
                 <a id="add-link" href="{% url 'add-regra' %}" style="margin-left: 1%; margin-right: 1%; float: right;" class="btn-permissao" data-permissao="regras_produto.add_regraproduto" data-msg-negado="Seu usuário não pode adicionar regras de produto!">
                     <button type="button" class="btn btn-primary btn-sm" id="add-regra"><i class="fas fa-plus"></i> Novo</button>
                 </a>
-                <button class="btn btn-success btn-sm" style="float: right;" data-bs-toggle="modal" data-bs-target="#modalImportar">
-                    <i class="fa-solid fa-file-arrow-up"></i> Importar
-                </button>
+                <div class="btn-group dropup" style="float: right;">
+                    <button type="button" class="btn btn-success btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-bars"></i> Outros
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#modalImportar"><i class="fa-solid fa-file-arrow-up"></i> Importar</button></li>
+                        <li><a class="dropdown-item" href="{% url 'exp-regras' %}" target="_blank"><i class="fa-solid fa-file-arrow-down"></i> Exportar</a></li>
+                    </ul>
+                </div>
             </div>
             <div class="card-footer text-body-secondary">
                 <nav aria-label="Page navigation example" style="padding-bottom: 1px;">
@@ -173,10 +179,10 @@
                         {% csrf_token %}
                         <div class="modal-body">
                             {{ form_importacao.arquivo }}
-                            <div class="invalid-feedback">Arquivo de Importação inválido.</div>
+                            <div class="invalid-feedback">Arquivo de Importação necessário.</div>
                         </div>
                         <div class="modal-footer">
-                            <button type="submit" class="btn btn-primary btn-sm">
+                            <button type="submit" class="btn btn-dark btn-sm">
                                 <i class="fa-solid fa-file-arrow-up"></i> Importar
                             </button>
                             <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">

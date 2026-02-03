@@ -2194,29 +2194,28 @@ $(document).ready(function() {
     function atualizarPinturaPorta(porta) {
         const temPintura = $('#id_pintura').val();
         const mapa = obterMapaSelecao(REGRAS.PINTURA_TIPO);
-        const descricoesPintura = Object.values(mapa).map(d => d.toUpperCase().trim());
+
         prodAdcManager.data[porta] ??= [];
+
+        // remove SOMENTE pintura
+        prodAdcManager.data[porta] =
+            prodAdcManager.data[porta].filter(i => i.regra_origem !== 'PINTURA_TIPO');
+
+        $(`#tblAdc_${porta} tbody tr[data-regra-origem="PINTURA_TIPO"]`).remove();
+
         if (temPintura === 'Não') {
-            prodAdcManager.data[porta] = prodAdcManager.data[porta].filter(i => i.regra_origem !== 'PINTURA_TIPO');
-            $(`#tblAdc_${porta} tbody tr`).each(function() {
-                const desc = $(this).find('.td-desc').text().toUpperCase().trim();
-                if (descricoesPintura.includes(desc)) $(this).remove();
-            });
-            atualizarTabelaPorta(porta);
             atualizarSubtotal();
             atualizarJSONPortas();
             return;
         }
+
         const valorSelecionado = $('#id_tp_pintura').val();
         const descAtiva = (mapa[valorSelecionado] || '').toUpperCase().trim();
         if (!descAtiva) return;
-        prodAdcManager.data[porta] = prodAdcManager.data[porta].filter(i => i.regra_origem !== 'PINTURA_TIPO');
-        $(`#tblAdc_${porta} tbody tr`).each(function() {
-            const desc = $(this).find('.td-desc').text().toUpperCase().trim();
-            if (descricoesPintura.includes(desc)) $(this).remove();
-        });
+
         inserirPinturaSelecionada(porta, descAtiva);
     }
+
     function inserirPinturaSelecionada(porta, pinturaAtiva) {
         if (!pinturaAtiva) return;
         prodAdcManager.data[porta] ??= [];
@@ -3298,7 +3297,7 @@ $(document).ready(function() {
     function calcularQtdPorRegra(item, ctx) {
 
         if (!item.regra || item.regra.tipo !== 'QTD')
-            return Number(item.qtd) || 0;
+            return Number(item.qtd_final ?? item.qtd_calc ?? 0);
 
         const { alt, alt_c, larg, larg_c, m2 } = ctx;
         let qtd = 0;
@@ -3326,13 +3325,13 @@ $(document).ready(function() {
             case 'MAO_OBRA_UNIDADE':
                 qtd = 1;
                 break;
-            case 'QTD_PADRAO_ZERO':
             default:
                 qtd = 0;
         }
 
         return Number(qtd) || 0;
     }
+
 
     function atualizarTabelaPorta(porta) {
         console.log('>>> atualizarTabelaPorta CHAMADA:', porta);
@@ -3474,11 +3473,12 @@ $(document).ready(function() {
                 item.qtd_final = Number(item.qtd_final) || 0;
             }
 
-            if (item.qtd_final <= 0) {
+            if (item.qtd_final <= 0 && item.regra?.tipo === 'QTD') {
                 item.ativo = false;
                 $tr.hide();
                 return;
             }
+
 
             item.ativo = true;
             $tr.show();

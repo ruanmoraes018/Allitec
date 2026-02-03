@@ -58,6 +58,7 @@ class Filial(models.Model):
     beneficiario = models.CharField(max_length=255, verbose_name='Nome Beneficiário')
 
     info_comp = models.TextField(default="Obrigado pela preferência!", blank=True)
+    info_local = models.TextField(default="Atendemos em todo estado do Pará!", blank=True)
 
     info_orcamento = models.TextField(default="*Caro cliente, caso você encontre um orçamento com valor inferior, podemos analisar o orçamento concorrente para fecharmos negócio.", blank=True)
 

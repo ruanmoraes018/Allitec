@@ -179,7 +179,7 @@
                                                 </button>
                                                 <div class="collapse" id="btnOpcoes">
                                                     <div class="card card-body" style="margin: 0;">
-                                                        <div class="d-inline-flex gap-2" style="margin-bottom: 10px;">
+                                                        {% comment %} <div class="d-inline-flex gap-2" style="margin-bottom: 10px;">
                                                             <a href="{% url 'pdf-a4' orcamento.id %}" target="_blank" style="flex: 1; text-decoration: none;">
                                                                 <button class="btn btn-dark btn-sm w-100 d-flex justify-content-center align-items-center gap-2" type="button"> <i class="fa-solid fa-file-pdf" style="color: white;" title="Imprimir PDF A4 do Orçamento"></i> <strong style="font-size: 20px;">A4</strong>
                                                                 </button>
@@ -188,13 +188,13 @@
                                                                 <button class="btn btn-dark btn-sm w-100 d-flex justify-content-center align-items-center gap-2" type="button"> <strong style="font-size: 20px;">Cupom</strong> <i class="fa-solid fa-scroll" title="Imprimir Cupom do Orçamento"></i>
                                                                 </button>
                                                             </a>
-                                                        </div>
+                                                        </div> {% endcomment %}
                                                         <div class="d-inline-flex gap-2" style="margin-bottom: 10px;">
                                                             <a href="{% url 'pdf-orcamento' orcamento.id %}" target="_blank" style="flex: 1; text-decoration: none;">
                                                                 <button class="btn btn-dark btn-sm w-100 d-flex justify-content-center align-items-center gap-2" type="button" id="doc-botao"> <span><i class="fa-solid fa-file-pdf" style="color: white;" title="Imprimir PDF do Orçamento"></i></span><strong style="color: white; font-size: 15px;">Orçamento</strong>
                                                                 </button>
                                                             </a>
-                                                            <a href="{% url 'pdf-cont-v2' orcamento.id %}" target="_blank" style="flex: 1; text-decoration: none;">
+                                                            <a href="{% url 'pdf-proposta' orcamento.id %}" target="_blank" style="flex: 1; text-decoration: none;">
                                                                 <button class="btn btn-dark btn-sm w-100 d-flex justify-content-center align-items-center gap-2" type="button" id="doc-botao"> <span><i class="fa-solid fa-file-pdf" style="color: white;" title="Imprimir PDF da Proposta"></i></span><strong style="color: white; font-size: 15px;">Proposta</strong>
                                                                 </button>
                                                             </a>

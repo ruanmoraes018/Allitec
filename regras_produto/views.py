@@ -14,10 +14,51 @@ from util.permissoes import verifica_permissao
 import json
 from decimal import Decimal
 from django.views.decorators.http import require_POST
+from openpyxl import Workbook
+from django.http import HttpResponse
+from openpyxl.styles import Font
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
     return ''.join([c for c in nfkd_form if not unicodedata.combining(c)])
+
+def exportar_regras_produto(request):
+    empresa = request.user.empresa
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'regras_produto'
+
+    # Cabeçalho IGUAL à planilha matriz
+    headers = ['codigo', 'descricao', 'tipo', 'expressao', 'ativo']
+    ws.append(headers)
+
+    # Negrito na primeira linha
+    bold_font = Font(bold=True)
+
+    for col in range(1, len(headers) + 1):
+        ws.cell(row=1, column=col).font = bold_font
+
+    regras = RegraProduto.objects.filter(vinc_emp=empresa).order_by('id')
+
+    for regra in regras:
+        ws.append([
+            regra.codigo,
+            regra.descricao,
+            regra.tipo,               # QTD ou SELECAO
+            regra.expressao,
+            'Sim' if regra.ativo else 'Não'
+        ])
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = (
+        f'attachment; filename=regras_produto_{empresa.id}.xlsx'
+    )
+
+    wb.save(response)
+    return response
 
 COLUNAS_OBRIGATORIAS = [
     "codigo",

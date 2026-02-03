@@ -287,36 +287,40 @@
                                                         </thead>
                                                         <tbody>
                                                             {% for pprod in pt.produtos.all %}
-                                                            <tr 
-                                                                data-porta="{{ pt.numero }}" 
-                                                                data-item-id="{{ pprod.produto.id }}"
-                                                                {% if pprod.produto.regra and pprod.produto.regra.codigo == 'LAMINAS_M2' %}
-                                                                    data-regra-origem="LAMINA_TIPO"
-                                                                {% endif %}
-                                                            >
-                                                                <td data-label="Código:" class="td-cod mobile-full">{{ pprod.produto.id }}</td>
-                                                                <td data-label="Descrição:" class="td-desc mobile-full">{{ pprod.produto.desc_prod }}</td>
-                                                                <td data-label="Unidade:" class="td-unid mobile-full">{{ pprod.produto.unidProd }}</td>
-                                                                <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">{{ pprod.produto.vl_compra }}</td>
-                                                                {% load l10n %}
-                                                                <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">
-                                                                    {{ pprod.produto.produtotabela_set.first.vl_prod|unlocalize }}
-                                                                </td>
-                                                                {% load l10n %}
-                                                                <td class="qtd-produto mobile-full" data-label="Quantidade:">
-                                                                    {{ pprod.quantidade|unlocalize }}
-                                                                </td>
-                                                                <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">
-                                                                    {{ pprod.totCompraP|floatformat:2 }}
-                                                                </td>
-                                                                <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">
-                                                                    {{ pprod.subtotalP|floatformat:2 }}
-                                                                </td>
-                                                                <td data-label="Ações:" class="mobile-full">
-                                                                    <i class="fas fa-edit editBtn" style="color:#13c43f;cursor:pointer" data-bs-toggle="modal" data-bs-target="#editItemModal"></i>
-                                                                    <i class="fas fa-trash deleteBtn" style="color:#db1e47;cursor:pointer"></i>
-                                                                </td>
-                                                            </tr>
+                                                                <tr
+                                                                    data-porta="{{ pt.numero }}"
+                                                                    data-item-id="{{ pprod.produto.id }}"
+                                                                    {% if pprod.regra_origem %}
+                                                                        data-regra-origem="{{ pprod.regra_origem }}"
+                                                                    {% elif pprod.produto.regra and pprod.produto.regra.codigo == 'LAMINAS_M2' %}
+                                                                        data-regra-origem="LAMINA_TIPO"
+                                                                    {% elif pprod.produto.regra and pprod.produto.regra.tipo == 'QTD' and pprod.produto.regra.codigo == 'MOTOR_UNIDADE' %}
+                                                                        data-regra-origem="MOTOR_PESO"
+                                                                    {% endif %}
+                                                                >
+                                                                    <td data-label="Código:" class="td-cod mobile-full">{{ pprod.produto.id }}</td>
+                                                                    <td data-label="Descrição:" class="td-desc mobile-full">{{ pprod.produto.desc_prod }}</td>
+                                                                    <td data-label="Unidade:" class="td-unid mobile-full">{{ pprod.produto.unidProd }}</td>
+                                                                    <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">{{ pprod.produto.vl_compra }}</td>
+                                                                    {% load l10n %}
+                                                                    <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">
+                                                                        {{ pprod.produto.produtotabela_set.first.vl_prod|unlocalize }}
+                                                                    </td>
+                                                                    {% load l10n %}
+                                                                    <td class="qtd-produto mobile-full" data-label="Quantidade:">
+                                                                        {{ pprod.quantidade|unlocalize }}
+                                                                    </td>
+                                                                    <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">
+                                                                        {{ pprod.totCompraP|floatformat:2 }}
+                                                                    </td>
+                                                                    <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">
+                                                                        {{ pprod.subtotalP|floatformat:2 }}
+                                                                    </td>
+                                                                    <td data-label="Ações:" class="mobile-full">
+                                                                        <i class="fas fa-edit editBtn" style="color:#13c43f;cursor:pointer" data-bs-toggle="modal" data-bs-target="#editItemModal"></i>
+                                                                        <i class="fas fa-trash deleteBtn" style="color:#db1e47;cursor:pointer"></i>
+                                                                    </td>
+                                                                </tr>
                                                             {% endfor %}
                                                         </tbody>
                                                     </table>
