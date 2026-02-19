@@ -65,6 +65,12 @@
                         <tr>
                             <td style="width: 80px;">
                                 <span>
+                                    <i class="fas fa-trash btn-permissao"
+                                       title="Deletar tipo de cobrança"
+                                       data-bs-target="#modal-{{ tp_cobranca.id }}"
+                                       data-permissao="tipo_cobranca.delete_tipocobranca"
+                                       data-msg-negado="Seu usuário não pode deletar tipos de cobrança!">
+                                    </i>
                                     <i class="fas fa-trash" title="Deletar" data-bs-toggle="modal" data-bs-target="#modal-{{ tp_cobranca.id }}"></i>
                                 </span>
                                 <!-- Modal ÚNICO para cada tp_cobranca -->
@@ -80,17 +86,22 @@
                                                 <p>Você confirma a EXCLUSÃO DO TIPO DE COBRANÇA <strong>{{ tp_cobranca.descricao }}</strong>?</p>
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-primary btn-confirmar" data-url="{% url 'del-tp_cobranca' tp_cobranca.id %}" disabled>
-                                                    <u>S</u>im <span class="contador">3</span>
-                                                </button>
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
+                                                <form method="post" action="{% url 'del-tp_cobranca' tp_cobranca.id %}" class="form-excluir">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                                        <u>S</u>im <span class="contador">3</span>
+                                                    </button>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                        <u>N</u>ão
+                                                    </button>
+                                                </form>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                                 <a href="{% url 'att-tp_cobranca' tp_cobranca.id %}" class="btn-permissao"
                                   data-permissao="tipo_cobranca.change_tipocobranca"
-                                  data-msg-negado="Seu usuário não pode editar tipos de cobranças!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
+                                  data-msg-negado="Seu usuário não pode editar tipos de cobrança!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                             </td>
                             <td style="align-items: center;">{{ tp_cobranca.id }}</td>
                             <td class="text-uppercase" style="align-items: center;">{{ tp_cobranca.descricao }}</td>

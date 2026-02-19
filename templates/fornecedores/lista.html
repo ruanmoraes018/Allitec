@@ -95,6 +95,7 @@
                 <thead thead class="table-dark">
                     <tr>
                         <th scope="col">Opções</th>
+                        <th scope="col" style="text-align: center; width: 5%;">Código</th>
                         <th scope="col" style="text-align: center; width: 7%;">Situação</th>
                         <th scope="col" style="text-align: center; width: 7%;">Tp. Pessoa</th>
                         <th scope="col" style="align-items: center;">Nome/Razão Social</th>
@@ -109,13 +110,40 @@
                         <tr>
 
                             <td style="width: 80px;">
-                                <a href="{% url 'del-fornecedor' fornecedor.id %}" class="btn-permissao"
-                                  data-permissao="fornecedores.delete_fornecedor"
-                                  data-msg-negado="Seu usuário não pode deletar fornecedores!"><span><i class="fas fa-trash" title="Deletar fornecedor"></i></span></a>
+                                <span>
+                                    <i class="fas fa-trash" title="Deletar" data-bs-toggle="modal" data-bs-target="#modal-{{ fornecedor.id }}"></i>
+                                </span>
+                                <!-- Modal ÚNICO para cada fornecedor -->
+                                <div class="modal fade" id="modal-{{ fornecedor.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ fornecedor.id }}" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header titulo-modal">
+                                                <h1 class="modal-title fs-5" id="modalLabel-{{ fornecedor.id }}">
+                                                    <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                                </h1>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Você confirma a EXCLUSÃO DO FORNECEDOR <strong>{{ fornecedor.fantasia }}</strong>?</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <form method="post" action="{% url 'del-fornecedor' fornecedor.id %}" class="form-excluir">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                                        <u>S</u>im <span class="contador">3</span>
+                                                    </button>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                        <u>N</u>ão
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <a href="{% url 'att-fornecedor' fornecedor.id %}" class="btn-permissao"
                                   data-permissao="fornecedores.change_fornecedor"
                                   data-msg-negado="Seu usuário não pode editar fornecedores!"><span><i class="fas fa-edit" title="Editar fornecedor"></i></span></a>
                             </td>
+                            <td style="align-items: center;">{{ fornecedor.id }}</td>
                             <td style="text-align: center; padding: 5px;">
                                 {% if fornecedor.situacao == 'Ativo' %}
                                     <div style="background-color: #2c2c2c; border-radius: 20px; color: white; margin-top: 5px;">

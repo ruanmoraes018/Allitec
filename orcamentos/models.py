@@ -1,5 +1,5 @@
 from django.db import models
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from clientes.models import Cliente
 from produtos.models import Produto
 from tecnicos.models import Tecnico
@@ -173,11 +173,22 @@ class PortaProduto(models.Model):
         tabela = self.produto.produtotabela_set.first()
         valor = tabela.vl_prod if tabela else 0
         return valor * self.quantidade
+
     @property
     def totCompraP(self):
-        return Decimal(str(self.produto.vl_compra)) * self.quantidade
+        try:
+            vl = self.produto.vl_compra
+            if vl in (None, ""):
+                return Decimal("0.00")
+
+            vl = str(vl).replace(",", ".").strip()
+            return Decimal(vl) * (self.quantidade or Decimal("0"))
+        except InvalidOperation:
+            return Decimal("0.00")
+
     def __str__(self):
         return f"Porta {self.porta.numero} - {self.produto.desc_prod}"
+
 class PortaAdicional(models.Model):
     porta = models.ForeignKey(
         PortaOrcamento, on_delete=models.CASCADE, related_name="adicionais"
@@ -193,7 +204,15 @@ class PortaAdicional(models.Model):
         return valor * self.quantidade
     @property
     def totCompraA(self):
-        return Decimal(str(self.produto.vl_compra)) * self.quantidade
+        try:
+            vl = self.produto.vl_compra
+            if vl in (None, ""):
+                return Decimal("0.00")
+
+            vl = str(vl).replace(",", ".").strip()
+            return Decimal(vl) * (self.quantidade or Decimal("0"))
+        except InvalidOperation:
+            return Decimal("0.00")
     def __str__(self):
         return f"(Adicional) Porta {self.porta.numero} - {self.produto.desc_prod}"
 class OrcamentoFormaPgto(models.Model):

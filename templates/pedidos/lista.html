@@ -242,16 +242,20 @@
                                                     <h1 class="modal-title fs-5" id="modalTitle-{{ pedido.id }}">
                                                         <i class="fa-regular fa-circle-question"></i> Confirmação!
                                                     </h1>
-
                                                 </div>
                                                 <div class="modal-body">
                                                     <p>Você confirma a EXCLUSÃO DO PEDIDO <strong>{{ pedido.id }}</strong>?</p>
                                                 </div>
                                                 <div class="modal-footer">
-                                                    <button type="button" class="btn btn-primary btn-confirmar" data-url="{% url 'del-pedido' pedido.id %}" disabled>
-                                                        <u>S</u>im <span class="contador">3</span>
-                                                    </button>
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
+                                                    <form method="post" action="{% url 'del-pedido' pedido.id %}" class="form-excluir">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                                            <u>S</u>im <span class="contador">3</span>
+                                                        </button>
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                            <u>N</u>ão
+                                                        </button>
+                                                    </form>
                                                 </div>
                                             </div>
                                         </div>

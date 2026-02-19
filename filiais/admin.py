@@ -17,6 +17,7 @@ from formas_pgto.models import FormaPgto
 from pedidos.models import Pedido, PedidoProduto
 from tabelas_preco.models import TabelaPreco
 from regras_produto.models import RegraProduto
+from contratos.models import Contrato
 
 # Inline para mostrar Filiais dentro da Empresa
 class FilialInline(admin.TabularInline):
@@ -57,7 +58,7 @@ class RegraInline(admin.TabularInline):
 class ClienteInline(admin.TabularInline):
     model = Cliente
     extra = 0
-    fields = ('fantasia', 'cpf_cnpj', 'situacao')
+    fields = ('fantasia', 'cpf_cnpj', 'cidade', 'situacao')
     show_change_link = True
 
 class TecnicoInline(admin.TabularInline):
@@ -188,7 +189,41 @@ class ProdutoAdmin(admin.ModelAdmin):
         'desc_prod',
         'id',
     )
-    
+
+@admin.register(Cidade)
+class CidadeAdmin(admin.ModelAdmin):
+    search_fields = (
+        'nome_cidade',
+        'vinc_emp',
+    )
+
+@admin.register(Bairro)
+class BairroAdmin(admin.ModelAdmin):
+    search_fields = (
+        'nome_bairro',
+        'vinc_emp',
+    )
+
+@admin.register(Entrada)
+class EntradaAdmin(admin.ModelAdmin):
+    list_display = ('fornecedor', 'numeracao', 'dt_emi', 'total', 'vinc_emp')
+    search_fields = (
+        'fornecedor',
+        'numeracao',
+        'dt_emi',
+        'total'
+    )
+
+@admin.register(Contrato)
+class ContratoAdmin(admin.ModelAdmin):
+    search_fields = (
+        'id',
+        'empresa',
+        'situacao',
+        'dt_inicio',
+        'dt_exp'
+    )
+
 # Admin para Filial - com todos os inlines dos modelos vinculados a ela
 @admin.register(Filial)
 class FilialAdmin(admin.ModelAdmin):
@@ -244,8 +279,8 @@ class OrcamentoAdmin(admin.ModelAdmin):
                 'cli',
                 'situacao',
                 'subtotal',
-                'desconto', 
-                'acrescimo', 
+                'desconto',
+                'acrescimo',
                 'total',
             )
         }),

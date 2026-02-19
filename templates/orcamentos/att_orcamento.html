@@ -224,8 +224,8 @@
                                                                     class="form-control form-control-sm cod-prod"
                                                                     data-porta="{{ pt.numero }}"
                                                                     placeholder="Cód. Produto">
-                                                                <button class="btn btn-outline-dark btn-sm btn-busca-prod"
-                                                                        data-porta="{{ pt.numero }}">
+                                                                <button class="btn btn-outline-dark btn-sm btn-busca-prod" type="button"
+                                                                        data-porta="{{ pt.numero }}" data-bs-toggle="modal" data-bs-target="#produtoModal">
                                                                     🔎
                                                                 </button>
                                                             </div>
@@ -366,8 +366,8 @@
                                                                     class="form-control form-control-sm cod-prod-adc"
                                                                     data-porta="{{ pt.numero }}"
                                                                     placeholder="Cód. Produto">
-                                                                <button class="btn btn-outline-dark btn-sm btn-busca-prod-adc"
-                                                                        data-porta="{{ pt.numero }}">
+                                                                <button class="btn btn-outline-dark btn-sm btn-busca-prod-adc" type="button"
+                                                                        data-porta="{{ pt.numero }}" data-bs-toggle="modal" data-bs-target="#produtoAdcModal">
                                                                     🔎
                                                                 </button>
                                                             </div>
@@ -505,7 +505,9 @@
                                             <input type="text" step="0.01" placeholder="0,00" min="0.01" class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly"
                                                 id="id_desconto" name="desconto" value="{{ form.desconto.value|unlocalize }}" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
                                         <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao"
-                                            data-permissao="orcamentos.atribuir_desconto" data-acao="atribuir_desconto" id="btnDesconto">
+                                            data-permissao="orcamentos.atribuir_desconto" data-acao="atribuir_desconto" id="btnDesconto"
+                                            data-modulo="Orçamentos" data-registro-id="{{ orcamento.id }}"
+                                            data-registro-desc="Orçamento nº {{ orcamento.id }} - {{ orcamento.nome_cli }}">
                                             <i class="fa-solid fa-pen-to-square"></i>
                                         </button>
                                     </div>
@@ -518,7 +520,9 @@
                                             <input type="text" step="0.01" placeholder="0,00" min="0.01"
                                                 class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly" id="id_acrescimo" name="acrescimo" value="{{ form.acrescimo.value|unlocalize }}" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
                                         <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao"
-                                                data-permissao="orcamentos.atribuir_acrescimo" data-acao="atribuir_acrescimo" id="btnAcrescimo">
+                                                data-permissao="orcamentos.atribuir_acrescimo" data-acao="atribuir_acrescimo" id="btnAcrescimo"
+                                                data-modulo="Orçamentos" data-registro-id="{{ orcamento.id }}"
+                                                data-registro-desc="Orçamento nº {{ orcamento.id }} - {{ orcamento.nome_cli }}">
                                             <i class="fa-solid fa-pen-to-square"></i>
                                         </button>
                                     </div>
@@ -609,37 +613,38 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header titulo-modal">
-                    <h5 class="modal-title" id="confirmModalLabel"><i class="fa-solid fa-circle-info"></i> Atenção!</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title" id="confirmModalLabel"><i class="fa-solid fa-circle-info" style="float: none; color: white;"></i> Atenção!</h5>
                 </div>
                 <div class="modal-body">
                     Você não tem permissão para realizar esta ação. Deseja enviar uma solicitação para um usuário autorizado?
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Não</button>
                     <button type="button" class="btn btn-primary" id="confirmSend">Sim</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Não</button>
                 </div>
             </div>
         </div>
     </div>
-
     <!-- Modal de Seleção de Usuário -->
-    <div class="modal fade" id="userSelectModal" tabindex="-1" aria-labelledby="userSelectModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+    <div class="modal fade" id="userSelectModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header titulo-modal">
-                    <h5 class="modal-title" id="userSelectModalLabel"><i class="fa-solid fa-user-tie"></i> Selecionar Usuário</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title"><i class="fa-solid fa-user-tie"></i> Liberação de Permissão</h5>
                 </div>
                 <div class="modal-body">
-                    <select id="userSelect" class="form-select">
-                        <option selected value="">--------</option>
-                        <!-- Options serão preenchidas via AJAX -->
+                    <label class="form-label">Usuário Autorizador</label>
+                    <select id="userSelect" class="form-select mb-3">
+                        <option value="">--------</option>
                     </select>
+                    <label class="form-label">Senha de liberação</label>
+                    <input type="password" id="senhaLiberacao" class="form-control" placeholder="Digite a senha do autorizador">
+                    <small class="text-muted">O autorizador pode digitar a senha aqui para liberar imediatamente.</small>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="sendNotification"><i class="fa-solid fa-paper-plane"></i> Enviar Notificação</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"> <i class='fa-solid fa-circle-xmark' style="float: none; color: white; margin: 0; font-size: 16px;"></i> Fechar</button>
+                    <button type="button" class="btn btn-success btn-sm" id="liberarAgora"> <i class="fa-solid fa-key"></i> Liberar</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="sendNotification"> <i class="fa-solid fa-paper-plane"></i> Enviar Msg.</button>
                 </div>
             </div>
         </div>
@@ -649,13 +654,13 @@
         <div class="modal-dialog  modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header titulo-modal">
-                    <h5 class="modal-title" id="produtoModalLabel">Pesquisar Produtos Principais</h5>
+                    <h5 class="modal-title" id="produtoModalLabel"><i class="fa-solid fa-magnifying-glass"></i> Pesquisar Produtos Principais</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="input-group mb-3">
-                        <input type="text" id="campo-pesquisa-produto" class="form-control" placeholder="Digite a descrição do produto">
-                        <button class="btn btn-dark" id="pesquisar-produtos">🔎</button>
+                        <input type="text" id="campo-pesquisa-produto-principal" class="form-control" placeholder="Digite a descrição do produto">
+                        <button class="btn btn-dark" id="pesquisar-produtos-principais">🔎</button>
                     </div>
                     <div class="table-container mt-3">
                         <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
@@ -669,7 +674,7 @@
                                     <th scope="col">Valor</th>
                                 </tr>
                             </thead>
-                            <tbody id="produtos-lista">
+                            <tbody id="produtosPrincipais-lista">
                                 <!-- Os produtos serão listados aqui -->
                             </tbody>
                         </table>
@@ -686,7 +691,7 @@
         <div class="modal-dialog  modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header titulo-modal">
-                    <h5 class="modal-title" id="produtoAdcModalLabel">Pesquisar Produtos Adicionais</h5>
+                    <h5 class="modal-title" id="produtoAdcModalLabel"><i class="fa-solid fa-magnifying-glass"></i> Pesquisar Produtos Adicionais</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -722,7 +727,7 @@
         <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-dark text-white">
-                    <h1 class="modal-title fs-5" id="modalDescontoLabel">Atribuir Desconto (-)</h1>
+                    <h5 class="modal-title" id="modalDescontoLabel"><i class="fa-solid fa-circle-minus"></i> Atribuir Desconto</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -749,8 +754,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                     <button type="button" class="btn btn-primary" id="confirmarDesconto">Atribuir</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                 </div>
             </div>
         </div>
@@ -760,7 +765,7 @@
         <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-dark text-white">
-                    <h1 class="modal-title fs-5" id="modalAcrescimoLabel">Atribuir Acréscimo (+)</h1>
+                    <h5 class="modal-title" id="modalAcrescimoLabel"><i class="fa-solid fa-circle-plus"></i> Atribuir Acréscimo</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -787,8 +792,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                     <button type="button" class="btn btn-primary" id="confirmarAcrescimo">Atribuir</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                 </div>
             </div>
         </div>

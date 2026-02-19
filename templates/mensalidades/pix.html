@@ -1,0 +1,126 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Pagamento via PIX</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://code.jquery.com/ui/1.14.1/themes/base/jquery-ui.css">
+        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://kit.fontawesome.com/fdc1a494f5.js" crossorigin="anonymous"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+        <style>
+            body{background:#f3f6f9;}
+            .pix-box{max-width:320px; margin:auto; margin-top:6px;}
+            .qr{background:white; padding:1px; border-radius:16px; box-shadow:0 3px 15px rgba(0,0,0,.15);}
+            .status{font-size:14px; font-weight:500;}
+            .copia{font-size:12px; position: absolute; left: -9999px; top: 0;}
+            .logo-avatar{width:42px; height:42px; border-radius:50%; overflow:hidden; background:#fff; display:flex; align-items:center; justify-content:center;}
+            .logo-avatar img{width:100%; height:100%; object-fit:cover;}
+            .navbar-portal{position:relative; height:64px;}
+            .logo-central{position:absolute; left:50%; transform:translateX(-50%); top:50%; transform:translate(-50%, -50%); pointer-events:auto;}
+            .logo-central img{ height:58px; width:auto; }
+            .pix-sucesso {display: flex; flex-direction: column; align-items: center; justify-content: center; animation: fadeInScale 0.6s ease forwards;}
+            .check-circle {width: 90px; height: 90px; border-radius: 50%; background: #28a745; display: flex; align-items: center; justify-content: center; animation: pulse 1.2s infinite; margin-bottom: 15px;}
+            .check-circle i {color: #fff; font-size: 42px; animation: pop 0.4s ease forwards;}
+            .qr-img{max-width: 240px; width: 100%;}
+            .valor-box{background:#f8fafc; border-radius:12px; padding:2px;}
+            .valor-pix{font-size:22px; font-weight:50; color:#16a34a;}
+            @keyframes pulse {
+                0% { box-shadow: 0 0 0 0 rgba(40,167,69,.6); }
+                70% { box-shadow: 0 0 0 20px rgba(40,167,69,0); }
+                100% { box-shadow: 0 0 0 0 rgba(40,167,69,0); }
+            }
+            @keyframes fadeInScale {
+                from {opacity: 0; transform: scale(.85);}
+                to { opacity: 1; transform: scale(1);}
+            }
+            @keyframes pop {
+                from { transform: scale(0); }
+                to { transform: scale(1); }
+            }
+        </style>
+    </head>
+    <body>
+        <nav class="navbar navbar-dark bg-dark navbar-portal">
+            <div class="container-fluid position-relative">
+                <a class="navbar-brand logo-central" href="{% url 'portal_pagamentos' %}"><img src="{% static 'img/Allitec logo_a.png' %}" alt="Allitec"></a>
+            </div>
+        </nav>
+        <div class="container pix-box">
+            <div class="card text-center shadow">
+                <div class="card-header bg-dark text-white"><h5 class="mb-0"><i class="fa-brands fa-pix"></i> Pagamento via PIX</h5></div>
+                <div class="card-body">
+                    <div id="pixConteudo">
+                        <div class="valor-box mb-3">
+                            <div class="text-muted">Valor a pagar: <span class="valor-pix fw-bold">R$ {{ valor }}</span></div>
+                        </div>
+                        <div class="qr mb-3"><img src="data:image/png;base64,{{ qr_code }}" class="img-fluid qr-img"></div>
+                        <small class="text-muted fw-bold">Use seu banco e leia o QRCode</small>
+                        <textarea id="copia" class="form-control copia mt-2" rows="2" readonly>{{ copia_cola }}</textarea>
+                        <button class="btn btn-sm btn-outline-success mt-2" onclick="copiarPix()">Copiar código PIX</button>
+                        <a href="{% url 'portal_pagamentos' %}"><button class="btn btn-sm btn-outline-secondary mt-2">Voltar</button></a><hr>
+                        <div id="statusPagamento" class="status text-warning text-center fw-bold"><img src="{% static 'img/ic_amp.gif' %}"> Aguardando pagamento...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script>
+            let cor_verde = "linear-gradient(to right, #00b09b, #96c93d)";
+            let cor_vermelho = "linear-gradient(to right, #ff416c, #ff4b2b)";
+            let cor_amarelo = "linear-gradient(to right, #ff9f00, #ff6f00)";
+            const COBRANCA_ID = "{{ cobranca_id }}";
+            function copiarPix(){
+                const texto = document.getElementById("copia").value;
+                navigator.clipboard.writeText(texto)
+                .then(() => {
+                    toast("<i class='fa-solid fa-circle-check'></i> Código PIX copiado!", cor_verde);
+                })
+                .catch(() => {
+                    toast("<i class='fa-solid fa-triangle-exclamation'></i> Não foi possível copiar automaticamente. Segure e copie manualmente!", cor_amarelo);
+                });
+            }
+            function verificarPagamento(){
+                fetch(`/mensalidades/status-pix/${COBRANCA_ID}/`)
+                .then(r => r.json())
+                .then(data => {
+                    if(data.pago){
+                        clearInterval(loopConsulta);
+                        const box = document.getElementById("pixConteudo");
+                        box.innerHTML = `
+                            <div class="pix-sucesso">
+                                <div class="check-circle">
+                                    <i class="fa-solid fa-check"></i>
+                                </div>
+                                <h4 class="text-success fw-bold">Pagamento aprovado!</h4>
+                                <p class="text-muted">Redirecionando...</p>
+                            </div>
+                        `;
+                        setTimeout(()=>{
+                            window.location.href = "/mensalidades/portal/";
+                        }, 5000);
+                    }
+                })
+                .catch(()=>{});
+            }
+            function toast(msg, cor="#333") {
+                Toastify({
+                    text: msg, duration: 3000, gravity: "top",
+                    position: "center", backgroundColor: cor, stopOnFocus: true, escapeMarkup: false,
+                    onClick: function () {
+                        let toastElements = document.querySelectorAll(".toastify");
+                        toastElements.forEach(el => {
+                            el.style.transition = "opacity 0.5s ease-out";
+                            el.style.opacity = "0";
+                            setTimeout(() => el.remove(), 500);
+                        });
+                    },
+                }).showToast();
+            }
+            verificarPagamento();
+            const loopConsulta = setInterval(verificarPagamento, 3000);
+        </script>
+    </body>
+</html>

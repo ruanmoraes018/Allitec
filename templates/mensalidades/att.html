@@ -37,17 +37,26 @@
                             <div class="col-md-1">
                                 {{ form.situacao|as_crispy_field }}
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 {{ form.tp_mens|as_crispy_field }}
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 {{ form.dt_venc|as_crispy_field }}
                             </div>
                             <div class="col-md-2">
-                                {{ form.qtd_mens|as_crispy_field }}
-                            </div>
-                            <div class="col-md-2">
                                 {{ form.vl_mens|as_crispy_field }}
+                            </div>
+                            <div class="col-md-1">
+                                {{ form.tp_juros|as_crispy_field }}
+                            </div>
+                            <div class="col-md-1">
+                                {{ form.vl_juros|as_crispy_field }}
+                            </div>
+                            <div class="col-md-1">
+                                {{ form.tp_multa|as_crispy_field }}
+                            </div>
+                            <div class="col-md-1">
+                                {{ form.vl_multa|as_crispy_field }}
                             </div>
                             <div class="col-md-12">
                                 {{ form.obs|as_crispy_field }}
@@ -56,7 +65,7 @@
                     </div>
                     <div class="card-footer">
                         <div class="base_botao">
-                            <button type="button" class="btn btn-success botoes" data-bs-toggle="modal" data-bs-target="#staticBackdrop" id="openModalBtn">Criar</button>
+                            <button type="button" class="btn btn-success botoes" data-bs-toggle="modal" data-bs-target="#staticBackdrop" id="openModalBtn">Alterar</button>
                             <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#loadingModal">Voltar</a>
                         </div>
                     </div>

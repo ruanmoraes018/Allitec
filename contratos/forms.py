@@ -22,7 +22,7 @@ class ContratoForm(forms.ModelForm):
     )
     situacao = forms.ChoiceField(label="Situação", choices=[('Ativo', 'Ativo'), ('Suspenso', 'Suspenso'), ('Cancelado', 'Cancelado')],
         widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
-    qtd_parcelas = forms.CharField(label='Qtd. Parcelas',
+    qtd_meses = forms.CharField(label='Qtd. Meses',
         widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase', 'type': 'number'}))
     valor_mensalidade = forms.DecimalField(
         label='Vl. Parcela',

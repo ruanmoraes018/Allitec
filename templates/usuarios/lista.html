@@ -94,7 +94,12 @@
 
                             <td style="width: 80px;">
                                 <span>
-                                    <i class="fas fa-trash" title="Deletar usuário" data-bs-toggle="modal" data-bs-target="#modal-{{ usuario.id }}"></i>
+                                    <i class="fas fa-trash btn-permissao"
+                                       title="Deletar usuário"
+                                       data-bs-target="#modal-{{ usuario.id }}"
+                                       data-permissao="usuarios.delete_usuario"
+                                       data-msg-negado="Seu usuário não pode deletar usuários!">
+                                    </i>
                                 </span>
 
                                 <!-- Modal ÚNICO para cada usuario -->
@@ -114,10 +119,15 @@
                                                 </p>
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-primary btn-confirmar" data-url="{% url 'del-usuario' usuario.id %}" disabled>
-                                                    <u>S</u>im, Excluir <span class="contador">3</span>
-                                                </button>
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
+                                                <form method="post" action="{% url 'del-usuario' usuario.id %}" class="form-excluir">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                                        <u>S</u>im <span class="contador">3</span>
+                                                    </button>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                        <u>N</u>ão
+                                                    </button>
+                                                </form>
                                             </div>
                                         </div>
                                     </div>

@@ -55,7 +55,7 @@
             {% for p in portas %}
                 <li>
                     Porta Nº {{ p.numero }}:
-                    {{ p.altura }}m de Altura x {{ p.largura }}m de Largura, {% if p.tem_portinhola %}com Portinhola{%else%}sem Portinhola{% endif %} e {%if p.tem_alcapao %}com Alcapão{%else%}sem Alçapão{%endif%}.
+                    {{ p.altura }}m de Altura x {{ p.largura }}m de Largura, {%if o.pintura == 'Sim'%}com Pintura {{o.tp_pintura}}{%else%}sem Pintura{%endif%}, {% if p.tem_portinhola %}com Portinhola{%else%}sem Portinhola{% endif %} e {%if p.tem_alcapao %}com Alcapão{%else%}sem Alçapão{%endif%}.
                 </li>
             {% endfor %}
         </ul>

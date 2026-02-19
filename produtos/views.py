@@ -1,4 +1,3 @@
-from datetime import datetime
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.contrib import messages
@@ -15,7 +14,8 @@ from unidades.models import Unidade
 from tabelas_preco.models import TabelaPreco
 from decimal import Decimal, InvalidOperation
 import re
-from django.db.models import F
+from django.urls import reverse
+from django.db import connection, transaction
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -33,92 +33,81 @@ def lista_produtos(request):
     reg = request.GET.get('reg', '10')
     sit = request.GET.get('sit')
     ordem = request.GET.get('ordem', 'desc_prod')
-
-    # Produtos base
-    produtos = Produto.objects.filter(vinc_emp=request.user.empresa)
-
-    # Ordenação
+    produtos_qs = Produto.objects.filter(vinc_emp=request.user.empresa)
     if ordem == '0':
-        produtos = produtos.order_by('desc_prod')
+        produtos_qs = produtos_qs.order_by('desc_prod')
     elif ordem == '1':
-        produtos = produtos.order_by('id')
+        produtos_qs = produtos_qs.order_by('id')
     else:
-        produtos = produtos.order_by(ordem)
-
-    # FILTRO DE BUSCA
+        produtos_qs = produtos_qs.order_by(ordem)
     if tp == 'desc' and s:
         norm_s = remove_accents(s).lower()
-        produtos = produtos.filter(desc_normalizado__icontains=norm_s)
-
+        produtos_qs = produtos_qs.filter(desc_normalizado__icontains=norm_s)
     elif tp == 'cod':
         if s:
             try:
-                produtos = produtos.filter(id__iexact=s)
+                produtos_qs = produtos_qs.filter(id__iexact=s)
             except ValueError:
-                produtos = Produto.objects.none()
-        else:
-            # Se s está vazio, não aplica filtro -> lista todos
-            pass
-
-    # Tipo de produto
+                produtos_qs = Produto.objects.none()
     if tp_produto in ['Principal', 'Adicional']:
-        produtos = produtos.filter(tp_prod__exact=tp_produto)
-
-    # Situação
+        produtos_qs = produtos_qs.filter(tp_prod__exact=tp_produto)
     if sit == '1':
-        produtos = produtos.filter(situacao='Ativo')
+        produtos_qs = produtos_qs.filter(situacao='Ativo')
     elif sit == '2':
-        produtos = produtos.filter(situacao='Inativo')
-
-    # Grupo
+        produtos_qs = produtos_qs.filter(situacao='Inativo')
     grupo_selecionado = None
     if grupo:
-        grupo_selecionado = Grupo.objects.filter(id=grupo, vinc_emp=request.user.empresa).first()
+        grupo_selecionado = Grupo.objects.filter(
+            id=grupo,
+            vinc_emp=request.user.empresa
+        ).first()
         if grupo_selecionado:
-            produtos = produtos.filter(grupo=grupo_selecionado)
+            produtos_qs = produtos_qs.filter(grupo=grupo_selecionado)
     grupos = Grupo.objects.filter(vinc_emp=request.user.empresa)
-
-    # Marca
     marca_selec = None
     if marca:
-        marca_selec = Marca.objects.filter(id=marca, vinc_emp=request.user.empresa).first()
+        marca_selec = Marca.objects.filter(
+            id=marca,
+            vinc_emp=request.user.empresa
+        ).first()
         if marca_selec:
-            produtos = produtos.filter(marca=marca_selec)
+            produtos_qs = produtos_qs.filter(marca=marca_selec)
     marcas = Marca.objects.filter(vinc_emp=request.user.empresa)
-
-    # Unidade
     unidade_selecionado = None
     if unid:
-        unidade_selecionado = Unidade.objects.filter(id=unid, vinc_emp=request.user.empresa).first()
+        unidade_selecionado = Unidade.objects.filter(
+            id=unid,
+            vinc_emp=request.user.empresa
+        ).first()
         if unidade_selecionado:
-            produtos = produtos.filter(unidProd=unidade_selecionado)
+            produtos_qs = produtos_qs.filter(unidProd=unidade_selecionado)
     unidades = Unidade.objects.filter(vinc_emp=request.user.empresa)
-
-    # Tabelas de preço
-    for p in produtos:
-        tabelas = ProdutoTabela.objects.filter(produto=p)
-        p.tab_conv = [
-            {
-                "id": tab.id,
-                "descricao": tab.tabela.descricao if hasattr(tab, 'tabela') else str(tab),
-                "vl_prod": float(tab.vl_prod)
-            }
-            for tab in tabelas
-        ]
-
-    # Paginação
     if reg == 'todos':
-        num_pagina = produtos.count() or 1
+        num_pagina = produtos_qs.count() or 1
     else:
         try:
-            num_pagina = int(reg) if int(reg) > 0 else 1
+            num_pagina = int(reg) if int(reg) > 0 else 10
         except ValueError:
-            num_pagina = 10  # padrão
-
-    paginator = Paginator(produtos, num_pagina)
+            num_pagina = 10
+    paginator = Paginator(produtos_qs, num_pagina)
     page = request.GET.get('page')
     produtos = paginator.get_page(page)
-
+    produtos_ids = [p.id for p in produtos]
+    tabelas_map = {}
+    if produtos_ids:
+        tabelas = (
+            ProdutoTabela.objects
+            .filter(produto_id__in=produtos_ids)
+            .select_related('tabela')
+        )
+        for tab in tabelas:
+            tabelas_map.setdefault(tab.produto_id, []).append({
+                "id": tab.id,
+                "descricao": tab.tabela.descricao if tab.tabela else str(tab),
+                "vl_prod": float(tab.vl_prod)
+            })
+    for p in produtos:
+        p.tab_conv = tabelas_map.get(p.id, [])
     return render(request, 'produtos/lista.html', {
         'produtos': produtos,
         's': s,
@@ -137,7 +126,6 @@ def lista_produtos(request):
         'reg': reg,
         'tp_produto': tp_produto
     })
-
 
 @login_required
 def att_prod_lote(request):
@@ -432,7 +420,7 @@ def str_para_decimal(valor_str):
 @login_required
 def add_produto(request):
     if request.method == 'POST':
-        form = ProdutoForm(request.POST)
+        form = ProdutoForm(request.POST or None, user=request.user)
         lista_orc = request.POST.get('lista_orc') == 'on'
 
         if form.is_valid():
@@ -545,7 +533,7 @@ def att_produto(request, id):
         return redirect('/produtos/lista/')
 
     if request.method == 'POST':
-        form = ProdutoForm(request.POST, instance=p)
+        form = ProdutoForm(request.POST or None, instance=p, user=request.user)
         lista_orc = request.POST.get('lista_orc') == 'on'
 
         if form.is_valid():
@@ -667,7 +655,7 @@ def clonar_produto(request, id):
         return redirect('/produtos/lista/')
 
     if request.method == 'POST':
-        form = ProdutoForm(request.POST)
+        form = ProdutoForm(request.POST or None, user=request.user)
         lista_orc = request.POST.get('lista_orc') == 'on'
 
         if form.is_valid():
@@ -791,8 +779,11 @@ def clonar_produto(request, id):
 def del_produto(request, id):
     if not request.user.has_perm('produtos.delete_produto'):
         messages.info(request, 'Você não tem permissão para deletar produtos.')
-        return redirect('/produtos/lista/')
-    p = get_object_or_404(Produto, pk=id)
-    p.delete()
-    messages.success(request, 'Produto deletado com sucesso!')
-    return redirect('/produtos/lista/')
+        return redirect('lista-produtos')
+    if request.method == "POST":
+        p = get_object_or_404(Produto, pk=id, vinc_emp=request.user.empresa)
+        p.delete()
+        transaction.commit()
+        connection.close()
+        messages.success(request, 'Produto deletado com sucesso!')
+    return redirect(reverse('lista-produtos'))

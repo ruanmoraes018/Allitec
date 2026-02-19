@@ -1,30 +1,23 @@
 $(document).ready(function() {
+    let REGRAS = {};
+    function carregarRegras() {
+        return $.getJSON('/regras_produto/js/', function (data) {
+            REGRAS = data;
+            console.log('Regras carregadas:', REGRAS);
+        });
+    }
+    carregarRegras();
     const prodManager = {
         data: {},
-        currentEditing: {
-            porta: null,
-            itemId: null,
-            $tr: null
-        },
-
-        ensurePorta(porta) {
-            if (!this.data[porta]) this.data[porta] = [];
-        },
-
+        currentEditing: { porta: null, itemId: null, $tr: null },
+        ensurePorta(porta) { if (!this.data[porta]) this.data[porta] = [];  },
         setEditingItem($tr) {
-            this.currentEditing = {
-                porta: Number($tr.data('porta')),
-                itemId: Number($tr.data('item-id')),
-                $tr
-            };
+            this.currentEditing = { porta: Number($tr.data('porta')), itemId: Number($tr.data('item-id')), $tr };
         },
-
         addItem(porta, item) {
             this.ensurePorta(porta);
-
             item.id = Date.now(); // 🔥 ID único
             item.qtd_manual = false;
-
             this.data[porta].push(item);
             return item.id;
         },
@@ -32,95 +25,61 @@ $(document).ready(function() {
             console.log('CELLS RECEBIDO:', cells);
             const { porta, itemId, $tr } = this.currentEditing;
             const portaKey = Number(porta);
-
             const item = this.data[portaKey]?.find(i => i.id === itemId);
             if (!item) return;
-
             const novoCod  = cells[0];
             const novaDesc = cells[1];
             const novaUnid = cells[2];
             const novoVl   = parseFloat(cells[3]) || 0;
             const novaQtd  = parseFloat(cells[4]);
-
             const mudou =
                 item.cod     !== novoCod ||
                 item.desc    !== novaDesc ||
                 item.unid    !== novaUnid ||
                 item.vl_unit !== novoVl  ||
                 (
-                    !isNaN(novaQtd) &&
-                    Number(item.qtd_final ?? 0) !== novaQtd
+                    !isNaN(novaQtd) && Number(item.qtd_final ?? 0) !== novaQtd
                 );
-
             if (!mudou) {
                 console.log('Nenhuma alteração detectada');
                 return;
             }
-
-            /* ================== DATA (fonte da verdade) ================== */
             item.cod     = novoCod;
             item.desc    = novaDesc;
             item.unid    = novaUnid;
             item.vl_unit = novoVl;
-
             if (!isNaN(novaQtd)) {
                 item.qtd_final  = novaQtd;
                 item.qtd_manual = true;
                 item.ativo      = novaQtd > 0;
             }
-
-            /* ================== DOM ================== */
             $tr.find('.td-cod').text(item.cod);
             $tr.find('.td-desc').text(item.desc);
             $tr.find('.td-unid').text(item.unid);
             $tr.find('.vl-unit').text(item.vl_unit.toFixed(2));
             $tr.find('.qtd-produto').text(item.qtd_final.toFixed(2));
-
-            /* ================== RECÁLCULO CORRETO ================== */
             atualizarTabelaPorta(porta); // ✅ AGORA SIM
             atualizarSubtotal();
             atualizarJSONPortas();
         },
         removeItemById(porta, itemId) {
             if (!this.data[porta]) return;
-
             this.data[porta] = this.data[porta].filter(i => i.id !== itemId);
         },
-
-        resetPorta(porta) {
-            this.data[porta] = [];
-        },
-
-        clearEditing() {
-            this.currentEditing = { porta: null, itemId: null, $tr: null };
-        }
+        resetPorta(porta) { this.data[porta] = []; },
+        clearEditing() { this.currentEditing = { porta: null, itemId: null, $tr: null }; }
     };
     const prodAdcManager = {
         data: {},
-        currentEditing: {
-            porta: null,
-            itemId: null,
-            $tr: null
-        },
-
-        ensurePorta(porta) {
-            if (!this.data[porta]) this.data[porta] = [];
-        },
-
+        currentEditing: { porta: null, itemId: null, $tr: null },
+        ensurePorta(porta) { if (!this.data[porta]) this.data[porta] = []; },
         setEditingItem($tr) {
-            this.currentEditing = {
-                porta: Number($tr.data('porta')),
-                itemId: Number($tr.data('item-id')),
-                $tr
-            };
+            this.currentEditing = { porta: Number($tr.data('porta')), itemId: Number($tr.data('item-id')), $tr };
         },
-
         addItem(porta, item) {
             this.ensurePorta(porta);
-
             item.id = Date.now();
             item.qtd_manual = false;
-
             this.data[porta].push(item);
             return item.id;
         },
@@ -128,103 +87,71 @@ $(document).ready(function() {
             console.log('CELLS RECEBIDO:', cells);
             const { porta, itemId, $tr } = this.currentEditing;
             const portaKey = Number(porta);
-
             const item = this.data[portaKey]?.find(i => i.id === itemId);
             if (!item) return;
-
-            // 🔹 Valores novos
             const novoCod  = cells[0];
             const novaDesc = cells[1];
             const novaUnid = cells[2];
             const novoVl   = parseFloat(cells[3]) || 0;
             const novaQtd  = parseFloat(cells[4]);
-
-            // 🔎 Verifica mudanças reais
             const mudou =
                 item.cod      !== novoCod ||
                 item.desc     !== novaDesc ||
                 item.unid     !== novaUnid ||
                 item.vl_unit  !== novoVl  ||
                 (
-                    !isNaN(novaQtd) &&
-                    Number(item.qtd_final ?? 0) !== novaQtd
+                    !isNaN(novaQtd) && Number(item.qtd_final ?? 0) !== novaQtd
                 );
-
             if (!mudou) {
                 console.log('Nenhuma alteração detectada');
                 return;
             }
-
-            /* ================== DATA (fonte da verdade) ================== */
             item.cod     = novoCod;
             item.desc    = novaDesc;
             item.unid    = novaUnid;
             item.vl_unit = novoVl;
-
             if (!isNaN(novaQtd)) {
                 item.qtd_final  = novaQtd;
                 item.qtd_manual = true;          // 🔒 REGRA DE OURO
                 item.ativo      = novaQtd > 0;
             }
-
-            /* ================== DOM ================== */
             $tr.find('.td-cod').text(item.cod);
             $tr.find('.td-desc').text(item.desc);
             $tr.find('.td-unid').text(item.unid);
             $tr.find('.vl-unit').text(item.vl_unit.toFixed(2));
             $tr.find('.qtd-produto').text(item.qtd_final.toFixed(2));
-
-            /* ================== RECÁLCULO SEGURO ================== */
             atualizarTabelaPorta(porta);
             atualizarSubtotal();
             atualizarJSONPortas();
         },
         removeItemById(porta, itemId) {
             if (!this.data[porta]) return;
-
             this.data[porta] = this.data[porta].filter(i => i.id !== itemId);
         },
-
-        resetPorta(porta) {
-            this.data[porta] = [];
-        },
-
-        clearEditing() {
-            this.currentEditing = { porta: null, itemId: null, $tr: null };
-        }
+        resetPorta(porta) { this.data[porta] = []; },
+        clearEditing() { this.currentEditing = { porta: null, itemId: null, $tr: null }; }
     };
     console.log(prodManager.data[0]);
     console.log(prodAdcManager.data[0]);
-    
     function getPortasFromBackend() {
         const el = document.getElementById('json-portas');
         if (!el) return [];
-
         let raw = el.textContent || el.innerText || '';
-
         raw = raw.trim();
-
         if (!raw) return [];
-
         try {
             const parsed = JSON.parse(raw);
-
-            // 🔒 GARANTIA ABSOLUTA
             if (Array.isArray(parsed)) return parsed;
-
             if (typeof parsed === 'string') {
                 const reparsed = JSON.parse(parsed);
                 return Array.isArray(reparsed) ? reparsed : [];
             }
-
             return [];
-
         } catch (e) {
             console.error('Erro ao parsear portas_json', e, raw);
             return [];
         }
     }
-
     portasJSON = getPortasFromBackend();
     console.log('portasJSON:', portasJSON);
     let motorCtrl = {};
@@ -262,7 +189,22 @@ $(document).ready(function() {
             },
         }).showToast();
     }
-
+    $(document).on('submit', '.form-excluir', function(e){
+        const $form = $(this);
+        const $modal = $form.closest('.modal');
+        const modal = bootstrap.Modal.getInstance($modal[0]);
+        const $btn = $form.find('.btn-confirmar');
+        $btn.prop('disabled', true).text('Excluindo...');
+        if(modal){
+            modal.hide();
+        }
+        setTimeout(function(){
+            if($('.modal-backdrop').length === 0){
+                $('body').append('<div id="fake-backdrop" class="modal-backdrop fade show"></div>');
+            }
+            $('body').css('pointer-events','none');
+        }, 150);
+    });
     // Habilitar campo de portão social
     $('#id_portao_social').on('change', function () {
         const p_social = $(this).val();
@@ -342,7 +284,7 @@ $(document).ready(function() {
                 }, 1500);
             },
             error: function () {
-                toast("<i class='fa-solid fa-circle-xmark'></i> Erro ao atualizar o status!", cor_vermelho);
+                toast("<i class='fa-solid fa-circle-xmark' style='float: none; color: white; margin: 0;'></i> Erro ao atualizar o status!", cor_vermelho);
             }
         });
     });
@@ -669,7 +611,7 @@ $(document).ready(function() {
                 }
             },
             error: function() {
-                toast("<i class='fa-solid fa-circle-xmark'></i> Erro ao buscar a tabela de preço!", cor_vermelho);
+                toast("<i class='fa-solid fa-circle-xmark' style='float: none; color: white; margin: 0;'></i> Erro ao buscar a tabela de preço!", cor_vermelho);
             }
         });
     });
@@ -693,7 +635,7 @@ $(document).ready(function() {
                 }
             },
             error: function() {
-                toast("<i class='fa-solid fa-circle-xmark'></i> Erro ao buscar a tabela de preço!", cor_vermelho);
+                toast("<i class='fa-solid fa-circle-xmark' style='float: none; color: white; margin: 0;'></i> Erro ao buscar a tabela de preço!", cor_vermelho);
             }
         });
     });
@@ -913,7 +855,7 @@ $(document).ready(function() {
                 }
             },
             error: function() {
-                toast("<i class='fa-solid fa-circle-xmark'></i> Erro ao buscar o produto. Tente novamente!", cor_vermelho);
+                toast("<i class='fa-solid fa-circle-xmark' style='float: none; color: white; margin: 0;'></i> Erro ao buscar o produto. Tente novamente!", cor_vermelho);
             }
         });
     });
@@ -923,39 +865,27 @@ $(document).ready(function() {
             const notificacoes = response.notificacoes;
             const badge = $('.badge-pulse');
             const lista = $('#notificationsDropdown').next('ul.dropdown-menu');
-            // Limpar a lista atual
             lista.empty();
             if (notificacoes.length > 0) {
-                // Exibir badge
                 if (badge.length === 0) {
                     $('#notificationsDropdown').append(`
-                        <span class="position-absolute top-0 start-100 translate-middle badge border border-light rounded-circle bg-danger p-2 badge-pulse">
-                          <span class="visually-hidden">Notificações não lidas</span>
-                        </span>
+                        <span class="position-absolute top-0 start-100 translate-middle badge border border-light rounded-circle bg-danger p-2 badge-pulse"> <span class="visually-hidden">Notificações não lidas</span></span>
                     `);
                 }
                 notificacoes.forEach(n => {
                     lista.append(`
                         <li>
-                            <a href="#"
-                               class="abrir-modal-solicitacao dropdown-item text-wrap"
-                               data-id="${n.solicitacao_id || ''}"
-                               data-verb="${n.verb || ''}"
-                               data-description="${n.description || ''}">
-                                ${n.verb}
-                                <br>
-                                <small class="text-muted text-wrap">Mais informações, clique aqui!</small>
+                            <a href="#" class="abrir-modal-solicitacao dropdown-item text-wrap" data-id="${n.solicitacao_id || ''}"
+                               data-verb="${n.verb || ''}" data-description="${n.description || ''}">
+                                ${n.verb} <br> <small class="text-muted text-wrap">Mais informações, clique aqui!</small>
                             </a>
                         </li>
                     `);
                 });
             } else {
-                // Remove badge se não houver notificações
                 badge.remove();
                 lista.append(`
-                    <li>
-                        <a href="#" class="dropdown-item disabled text-center">Nenhuma notificação</a>
-                    </li>
+                    <li> <a href="#" class="dropdown-item disabled text-center">Nenhuma notificação</a> </li>
                 `);
             }
         });
@@ -993,6 +923,9 @@ $(document).ready(function() {
         const usuarioId = $('#userSelect').val();
         $.post('/orcamentos/enviar-solicitacao/', {
             acao: acaoSelecionada,
+            modulo: contextoPermissao.modulo,
+            registro_id: contextoPermissao.registro_id,
+            registro_desc: contextoPermissao.registro_desc,
             usuario_id: usuarioId,
             csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()
         }, function(data) {
@@ -1025,8 +958,13 @@ $(document).ready(function() {
             const agora = new Date();
             if (agora > expira) {
                 clearInterval(timer);
+                $.post('/orcamentos/expirar-solicitacao/', {
+                    id: solicitacaoId,
+                    csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()
+                });
                 if (toastAguardando) toastAguardando.hideToast();
-                toast('<i class="fa-solid fa-hourglass-start"></i> Tempo expirado. A solicitação não foi respondida!', cor_info);
+                toast('<i class="fa-solid fa-hourglass-end"></i> Tempo expirado. A solicitação não foi respondida!', cor_padrao);
+                carregarNotificacoes();
                 return;
             }
             $.get(`/orcamentos/verificar-solicitacao/${solicitacaoId}/`, function(data) {
@@ -1042,8 +980,13 @@ $(document).ready(function() {
                 } else if (data.status === 'Negada') {
                     clearInterval(timer);
                     if (toastAguardando) toastAguardando.hideToast();
-                    toast("<i class='fa-solid fa-circle-xmark'></i> Solicitação Negada ao usuário!", cor_vermelho);
+                    toast("<i class='fa-solid fa-circle-xmark' style='float: none; color: white; margin: 0;'></i> Solicitação Negada ao usuário!", cor_vermelho);
+                } else if (data.status === 'Expirada') {
+                    clearInterval(timer);
+                    if (toastAguardando) toastAguardando.hideToast();
+                    toast("<i class='fa-solid fa-hourglass-end'></i> A solicitação expirou!", cor_padrao);
                 }
+
             });
         }, 5000);
     }
@@ -1051,26 +994,63 @@ $(document).ready(function() {
         $.get('/orcamentos/usuarios-com-permissao/', function (data) {
             const select = $('#userSelect');
             select.empty();
-
-            // opção padrão (sempre aparece)
             select.append(`<option value="">------</option>`);
-
             if (!data.usuarios || data.usuarios.length === 0) {
                 select.append(`<option value="">Nenhum usuário disponível</option>`);
                 return;
             }
-
             data.usuarios.forEach(u => {
                 select.append(`<option value="${u.id}">${u.nome}</option>`);
             });
         });
+    });
+    $('#liberarAgora').on('click', function () {
+        const usuarioId = $('#userSelect').val();
+        const senha = $('#senhaLiberacao').val();
+        const acao = window.acaoPendente; // você já usa isso no sistema
+        if (!usuarioId) {
+            toast('<i class="fa-solid fa-exclamation"></i> Usuário deve ser informado!', cor_amarelo);
+            return;
+        }
+        if (!senha) {
+            toast('<i class="fa-solid fa-exclamation"></i> Digite a senha do Usuário Autorizador!', cor_amarelo);
+            return;
+        }
+        $.ajax({
+            url: '/orcamentos/liberar-com-senha/',
+            type: 'POST',
+            data: {
+                usuario_id: usuarioId,
+                senha: senha,
+                acao: acao,
+                csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
+            },
+            success: function (resp) {
+                if (resp.status === 'Aprovada') {
+                    $('#userSelectModal').modal('hide');
+                    toast('<i class="fa-solid fa-check"></i> Solicitação Concedida ao usuário!', cor_verde);
+                    if (acaoSelecionada === "atribuir_desconto") {
+                        $('#modalDesconto').modal('show');
+                    } else if (acaoSelecionada === "atribuir_acrescimo") {
+                        $('#modalAcrescimo').modal('show');
+                    }
+                    // EXECUTA A AÇÃO ORIGINAL
+                    if (window.acaoCallback) {
+                        window.acaoCallback();
+                    }
+                } else {
+                    toast('<i class="fa-solid fa-xmark"></i> Senha inserida incorreta!', cor_vermelho);
+                }
+            }
+        });
+        $('#senhaLiberacao').val('');
     });
     // Ao clicar em uma notificação, abre o modal preenchendo descrição e id
     $(document).on('click', '.abrir-modal-solicitacao', function(e) {
         e.preventDefault();
         const verb = $(this).data('verb');
         const descricao = $(this).data('description') || '';
-        $('#modalSolicitacaoLabel').text(verb);
+        $('#modalSolicitacaoLabel').html(`<i class="fa-solid fa-walkie-talkie me-2"></i> ${verb}`);
         // Regex mais robusto para capturar o ID
         const match = verb.match(/ID\s+(\d+)/i);
         const solicitacaoId = match ? match[1] : null;
@@ -1093,6 +1073,7 @@ $(document).ready(function() {
     $('#negarSolicitacao').on('click', function() {
         const id = $('#solicitacaoId').val();              // pega id da solicitação no modal
         responderSolicitacao(id, 'negar');                 // chama função para negar
+        carregarNotificacoes();
     });
     // Função que envia o POST para a view Django que responde a solicitação
     function responderSolicitacao(id, acao) {
@@ -1106,9 +1087,10 @@ $(document).ready(function() {
             if (response.status === "Aprovada") {
                 toast("<i class='fa-solid fa-circle-check'></i> Solicitação Concedida ao usuário!", cor_verde);
             } else {
-                toast("<i class='fa-solid fa-circle-xmark'></i> Solicitação Negada ao usuário!", cor_vermelho);
+                toast("<i class='fa-solid fa-circle-xmark' style='float: none; color: white; margin: 0;'></i> Solicitação Negada ao usuário!", cor_vermelho);
             }
         });
+        carregarNotificacoes();
     }
     function verificarOuCriarLocalizacao(estado, cidade, bairro) {
         return fetch(`/verificar-localizacao/?estado=${estado}&cidade=${cidade}&bairro=${bairro}`)
@@ -1123,6 +1105,7 @@ $(document).ready(function() {
         // Se todas marcadas, desmarca tudo, senão marca tudo
         $(`.check-permissao[data-grupo="${grupo}"]`).prop('checked', !todasMarcadas);
     });
+    let contextoPermissao = {};
     // Teste de Aviso de Permissão
     function verificarPermissaoAntesDeExecutar(perm, onPermitido, onNegado) {
         $.get('/usuarios/ajax/permissao/', { perm: perm }, function(data) {
@@ -1135,42 +1118,58 @@ $(document).ready(function() {
     }
     $('.btn-permissao').on('click', function (e) {
         e.preventDefault();
+
         const $btn = $(this);
         const permissao = $btn.data('permissao');
         const msgNegado = $btn.data('msg-negado') || 'Você não tem permissão para realizar essa ação!';
         const url = $btn.data('url');
         const href = $btn.attr('href');
-        acaoSelecionada = $btn.data('acao');  // 🔥 pega a ação para o processo de solicitação
+        const modalTarget = $btn.data('bs-target'); // 👈 AQUI
+        acaoSelecionada = $btn.data('acao');
+        // guarda o contexto da ação que o usuário tentou executar
+        contextoPermissao = {
+            acao: $btn.data('acao') || '',
+            modulo: $btn.data('modulo') || document.title,
+            registro_id: $btn.data('registro-id') || '',
+            registro_desc: $btn.data('registro-desc') || ''
+        };
+
+
         verificarPermissaoAntesDeExecutar(
             permissao,
             function () {
                 // === Ação permitida ===
                 if (url) {
                     $('#loadingModal').modal('show');
-                    $.post(url, function(response) {
+                    $.post(url, function () {
                         location.reload();
                     }).fail(function () {
                         alert('Erro ao tentar executar a ação.');
                     });
+
                 } else if (href) {
                     window.location.href = href;
-                } else {
-                    // Abre o modal diretamente se permitido
-                    if (acaoSelecionada === "atribuir_desconto") {
-                        $('#modalDesconto').modal('show');
-                    } else if (acaoSelecionada === "atribuir_acrescimo") {
-                        $('#modalAcrescimo').modal('show');
-                    }
+
+                } else if (acaoSelecionada === "atribuir_desconto") {
+                    $('#modalDesconto').modal('show');
+
+                } else if (acaoSelecionada === "atribuir_acrescimo") {
+                    $('#modalAcrescimo').modal('show');
+
+                } else if (modalTarget) {
+                    // ✅ ABRE O MODAL DO CLIENTE (DELETE)
+                    $(modalTarget).modal('show');
                 }
             },
             function () {
                 // === Ação negada ===
                 $('#loadingModal').modal('hide');
                 toast(`<i class="fa-solid fa-exclamation"></i> ${msgNegado}`, cor_amarelo);
-                $('#confirmModal').modal('show');  // 👉 Abre o modal de confirmação para enviar a solicitação
+                $('#confirmModal').modal('show');
             }
         );
     });
+
     // Contador de confirmação
     $('.modal').on('shown.bs.modal', function () {
         var modal = $(this);
@@ -1202,77 +1201,144 @@ $(document).ready(function() {
         var btn = modal.find('.btn-confirmar');
         btn.prop('disabled', true).append('<span class="contador">3</span>');
     });
-    // Quando o botão for clicado
-    $(document).on('click', '.btn-confirmar', function () {
-        if ($(this).prop('disabled')) return;
-        var $modal = $(this).closest('.modal');   // pega o modal onde o botão está
-        var url = $(this).data('url');
-        // fecha o modal
-        $modal.modal('hide');
-        // só redireciona depois que o modal terminar de fechar
-        $modal.one('hidden.bs.modal', function () {
-            window.location.href = url;
+    // Criação de Marca
+    const $selectAreaGp = $('#grupo-select-area');
+    const $inputAreaGp  = $('#grupo-input-area');
+    const $btnNovaGp    = $('#btn-novo-grupo');
+    const $btnOkGp      = $('#btn-confirmar-grupo');
+    const $btnCancelGp  = $('#btn-cancelar-grupo');
+    const $selectGp     = $('#id_grupo');
+    const $inputGp      = $('#novo-grupo');
+    $(document).on('input', '#novo-grupo', function() {
+        let cursor = this.selectionStart;   // mantém posição do cursor
+        this.value = this.value.toUpperCase();
+        this.setSelectionRange(cursor, cursor);
+    });
+    $selectGp.select2({
+        width:'100%',
+        placeholder:'Selecione um grupo'
+    });
+    $btnNovaGp.on('click', function(){
+        if ($selectGp.hasClass("select2-hidden-accessible")){
+            $selectGp.select2('destroy');
+        }
+        $selectAreaGp.hide();
+        $inputAreaGp.show();
+        $btnNovaGp.hide();
+        $btnOkGp.show();
+        $btnCancelGp.show();
+        setTimeout(function(){
+            $inputGp.focus();
+        },100);
+    });
+    function cancelarNovoGrupo(){
+        $('#novo-grupo').val('');
+        $('#grupo-input-area').hide();
+        $('#grupo-select-area').show();
+        $('#btn-novo-grupo').show();
+        $('#btn-confirmar-grupo').hide();
+        $('#btn-cancelar-grupo').hide();
+        initGrupoSelect();
+    }
+    $btnCancelGp.on('click', cancelarNovoGrupo);
+    function criarGrupo(){
+        let nome = $.trim($inputGp.val());
+        if(!nome){
+            alert("Digite o nome do grupo.");
+            $inputGp.focus();
+            return;
+        }
+        $btnOkGp.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+        $.ajax({
+            url: '/grupos/add-ajax/',
+            type: 'POST',
+            data: {
+                nome: nome,
+                csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(data){
+                cancelarNovoGrupo();
+                let $selectGp = $('#id_grupo');
+                let option = new Option(data.nome, data.id, true, true);
+                $selectGp.append(option).trigger('change');
+                setTimeout(function(){
+                    $selectGp.trigger('change.select2');
+                },150);
+            },
+            error: function(){
+                alert("Erro ao criar o grupo.");
+                $btnOkGp.prop('disabled', false).html('<i class="fa fa-check"></i>');
+            }
         });
+    }
+    $btnOkGp.on('click', criarGrupo);
+    $inputGp.on('keydown', function(e){
+        if(e.key === 'Enter'){
+            e.preventDefault();
+            criarGrupo();
+        }
+        if(e.key === 'Escape'){
+            cancelarNovoGrupo();
+        }
     });
     // Consulta de Grupos
     function initGrupoSelect() {
-        if ($('#id_grupo, #grupo, #grupo1, #campo-grupo-produto').length > 0) {
-            $('#id_grupo, #grupo, #grupo1, #campo-grupo-produto').select2({
-                placeholder: 'Selecione um grupo',
-                allowClear: true,
-                templateResult: function (data) {
-                    if (!data.id) {
-                        return data.text;
-                    }
-                    // cria o layout: ID em cima e Nome abaixo
-                    var $container = $(`
-                        <div style="display: flex; flex-direction: column; line-height: 1.2;">
-                            <span style="font-size: 14px;">${data.id}</span><br>
-                            <strong style="font-size: 14px;">${data.text}</strong>
-                        </div>
-                    `);
-                    return $container;
-                },
-                templateSelection: function (data) {
-                    // mostra apenas o nome após selecionar
-                    return data.text;
-                },
-                language: {
-                    inputTooShort: function() {
-                        return 'Por favor, insira 1 ou mais caracteres';
-                    },
-                    noResults: function() {
-                        return 'Nenhum resultado encontrado';
-                    },
-                    searching: function() {
-                        return 'Procurando...';
-                    }
-                },
-                ajax: {
-                    url: '/grupos/lista_ajax/',
-                    dataType: 'json',
-                    delay: 250,
-                    data: function(params) {
-                        return { term: params.term };
-                    },
-                    processResults: function(data) {
-                        return {
-                            results: data.grupos.map(function(grupo) {
-                                return {
-                                    id: grupo.id,
-                                    text: grupo.nome_grupo
-                                };
-                            })
-                        };
-                    },
-                    cache: true
-                }
-            }).on('select2:open', function () {
-                setTimeout(function() {
-                    document.querySelector('.select2-container--open .select2-search__field').focus();
-                }, 50);
-            });
+        let $grupo = $('#id_grupo');
+        if ($grupo.hasClass("select2-hidden-accessible")) {
+            $grupo.select2('destroy');
         }
+        $grupo.select2({
+            width: '100%',
+            placeholder: 'Selecione um grupo',
+            allowClear: true,
+            templateResult: function (data) {
+                if (!data.id) return data.text;
+                return $(`
+                    <div style="display:flex;flex-direction:column;line-height:1.2;">
+                        <span style="font-size:13px;">${data.id}</span>
+                        <strong style="font-size:14px;">${data.text}</strong>
+                    </div>
+                `);
+            },
+            templateSelection: function (data) {
+                return data.text || data.id;
+            },
+            language: {
+                inputTooShort: function() {
+                    return 'Por favor, insira 1 ou mais caracteres';
+                },
+                noResults: function() {
+                    return 'Nenhum resultado encontrado';
+                },
+                searching: function() {
+                    return 'Procurando...';
+                }
+            },
+            ajax: {
+                url: '/grupos/lista_ajax/',
+                dataType: 'json',
+                delay: 250,
+                data: function(params){
+                    return { term: params.term };
+                },
+                processResults: function(data){
+                    return {
+                        results: data.grupos.map(function(m){
+                            return {
+                                id: m.id,
+                                text: m.nome_grupo
+                            }
+                        })
+                    };
+                },
+                cache: true
+            }
+        });
+        $grupo.on('select2:open', function(){
+            setTimeout(function(){
+                document.querySelector('.select2-container--open .select2-search__field')?.focus();
+            }, 50);
+        });
     }
     initGrupoSelect();
     // Consulta de Regras de Grupo
@@ -1577,65 +1643,144 @@ $(document).ready(function() {
         }
     }
     initFilialSelect();
+    // Criação de Marca
+    const $selectArea = $('#marca-select-area');
+    const $inputArea  = $('#marca-input-area');
+    const $btnNova    = $('#btn-nova-marca');
+    const $btnOk      = $('#btn-confirmar-marca');
+    const $btnCancel  = $('#btn-cancelar-marca');
+    const $select     = $('#id_marca');
+    const $input      = $('#nova-marca');
+    $(document).on('input', '#nova-marca', function() {
+        let cursor = this.selectionStart;   // mantém posição do cursor
+        this.value = this.value.toUpperCase();
+        this.setSelectionRange(cursor, cursor);
+    });
+    $select.select2({
+        width:'100%',
+        placeholder:'Selecione uma marca'
+    });
+    $btnNova.on('click', function(){
+        if ($select.hasClass("select2-hidden-accessible")){
+            $select.select2('destroy');
+        }
+        $selectArea.hide();
+        $inputArea.show();
+        $btnNova.hide();
+        $btnOk.show();
+        $btnCancel.show();
+        setTimeout(function(){
+            $input.focus();
+        },100);
+    });
+    function cancelarNovaMarca(){
+        $('#nova-marca').val('');
+        $('#marca-input-area').hide();
+        $('#marca-select-area').show();
+        $('#btn-nova-marca').show();
+        $('#btn-confirmar-marca').hide();
+        $('#btn-cancelar-marca').hide();
+        initMarcaSelect();
+    }
+    $btnCancel.on('click', cancelarNovaMarca);
+    function criarMarca(){
+        let nome = $.trim($input.val());
+        if(!nome){
+            alert("Digite o nome da marca.");
+            $input.focus();
+            return;
+        }
+        $btnOk.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+        $.ajax({
+            url: '/marcas/add-ajax/',
+            type: 'POST',
+            data: {
+                nome: nome,
+                csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(data){
+                cancelarNovaMarca();
+                let $select = $('#id_marca');
+                let option = new Option(data.nome, data.id, true, true);
+                $select.append(option).trigger('change');
+                setTimeout(function(){
+                    $select.trigger('change.select2');
+                },150);
+            },
+            error: function(){
+                alert("Erro ao criar a marca.");
+                $btnOk.prop('disabled', false).html('<i class="fa fa-check"></i>');
+            }
+        });
+    }
+    $btnOk.on('click', criarMarca);
+    $input.on('keydown', function(e){
+        if(e.key === 'Enter'){
+            e.preventDefault();
+            criarMarca();
+        }
+        if(e.key === 'Escape'){
+            cancelarNovaMarca();
+        }
+    });
     // Consulta de Marcas
     function initMarcaSelect() {
-        if ($('#id_marca, #marca, #marca1').length > 0) {
-            $('#id_marca, #marca, #marca1').select2({
-                placeholder: 'Selecione uma marca',
-                allowClear: true,
-                templateResult: function (data) {
-                    if (!data.id) {
-                        return data.text;
-                    }
-                    // cria o layout: ID em cima e Nome abaixo
-                    var $container = $(`
-                        <div style="display: flex; flex-direction: column; line-height: 1.2;">
-                            <span style="font-size: 14px;">${data.id}</span><br>
-                            <strong style="font-size: 14px;">${data.text}</strong>
-                        </div>
-                    `);
-                    return $container;
-                },
-                templateSelection: function (data) {
-                    // mostra apenas o nome após selecionar
-                    return data.text;
-                },
-                language: {
-                    inputTooShort: function() {
-                        return 'Por favor, insira 1 ou mais caracteres';
-                    },
-                    noResults: function() {
-                        return 'Nenhum resultado encontrado';
-                    },
-                    searching: function() {
-                        return 'Procurando...';
-                    }
-                },
-                ajax: {
-                    url: '/marcas/lista_ajax/',
-                    dataType: 'json',
-                    delay: 250,
-                    data: function(params) {
-                        return { term: params.term };
-                    },
-                    processResults: function(data) {
-                        return {
-                            results: data.marcas.map(function(marca) {
-                                return {
-                                    id: marca.id,
-                                    text: marca.nome_marca
-                                };
-                            })
-                        };
-                    },
-                    cache: true
-                }
-            }).on('select2:open', function () {
-                setTimeout(function() {
-                    document.querySelector('.select2-container--open .select2-search__field').focus();
-                }, 50);
-            });
+        let $marca = $('#id_marca');
+        if ($marca.hasClass("select2-hidden-accessible")) {
+            $marca.select2('destroy');
         }
+        $marca.select2({
+            width: '100%',
+            placeholder: 'Selecione uma marca',
+            allowClear: true,
+            templateResult: function (data) {
+                if (!data.id) return data.text;
+                return $(`
+                    <div style="display:flex;flex-direction:column;line-height:1.2;">
+                        <span style="font-size:13px;">${data.id}</span>
+                        <strong style="font-size:14px;">${data.text}</strong>
+                    </div>
+                `);
+            },
+            templateSelection: function (data) {
+                return data.text || data.id;
+            },
+            language: {
+                inputTooShort: function() {
+                    return 'Por favor, insira 1 ou mais caracteres';
+                },
+                noResults: function() {
+                    return 'Nenhum resultado encontrado';
+                },
+                searching: function() {
+                    return 'Procurando...';
+                }
+            },
+            ajax: {
+                url: '/marcas/lista_ajax/',
+                dataType: 'json',
+                delay: 250,
+                data: function(params){
+                    return { term: params.term };
+                },
+                processResults: function(data){
+                    return {
+                        results: data.marcas.map(function(m){
+                            return {
+                                id: m.id,
+                                text: m.nome_marca
+                            }
+                        })
+                    };
+                },
+                cache: true
+            }
+        });
+        $marca.on('select2:open', function(){
+            setTimeout(function(){
+                document.querySelector('.select2-container--open .select2-search__field')?.focus();
+            }, 50);
+        });
     }
     initMarcaSelect();
     // Consulta de Formas de Pagamento
@@ -1878,6 +2023,7 @@ $(document).ready(function() {
         let aux = arredondarInteiro(calc);
         $(`.qtd-laminas[data-porta="${porta}"]`).val(aux);
     }
+
     function selecionarMotorPorPeso(peso, regraJSON) {
         for (const r of regraJSON) {
             if (peso <= r.max) return r.produto;
@@ -2030,13 +2176,24 @@ $(document).ready(function() {
     }
     toastErrorShown = false;
     function obterMapaSelecao(regra) {
+        if (!regra || typeof regra !== 'object') {
+            console.warn('Regra SELECAO inexistente ou inválida:', regra);
+            return {};
+        }
+
+        if (!regra.expressao) {
+            console.warn('Regra SELECAO sem expressao:', regra);
+            return {};
+        }
+
         try {
-            return JSON.parse(regra.expressao || '{}');
+            return JSON.parse(regra.expressao);
         } catch (e) {
-            console.error('Regra SELECAO inválida', regra.expressao);
+            console.error('Regra SELECAO inválida:', regra.expressao, e);
             return {};
         }
     }
+
     function isProdutoLamina(item) {
 
         const regra = REGRAS.LAMINA_TIPO;
@@ -2191,6 +2348,7 @@ $(document).ready(function() {
             laminaEmProcesso[porta] = false; // 🔓 libera
         });
     }
+    const pinturaRequests = {};
     function atualizarPinturaPorta(porta) {
         const temPintura = $('#id_pintura').val();
         const mapa = obterMapaSelecao(REGRAS.PINTURA_TIPO);
@@ -2215,20 +2373,53 @@ $(document).ready(function() {
 
         inserirPinturaSelecionada(porta, descAtiva);
     }
-
     function inserirPinturaSelecionada(porta, pinturaAtiva) {
         if (!pinturaAtiva) return;
+
+        // garante array
         prodAdcManager.data[porta] ??= [];
-        $.get('/produtos/lista_ajax/', { tp:'desc', tp_prod:'Adicional', s:pinturaAtiva })
-        .done(resp => {
-            const p = resp.produtos?.[0];
+
+        // cancela request anterior dessa porta
+        if (pinturaRequests[porta]) {
+            pinturaRequests[porta].abort();
+            pinturaRequests[porta] = null;
+        }
+
+        pinturaRequests[porta] = $.ajax({
+            url: '/produtos/lista_ajax/',
+            method: 'GET',
+            data: {
+                tp: 'desc',
+                tp_prod: 'Adicional',
+                s: pinturaAtiva
+            }
+        }).done(resp => {
+
+            // remove QUALQUER pintura antiga (defensivo)
+            prodAdcManager.data[porta] =
+                prodAdcManager.data[porta].filter(i => i.regra_origem !== 'PINTURA_TIPO');
+
+            $(`#tblAdc_${porta} tbody tr[data-regra-origem="PINTURA_TIPO"]`).remove();
+
+            const p = resp?.produtos?.[0];
             if (!p) return;
+
             const item = {
-                id: p.id, cod: p.id, desc: p.desc_prod, unid: p.unidProd,
-                vl_compra: Number(p.vl_compra), vl_unit: Number(p.vl_prod),
-                qtd_calc: 0, qtd_final: 0, qtd_manual: false, regra: p.regra,
-                ativo: true, regra_origem: 'PINTURA_TIPO'
+                id: p.id,
+                cod: p.id,
+                desc: p.desc_prod,
+                unid: p.unidProd,
+                vl_compra: Number(p.vl_compra),
+                vl_unit: Number(p.vl_prod),
+                qtd_calc: 0,
+                qtd_final: 0,
+                qtd_manual: false,
+                regra: p.regra,
+                ativo: true,
+                regra_origem: 'PINTURA_TIPO'
             };
+
+            // cálculo de quantidade (se existir regra)
             if (p.regra?.tipo?.toUpperCase() === 'QTD') {
                 try {
                     const portaData = {
@@ -2238,36 +2429,52 @@ $(document).ready(function() {
                         alt_c: getFloat(`.alt-corte[data-porta="${porta}"]`),
                         m2: getFloat(`.m2[data-porta="${porta}"]`)
                     };
-                    const qtd = Function(...Object.keys(portaData), `return ${p.regra.expressao};`)(...Object.values(portaData));
+
+                    const qtd = Function(
+                        ...Object.keys(portaData),
+                        `return ${p.regra.expressao};`
+                    )(...Object.values(portaData));
+
                     const qtdFloat = parseFloat(String(qtd).replace(',', '.')) || 0;
                     item.qtd_calc = item.qtd_final = qtdFloat;
-                } catch(e) { console.error('Erro ao calcular pintura:', e); }
+
+                } catch (e) {
+                    console.error('Erro ao calcular pintura:', e);
+                }
             }
+
+            // salva no manager
             prodAdcManager.data[porta].push(item);
-            const trHtml = `<tr data-porta="${porta}" data-item-id="${item.id}" data-regra-origem="PINTURA_TIPO">
-                <td data-label="Código:" class="td-cod mobile-full">${item.cod}</td>
-                <td data-label="Descrição:" class="td-desc mobile-full">${item.desc}</td>
-                <td data-label="Unidade:" class="td-unid mobile-full">${item.unid}</td>
-                <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">${item.vl_compra.toFixed(2)}</td>
-                <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">${item.vl_unit.toFixed(2)}</td>
-                <td class="qtd-produto mobile-full" data-label="Quantidade:">${item.qtd_final.toFixed(2)}</td>
-                <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">0,00</td>
-                <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">0,00</td>
-                <td><i class="fas fa-edit editBtn" style="color:#13c43f;cursor:pointer" data-bs-toggle="modal" data-bs-target="#editItemAdcModal"></i>
-                    <i class="fas fa-trash deleteBtn" style="color:#db1e47;cursor:pointer"></i>
-                </td>
-            </tr>`;
+
+            // HTML
+            const trHtml = `
+                <tr data-porta="${porta}" data-item-id="${item.id}" data-regra-origem="PINTURA_TIPO">
+                    <td class="td-cod mobile-full">${item.cod}</td>
+                    <td class="td-desc mobile-full">${item.desc}</td>
+                    <td class="td-unid mobile-full">${item.unid}</td>
+                    <td class="td-vl-compra text-danger fw-bold mobile-full">${item.vl_compra.toFixed(2)}</td>
+                    <td class="vl-unit text-success fw-bold mobile-full">${item.vl_unit.toFixed(2)}</td>
+                    <td class="qtd-produto mobile-full">${item.qtd_final.toFixed(2)}</td>
+                    <td class="tot-compra text-danger fw-bold mobile-full">${(item.qtd_final * item.vl_compra).toFixed(2)}</td>
+                    <td class="vl-total text-success fw-bold mobile-full">${(item.qtd_final * item.vl_unit).toFixed(2)}</td>
+                    <td>
+                        <i class="fas fa-edit editBtn" style="color:#13c43f;cursor:pointer"
+                        data-bs-toggle="modal" data-bs-target="#editItemAdcModal"></i>
+                        <i class="fas fa-trash deleteBtn" style="color:#db1e47;cursor:pointer"></i>
+                    </td>
+                </tr>
+            `;
+
             $(`#tblAdc_${porta} tbody`).append(trHtml);
-            const totCompra = item.qtd_final * item.vl_compra;
-            const vlTotal = item.qtd_final * item.vl_unit;
-            const tr = $(`#tblAdc_${porta} tbody tr[data-item-id="${item.id}"]`);
-            tr.find('.tot-compra').text(totCompra.toFixed(2));
-            tr.find('.vl-total').text(vlTotal.toFixed(2));
+
             atualizarSubtotal();
             atualizarJSONPortas();
+
+        }).always(() => {
+            pinturaRequests[porta] = null;
         });
     }
-    
+
     $(document).on("change", ".tipo-lamina", function () {
         iniciarLoading();
         atualizarLaminarPorta($(this).data("porta"));
@@ -2392,32 +2599,34 @@ $(document).ready(function() {
         atualizarJSONPortas();
     }
 
-    $(document).on('change', '#id_pintura, #id_tp_pintura', async function() {
+    $(document).on('change', '#id_pintura, #id_tp_pintura', async function () {
         iniciarLoading();
-        const temPintura = $(this).val();
-        const mapaPinturas = Object.values(obterMapaSelecao(REGRAS.PINTURA_TIPO)).map(d => d.toUpperCase().trim());
-        const promises = [];
 
-        $('[id^="tblAdc_"]').each(function() {
+        const campo = this.id;
+        const valor = $(this).val();
+
+        $('[id^="tblAdc_"]').each(function () {
             const porta = $(this).attr('id').split('_')[1];
-            if (temPintura === 'Não') {
+
+            // 🔥 SE mudou o tipo de pintura, limpa SEMPRE antes
+            if (campo === 'id_tp_pintura') {
                 limparPinturas(porta);
-            } else {
+            }
+
+            if (campo === 'id_pintura' && valor === 'Não') {
+                limparPinturas(porta);
+            } else if (campo === 'id_tp_pintura' || campo === 'id_pintura') {
                 atualizarPinturaPorta(porta);
             }
         });
 
-        await Promise.all(promises);
-        if (temPintura !== 'Não') {
-            atualizarSubtotal();
-            atualizarJSONPortas();
-        }
+        atualizarSubtotal();
+        atualizarJSONPortas();
         gerarJSONFormas();
         reindexarPortas();
+
         finalizarLoading();
     });
-
-
     gerarJSONFormas();
     let debounceTimeout;
     function atualizarCalculoCompletoDebounced() {
@@ -2659,8 +2868,8 @@ $(document).ready(function() {
                         data-porta="${num}"
                         name="cod-prod"
                         placeholder="Cód. Produto">
-                    <button class="btn btn-outline-dark btn-sm btn-busca-prod"
-                            data-porta="${num}">
+                    <button class="btn btn-outline-dark btn-sm btn-busca-prod" type="button"
+                            data-porta="${num}" data-bs-toggle="modal" data-bs-target="#produtoModal">
                         🔎
                     </button>
                 </div>
@@ -2775,8 +2984,8 @@ $(document).ready(function() {
                         name="cod-prod-adc"
                         data-porta="${num}"
                         placeholder="Cód. Produto">
-                    <button class="btn btn-outline-dark btn-sm btn-busca-prod-adc"
-                            data-porta="${num}">
+                    <button class="btn btn-outline-dark btn-sm btn-busca-prod-adc" type="button"
+                            data-porta="${num}" data-bs-toggle="modal" data-bs-target="#produtoAdcModal">
                         🔎
                     </button>
                 </div>
@@ -2963,7 +3172,7 @@ $(document).ready(function() {
 
         if (!item) {
             item = {
-                id: Number(dados.cod),   
+                id: Number(dados.cod),
                 cod: Number(dados.cod),
                 desc: dados.desc,
                 unid: dados.unid,
@@ -3286,14 +3495,7 @@ $(document).ready(function() {
             atualizarJSONPortas();
         }
     }
-    let REGRAS = {};
-    function carregarRegras() {
-        return $.getJSON('/regras_produto/js/', function (data) {
-            REGRAS = data;
-            console.log('Regras carregadas:', REGRAS);
-        });
-    }
-    carregarRegras();
+
     function calcularQtdPorRegra(item, ctx) {
 
         if (!item.regra || item.regra.tipo !== 'QTD')
@@ -3546,7 +3748,7 @@ $(document).ready(function() {
                 const laminaAtiva = getDescricaoLaminaAtiva(num);
                 console.log('TIPO LÂMINA:', $(`.tipo-lamina[data-porta="${num}"]`).val());
                 console.log('MAPA:', JSON.parse(REGRAS.LAMINA_TIPO.expressao));
-                console.log('LAMINA ATIVA:', laminaAtiva);      
+                console.log('LAMINA ATIVA:', laminaAtiva);
                 resp.produtos.forEach(pdt => {
 
                     const desc = pdt.desc_prod.toUpperCase().trim();
@@ -3590,7 +3792,7 @@ $(document).ready(function() {
                                 style="color: #db1e47; cursor: pointer;"></i>
                             </td>
                         </tr>
-                        
+
                     `);
                 });
 
@@ -3862,7 +4064,7 @@ $(document).ready(function() {
                 const isPintura = regraOrigemDom === 'PINTURA_TIPO';
 
                 const ativo = !(isPintura && temPintura === 'Não');
-                
+
                 prodAdcManager.data[p].push({
                     id: Number(item.codProd),
                     cod: Number(item.codProd),
@@ -4065,7 +4267,7 @@ $(document).ready(function() {
     $("#createForm").on("submit", function(e) {
         e.preventDefault();
     });
-    
+
     function aplicarRegraQuantidade(item, porta) {
         // ❌ NÃO recalcula se foi editado manualmente
         if (item.qtd_manual) {
@@ -4426,7 +4628,7 @@ $(document).ready(function() {
                 gerarJSONFormas();
             },
             error: function () {
-                toast("<i class='fa-solid fa-circle-xmark'></i> Erro ao buscar a Forma de Pagamento!", cor_vermelho);
+                toast("<i class='fa-solid fa-circle-xmark' style='float: none; color: white; margin: 0;'></i> Erro ao buscar a Forma de Pagamento!", cor_vermelho);
             }
         });
     });
@@ -4490,7 +4692,7 @@ $(document).ready(function() {
     }
     let lastLg = null;
     let lastAt = null;
-    
+
 
     $('#prod_servBtn, #adicionaisBtn').on('click', function () {
         let porta = $(this).data("porta");  // ← AQUI TAMBÉM FUNCIONA
@@ -4507,7 +4709,7 @@ $(document).ready(function() {
             return;
         }
         $(`.larg[data-porta="${porta}"], .alt[data-porta="${porta}"]`).blur();
-        
+
     });
     $('#id_cod_prod').on('blur keydown', function(event) {
         if (event.type === 'blur' || event.key === 'Enter') {
@@ -4593,7 +4795,7 @@ $(document).ready(function() {
                     }
                 },
                 error: function() {
-                    toast("<i class='fa-solid fa-circle-xmark'></i> Erro ao buscar o produto. Tente novamente!", cor_vermelho);
+                    toast("<i class='fa-solid fa-circle-xmark' style='float: none; color: white; margin: 0;'></i> Erro ao buscar o produto. Tente novamente!", cor_vermelho);
                 }
             });
         }
@@ -4686,7 +4888,7 @@ $(document).ready(function() {
                 $form.find(map.valor).focus();
             },
             error() {
-                toast("<i class='fa-solid fa-circle-xmark'></i> Erro ao buscar o produto. Tente novamente!", cor_vermelho);
+                toast("<i class='fa-solid fa-circle-xmark' style='float: none; color: white; margin: 0;'></i> Erro ao buscar o produto. Tente novamente!", cor_vermelho);
             }
         });
     }
@@ -4932,29 +5134,45 @@ $(document).ready(function() {
         // Fecha o modal
         $('#produtoModal').modal('hide');
     });
-    $('#pesquisar-produtos-adicionais').on('click', function() {
-        const termo = $('#campo-pesquisa-produto-adicional').val();
+    //Princ
+    let portaAtiva = null;
+
+    $(document).on('click', '.btn-busca-prod', function () {
+        portaAtiva = $(this).data('porta');
+    });
+
+    $('#pesquisar-produtos-principais').on('click', function() {
+        const termo = $('#campo-pesquisa-produto-principal').val();
         $.ajax({
             url: '/produtos/lista_ajax/',
             method: 'GET',
-            data: { s: termo, tp: 'desc', tp_prod: 'Adicional' },
+            data: { s: termo, tp: 'desc', tp_prod: 'Principal' },
             success: function(response) {
-                const tabela = $('#produtosAdc-lista');
+                const tabela = $('#produtosPrincipais-lista');
                 tabela.empty();
                 if (response.produtos.length > 0) {
                     response.produtos.forEach(produto => {
+                        const estoqueClass = Number(produto.estoque_prod) < 0
+                            ? 'text-danger fw-bold'
+                            : 'text-success fw-bold';
                         const row = `
                             <tr>
                                 <td style="width: 20px;">
-                                    <button class="btn btn-sm btn-dark selecionar-produto-adicional" data-id="${produto.id}" data-desc="${produto.desc_prod}" data-unid="${produto.unidProd}" data-vl="${produto.vl_prod}" title="Selecionar" style="margin-left: 9px;">
+                                    <button class="btn btn-sm btn-dark selecionar-produto-principal"
+                                            data-id="${produto.id}"
+                                            data-desc="${produto.desc_prod}"
+                                            data-unid="${produto.unidProd}"
+                                            data-vl="${produto.vl_prod}"
+                                            title="Selecionar"
+                                            style="margin-left: 9px;">
                                         <i class="fa-regular fa-hand-pointer"></i>
                                     </button>
                                 </td>
                                 <td>${produto.id}</td>
                                 <td>${produto.desc_prod}</td>
                                 <td>${produto.unidProd}</td>
-                                <td>${produto.estoque_prod}</td>
-                                <td>${produto.vl_prod}</td>
+                                <td class="${estoqueClass}">${produto.estoque_prod}</td>
+                                <td class="fw-bold">${produto.vl_prod}</td>
                             </tr>
                         `;
                         tabela.append(row);
@@ -4967,18 +5185,98 @@ $(document).ready(function() {
             }
         });
     });
-    $(document).on('click', '.selecionar-produto-adicional', function() {
+    $(document).on('click', '.selecionar-produto-principal', function () {
+        if (!portaAtiva) return;
+
         const id = $(this).data('id');
         const desc = $(this).data('desc');
         const unidade = $(this).data('unid');
         const vl = $(this).data('vl');
-        $('#id_cod_prod_adc').val(id);
-        $('#id_desc_prod_adc').val(desc);
-        $('#id_unidProd_adc').val(unidade);
-        $('#id_vl_prod_adc').val(vl);
-        $('#id_cod_prod_adc').focus();
-        $('#produtoAdcModal').modal('hide'); // Fecha o modal após a seleção
+
+        $(`.cod-prod[data-porta="${portaAtiva}"]`).val(id);
+        $(`.desc-prod[data-porta="${portaAtiva}"]`).val(desc);
+        $(`.unid-prod[data-porta="${portaAtiva}"]`).val(unidade);
+        $(`.valor-prod[data-porta="${portaAtiva}"]`).val(vl);
+
+        $(`.cod-prod[data-porta="${portaAtiva}"]`).focus();
+
+        $('#produtoModal').modal('hide');
     });
+    $('#produtoModal').on('hidden.bs.modal', function () {
+        portaAtiva = null;
+    });
+    // Adc
+    let portaAdcAtiva = null;
+
+    $(document).on('click', '.btn-busca-prod-adc', function () {
+        portaAdcAtiva = $(this).data('porta');
+    });
+
+    $('#pesquisar-produtos-adicionais').on('click', function() {
+        const termo = $('#campo-pesquisa-produto-adicional').val();
+        $.ajax({
+            url: '/produtos/lista_ajax/',
+            method: 'GET',
+            data: { s: termo, tp: 'desc', tp_prod: 'Adicional' },
+            success: function(response) {
+                const tabela = $('#produtosAdc-lista');
+                tabela.empty();
+                if (response.produtos.length > 0) {
+                    response.produtos.forEach(produto => {
+                        const estoqueClass = Number(produto.estoque_prod) < 0
+                            ? 'text-danger fw-bold'
+                            : 'text-success fw-bold';
+                        const row = `
+                            <tr>
+                                <td style="width: 20px;">
+                                    <button class="btn btn-sm btn-dark selecionar-produto-adicional"
+                                            data-id="${produto.id}"
+                                            data-desc="${produto.desc_prod}"
+                                            data-unid="${produto.unidProd}"
+                                            data-vl="${produto.vl_prod}"
+                                            title="Selecionar"
+                                            style="margin-left: 9px;">
+                                        <i class="fa-regular fa-hand-pointer"></i>
+                                    </button>
+                                </td>
+                                <td>${produto.id}</td>
+                                <td>${produto.desc_prod}</td>
+                                <td>${produto.unidProd}</td>
+                                <td class="${estoqueClass}">${produto.estoque_prod}</td>
+                                <td class="fw-bold">${produto.vl_prod}</td>
+                            </tr>
+                        `;
+                        tabela.append(row);
+                    });
+                } else {
+                    tabela.append('<tr><td colspan="6">Nenhum produto encontrado.</td></tr>');
+                }
+            },
+            error: function() {
+            }
+        });
+    });
+    $(document).on('click', '.selecionar-produto-adicional', function () {
+        if (!portaAdcAtiva) return;
+
+        const id = $(this).data('id');
+        const desc = $(this).data('desc');
+        const unidade = $(this).data('unid');
+        const vl = $(this).data('vl');
+
+        $(`.cod-prod-adc[data-porta="${portaAdcAtiva}"]`).val(id);
+        $(`.desc-prod-adc[data-porta="${portaAdcAtiva}"]`).val(desc);
+        $(`.unid-prod-adc[data-porta="${portaAdcAtiva}"]`).val(unidade);
+        $(`.valor-prod-adc[data-porta="${portaAdcAtiva}"]`).val(vl);
+
+        $(`.cod-prod-adc[data-porta="${portaAdcAtiva}"]`).focus();
+
+        $('#produtoAdcModal').modal('hide');
+    });
+    $('#produtoAdcModal').on('hidden.bs.modal', function () {
+        portaAdcAtiva = null;
+    });
+
     var cores = {
         "Preto": "#000000", "Branco": "#FFFFFF", "Amarelo": "#FFFF00",
         "Vermelho": "#FF0000", "Roxo Açaí": "#6A0DAD", "Azul Pepsi": "#0033A0",
@@ -5061,7 +5359,7 @@ $(document).ready(function() {
             labelCpfCnpj.text("CNPJ*");
             labelnome.text("Razão Social*");
             labelapelido.text("Fantasia*");
-            labelIE.text("Inscrição Estadual");
+            labelIE.text("IE");
             inputCpfCnpj.unmask().mask("00.000.000/0000-00"); // Máscara para CNPJ
         }
     }
@@ -5174,7 +5472,7 @@ $(document).ready(function() {
             .then(response => response.json())
             .catch(error => console.error('Erro na verificação de localização:', error));
     }
-    $("#id_empresa").on("blur", function() {
+    $("#id_empresa_login").on("blur", function() {
         let empresaId = $(this).val().trim();
         if (empresaId) {
             $('#loadingModal').modal('show');
@@ -5195,7 +5493,7 @@ $(document).ready(function() {
                         }
                     } else {
                         $("#container_fantasia").attr("hidden", true);
-                        $('#id_empresa').focus();
+                        $('#id_empresa_login').focus();
                         let errorMessage = response.warning || response.error || "ID inexistente na base de dados";
                         let backgroundColor = response.warning ? "linear-gradient(to right, #d58300, #ffc93b)" : "linear-gradient(to right, #ff416c, #ff4b2b)";
                         if (!toastErrorShown) { // Só exibe a mensagem se ainda não foi mostrada
@@ -5214,7 +5512,7 @@ $(document).ready(function() {
                 },
                 error: function() {
                     $("#container_fantasia").attr("hidden", true);
-                    $('#id_empresa').focus();
+                    $('#id_empresa_login').focus();
                 },
                 complete: function() {
                     setTimeout(() => {
@@ -5226,7 +5524,7 @@ $(document).ready(function() {
             $("#container_fantasia").attr("hidden", true);
         }
     });
-    $("#id_empresa").on("input", function() {
+    $("#id_empresa_login").on("input", function() {
         toastErrorShown = false;
     });
     let errorDiv = $(".alert.alert-block.alert-danger");
@@ -5457,25 +5755,6 @@ $(document).ready(function() {
             paddingRight: "",
         });
     }
-    $(document).on("click", ".btn-confirmar", function () {
-        const url = $(this).data("url");
-        const id  = $(this).data("orcamento-id");
-        const confirmModalEl = document.getElementById("modal-" + id);
-        const confirmModal   = bootstrap.Modal.getInstance(confirmModalEl);
-        const menuModalEl = document.getElementById("menuModal" + id);
-        const menuModal   = bootstrap.Modal.getInstance(menuModalEl);
-        if (confirmModal) {
-            confirmModal.hide();
-        }
-        setTimeout(function () {
-            if (menuModal) {
-                menuModal.hide();
-            }
-        }, 200);
-        setTimeout(function () {
-            window.location.href = url;
-        }, 400);
-    });
     // Botão "Não" no modal 'staticBackdrop'
     $("#btnRecusa").on("click", function () {
         closeStaticBackdrop();
@@ -5669,6 +5948,7 @@ $(document).ready(function() {
             $('#auxiliar_acrescimo').val(
                 isNaN(valorCalculado) ? '0.00' : valorCalculado.toFixed(2)
             );
+            return valorCalculado;
         }
     }
     $("#campo_acrescimo, #tipo_acrescimo").on("input keyup change", function () {
@@ -5680,10 +5960,14 @@ $(document).ready(function() {
     });
     // Evento botão confirmar
     $('#confirmarAcrescimo').on('click', function () {
-        let acrescimo = calcularAcrescimoAtualizarAuxiliar();
+        let acrescimo = Number(calcularAcrescimoAtualizarAuxiliar());
+        if (isNaN(acrescimo) || acrescimo === undefined || acrescimo === null) {
+            acrescimo = 0;
+        }
         $('#id_acrescimo').val(acrescimo.toFixed(2));
         $('#acrescimo_txt').text('R$ ' + acrescimo.toLocaleString('pt-BR', {
-            minimumFractionDigits: 2, maximumFractionDigits: 2
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
         }));
         $('#modalAcrescimo').modal('hide');
         atualizarSubtotal();
@@ -5957,7 +6241,7 @@ $(document).ready(function() {
             document.querySelector('.select2-container--open .select2-search__field').focus();
         }, 50);
     });
-    $('#emp').select2({
+    $('#emp, #id_empresa').select2({
         allowClear: true,
         placeholder: 'Selecione uma empresa',
         ajax: {
@@ -6405,35 +6689,39 @@ $(document).ready(function() {
         listen();
     }
     $(document).ready(init);
-    
     var endSecao = $('#enderecos');
     function hideAllSections1() {
         $('.form-section').hide();
     }
-    function updateButtonStyle1(activeBt, bt1, bt2) {
+    function updateButtonStyle1(activeBt, bt1, bt2, bt3) {
         activeBt?.addClass('btn-ativo').removeClass('btn-inativo');
         bt1?.removeClass('btn-ativo btn-inativo');
         bt2?.removeClass('btn-ativo btn-inativo');
+        bt3?.removeClass('btn-ativo btn-inativo');
     }
 
-    function showSection1(sectionId, activeBt, bt1, bt2) {
+    function showSection1(sectionId, activeBt, bt1, bt2, bt3) {
         hideAllSections1();
         $('#' + sectionId).show();
-        updateButtonStyle1(activeBt, bt1, bt2);
+        updateButtonStyle1(activeBt, bt1, bt2, bt3);
     }
     hideAllSections1();
     $(endSecao).show();
     const endBt = $('#endBtn');
     const compBt = $('#complBtn');
     const dadosRespBt = $('#dadosRespBtn');
+    const financBt = $('#financBtn');
     $(endBt).on('click', function() {
-        showSection1('enderecos', endBt, compBt, dadosRespBt);
+        showSection1('enderecos', endBt, compBt, dadosRespBt, financBt);
     });
     $(compBt).on('click', function() {
-        showSection1('complementos', compBt, endBt, dadosRespBt);
+        showSection1('complementos', compBt, endBt, dadosRespBt, financBt);
     });
     $(dadosRespBt).on('click', function() {
-        showSection1('dadosResponsavel', dadosRespBt, endBt, compBt);
+        showSection1('dadosResponsavel', dadosRespBt, endBt, compBt, financBt);
+    });
+    $(financBt).on('click', function() {
+        showSection1('financeiros', financBt, endBt, compBt, dadosRespBt);
     });
     // Seções do Formulário de Orçamentos
     var clienteSecao = $('#clientes');
@@ -6675,7 +6963,7 @@ $(document).ready(function() {
     $('#id_data_realizacao, #data_inicio, #data_fim').on('input', function(event) {
         dataFormatada1(event);
     });
-    let selectors = '.valor-prod, .valor-prod-adc, .qtd-prod-adc, .qtd-prod, #campo_1, #campo_2, #id_margem, #id_vl_prod, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
+    let selectors = '#id_vl_juros, #id_vl_multa, #id_ft_juros, #id_ft_multa, .valor-prod, .valor-prod-adc, .qtd-prod-adc, .qtd-prod, #campo_1, #campo_2, #id_margem, #id_vl_prod, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
     $(selectors).each(function() {
         if (!$(this).val()) {
             $(this).val("0.00");

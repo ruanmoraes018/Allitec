@@ -20,7 +20,7 @@
                         {"text": "{% for message in error_messages %}{{ message }}<br>{% endfor %}", "tag": "error"}
                     ]'></div>
                 {% endif %}
-                <div class="card">
+                <div class="card" style="margin: 0;">
                     <div class="card-header">
                         <span>
                             ALTERAÇÃO DE EMPRESAS
@@ -32,12 +32,15 @@
                                 {{ form.situacao|as_crispy_field }}
                             </div>
                             <div class="col-md-1">
+                                {{ form.principal|as_crispy_field }}
+                            </div>
+                            <div class="col-md-1">
                                 {{ form.gerar_filial|as_crispy_field }}
                             </div>
                             <div class="col-md-2">
                                 {{ form.cnpj|as_crispy_field }}
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 {{ form.ie|as_crispy_field }}
                             </div>
                             <div class="col-md-3">
@@ -55,12 +58,13 @@
                                      title="Clique para alterar a imagem"
                                      style="cursor: pointer; width: 90px; height: 90px; border: 1px solid #ddd; border-radius: 5px;">
                             </div>
-                            <div class="card">
+                            <div class="card" style="margin: 0;">
                                 <div class="form-buttons" style="margin-left: 10px; margin-top: 10px;">
                                     <div class="card-header bg-white">
                                         <button type="button" class="btn btn-dark" id="endBtn">Endereço</button>
                                         <button type="button" class="btn btn-dark" id="complBtn">Complementos</button>
                                         <button type="button" class="btn btn-dark" id="dadosRespBtn">Dados Resp.</button>
+                                        <button type="button" class="btn btn-dark" id="financBtn">Financeiro</button>
                                     </div>
                                 </div>
                                 <div class="form-section" id="enderecos">
@@ -144,6 +148,22 @@
                                         </div>
                                         <div class="col-md-3">
                                             {{ form.email_adm|as_crispy_field }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-section" id="financeiros">
+                                    <div class="row g-3" style="margin-left: -8px;">
+                                        <div class="col-md-3">
+                                            {{ form.tp_calc_juros|as_crispy_field }}
+                                        </div>
+                                        <div class="col-md-3">
+                                            {{ form.ft_juros|as_crispy_field }}
+                                        </div>
+                                        <div class="col-md-3">
+                                            {{ form.tp_calc_multa|as_crispy_field }}
+                                        </div>
+                                        <div class="col-md-3">
+                                            {{ form.ft_multa|as_crispy_field }}
                                         </div>
                                     </div>
                                 </div>

@@ -65,7 +65,12 @@
                         <tr>
                             <td style="width: 80px;">
                                 <span>
-                                    <i class="fas fa-trash" title="Deletar" data-bs-toggle="modal" data-bs-target="#modal-{{ cidade.id }}"></i>
+                                    <i class="fas fa-trash btn-permissao"
+                                       title="Deletar cidade"
+                                       data-bs-target="#modal-{{ cidade.id }}"
+                                       data-permissao="cidades.delete_cidade"
+                                       data-msg-negado="Seu usuário não pode deletar cidades!">
+                                    </i>
                                 </span>
                                 <!-- Modal ÚNICO para cada cidade -->
                                 <div class="modal fade" id="modal-{{ cidade.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ cidade.id }}" aria-hidden="true">
@@ -80,10 +85,15 @@
                                                 <p>Você confirma a EXCLUSÃO DA CIDADE <strong>{{ cidade.nome_cidade }}</strong>?</p>
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-primary btn-confirmar" data-url="{% url 'del-cidade' cidade.id %}" disabled>
-                                                    <u>S</u>im <span class="contador">3</span>
-                                                </button>
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
+                                                <form method="post" action="{% url 'del-cidade' cidade.id %}" class="form-excluir">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                                        <u>S</u>im <span class="contador">3</span>
+                                                    </button>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                        <u>N</u>ão
+                                                    </button>
+                                                </form>
                                             </div>
                                         </div>
                                     </div>

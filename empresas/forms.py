@@ -10,7 +10,7 @@ class EmpresaForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
     cnpj = forms.CharField(label='CNPJ',
         widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
-    ie = forms.CharField(label='Inscrição Estadual', required=False,
+    ie = forms.CharField(label='IE', required=False,
         widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
     razao_social = forms.CharField(label='Razão Social',
         widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
@@ -66,11 +66,22 @@ class EmpresaForm(forms.ModelForm):
     qtd_usuarios = forms.IntegerField(label='Quantidade de Usuários', min_value=1,
         widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-lowercase'}))
 
+    tp_calc_juros = forms.ChoiceField(label="Tp. Cálculo Juros", choices=[('Percentual', 'Percentual'), ('Valor', 'Valor')],
+        widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
+
+    tp_calc_multa = forms.ChoiceField(label="Tp. Cálculo Multa", choices=[('Percentual', 'Percentual'), ('Valor', 'Valor')],
+        widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
+
+    ft_juros = forms.DecimalField(label='Fator Juros', max_digits=10, decimal_places=2,
+        widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase text-end fw-bold'}))
+
+    ft_multa = forms.DecimalField(label='Fator Multa', max_digits=10, decimal_places=2,
+        widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase text-end fw-bold'}))
 
     class Meta:
         model = Empresa
         fields = (
             'situacao', 'gerar_filial', 'cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro_emp', 'cidade_emp', 'uf_emp', 'tel', 'email',
             'logo', 'nome', 'cpf', 'orgao', 'dt_nasc', 'endereco_adm', 'cep_adm', 'numero_adm', 'bairro_adm', 'cidade_adm', 'uf_adm', 'principal',
-            'tel_adm', 'email_adm', 'dia_venc', 'qtd_filial', 'qtd_usuarios'
+            'tel_adm', 'email_adm', 'dia_venc', 'qtd_filial', 'qtd_usuarios', 'tp_calc_juros', 'tp_calc_multa', 'ft_juros', 'ft_multa'
         )

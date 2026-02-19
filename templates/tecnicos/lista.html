@@ -98,7 +98,12 @@
                         <tr>
                             <td style="width: 80px;">
                                 <span>
-                                    <i class="fas fa-trash" title="Deletar técnico" data-bs-toggle="modal" data-bs-target="#modal-{{ tecnico.id }}"></i>
+                                    <i class="fas fa-trash btn-permissao"
+                                       title="Deletar técnico"
+                                       data-bs-target="#modal-{{ tecnico.id }}"
+                                       data-permissao="tecnicos.delete_tecnico"
+                                       data-msg-negado="Seu usuário não pode deletar técnicos!">
+                                    </i>
                                 </span>
 
                                 <!-- Modal ÚNICO para cada tecnico -->
@@ -114,10 +119,15 @@
                                                 <p>Você confirma a EXCLUSÃO DO TÉCNICO <strong>{{ tecnico.nome }}</strong>?</p>
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-primary btn-confirmar" data-url="{% url 'del-tecnico' tecnico.id %}" disabled>
-                                                    <u>S</u>im <span class="contador">3</span>
-                                                </button>
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
+                                                <form method="post" action="{% url 'del-tecnico' tecnico.id %}" class="form-excluir">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                                        <u>S</u>im <span class="contador">3</span>
+                                                    </button>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                        <u>N</u>ão
+                                                    </button>
+                                                </form>
                                             </div>
                                         </div>
                                     </div>

@@ -7,4 +7,5 @@ urlpatterns = [
     path("att/<int:id>/", views.att_contrato, name='att-contrato'),
     path("del/<int:id>/", views.del_contrato, name='del-contrato'),
     path("aprovar-contrato/<int:id>/", views.aprovar_contrato, name='aprovar-contrato'),
+    path("cancelar-contrato/<int:id>/", views.cancelar_contrato, name='cancelar-contrato'),
 ]

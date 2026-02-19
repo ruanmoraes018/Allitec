@@ -233,10 +233,15 @@
                                                     <p>Você confirma a EXCLUSÃO DE {{ entrada.tipo }} <strong>({{ entrada.fornecedor.fantasia }} - {{ entrada.numeracao }})</strong>?</p>
                                                 </div>
                                                 <div class="modal-footer">
-                                                    <button type="button" class="btn btn-primary btn-confirmar" data-url="{% url 'del-entrada' entrada.id %}" disabled>
-                                                        <u>S</u>im <span class="contador">3</span>
-                                                    </button>
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
+                                                    <form method="post" action="{% url 'del-entrada' entrada.id %}" class="form-excluir">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                                            <u>S</u>im <span class="contador">3</span>
+                                                        </button>
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                            <u>N</u>ão
+                                                        </button>
+                                                    </form>
                                                 </div>
                                             </div>
                                         </div>

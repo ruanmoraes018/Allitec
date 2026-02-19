@@ -48,10 +48,44 @@
                                                     {{ form.desc_prod|as_crispy_field }}
                                                 </div>
                                                 <div class="col-md-2">
-                                                    {{ form.marca|as_crispy_field }}
+                                                    <label class="form-label mb-2">Marca*</label>
+                                                    <div class="input-group input-group-sm" id="marca-wrapper">
+                                                        <div id="marca-select-area" style="flex:1;">
+                                                            {{ form.marca }}
+                                                        </div>
+                                                        <div id="marca-input-area" style="flex:1; display:none;">
+                                                            <input type="text" id="nova-marca" class="form-control form-control-sm border-dark-subtle " placeholder="Digite a nova marca">
+                                                        </div>
+                                                        <button type="button" class="btn btn-dark rounded-end" id="btn-nova-marca">
+                                                            <i class="fas fa-plus"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-success btn-sm" id="btn-confirmar-marca" style="display:none;">
+                                                            <i class="fa-solid fa-check"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-danger btn-sm" id="btn-cancelar-marca" style="display:none;">
+                                                            <i class="fa-solid fa-xmark"></i>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                                 <div class="col-md-2">
-                                                    {{ form.grupo|as_crispy_field }}
+                                                    <label class="form-label mb-2">Grupo*</label>
+                                                    <div class="input-group input-group-sm" id="marca-wrapper">
+                                                        <div id="grupo-select-area" style="flex:1;">
+                                                            {{ form.grupo }}
+                                                        </div>
+                                                        <div id="grupo-input-area" style="flex:1; display:none;">
+                                                            <input type="text" id="novo-grupo" class="form-control form-control-sm border-dark-subtle " placeholder="Digite o novo grupo">
+                                                        </div>
+                                                        <button type="button" class="btn btn-dark rounded-end" id="btn-novo-grupo">
+                                                            <i class="fas fa-plus"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-success btn-sm" id="btn-confirmar-grupo" style="display:none;">
+                                                            <i class="fa-solid fa-check"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-danger btn-sm" id="btn-cancelar-grupo" style="display:none;">
+                                                            <i class="fa-solid fa-xmark"></i>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                                 <div class="col-md-2">
                                                     {{ form.unidProd|as_crispy_field }}

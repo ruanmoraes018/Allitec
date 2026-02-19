@@ -1,12 +1,13 @@
 from django.db import models
-from empresas.models import Empresa
+from django.utils import timezone
 # Create your models here.
 class Contrato(models.Model):
-    # empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
+    empresa = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
     SITUACAO_CHOICES = [
         ('Ativo', 'Ativo'),
         ('Baixada', 'Suspenso'),
-        ('Cancelado', 'Cancelado')
+        ('Cancelado', 'Cancelado'),
+        ('Expirado', 'Expirado')
     ]
     situacao = models.CharField(
         max_length=10,
@@ -23,12 +24,26 @@ class Contrato(models.Model):
         default='Pendente'
     )
     dt_inicio = models.DateField()
-    qtd_parcelas = models.IntegerField()
+    dt_exp = models.DateField(null=True, blank=True)
+    qtd_meses = models.IntegerField(default=12)
     valor_mensalidade = models.DecimalField(max_digits=10, decimal_places=2)
     obs = models.TextField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    @property
+    def esta_expirado(self):
+        if not self.dt_exp:
+            return False
+        return timezone.localdate() > self.dt_exp
     def __str__(self):
         return f'Contrato {self.id} - {self.empresa.fantasia}'
+    def save(self, *args, **kwargs):
+        if self.dt_exp:
+            if timezone.localdate() > self.dt_exp:
+                self.situacao = 'Expirado'
+            else:
+                if self.situacao == 'Expirado':
+                    self.situacao = 'Ativo'
+
+        super().save(*args, **kwargs)

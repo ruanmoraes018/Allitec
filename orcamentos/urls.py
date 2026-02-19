@@ -21,5 +21,7 @@ urlpatterns = [
     path('verificar-solicitacao/<int:solicitacao_id>/', views.verificar_status_solicitacao, name='verificar_solicitacao'),
     path('responder-solicitacao/', views.responder_solicitacao, name='responder_solicitacao'),
     path('usuarios-com-permissao/', views.usuarios_com_permissao, name='usuarios_com_permissao'),
+    path('liberar-com-senha/', views.liberar_com_senha, name='liberar_com_senha'),
+    path('expirar-solicitacao/', views.expirar_solicitacao, name='expirar_solicitacao'),
     path("alterar-status/", views.alterar_status_orcamento, name="alterar_status_orcamento"),
 ]

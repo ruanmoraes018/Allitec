@@ -27,8 +27,9 @@ class Empresa(models.Model):
         ],
         default="Não"
     )
+    senha_portal = models.CharField(max_length=128, default="0000")
     cnpj = models.CharField(max_length=20, verbose_name='CNPJ')
-    ie = models.CharField(max_length=20, verbose_name='Inscrição Estadual')
+    ie = models.CharField(max_length=20, verbose_name='IE')
     razao_social = models.CharField(max_length=100, verbose_name='Razão Social')
     fantasia = models.CharField(max_length=100, verbose_name='Fantasia')
     endereco = models.CharField(max_length=100, verbose_name='Endereço')
@@ -71,6 +72,31 @@ class Empresa(models.Model):
 
     qtd_filial = models.PositiveIntegerField(default=1, verbose_name='Quantidade de Filiais Ativas')
     qtd_usuarios = models.PositiveIntegerField(default=1, verbose_name='Quantidade de Usuários Ativos')
+
+    # Função de Juros e Multa
+
+    tp_calc_juros = models.CharField(
+        max_length=15,
+        verbose_name="Tp. Cálculo Juros",
+        choices=[
+            ('Percentual', 'Percentual'),
+            ('Valor', 'Valor')
+        ],
+        default="Percentual"
+    )
+
+    tp_calc_multa = models.CharField(
+        max_length=15,
+        verbose_name="Tp. Cálculo Multa",
+        choices=[
+            ('Percentual', 'Percentual'),
+            ('Valor', 'Valor')
+        ],
+        default="Percentual"
+    )
+
+    ft_multa = models.DecimalField(verbose_name="Fator Multa", max_digits=10, decimal_places=2, default=0, null=True, blank=True)
+    ft_juros = models.DecimalField(verbose_name="Fator Juros",max_digits=10, decimal_places=2, default=0, null=True, blank=True)
 
     gerar_filial = models.BooleanField(default=False, verbose_name='Gerar Filial?')
     # vinculada_a = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='filiais_secundarias', verbose_name='Filial Vinculada à')
@@ -119,7 +145,7 @@ class Empresa(models.Model):
         super(Empresa, self).save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.id} - {self.fantasia.upper()}"
+        return f"{self.fantasia.upper()}"
 
     class Meta:
         verbose_name_plural = "Empresas"

@@ -23,21 +23,19 @@ import os
 from django.conf import settings
 from util.permissoes import verifica_permissao
 from PIL import Image
-import ast
 from clientes.models import Cliente
 from tecnicos.models import Tecnico
 from django.views.decorators.http import require_POST
 from produtos.models import Produto
 from notifications.signals import notify
 from filiais.models import Filial, Usuario
-from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
 from notifications.models import Notification
 from decimal import Decimal, InvalidOperation
 import locale
 from reportlab.lib.utils import ImageReader
 from reportlab.lib.units import cm
-from reportlab.platypus import Paragraph
+from django.contrib.auth.hashers import check_password
 from django.forms import inlineformset_factory
 from django.db import transaction
 from django.template.loader import render_to_string
@@ -51,14 +49,12 @@ PortaFormSet = inlineformset_factory(
     extra=1,
     can_delete=False
 )
-
 ProdutoFormSet = inlineformset_factory(
     PortaOrcamento, PortaProduto,
     form=PortaProdutoForm,
     extra=1,
     can_delete=True
 )
-
 AdicionalFormSet = inlineformset_factory(
     PortaOrcamento, PortaAdicional,
     form=PortaAdicionalForm,
@@ -66,57 +62,37 @@ AdicionalFormSet = inlineformset_factory(
     can_delete=True
 )
 
-
 def enviar_solicitacao(request):
-    # DEBUG TEMPORÁRIO (pode remover depois)
-    # print(request.POST)
-
     acao = request.POST.get('acao')
     usuario_destino_id = request.POST.get('usuario_id')
-
+    modulo = request.POST.get('modulo')
+    registro_desc = request.POST.get('registro_desc')
     if not usuario_destino_id:
-        return JsonResponse(
-            {'error': 'ID do usuário destino não enviado.'},
-            status=400
-        )
-
+        return JsonResponse({'error': 'ID do usuário destino não enviado.'}, status=400)
     try:
         usuario_destino = Usuario.objects.get(id=usuario_destino_id)
     except Usuario.DoesNotExist:
-        return JsonResponse(
-            {'error': 'Usuário destino não encontrado.'},
-            status=404
-        )
-
+        return JsonResponse({'error': 'Usuário destino não encontrado.'}, status=404)
     usuario_logado = request.user  # já é Usuario
-
-    # Regra de empresa (obrigatória)
     if usuario_logado.empresa != usuario_destino.empresa:
-        return HttpResponseForbidden(
-            'Usuário destino não pertence à sua empresa.'
-        )
-
+        return HttpResponseForbidden('Usuário destino não pertence à sua empresa.')
     expiracao = timezone.now() + timedelta(minutes=3)
-
     solicitacao = SolicitacaoPermissao.objects.create(
-        solicitante=usuario_logado,
-        autorizado_por=usuario_destino,
-        acao=acao,
-        expira_em=expiracao
+        solicitante=usuario_logado,autorizado_por=usuario_destino,
+        acao=acao,expira_em=expiracao
     )
-
-    data_formatada = timezone.localtime(
-        solicitacao.expira_em
-    ).strftime('%d/%m/%Y %H:%M')
+    data_formatada = timezone.localtime(solicitacao.expira_em).strftime('%d/%m/%Y %H:%M')
+    descricao = (
+        f"{usuario_logado.first_name} solicitou liberação para "
+        f"{acao.replace('_',' ')} no módulo {modulo}. "
+        f"Registro: {registro_desc}"
+    )
 
     notify.send(
-        usuario_logado,
-        recipient=usuario_destino,
-        verb=f'Solicitação de permissão ID {solicitacao.id} - {data_formatada}',
-        description=f'{usuario_logado.last_name} solicitou permissão para {acao.replace("_", " ")}',
-        data={'solicitacao_id': solicitacao.id}
+        usuario_logado, recipient=usuario_destino,
+        verb=f"Solicitação de Permissão ID {solicitacao.id} - {data_formatada}",
+        description=descricao, data={'solicitacao_id': solicitacao.id}
     )
-
     return JsonResponse({
         'status': 'enviado',
         'id': solicitacao.id,
@@ -135,16 +111,33 @@ def verificar_status_solicitacao(request, solicitacao_id):
 def responder_solicitacao(request):
     solicitacao_id = request.POST.get('id')
     acao = request.POST.get('acao')  # 'aprovar' ou 'negar'
-    if not solicitacao_id: return JsonResponse({'error': 'ID da solicitação não enviado'}, status=400)
-    try: solicitacao = SolicitacaoPermissao.objects.get(id=solicitacao_id)
-    except SolicitacaoPermissao.DoesNotExist: return JsonResponse({'error': 'Solicitação não encontrada'}, status=404)
-    if acao == 'aprovar': solicitacao.status = 'Aprovada'
-    elif acao == 'negar': solicitacao.status = 'Negada'
-    else: return JsonResponse({'error': 'Ação inválida'}, status=400)
+    if not solicitacao_id:
+        return JsonResponse({'error': 'ID da solicitação não enviado'}, status=400)
+    try:
+        solicitacao = SolicitacaoPermissao.objects.get(id=solicitacao_id)
+    except SolicitacaoPermissao.DoesNotExist:
+        return JsonResponse({'error': 'Solicitação não encontrada'}, status=404)
+    if timezone.now() > solicitacao.expira_em and solicitacao.status == 'Pendente':
+        solicitacao.status = 'Expirada'
+        solicitacao.save()
+        Notification.objects.filter(
+            recipient=solicitacao.autorizado_por,
+            verb__icontains=f'ID {solicitacao.id}',
+            unread=True
+        ).update(unread=False)
+        return JsonResponse({'status': 'Expirada'})
+    if acao == 'aprovar':
+        solicitacao.status = 'Aprovada'
+    elif acao == 'negar':
+        solicitacao.status = 'Negada'
+    else:
+        return JsonResponse({'error': 'Ação inválida'}, status=400)
     solicitacao.save()
-    # Marcar notificação como lida
-    notifications = Notification.objects.filter(recipient=solicitacao.autorizado_por, verb__icontains=f'ID {solicitacao.id}', unread=True)
-    notifications.update(unread=False)
+    Notification.objects.filter(
+        recipient=solicitacao.autorizado_por,
+        verb__icontains=f'ID {solicitacao.id}',
+        unread=True
+    ).update(unread=False)
     return JsonResponse({'status': solicitacao.status})
 
 @login_required
@@ -164,6 +157,41 @@ def usuarios_com_permissao(request):
         for u in usuarios
     ]
     return JsonResponse({'usuarios': lista})
+
+@login_required
+@require_POST
+def liberar_com_senha(request):
+    usuario_id = request.POST.get('usuario_id')
+    senha = request.POST.get('senha')
+    if not usuario_id or not senha:
+        return JsonResponse({'status': 'erro'}, status=400)
+    try:
+        autorizador = Usuario.objects.get(id=usuario_id)
+    except Usuario.DoesNotExist:
+        return JsonResponse({'status': 'erro'}, status=404)
+    if autorizador.empresa != request.user.empresa:
+        return JsonResponse({'status': 'Negada'}, status=403)
+    if not check_password(senha, autorizador.password):
+        return JsonResponse({'status': 'senha_incorreta'})
+    return JsonResponse({'status': 'Aprovada'})
+
+@login_required
+@require_POST
+def expirar_solicitacao(request):
+    solicitacao_id = request.POST.get('id')
+    try:
+        solicitacao = SolicitacaoPermissao.objects.get(id=solicitacao_id)
+    except SolicitacaoPermissao.DoesNotExist:
+        return JsonResponse({'status': 'nao_encontrada'})
+    if solicitacao.status == 'Pendente':
+        solicitacao.status = 'Expirada'
+        solicitacao.save()
+        Notification.objects.filter(
+            recipient=solicitacao.autorizado_por,
+            verb__icontains=f'ID {solicitacao.id}',
+            unread=True
+        ).update(unread=False)
+    return JsonResponse({'status': 'expirada'})
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -685,17 +713,30 @@ def clonar_orcamento(request, id):
     })
 
 @login_required
+@require_POST
 def del_orcamento(request, id):
+
     if not request.user.has_perm('orcamentos.delete_orcamento'):
-        messages.info(request, 'Você não tem permissão para deletar orçamentos.')
-        return redirect('/orcamentos/lista/')
+        messages.info(
+            request,
+            'Você não tem permissão para deletar orçamentos.'
+        )
+        return redirect('lista-orcamentos')
+
     o = get_object_or_404(Orcamento, pk=id)
-    if o.situacao == 'Faturado' or o.situacao == 'Cancelado':
-        messages.warning(request, 'Orçamentos só podem ser deletados com status Aberto!')
-        return redirect('/orcamentos/lista/?s=' + str(o.id))
+
+    if o.situacao in ['Faturado', 'Cancelado']:
+        messages.warning(
+            request,
+            'Orçamentos só podem ser deletados com status Aberto!'
+        )
+        return redirect('lista-orcamentos')
+
+    # Aqui o delete é executado UMA ÚNICA VEZ
     o.delete()
+
     messages.success(request, 'Orçamento deletado com sucesso!')
-    return redirect('/orcamentos/lista/')
+    return redirect('lista-orcamentos')
 
 @require_POST
 @login_required

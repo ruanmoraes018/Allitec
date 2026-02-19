@@ -253,11 +253,15 @@
                                                 </div>
                                                 <div class="modal-body"> <p>Você confirma a EXCLUSÃO DO ORÇAMENTO <strong>{{ orcamento.num_orcamento }}</strong>?</p> </div>
                                                 <div class="modal-footer">
-                                                    <button
-                                                        type="button" class="btn btn-primary btn-confirmar" data-url="{% url 'del-orcamento' orcamento.id %}"
-                                                        data-orcamento-id="{{ orcamento.id }}" disabled> <u>S</u>im <span class="contador">3</span>
-                                                    </button>
-                                                    <button type="button" class="btn btn-secondary" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
+                                                    <form method="post" action="{% url 'del-orcamento' orcamento.id %}" id="form-del-{{ orcamento.id }}">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                                            <u>S</u>im <span class="contador">3</span>
+                                                        </button>
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                            <u>N</u>ão
+                                                        </button>
+                                                    </form>
                                                 </div>
                                             </div>
                                         </div>
@@ -606,68 +610,4 @@
             </div>
         </div>
     </div>
-    {% comment %} <script>
-        function imprimirEFaturar(id) {
-            fetch(`/orcamentos/fat_orc/${id}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
-            })
-            .then(response => {
-                if (response.redirected) {
-                    window.location.href = response.url;
-                } else {
-                    const win = window.open(`/orcamentos/comprovante/${id}/`, '_blank');
-                    const selectSituacao = document.getElementById('situacao');
-                    if (selectSituacao) {
-                        selectSituacao.value = 'Todos';
-                    }
-                    const checkClose = setInterval(function () {
-                        if (win.closed) {
-                            clearInterval(checkClose);
-
-                            // Aciona o botão de busca ao fechar o comprovante
-                            const btnBuscar = document.getElementById('data-btn');
-                            if (btnBuscar) {
-                                btnBuscar.click();
-                            }
-
-                            // Exibe o Toastify só depois que o comprovante for fechado
-                            Toastify({
-                                text: "Orçamento faturado com sucesso!",
-                                duration: 10000,
-                                gravity: "top",
-                                position: "center",
-                                backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)"
-                            }).showToast();
-                        }
-                    }, 1000);
-                }
-            })
-            .catch(() => {
-                Toastify({
-                    text: "Erro ao faturar orçamento!",
-                    duration: 3000,
-                    gravity: "top",
-                    position: "center",
-                    backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)"
-                }).showToast();
-            });
-        }
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let cookie of cookies) {
-                    cookie = cookie.trim();
-                    if (cookie.startsWith(name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.slice(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-    </script> {% endcomment %}
 {% endblock %}

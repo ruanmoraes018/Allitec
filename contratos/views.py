@@ -14,6 +14,7 @@ from empresas.models import Empresa
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from mensalidades.models import Mensalidade
+from django.db import transaction
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -43,7 +44,8 @@ def lista_contratos(request):
             if list_p == 'dt_inicio':
                 contratos = contratos.filter(dt_inicio__range=(dt_ini_dt, dt_fim_dt))
             elif list_p == 'dt_criacao':
-                contratos = contratos.filter(created_at__range=(dt_ini_dt, dt_fim_dt))
+                contratos = contratos.filter(created_at__date__range=(dt_ini_dt, dt_fim_dt))
+
 
         except ValueError:
             contratos = Contrato.objects.none()
@@ -155,31 +157,86 @@ def del_contrato(request, id):
     return redirect('/contratos/lista/')
 
 @login_required
+@transaction.atomic
 def aprovar_contrato(request, id):
     contrato = get_object_or_404(Contrato, id=id)
+
+    if contrato.status == 'Aprovado':
+        messages.warning(request, 'Contrato já está aprovado.')
+        return redirect('/contratos/lista/')
+
     empresa = contrato.empresa
-    empresa_id = contrato.empresa.id
-    qtd_parcelas = contrato.qtd_parcelas
-    vencimento = contrato.dt_inicio
+    tp_juros = empresa.tp_calc_juros
+    tp_multa = empresa.tp_calc_multa
+    ft_juros = empresa.ft_juros
+    ft_multa = empresa.ft_multa
+
+    empresa_id = empresa.id
+    qtd_meses = contrato.qtd_meses
     valor = contrato.valor_mensalidade
-    contrato.status = "Aprovado"
 
-    for i in range(1, qtd_parcelas + 1):
-        gerar_vencimento = vencimento + relativedelta(months=i - 1)
+    vencimento_base = contrato.dt_inicio
+    mensalidades = []
 
-        mensalidade = Mensalidade.objects.create(
-            empresa=empresa,
-            contrato=contrato,
-            dt_venc=gerar_vencimento,
-            vl_mens=valor,
-            qtd_mens=qtd_parcelas,
-            situacao='Aberta',
+    ultima_data = None  # ← VAMOS GUARDAR AQUI
+
+    for i in range(1, qtd_meses + 1):
+        dt_venc = vencimento_base + relativedelta(months=i - 1)
+
+        ultima_data = dt_venc  # ← SEMPRE SOBRESCREVE, NO FINAL FICA A ÚLTIMA
+
+        mensalidades.append(
+            Mensalidade(
+                empresa=empresa,
+                contrato=contrato,
+                dt_venc=dt_venc,
+                vl_mens=valor,
+                qtd_mens=qtd_meses,
+                situacao='Aberta',
+                tp_juros=tp_juros,
+                tp_multa=tp_multa,
+                vl_juros=ft_juros,
+                vl_multa=ft_multa,
+                num_mens=f'{contrato.id}-{empresa_id}/{i}-{qtd_meses}',
+            )
         )
 
-        # Agora adiciona o num_mens
-        mensalidade.num_mens = f'{contrato.id}-{empresa_id}/{i}-{qtd_parcelas}'
-        mensalidade.save()
-    contrato.save()
-    cid = str(contrato.id)
-    messages.success(request, 'Contrato Aprovado e Mensalidades geradas com sucesso!')
-    return redirect('/contratos/lista/?tp=cod&s=' + cid)
+    Mensalidade.objects.bulk_create(mensalidades)
+
+    # 👇 AQUI É O SEGREDO
+    contrato.status = 'Aprovado'
+    contrato.dt_exp = ultima_data   # salva a última mensalidade como validade
+    contrato.save(update_fields=['status', 'dt_exp'])
+
+    messages.success(request, 'Contrato aprovado e mensalidades geradas com sucesso!')
+    return redirect(f'/contratos/lista/?tp=cod&s={contrato.id}')
+
+@login_required
+@transaction.atomic
+def cancelar_contrato(request, id):
+    contrato = get_object_or_404(Contrato, id=id)
+
+    # Se já estiver cancelado, não faz nada
+    if contrato.situacao == 'Cancelado':
+        messages.warning(request, 'Contrato já está cancelado.')
+        return redirect('/contratos/lista/')
+
+    # Mensalidades em aberto desse contrato
+    mensalidades_abertas = Mensalidade.objects.filter(
+        contrato=contrato,
+        situacao='Aberta'
+    )
+
+    total_excluidas = mensalidades_abertas.count()
+    mensalidades_abertas.delete()
+
+    # Atualiza situação do contrato
+    contrato.situacao = 'Cancelado'
+    contrato.save(update_fields=['situacao'])
+
+    messages.success(
+        request,
+        f'Contrato cancelado com sucesso. {total_excluidas} mensalidade(s) em aberto foram excluídas.'
+    )
+
+    return redirect(f'/contratos/lista/?tp=cod&s={contrato.id}')

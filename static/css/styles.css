@@ -166,7 +166,42 @@ body, html {
     100% { transform: rotate(0deg); }
 }
 
+#marca-wrapper .select2-container{
+    width:100% !important;
+}
 
+/* caixa do select2 */
+#marca-wrapper .select2-selection--single{
+    position:relative;
+    padding-right:30px !important; /* espaço para o X ficar na direita */
+}
+#marca-wrapper .select2-selection__clear{
+    position:absolute !important;
+    right:8px;          /* joga pra direita */
+    left:auto !important;
+    top:50%;
+    transform:translateY(-50%);
+    margin:0 !important;
+    font-size:12px;
+    color:#6c757d;
+    z-index:5;
+}
+
+/* TEXTO (AQUI ESTAVA O PROBLEMA) */
+#marca-wrapper .select2-selection__rendered{
+    padding-right:28px !important;
+}
+
+/* seta */
+#marca-wrapper .select2-selection__arrow{
+    height:29px !important;
+    top:1px !important;
+}
+
+/* remove borda dupla com o botão */
+#marca-wrapper .select2-container--default .select2-selection--single{
+    border-right:0 !important;
+}
 .card {
     margin-left: 10px; margin-right: 10px; margin-bottom: 130px;
 }
@@ -294,6 +329,7 @@ label {
     background-color: #0f1d2b;
     color: white;
 }
+.modal-title {text-align: center;}
 .card-header {
     background-color: #0f1d2b;
     color: white;

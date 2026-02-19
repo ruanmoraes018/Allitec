@@ -54,17 +54,17 @@
                 <div class="col-md-1 search-div">
                     <label class="form-label">Período:</label>
                     <select class="form-control" id="usar-data" name="p_dt">
-                        <option value="Nao" {% if request.GET.p_dt == 'Nao' %}selected{% endif %}>Não</option>
-                        <option value="Sim" {% if request.GET.p_dt == 'Sim' %}selected{% endif %}>Sim</option>
+                        <option value="Sim" {% if p_dt == 'Sim' %}selected{% endif %}>Sim</option>
+                        <option value="Nao" {% if p_dt == 'Nao' %}selected{% endif %}>Não</option>
                     </select>
                 </div>
                 <div class="col-md-1 search-div">
                     <label class="form-label">Listar por:</label>
                     <div class="d-flex">
                         <select class="form-control" name="list_p" id="list_p">
-                            <option value="dt_v" {% if request.GET.list_p == 'dt_v' %}selected{% endif %}>Dt. Vencimento</option>
-                            <option value="dt_e" {% if request.GET.list_p == 'dt_e' %}selected{% endif %}>Dt. Emissão</option>
-                            <option value="dt_p" {% if request.GET.list_p == 'dt_p' %}selected{% endif %}>Dt. Pagamento</option>
+                            <option value="dt_v" {% if list_p == 'dt_v' %}selected{% endif %}>Dt. Vencimento</option>
+                            <option value="dt_e" {% if list_p == 'dt_e' %}selected{% endif %}>Dt. Emissão</option>
+                            <option value="dt_p" {% if list_p == 'dt_p' %}selected{% endif %}>Dt. Pagamento</option>
                         </select>
                     </div>
                 </div>
@@ -72,11 +72,11 @@
                     <div class="row">
                         <div class="col">
                             <label class="form-label">De:</label>
-                            <input class="form-control" type="text" name="dt_ini" id="data_inicio1" value="{{ request.GET.dt_ini }}">
+                            <input class="form-control" type="text" name="dt_ini" id="data_inicio1" value="{{ dt_ini }}">
                         </div>
                         <div class="col">
                             <label class="form-label">Até:</label>
-                            <input class="form-control" type="text" name="dt_fim" id="data_fim1" value="{{ request.GET.dt_fim }}">
+                            <input class="form-control" type="text" name="dt_fim" id="data_fim1" value="{{ dt_fim }}">
                         </div>
                     </div>
                 </div>
@@ -111,14 +111,19 @@
             <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
                 <thead thead class="table-dark">
                     <tr>
-                        <th scope="col" style="text-align: center; width: 7%;">Opções</th>
+                        <th scope="col" style="text-align: center; width: 8%;">Opções</th>
                         <th scope="col" style="text-align: justify; width: 8%;">Nr. Mensal.</th>
                         <th scope="col" style="text-align: center; width: 7%;">Situação</th>
                         <th scope="col" style="text-align: justify; width: 12%;">Empresa</th>
-                        <th scope="col" style="align-items: center; width: 9%;">Dt. Emissão</th>
+                        <th scope="col" style="align-items: center; width: 8%;">Dt. Emissão</th>
                         <th scope="col" style="align-items: center; width: 9%;">Dt. Vencimento</th>
+                        <th scope="col" style="align-items: center; width: 8%;">Vl. Título</th>
+                        <th scope="col" style="align-items: center; width: 7%;">Dias Atraso</th>
+                        <th scope="col" style="align-items: center; width: 7%;">Vl. Juros</th>
+                        <th scope="col" style="align-items: center; width: 7%;">Vl. Multa</th>
+                        <th scope="col" style="align-items: center; width: 8%;">Vl. Restante</th>
                         <th scope="col" style="align-items: center; width: 9%;">Dt. Pagamento</th>
-                        <th scope="col" style="align-items: center; width: 8%;">Valor</th>
+                        <th scope="col" style="align-items: center; width: 8%;">Link Mens.</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -126,34 +131,74 @@
                         <tr>
 
                             <td style="width: 80px;">
-                                <span>
-                                    <i class="fas fa-trash" title="Deletar mensalidade" data-bs-toggle="modal" data-bs-target="#modal-{{ mensalidade.id }}"></i>
-                                </span>
+                                {% if mensalidade.situacao == 'Aberta' %}
+                                    <span>
+                                        <i class="fas fa-trash btn-permissao"
+                                           title="Deletar mensalidade"
+                                           data-bs-target="#modal-{{ mensalidade.id }}"
+                                           data-permissao="mensalidades.delete_mensalidade"
+                                           data-msg-negado="Seu usuário não pode deletar mensalidades!">
+                                        </i>
+                                    </span>
+                                    <!-- Modal ÚNICO para cada mensalidade -->
+                                    <div class="modal fade" id="modal-{{ mensalidade.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ mensalidade.id }}" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content">
+                                                <div class="modal-header titulo-modal">
+                                                    <h1 class="modal-title fs-5" id="modalLabel-{{ mensalidade.id }}">
+                                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                                    </h1>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p>Você confirma a EXCLUSÃO DA MENSALIDADE <strong>{{ mensalidade.num_mens }}</strong>?</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <form method="post" action="{% url 'del-mensalidade' mensalidade.id %}" class="form-excluir">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                                            <u>S</u>im <span class="contador">3</span>
+                                                        </button>
 
-                                <!-- Modal ÚNICO para cada mensalidade -->
-                                <div class="modal fade" id="modal-{{ mensalidade.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ mensalidade.id }}" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header titulo-modal">
-                                                <h1 class="modal-title fs-5" id="modalLabel-{{ mensalidade.id }}">
-                                                    <i class="fa-regular fa-circle-question"></i> Confirmação!
-                                                </h1>
-                                            </div>
-                                            <div class="modal-body">
-                                                <p>Você confirma a EXCLUSÃO DA MENSALIDADE <strong>{{ mensalidade.num_mens }}</strong>?</p>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-primary btn-confirmar" data-url="{% url 'del-mensalidade' mensalidade.id %}" disabled>
-                                                    <u>S</u>im <span class="contador">3</span>
-                                                </button>
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                            <u>N</u>ão
+                                                        </button>
+                                                    </form>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                <a href="{% url 'att-mensalidade' mensalidade.id %}" class="btn-permissao"
-                                  data-permissao="mensalidades.change_mensalidade"
-                                  data-msg-negado="Seu usuário não pode editar mensalidades!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
+                                    <a href="{% url 'att-mensalidade' mensalidade.id %}" class="btn-permissao"
+                                      data-permissao="mensalidades.change_mensalidade"
+                                      data-msg-negado="Seu usuário não pode editar mensalidades!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
+                                    <span><i class="fa-solid fa-circle-down" style="float: right; font-size: 20px; margin: 5px; color: #2E8B57; cursor: pointer;" title="Baixar Mensalidade" data-bs-toggle="modal" data-bs-target="#mdBaixa-{{ mensalidade.id }}"></i></span>
+                                    <div class="modal fade" id="mdBaixa-{{ mensalidade.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="mdBaixaLabel-{{ mensalidade.id }}" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content">
+                                                <div class="modal-header titulo-modal">
+                                                    <h5 class="modal-title" id="mdBaixaLabel-{{ mensalidade.id }}">
+                                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                                    </h5>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p>Você confirma a BAIXA DA MENSALIDADE <strong>{{ mensalidade.num_mens }}</strong>?</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <form method="post" action="{% url 'baixar-mensalidade' mensalidade.id %}">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                                            <u>S</u>im <span class="contador">3</span>
+                                                        </button>
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                            <u>N</u>ão
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <a href="{% url 'estornar-mensalidade' mensalidade.id %}"><i class="fa-solid fa-arrow-rotate-left" style="float: right; font-size: 20px; margin: 5px; color: #5F9EA0; cursor: pointer;" title="Estornar Mensalidade"></i></a>
+                                {% endif %}
                             </td>
                             <td style="align-items: center;">{{ mensalidade.num_mens }}</td>
                             <td style="text-align: center; padding: 5px;">
@@ -162,7 +207,7 @@
                                         <strong>{{ mensalidade.situacao }}</strong>
                                     </div>
                                 {% else %}
-                                    <div style="background-color: #800000; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
+                                    <div style="background-color: #66CDAA; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
                                         <strong>{{ mensalidade.situacao }}</strong><br>
                                     </div>
                                 {% endif %}
@@ -170,12 +215,33 @@
                             <td style="align-items: center;" class="text-uppercase">{{ mensalidade.empresa.fantasia }}</td>
                             <td style="align-items: center;">{{ mensalidade.created_at|date:"d/m/Y" }}</td>
                             <td style="align-items: center;">{{ mensalidade.dt_venc|date:"d/m/Y" }}</td>
-                            <td style="align-items: center;">{{ mensalidade.dt_pag|date:"d/m/Y" }}</td>
                             <td style="align-items: center;">{{ mensalidade.vl_mens|moeda_br }}</td>
+                            <td style="text-align: center;">
+                                {% if mensalidade.dias_atraso > 1 %}
+                                    <span class="fw-bold text-danger">
+                                        {{ mensalidade.dias_atraso }}
+                                    </span>
+                                {% else %}
+                                    <span class="fw-bold text-secondary">
+                                        {{ mensalidade.dias_atraso }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td style="align-items: center;">{{ mensalidade.vl_juros|moeda_br }}</td>
+                            <td style="align-items: center;">{{ mensalidade.vl_multa|moeda_br }}</td>
+                            <td style="align-items: center;">{{ mensalidade.valor_total|moeda_br }}</td>
+                            <td style="align-items: center;">{% if mensalidade.situacao == 'Aberta' %}{% else %}{{ mensalidade.dt_pag|date:"d/m/Y" }}{% endif %}</td>
+                            <td style="align-items: center;">
+                                {% if mensalidade.tp_mens == 'Boleto' %}
+                                    <strong>{{ mensalidade.codigo_boleto }}</strong>
+                                {% else %}
+                                    <a href="{% url 'portal_pagamentos' %}" target="_blank"><button class="btn btn-sm text-white" style="background-color: #008B8B;"><i class="fa-solid fa-qrcode" style="font-size: 20px; cursor: pointer;"></i></button></a>
+                                {% endif %}
+                            </td>
                         </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="9" class="me-auto" style="text-align: center;">
+                        <td colspan="13" class="me-auto" style="text-align: center;">
                             Nenhum mensalidade encontrada.
                         </td>
                     </tr>

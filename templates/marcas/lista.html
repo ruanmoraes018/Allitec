@@ -65,7 +65,12 @@
                         <tr>
                             <td style="width: 80px;">
                                 <span>
-                                    <i class="fas fa-trash" title="Deletar" data-bs-toggle="modal" data-bs-target="#modal-{{ marca.id }}"></i>
+                                    <i class="fas fa-trash btn-permissao"
+                                       title="Deletar marca"
+                                       data-bs-target="#modal-{{ marca.id }}"
+                                       data-permissao="marcas.delete_marca"
+                                       data-msg-negado="Seu usuário não pode deletar marcas!">
+                                    </i>
                                 </span>
                                 <!-- Modal ÚNICO para cada marca -->
                                 <div class="modal fade" id="modal-{{ marca.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ marca.id }}" aria-hidden="true">
@@ -77,13 +82,18 @@
                                                 </h1>
                                             </div>
                                             <div class="modal-body">
-                                                <p>Você confirma a EXCLUSÃO DO MARCA <strong>{{ marca.nome_marca }}</strong>?</p>
+                                                <p>Você confirma a EXCLUSÃO DA MARCA <strong>{{ marca.nome_marca }}</strong>?</p>
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-primary btn-confirmar" data-url="{% url 'del-marca' marca.id %}" disabled>
-                                                    <u>S</u>im <span class="contador">3</span>
-                                                </button>
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
+                                                <form method="post" action="{% url 'del-marca' marca.id %}" class="form-excluir">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                                        <u>S</u>im <span class="contador">3</span>
+                                                    </button>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                        <u>N</u>ão
+                                                    </button>
+                                                </form>
                                             </div>
                                         </div>
                                     </div>

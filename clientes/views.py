@@ -67,7 +67,7 @@ def lista_clientes(request):
     # Busca cliente selecionado
     cliente_selecionado = None
     if cli:
-        cliente_selecionado = Cliente.objects.filter(id=cli, vinc_emp=request.user.filial_user).first()
+        cliente_selecionado = Cliente.objects.filter(id=cli, vinc_emp=request.user.empresa).first()
 
     # Se o cliente selecionado não for compatível com os filtros, removemos ele
     if cliente_selecionado:
@@ -196,7 +196,7 @@ def add_cliente(request):
                     c.uf = None
             if request.user.is_authenticated:
                 try:
-                    c.vinc_emp = request.user.filial_user  # Busca a filial do usuário logado
+                    c.vinc_emp = request.user.empresa  # Busca a filial do usuário logado
                 except Usuario.DoesNotExist:
                     return JsonResponse({'error': 'Usuário não possui filial vinculada'}, status=400)
             c.save()

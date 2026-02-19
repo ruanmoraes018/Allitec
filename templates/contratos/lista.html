@@ -63,7 +63,7 @@
                     <label class="form-label">Listar por:</label>
                     <div class="d-flex">
                         <select class="form-control" name="list_p" id="list_p">
-                            <option value="Início" {% if request.GET.list_p == 'Início' %}selected{% endif %}>Dt. Início</option>
+                            <option value="dt_inicio" {% if request.GET.list_p == 'dt_inicio' %}selected{% endif %}>Dt. Início</option>
                             <option value="dt_criacao" {% if request.GET.list_p == 'dt_criacao' %}selected{% endif %}>Dt. Emissão</option>
                         </select>
                     </div>
@@ -126,7 +126,12 @@
 
                             <td style="width: 80px;">
                                 <span>
-                                    <i class="fas fa-trash" title="Deletar contrato" data-bs-toggle="modal" data-bs-target="#modal-{{ contrato.id }}"></i>
+                                    <i class="fas fa-trash btn-permissao"
+                                       title="Deletar contrato"
+                                       data-bs-target="#modal-{{ contrato.id }}"
+                                       data-permissao="contratos.delete_contrato"
+                                       data-msg-negado="Seu usuário não pode deletar contratos!">
+                                    </i>
                                 </span>
 
                                 <!-- Modal ÚNICO para cada contrato -->
@@ -142,18 +147,51 @@
                                                 <p>Você confirma a EXCLUSÃO DO CONTRATO <strong>{{ contrato.id }}</strong>?</p>
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-primary btn-confirmar" data-url="{% url 'del-contrato' contrato.id %}" disabled>
-                                                    <u>S</u>im <span class="contador">3</span>
-                                                </button>
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
+                                                <form method="post" action="{% url 'del-contrato' contrato.id %}" class="form-excluir">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                                        <u>S</u>im <span class="contador">3</span>
+                                                    </button>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                        <u>N</u>ão
+                                                    </button>
+                                                </form>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-contrato' contrato.id %}" class="btn-permissao"
-                                  data-permissao="contratos.change_contrato"
-                                  data-msg-negado="Seu usuário não pode editar contratos!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
-                                {% if contrato.status == "Pendente" %}<a href="{% url 'aprovar-contrato' contrato.id %}"><span><i class="fa-regular fa-square-check" title="Aprovar contrato"></i></span></a>{% endif %}
+                                {% if contrato.status == "Pendente" %}
+                                    <a href="{% url 'att-contrato' contrato.id %}" class="btn-permissao"
+                                      data-permissao="contratos.change_contrato"
+                                      data-msg-negado="Seu usuário não pode editar contratos!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
+                                    <a href="{% url 'aprovar-contrato' contrato.id %}"><span><i class="fa-regular fa-square-check" title="Aprovar contrato"></i></span></a>
+                                {% else %}
+                                    <span>
+                                        <i class="fa-solid fa-ban" style="float: right; font-size: 20px; color: #9C2007; cursor: pointer; margin: 5px;" title="Cancelar contrato" data-bs-toggle="modal" data-bs-target="#mdCancCont-{{ contrato.id }}"></i>
+                                    </span>
+                                    <div class="modal fade" id="mdCancCont-{{ contrato.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="mdCancCont-{{ contrato.id }}" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content">
+                                                <div class="modal-header titulo-modal">
+                                                    <h1 class="modal-title fs-5" id="mdCancCont-{{ contrato.id }}">
+                                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                                    </h1>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p style="text-align: justify;">Atenção! Ao cancelar este contrato, as mensalidades em Aberto serão deletadas,
+                                                    porém as mensalidades Baixadas não serão afetadas.<br><br> </p>
+                                                    <p style="text-align: center;">Você deseja realmente CANCELAR O CONTRATO <strong>{{ contrato.id }}</strong>?</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-primary btn-confirmar" data-url="{% url 'cancelar-contrato' contrato.id %}" disabled>
+                                                        <u>S</u>im <span class="contador">3</span>
+                                                    </button>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
                             </td>
                             <td style="align-items: center;">{{ contrato.id }}</td>
                             <td style="text-align: center; padding: 5px;">

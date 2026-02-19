@@ -8,6 +8,7 @@ import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
 from filiais.models import Usuario
+from django.views.decorators.http import require_POST
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -84,6 +85,23 @@ def add_marca(request):
             return render(request, 'marcas/add.html', {'form': form, 'error_messages': error_messages})
     else: form = MarcaForm()
     return render(request, 'marcas/add.html', {'form': form})
+
+@login_required
+@require_POST
+def add_marca_ajax(request):
+    nome = request.POST.get('nome', '').strip().upper()
+    if not nome:
+        return JsonResponse({'erro': 'Nome vazio'}, status=400)
+    empresa = request.user.empresa
+    marca, criada = Marca.objects.get_or_create(
+        nome_marca=nome,
+        vinc_emp=empresa
+    )
+    return JsonResponse({
+        'id': marca.id,
+        'nome': marca.nome_marca,
+        'criada': criada
+    })
 
 @login_required
 def att_marca(request, id):

@@ -91,9 +91,12 @@
                         <tr>
 
                             <td style="width: 80px;">
-                                <a href="{% url 'del-filial' filial.id %}" class="btn-permissao"
-                                  data-permissao="filiais.delete_filial"
-                                  data-msg-negado="Seu usuário não pode deletar filiais!"><span><i class="fas fa-trash" title="Deletar filial"></i></span></a>
+                                <i class="fas fa-trash btn-permissao"
+                                   title="Deletar filial"
+                                   data-bs-target="#modal-{{ filial.id }}"
+                                   data-permissao="filiais.delete_filial"
+                                   data-msg-negado="Seu usuário não pode deletar filiais!">
+                                </i>
                                 <a href="{% url 'att-filial' filial.id %}" class="btn-permissao"
                                   data-permissao="filiais.change_filial"
                                   data-msg-negado="Seu usuário não pode editar filiais!"><span><i class="fas fa-edit" title="Editar filial"></i></span></a>

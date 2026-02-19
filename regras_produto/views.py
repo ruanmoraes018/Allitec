@@ -81,13 +81,13 @@ def lista_regras(request):
                 df = pd.read_excel(arquivo)
             except Exception:
                 messages.error(request, "Erro ao ler o arquivo Excel. Tente novamente a importação.")
-                return redirect("lista_regras")
+                return redirect("lista-regras")
             colunas_faltando = [
                 col for col in COLUNAS_OBRIGATORIAS if col not in df.columns
             ]
             if colunas_faltando:
                 messages.error(request, f"Colunas obrigatórias ausentes: {', '.join(colunas_faltando)}.")
-                return redirect("lista_regras")
+                return redirect("lista-regras")
             erros = []
             for idx, row in df.iterrows():
                 linha = idx + 2
@@ -101,8 +101,8 @@ def lista_regras(request):
             if erros:
                 for erro in erros:
                     messages.error(request, erro)
-                return redirect("lista_regras")
-            empresa = request.user.vinc_emp
+                return redirect("lista-regras")
+            empresa = request.user.empresa
             for _, row in df.iterrows():
                 RegraProduto.objects.update_or_create(
                     vinc_emp=empresa,
@@ -110,7 +110,7 @@ def lista_regras(request):
                     defaults={"descricao": row["descricao"], "tipo": row["tipo"], "expressao": row["expressao"], "ativo": bool(row["ativo"]),}
                 )
             messages.success(request, "Regras de produto importadas com sucesso!")
-            return redirect("lista_regras")
+            return redirect("lista-regras")
     form = ImportarRegraProdutoForm()
     s = request.GET.get('s')
     tp = request.GET.get('tp')

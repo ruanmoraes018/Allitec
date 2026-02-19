@@ -1,6 +1,8 @@
 from django import forms
 from .models import Produto, ProdutoTabela
 from unidades.models import Unidade
+from marcas.models import Marca
+from grupos.models import Grupo
 
 class ProdutoForm(forms.ModelForm):
     situacao = forms.ChoiceField(
@@ -63,7 +65,26 @@ class ProdutoForm(forms.ModelForm):
         )
 
     def __init__(self, *args, **kwargs):
-        super(ProdutoForm, self).__init__(*args, **kwargs)
+        user = kwargs.pop('user', None)   # <<< recebe o usuário
+        super().__init__(*args, **kwargs)
+
+        if user:
+            empresa = user.empresa
+
+            # MARCAS
+            self.fields['marca'].queryset = Marca.objects.filter(
+                vinc_emp=empresa
+            ).order_by('nome_marca')
+
+            # GRUPOS
+            self.fields['grupo'].queryset = Grupo.objects.filter(
+                vinc_emp=empresa
+            ).order_by('descricao')
+
+            # UNIDADES
+            self.fields['unidProd'].queryset = Unidade.objects.filter(
+                vinc_emp=empresa
+            ).order_by('descricao')
 
 class ProdutoTabelaForm(forms.ModelForm):
     vl_prod = forms.DecimalField(localize=False)

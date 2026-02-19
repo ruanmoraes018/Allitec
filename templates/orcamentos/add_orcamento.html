@@ -193,7 +193,8 @@
                                         <input type="text" step="0.01" placeholder="0,00" min="0.01" class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly"
                                             id="id_desconto" name="desconto" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
                                         <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao"
-                                            data-permissao="orcamentos.atribuir_desconto" data-acao="atribuir_desconto" id="btnDesconto">
+                                            data-permissao="orcamentos.atribuir_desconto" data-acao="atribuir_desconto" id="btnDesconto"
+                                            data-modulo="Orçamentos" data-registro-desc="Criação de Novo Orçamento">
                                             <i class="fa-solid fa-pen-to-square"></i>
                                         </button>
                                     </div>
@@ -204,8 +205,10 @@
                                     <div class="input-group">
                                         <input type="text" step="0.01" placeholder="0,00" min="0.01" class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly"
                                             id="id_acrescimo" name="acrescimo" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao" data-permissao="orcamentos.atribuir_acrescimo"
-                                            data-acao="atribuir_acrescimo" data-msg-negado="Você não tem permissão para aplicar acréscimo!">
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao"
+                                                data-permissao="orcamentos.atribuir_acrescimo" data-acao="atribuir_acrescimo" id="btnAcrescimo"
+                                                data-modulo="Orçamentos" data-registro-desc="Criação de Novo Orçamento">
                                             <i class="fa-solid fa-pen-to-square"></i>
                                         </button>
                                     </div>
@@ -278,73 +281,38 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header titulo-modal">
-                    <h5 class="modal-title" id="confirmModalLabel"><i class="fa-solid fa-circle-info"></i> Atenção!</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title mx-auto" id="confirmModalLabel"><i class="fa-solid fa-circle-info" style="float: none; color: white;"></i> Atenção!</h5>
                 </div>
                 <div class="modal-body">
                     Você não tem permissão para realizar esta ação. Deseja enviar uma solicitação para um usuário autorizado?
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Não</button>
                     <button type="button" class="btn btn-primary" id="confirmSend">Sim</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Não</button>
                 </div>
             </div>
         </div>
     </div>
-
     <!-- Modal de Seleção de Usuário -->
-    <div class="modal fade" id="userSelectModal" tabindex="-1" aria-labelledby="userSelectModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+    <div class="modal fade" id="userSelectModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header titulo-modal">
-                    <h5 class="modal-title" id="userSelectModalLabel"><i class="fa-solid fa-user-tie"></i> Selecionar Usuário</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title mx-auto"><i class="fa-solid fa-user-tie"></i> Liberação de Permissão</h5>
                 </div>
                 <div class="modal-body">
-                    <select id="userSelect" class="form-select">
-                        <option selected value="">--------</option>
-                        <!-- Options serão preenchidas via AJAX -->
+                    <label class="form-label">Usuário Autorizador</label>
+                    <select id="userSelect" class="form-select mb-3">
+                        <option value="">--------</option>
                     </select>
+                    <label class="form-label">Senha de liberação</label>
+                    <input type="password" id="senhaLiberacao" class="form-control" placeholder="Digite a senha do autorizador">
+                    <small class="text-muted">O autorizador pode digitar a senha aqui para liberar imediatamente.</small>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="sendNotification"><i class="fa-solid fa-paper-plane"></i> Enviar Notificação</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="modal fade" id="produtoModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="produtoModalLabel" aria-hidden="true">
-        <div class="modal-dialog  modal-lg modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="produtoModalLabel">Pesquisar Produtos Principais</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="input-group mb-3">
-                        <input type="text" id="campo-pesquisa-produto" class="form-control" placeholder="Digite a descrição do produto">
-                        <button class="btn btn-dark" id="pesquisar-produtos">🔎</button>
-                    </div>
-                    <div class="table-container mt-3">
-                        <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th scope="col">Opções</th>
-                                    <th scope="col">Código</th>
-                                    <th scope="col">Descrição</th>
-                                    <th scope="col">Unidade</th>
-                                    <th scope="col">Estoque</th>
-                                    <th scope="col">Valor</th>
-                                </tr>
-                            </thead>
-                            <tbody id="produtos-lista">
-                                <!-- Os produtos serão listados aqui -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"> <i class='fa-solid fa-circle-xmark' style="float: none; color: white; margin: 0; font-size: 16px;"></i> Fechar</button>
+                    <button type="button" class="btn btn-success btn-sm" id="liberarAgora"> <i class="fa-solid fa-key"></i> Liberar</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="sendNotification"> <i class="fa-solid fa-paper-plane"></i> Enviar Msg.</button>
                 </div>
             </div>
         </div>
@@ -396,41 +364,6 @@
             </div>
         </div>
     </div>
-    <div class="modal fade" id="produtoAdcModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="produtoAdcModalLabel" aria-hidden="true">
-        <div class="modal-dialog  modal-lg modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="produtoAdcModalLabel">Pesquisar Produtos Adicionais</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="input-group mb-3">
-                        <input type="text" id="campo-pesquisa-produto-adicional" class="form-control" placeholder="Digite a descrição do produto">
-                        <button class="btn btn-dark" id="pesquisar-produtos-adicionais">🔎</button>
-                    </div>
-                    <div class="table-container mt-3">
-                        <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th scope="col">Opções</th>
-                                    <th scope="col">Código</th>
-                                    <th scope="col">Descrição</th>
-                                    <th scope="col">Unidade</th>
-                                    <th scope="col">Estoque</th>
-                                    <th scope="col">Valor</th>
-                                </tr>
-                            </thead>
-                            <tbody id="produtosAdc-lista">
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                </div>
-            </div>
-        </div>
-    </div>
     <div class="modal fade" id="editItemAdcModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -478,12 +411,85 @@
             </div>
         </div>
     </div>
+    {% comment %} Consulta de Produtos Principais {% endcomment %}
+    <div class="modal fade" id="produtoModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="produtoModalLabel" aria-hidden="true">
+        <div class="modal-dialog  modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h5 class="modal-title" id="produtoModalLabel"><i class="fa-solid fa-magnifying-glass"></i> Pesquisar Produtos Principais</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <input type="text" id="campo-pesquisa-produto-principal" class="form-control" placeholder="Digite a descrição do produto">
+                        <button class="btn btn-dark" id="pesquisar-produtos-principais">🔎</button>
+                    </div>
+                    <div class="table-container mt-3">
+                        <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th scope="col">Opções</th>
+                                    <th scope="col">Código</th>
+                                    <th scope="col">Descrição</th>
+                                    <th scope="col">Unidade</th>
+                                    <th scope="col">Estoque</th>
+                                    <th scope="col">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="produtosPrincipais-lista">
+                                <!-- Os produtos serão listados aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% comment %} Consulta de Produtos Adicionais {% endcomment %}
+    <div class="modal fade" id="produtoAdcModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="produtoAdcModalLabel" aria-hidden="true">
+        <div class="modal-dialog  modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h5 class="modal-title" id="produtoAdcModalLabel"><i class="fa-solid fa-magnifying-glass"></i> Pesquisar Produtos Adicionais</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <input type="text" id="campo-pesquisa-produto-adicional" class="form-control" placeholder="Digite a descrição do produto">
+                        <button class="btn btn-dark" id="pesquisar-produtos-adicionais">🔎</button>
+                    </div>
+                    <div class="table-container mt-3">
+                        <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th scope="col">Opções</th>
+                                    <th scope="col">Código</th>
+                                    <th scope="col">Descrição</th>
+                                    <th scope="col">Unidade</th>
+                                    <th scope="col">Estoque</th>
+                                    <th scope="col">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="produtosAdc-lista">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Modal -->
     <div class="modal fade" id="modalDesconto" tabindex="-1" aria-labelledby="modalDescontoLabel" aria-hidden="true">
         <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-dark text-white">
-                    <h1 class="modal-title fs-5" id="modalDescontoLabel">Atribuir Desconto (-)</h1>
+                    <h5 class="modal-title" id="modalDescontoLabel"><i class="fa-solid fa-circle-minus"></i> Atribuir Desconto</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -521,7 +527,7 @@
         <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-dark text-white">
-                    <h1 class="modal-title fs-5" id="modalAcrescimoLabel">Atribuir Acréscimo (+)</h1>
+                    <h5 class="modal-title" id="modalAcrescimoLabel"><i class="fa-solid fa-circle-plus"></i> Atribuir Acréscimo</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -554,64 +560,5 @@
             </div>
         </div>
     </div>
-    {% comment %} <div class="col-md-2" id="div_id_cod_prod">
-        <label for="id_cod_prod" class="form-label requiredField">Cód.</label>
-        <div class="input-group">
-            <input type="text" id="id_cod_prod" class="form-control form-control-sm border-dark-subtle" placeholder="Cód. Prod." aria-label="Cód. Prod." aria-describedby="button-addon2">
-            <button class="btn btn-outline-dark btn-sm" type="button" id="button-addon2">🔎</button>
-        </div>
-    </div>
-    <div class="col-md-3" id="div_id_desc_prod">
-        <label for="id_desc_prod" class="form-label requiredField">Descrição</label>
-        <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_desc_prod" name="desc_prod" disabled="disabled">
-    </div>
-    <div class="col-md-2" id="div_id_unid_prod">
-        <label for="id_unidProd" class="form-label requiredField">Unidade</label>
-        <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_unidProduto" name="unid_prod" disabled="disabled">
-    </div>
-
-    <div class="col-md-1" id="div_id_vl_prod">
-        <label for="id_vl_prod" class="form-label requiredField">Valor*</label>
-        <input type="text" style="color: #2E8B57; font-weight: bold;" class="form-control form-control-sm border-dark-subtle valor_os" placeholder="0.00" id="id_vl_prod" name="vl_prod">
-    </div>
-    <div class="col-md-1" id="div_id_qtd_prod">
-        <label for="id_qtd_prod" class="form-label requiredField">Qtde.*</label>
-        <input type="text" class="form-control form-control-sm border-dark-subtle" placeholder="0.00" id="id_qtd_prod" name="qtd_prod">
-    </div>
-    <div class="col-md-1 d-flex align-items-end">
-        <button type="button" class="btn btn-success btn-sm" id="addItemProdBtn"><i class="fas fa-plus"></i></button>
-    </div>
-    <div class="col-md-1" id="div_id_vl_compra">
-        <input type="hidden" style="color: #DC143C; font-weight: bold;" class="form-control form-control-sm border-dark-subtle valor_os" id="id_vl_compra" name="vl_compra" disabled="disabled">
-    </div> {% endcomment %}
-    {% comment %} <div class="col-md-2" id="div_id_cod_prod_adc">
-        <label for="id_cod_prod_adc" class="form-label requiredField">Cód.</label>
-        <div class="input-group">
-            <input type="text" id="id_cod_prod_adc" class="form-control form-control-sm border-dark-subtle" placeholder="Cód. Prod." aria-label="Cód. Prod. Adicional" aria-describedby="button-addon3">
-            <button class="btn btn-outline-dark btn-sm" type="button" id="button-addon3">🔎</button>
-        </div>
-    </div>
-    <div class="col-md-3" id="div_id_desc_prod_adc">
-        <label for="id_desc_prod_adc" class="form-label requiredField">Descrição</label>
-        <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_desc_prod_adc" name="desc_prod_adc" disabled="disabled">
-    </div>
-    <div class="col-md-2" id="div_id_unidProd_adc">
-        <label for="id_unidProd_adc" class="form-label requiredField">Unidade</label>
-        <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_unidProd_adc" name="unidProd_adc" disabled="disabled">
-    </div>
-    <div class="col-md-1" id="div_id_vl_prod_adc">
-        <label for="id_vl_prod_adc" class="form-label requiredField">Valor*</label>
-        <input type="text" style="color: #2E8B57; font-weight: bold;" class="form-control form-control-sm border-dark-subtle valor_os" placeholder="0.00" id="id_vl_prod_adc" name="vl_prod_adc">
-    </div>
-    <div class="col-md-1" id="div_id_qtd_prod_adc">
-        <label for="id_qtd_prod_adc" class="form-label requiredField">Qtde.*</label>
-        <input type="text" class="form-control form-control-sm border-dark-subtle" placeholder="0.00" id="id_qtd_prod_adc" name="qtd_prod_adc">
-    </div>
-    <div class="col-md-1 d-flex align-items-end">
-        <button type="button" class="btn btn-success btn-sm" id="addItemValorAdcBtn"><i class="fas fa-plus"></i></button>
-    </div>
-    <div class="col-md-1" id="div_id_vl_compra_adc">
-        <input type="hidden" style="color: #DC143C; font-weight: bold;" class="form-control form-control-sm border-dark-subtle valor_os" id="id_vl_compra_adc" name="vl_compra_adc" disabled="disabled">
-    </div> {% endcomment %}
 </div>
 {% endblock %}

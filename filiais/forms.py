@@ -7,12 +7,14 @@ from cidades.models import Cidade
 from estados.models import Estado
 from django.contrib.auth import get_user_model
 from empresas.models import Empresa
+from django.db.models import Q
 
 Usuario = get_user_model()
 
 class EmpresaLoginForm(forms.Form):
-    empresa = forms.IntegerField(
+    empresa_login = forms.IntegerField(
         label="ID da Empresa",
+
         widget=forms.NumberInput(attrs={'class': 'form-control'})
     )
     username = forms.CharField(
@@ -26,16 +28,25 @@ class EmpresaLoginForm(forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
-        empresa = cleaned_data.get("empresa")
+        empresa_login = cleaned_data.get("empresa_login")
         username = cleaned_data.get("username")
         password = cleaned_data.get("password")
 
-        if not all([empresa, username, password]):
+        if not all([empresa_login, username, password]):
             return cleaned_data
 
         # Verifica se a empresa existe e está ativa
         try:
-            empresa = Empresa.objects.get(id=empresa, situacao='Ativa')
+            empresa = Empresa.objects.filter(
+                id=empresa_login,
+                situacao='Ativa',
+                contrato__situacao='Ativo'
+            ).distinct().first()
+
+            if not empresa:
+                raise forms.ValidationError(
+                    "Empresa não encontrada, inativa ou sem contrato ativo."
+                )
         except Empresa.DoesNotExist:
             raise forms.ValidationError("Empresa não encontrada ou inativa.")
 
@@ -53,7 +64,7 @@ class EmpresaLoginForm(forms.Form):
             raise forms.ValidationError("Usuário, senha ou empresa incorretos.")
 
         cleaned_data["user"] = user
-        cleaned_data["empresa"] = empresa
+        cleaned_data["empresa_login"] = empresa
         return cleaned_data
 
 

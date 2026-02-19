@@ -78,19 +78,19 @@ def verificar_ou_criar_localizacao(request):
     # Estado
     estado = Estado.objects.filter(nome_estado__iexact=estado_nome).first()
     if not estado:
-        estado = Estado.objects.create(nome_estado=estado_nome)
+        estado = Estado.objects.create(nome_estado=estado_nome, vinc_emp=request.user.empresa)
 
     # Cidade
     cidade = Cidade.objects.filter(nome_cidade__iexact=cidade_nome).first()
     if not cidade:
-        cidade = Cidade.objects.create(nome_cidade=cidade_nome)
+        cidade = Cidade.objects.create(nome_cidade=cidade_nome, vinc_emp=request.user.empresa)
 
     # Bairro
     bairro = None
     if bairro_nome:
         bairro = Bairro.objects.filter(nome_bairro__iexact=bairro_nome).first()
         if not bairro:
-            bairro = Bairro.objects.create(nome_bairro=bairro_nome)
+            bairro = Bairro.objects.create(nome_bairro=bairro_nome, vinc_emp=request.user.empresa)
 
     response = {
         'estado_id': estado.id,

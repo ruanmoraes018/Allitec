@@ -223,8 +223,8 @@
                                                                     class="form-control form-control-sm cod-prod"
                                                                     data-porta="{{ pt.numero }}"
                                                                     placeholder="Cód. Produto">
-                                                                <button class="btn btn-outline-dark btn-sm btn-busca-prod"
-                                                                        data-porta="{{ pt.numero }}">
+                                                                <button class="btn btn-outline-dark btn-sm btn-busca-prod" type="button"
+                                                                        data-porta="{{ pt.numero }}" data-bs-toggle="modal" data-bs-target="#produtoModal">
                                                                     🔎
                                                                 </button>
                                                             </div>
@@ -366,8 +366,8 @@
                                                                     class="form-control form-control-sm cod-prod-adc"
                                                                     data-porta="{{ pt.numero }}"
                                                                     placeholder="Cód. Produto">
-                                                                <button class="btn btn-outline-dark btn-sm btn-busca-prod-adc"
-                                                                        data-porta="{{ pt.numero }}">
+                                                                <button class="btn btn-outline-dark btn-sm btn-busca-prod-adc" type="button"
+                                                                        data-porta="{{ pt.numero }}" data-bs-toggle="modal" data-bs-target="#produtoAdcModal">
                                                                     🔎
                                                                 </button>
                                                             </div>
@@ -504,7 +504,9 @@
                                         <input type="text" step="0.01" placeholder="0,00" min="0.01" class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly"
                                             id="id_desconto" name="desconto" value="{{ form.desconto.value }}" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
                                         <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao"
-                                            data-permissao="orcamentos.atribuir_desconto" data-acao="atribuir_desconto" id="btnDesconto">
+                                            data-permissao="orcamentos.atribuir_desconto" data-acao="atribuir_desconto" id="btnDesconto"
+                                            data-modulo="Orçamentos" data-registro-id="{{ orcamento.id }}"
+                                            data-registro-desc="Clonagem do Orçamento nº {{ orcamento.id }} - {{ orcamento.nome_cli }}">
                                             <i class="fa-solid fa-pen-to-square"></i>
                                         </button>
                                     </div>
@@ -516,7 +518,9 @@
                                         <input type="text" step="0.01" placeholder="0,00" min="0.01"
                                             class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly" id="id_acrescimo" name="acrescimo" value="{{ form.acrescimo.value }}" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
                                         <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao"
-                                                data-permissao="orcamentos.atribuir_acrescimo" data-acao="atribuir_acrescimo" id="btnAcrescimo">
+                                                data-permissao="orcamentos.atribuir_acrescimo" data-acao="atribuir_acrescimo" id="btnAcrescimo"
+                                                data-modulo="Orçamentos" data-registro-id="{{ orcamento.id }}"
+                                                data-registro-desc="Clonagem do Orçamento nº {{ orcamento.id }} - {{ orcamento.nome_cli }}">
                                             <i class="fa-solid fa-pen-to-square"></i>
                                         </button>
                                     </div>
@@ -690,17 +694,18 @@
             </div>
         </div>
     </div>
+    {% comment %} Consulta de Produtos Principais {% endcomment %}
     <div class="modal fade" id="produtoModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="produtoModalLabel" aria-hidden="true">
         <div class="modal-dialog  modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header titulo-modal">
-                    <h5 class="modal-title" id="produtoModalLabel">Pesquisar Produtos Principais</h5>
+                    <h5 class="modal-title" id="produtoModalLabel"><i class="fa-solid fa-magnifying-glass"></i> Pesquisar Produtos Principais</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="input-group mb-3">
-                        <input type="text" id="campo-pesquisa-produto" class="form-control" placeholder="Digite a descrição do produto">
-                        <button class="btn btn-dark" id="pesquisar-produtos">🔎</button>
+                        <input type="text" id="campo-pesquisa-produto-principal" class="form-control" placeholder="Digite a descrição do produto">
+                        <button class="btn btn-dark" id="pesquisar-produtos-principais">🔎</button>
                     </div>
                     <div class="table-container mt-3">
                         <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
@@ -714,7 +719,7 @@
                                     <th scope="col">Valor</th>
                                 </tr>
                             </thead>
-                            <tbody id="produtos-lista">
+                            <tbody id="produtosPrincipais-lista">
                                 <!-- Os produtos serão listados aqui -->
                             </tbody>
                         </table>
@@ -726,11 +731,12 @@
             </div>
         </div>
     </div>
+    {% comment %} Consulta de Produtos Adicionais {% endcomment %}
     <div class="modal fade" id="produtoAdcModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="produtoAdcModalLabel" aria-hidden="true">
         <div class="modal-dialog  modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header titulo-modal">
-                    <h5 class="modal-title" id="produtoAdcModalLabel">Pesquisar Produtos Adicionais</h5>
+                    <h5 class="modal-title" id="produtoAdcModalLabel"><i class="fa-solid fa-magnifying-glass"></i> Pesquisar Produtos Adicionais</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -761,80 +767,121 @@
             </div>
         </div>
     </div>
-    <!-- Modal -->
-    <div class="modal fade" id="modalDesconto" tabindex="-1" aria-labelledby="modalDescontoLabel" aria-hidden="true">
-        <div class="modal-dialog modal-sm modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-dark text-white">
-            <h1 class="modal-title fs-5" id="modalDescontoLabel">Atribuir Desconto (-)</h1>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-            <div class="col">
-                <label class="form-label fw-bold" for="tipo_desconto">Tipo de desconto:</label>
-                <select class="form-control" id="tipo_desconto">
-                    <option selected value="valor">Valor (R$)</option>
-                    <option value="porcentagem">Porcentagem (%)</option>
-                </select>
-            </div>
-            <div class="col">
-                <label class="form-label fw-bold" for="campo_desconto">Valor:</label>
-                <div class="input-group mb-3">
-                    <span class="input-group-text" id="simbolo">R$</span>
-                    <input class="form-control" id="campo_desconto" value="{{ form.desconto.value }}" type="text" placeholder="0.00" aria-describedby="simbolo">
+    <!-- Modal de Confirmação -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h5 class="modal-title" id="confirmModalLabel"><i class="fa-solid fa-circle-info" style="float: none; color: white;"></i> Atenção!</h5>
                 </div>
-            </div>
-            <div class="col">
-                <label class="form-label fw-bold" for="auxiliar_desconto">Percentual:</label>
-                <div class="input-group mb-3">
-                    <span class="input-group-text" id="simboloAuxiliar">%</span>
-                    <input class="form-control" id="auxiliar_desconto" disabled="disabled" type="text" placeholder="0.00" aria-describedby="simboloAuxiliar">
+                <div class="modal-body">
+                    Você não tem permissão para realizar esta ação. Deseja enviar uma solicitação para um usuário autorizado?
                 </div>
-            </div>
-            </div>
-            <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-            <button type="button" class="btn btn-primary" id="confirmarDesconto">Atribuir</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="confirmSend">Sim</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Não</button>
+                </div>
             </div>
         </div>
+    </div>
+    <!-- Modal de Seleção de Usuário -->
+    <div class="modal fade" id="userSelectModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h5 class="modal-title"><i class="fa-solid fa-user-tie"></i> Liberação de Permissão</h5>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label">Usuário Autorizador</label>
+                    <select id="userSelect" class="form-select mb-3">
+                        <option value="">--------</option>
+                    </select>
+                    <label class="form-label">Senha de liberação</label>
+                    <input type="password" id="senhaLiberacao" class="form-control" placeholder="Digite a senha do autorizador">
+                    <small class="text-muted">O autorizador pode digitar a senha aqui para liberar imediatamente.</small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"> <i class='fa-solid fa-circle-xmark' style="float: none; color: white; margin: 0; font-size: 16px;"></i> Fechar</button>
+                    <button type="button" class="btn btn-success btn-sm" id="liberarAgora"> <i class="fa-solid fa-key"></i> Liberar</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="sendNotification"> <i class="fa-solid fa-paper-plane"></i> Enviar Msg.</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="modalDesconto" tabindex="-1" aria-labelledby="modalDescontoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h5 class="modal-title" id="modalDescontoLabel"><i class="fa-solid fa-circle-minus"></i> Atribuir Desconto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="col">
+                        <label class="form-label fw-bold" for="tipo_desconto">Tipo de desconto:</label>
+                        <select class="form-control" id="tipo_desconto">
+                            <option selected value="valor">Valor (R$)</option>
+                            <option value="porcentagem">Porcentagem (%)</option>
+                        </select>
+                    </div>
+                    <div class="col">
+                        <label class="form-label fw-bold" for="campo_desconto">Valor:</label>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="simbolo">R$</span>
+                            <input class="form-control" id="campo_desconto" value="{{ form.desconto.value }}" type="text" placeholder="0.00" aria-describedby="simbolo">
+                        </div>
+                    </div>
+                    <div class="col">
+                        <label class="form-label fw-bold" for="auxiliar_desconto">Percentual:</label>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="simboloAuxiliar">%</span>
+                            <input class="form-control" id="auxiliar_desconto" disabled="disabled" type="text" placeholder="0.00" aria-describedby="simboloAuxiliar">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="confirmarDesconto">Atribuir</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
         </div>
     </div>
     <!-- Modal -->
     <div class="modal fade" id="modalAcrescimo" tabindex="-1" aria-labelledby="modalAcrescimoLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-dark text-white">
-            <h1 class="modal-title fs-5" id="modalAcrescimoLabel">Atribuir Acréscimo (+)</h1>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-            <div class="col">
-                <label class="form-label fw-bold" for="tipo_acrescimo">Tipo de Acréscimo:</label>
-                <select class="form-control" id="tipo_acrescimo">
-                    <option selected value="valor">Valor (R$)</option>
-                    <option value="porcentagem">Porcentagem (%)</option>
-                </select>
-            </div>
-            <div class="col">
-                <label class="form-label fw-bold" for="campo_acrescimo">Valor:</label>
-                <div class="input-group mb-3">
-                    <span class="input-group-text" id="simboloAc">R$</span>
-                    <input class="form-control" id="campo_acrescimo" value="{{ form.acrescimo.value }}" type="text" placeholder="0.00" aria-describedby="simboloAc">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h5 class="modal-title" id="modalAcrescimoLabel"><i class="fa-solid fa-circle-plus"></i> Atribuir Acréscimo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="col">
+                        <label class="form-label fw-bold" for="tipo_acrescimo">Tipo de Acréscimo:</label>
+                        <select class="form-control" id="tipo_acrescimo">
+                            <option selected value="valor">Valor (R$)</option>
+                            <option value="porcentagem">Porcentagem (%)</option>
+                        </select>
+                    </div>
+                    <div class="col">
+                        <label class="form-label fw-bold" for="campo_acrescimo">Valor:</label>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="simboloAc">R$</span>
+                            <input class="form-control" id="campo_acrescimo" value="{{ form.acrescimo.value }}" type="text" placeholder="0.00" aria-describedby="simboloAc">
+                        </div>
+                    </div>
+                    <div class="col">
+                        <label class="form-label fw-bold" for="auxiliar_acrescimo">Percentual:</label>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="simboloAuxiliarAc">%</span>
+                            <input class="form-control" id="auxiliar_acrescimo" disabled="disabled" type="text" placeholder="0.00" aria-describedby="simboloAuxiliarAc">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="confirmarAcrescimo">Atribuir</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                 </div>
             </div>
-            <div class="col">
-                <label class="form-label fw-bold" for="auxiliar_acrescimo">Percentual:</label>
-                <div class="input-group mb-3">
-                    <span class="input-group-text" id="simboloAuxiliarAc">%</span>
-                    <input class="form-control" id="auxiliar_acrescimo" disabled="disabled" type="text" placeholder="0.00" aria-describedby="simboloAuxiliarAc">
-                </div>
-            </div>
-            </div>
-            <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-            <button type="button" class="btn btn-primary" id="confirmarAcrescimo">Atribuir</button>
-            </div>
-        </div>
         </div>
     </div>
 </div>
