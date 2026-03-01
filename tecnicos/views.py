@@ -103,7 +103,7 @@ def add_tecnico(request):
         messages.info(request, 'Você não tem permissão para adicionar técnicos.')
         return redirect('/tecnicos/lista/')
     if request.method == 'POST':
-        form = TecnicoForm(request.POST)
+        form = TecnicoForm(request.POST, empresa=request.user.empresa)
         if form.is_valid():
             t = form.save(commit=False)
             if request.user.is_authenticated:
@@ -122,18 +122,18 @@ def add_tecnico(request):
                     for error in field.errors:
                         error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'tecnicos/add-tecnico.html', {'form': form, 'error_messages': error_messages})
-    else: form = TecnicoForm()
+    else: form = TecnicoForm(empresa=request.user.empresa)
     return render(request, 'tecnicos/add-tecnico.html', {'form': form})
 
 @login_required
 def att_tecnico(request, id):
     tec = get_object_or_404(Tecnico, pk=id)
-    form = TecnicoForm(instance=tec)
+    form = TecnicoForm(instance=tec, empresa=request.user.empresa)
     if not request.user.has_perm('tecnicos.change_tecnico'):
         messages.info(request, 'Você não tem permissão para editar técnicos.')
         return redirect('/tecnicos/lista/')
     if request.method == 'POST':
-        form = TecnicoForm(request.POST, instance=tec)
+        form = TecnicoForm(request.POST, instance=tec, empresa=request.user.empresa)
         if form.is_valid():
             tec.save()
             t = str(tec.id)
@@ -147,6 +147,7 @@ def att_tecnico(request, id):
                         error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'tecnicos/att-tecnico.html', {'form': form, 'tec': tec, 'error_messages': error_messages})
     else:
+        form = TecnicoForm(instance=tec, empresa=request.user.empresa)
         return render(request, 'tecnicos/att-tecnico.html', {'form': form, 'tec': tec})
 
 @login_required

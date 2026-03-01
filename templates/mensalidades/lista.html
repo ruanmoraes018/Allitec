@@ -217,7 +217,7 @@
                             <td style="align-items: center;">{{ mensalidade.dt_venc|date:"d/m/Y" }}</td>
                             <td style="align-items: center;">{{ mensalidade.vl_mens|moeda_br }}</td>
                             <td style="text-align: center;">
-                                {% if mensalidade.dias_atraso > 1 %}
+                                {% if mensalidade.dias_atraso > 0 %}
                                     <span class="fw-bold text-danger">
                                         {{ mensalidade.dias_atraso }}
                                     </span>

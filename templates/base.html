@@ -283,6 +283,15 @@
                                         <a href="{% url 'lista-mensalidades' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Mensalidades</a>
                                     </div>
                                 </div>
+                            {% elif perm_view_contareceber %}
+                                <a class="btn btn-dark w-100 text-start" data-bs-toggle="collapse" href="#guiaFinanceiro" role="button" aria-expanded="false" aria-controls="guiaFinanceiro">
+                                    <i class="fa-solid fa-building-columns"></i> Financeiro
+                                </a>
+                                <div class="collapse" id="guiaFinanceiro">
+                                    <div class="p-2">
+                                        <a href="{% url 'lista-contas-receber' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Contas à Receber</a>
+                                    </div>
+                                </div>
                             {% endif %}
                         </div>
                     </div>

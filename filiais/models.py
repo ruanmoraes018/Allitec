@@ -85,6 +85,30 @@ class Filial(models.Model):
         default=data_hoje_formatada
     )
     dt_inativacao = models.CharField(max_length=30, verbose_name='Data de Inativação', blank=True, null=True)
+    max_parcelas = models.PositiveIntegerField(default=1)
+
+    tp_calc_juros = models.CharField(
+        max_length=15,
+        verbose_name="Tp. Cálculo Juros",
+        choices=[
+            ('Percentual', 'Percentual'),
+            ('Valor', 'Valor')
+        ],
+        default="Percentual"
+    )
+
+    tp_calc_multa = models.CharField(
+        max_length=15,
+        verbose_name="Tp. Cálculo Multa",
+        choices=[
+            ('Percentual', 'Percentual'),
+            ('Valor', 'Valor')
+        ],
+        default="Percentual"
+    )
+
+    ft_multa = models.DecimalField(verbose_name="Fator Multa", max_digits=10, decimal_places=2, default=0, null=True, blank=True)
+    ft_juros = models.DecimalField(verbose_name="Fator Juros",max_digits=10, decimal_places=2, default=0, null=True, blank=True)
 
     principal = models.BooleanField(default=False, verbose_name='Filial Principal')
     vinculada_a = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='filiais_secundarias', verbose_name='Filial Vinculada à')

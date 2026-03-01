@@ -243,23 +243,26 @@ def buscar_produtos(request):
     termo = request.GET.get('s', '').strip()
     filtro = request.GET.get('tp', 'desc')  # desc | cod
     tp_produto = request.GET.get('tp_prod', '')  # Principal | Adicional | ''
+    tabela_id = request.GET.get('tabela_id')
+    auto = request.GET.get('auto') == '1'
 
     produtos = Produto.objects.none()
-
+    empresa = request.user.empresa
     if filtro == 'desc':
         norm_termo = remove_accents(termo).lower()
         produtos = Produto.objects.filter(
+            vinc_emp=empresa,
             desc_normalizado__icontains=norm_termo,
             lista_orc=True
         )
 
         if tp_produto:
-            produtos = produtos.filter(tp_prod__icontains=tp_produto)
+            produtos = produtos.filter(vinc_emp=empresa, tp_prod__icontains=tp_produto)
 
     elif filtro == 'cod' and termo:
         produtos = Produto.objects.filter(id=termo)
         if tp_produto:
-            produtos = produtos.filter(tp_prod__icontains=tp_produto)
+            produtos = produtos.filter(vinc_emp=empresa, tp_prod__icontains=tp_produto)
 
     produtos = (
         produtos
@@ -270,7 +273,19 @@ def buscar_produtos(request):
     data = []
 
     for prod in produtos:
-        tabela = prod.produtotabela_set.first()
+        # 🚫 Ignorar produtos com regra expressão = "0"
+        if auto and prod.regra:
+            expr = (prod.regra.expressao or '').strip()
+            if expr in ['0', '0.0', '0.00']:
+                continue
+
+        tabela = None
+
+        if tabela_id:
+            tabela = ProdutoTabela.objects.filter(
+                produto=prod,
+                tabela_id=tabela_id
+            ).first()
 
         data.append({
             'id': prod.id,
@@ -280,7 +295,7 @@ def buscar_produtos(request):
             'estoque_prod': getattr(prod, 'estoque_prod', None),
 
             'vl_compra': prod.vl_compra,
-            'vl_prod': tabela.vl_prod if tabela else None,
+            'vl_prod': float(tabela.vl_prod) if tabela else None,
 
             'tp_prod': prod.tp_prod,
 

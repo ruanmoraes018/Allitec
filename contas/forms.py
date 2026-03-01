@@ -70,7 +70,7 @@ class UsuarioCadastroForm(forms.ModelForm):
                 'entradas', 'filiais', 'usuarios', 'clientes',
                 'produtos', 'orcamentos', 'tecnicos', 'tipo_cobranca', 'pedidos',
                 'bairros', 'cidades', 'estados', 'grupos', 'bancos', 'unidades', 'fornecedores', 'marcas',
-                'tabelas_preco',
+                'tabelas_preco', 'contas_receber'
             ]
         ),
         widget=forms.CheckboxSelectMultiple,
@@ -150,13 +150,14 @@ class UsuarioCadastroForm(forms.ModelForm):
             'view_marca', 'add_marca', 'change_marca', 'delete_marca',
             'view_regraproduto', 'add_regraproduto', 'change_regraproduto', 'delete_regraproduto'
             'view_pedido', 'add_pedido', 'change_pedido', 'delete_pedido', 'faturar_pedido', 'cancelar_pedido', 'atribuir_desconto_ped', 'atribuir_acrescimo_ped',
+            'view_contareceber', 'add_contareceber', 'change_contareceber', 'delete_contareceber', 'atribuir_desconto_cr', 'baixar_cr', 'estornar_cr',
         ]
 
         permissoes = Permission.objects.filter(
             content_type__app_label__in=[
                 'formas_pgto', 'tipo_cobranca', 'entradas', 'bairros', 'cidades', 'estados',
                 'grupos', 'bancos', 'unidades', 'filiais', 'usuarios', 'tabelas_preco',
-                'clientes', 'fornecedores', 'produtos', 'orcamentos', 'tecnicos', 'pedidos', 'marcas', 'regras_produto',
+                'clientes', 'fornecedores', 'produtos', 'orcamentos', 'tecnicos', 'pedidos', 'marcas', 'regras_produto', 'contas_receber'
             ]
         )
         permissoes_ordenadas = sorted(
@@ -174,6 +175,7 @@ class UsuarioCadastroForm(forms.ModelForm):
             'Cadastros': ['Clientes', 'Filiais', 'Fornecedores', 'Produtos', 'Técnicos', 'Usuários'],
             'Estoque': ['Entradas de NF/Pedidos'],
             'Faturamento': ['Pedidos', 'Orçamentos'],
+            'Financeiro': ['Contas à Receber',],
         })
 
         grupo_permissoes = OrderedDict({
@@ -182,6 +184,7 @@ class UsuarioCadastroForm(forms.ModelForm):
             'Tipos de Cobrança': [],
             'Tabelas de Preço': [],
             'Entradas de NF/Pedidos': [],
+            'Contas à Receber': [],
             'Bairros': [],
             'Cidades': [],
             'Estados': [],
@@ -237,6 +240,11 @@ class UsuarioCadastroForm(forms.ModelForm):
             'faturar_pedido', 'cancelar_pedido',
         ]
 
+        cr_perms = [
+            'view_contareceber', 'add_contareceber', 'change_contareceber',
+            'delete_contareceber', 'atribuir_desconto_cr', 'baixar_cr', 'estornar_cr',
+        ]
+
         for perm in permissoes_ordenadas:
             if 'bairro' in perm.codename:
                 grupo_permissoes['Bairros'].append(perm)
@@ -254,6 +262,8 @@ class UsuarioCadastroForm(forms.ModelForm):
                 grupo_permissoes['Entradas de NF/Pedidos'].append(perm)
             elif perm.codename in regras_perms:
                 grupo_permissoes['Regras de Produto'].append(perm)
+            elif perm.codename in cr_perms:
+                grupo_permissoes['Contas à Receber'].append(perm)
             elif 'cidade' in perm.codename:
                 grupo_permissoes['Cidades'].append(perm)
             elif 'estado' in perm.codename:

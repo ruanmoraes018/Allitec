@@ -15,6 +15,7 @@ urlpatterns = [
     path('admin/logout/', auth_views.LogoutView.as_view(next_page='/admin/login/?next=/admin/'), name='admin_logout'),
     path('admin/', admin.site.urls),
     path('', include ('filiais.urls')),
+    path('contas_receber/', include ('contas_receber.urls')),
     path('pedidos/', include ('pedidos.urls')),
     path('marcas/', include ('marcas.urls')),
     path('formas_pgto/', include ('formas_pgto.urls')),

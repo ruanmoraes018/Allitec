@@ -166,7 +166,7 @@ def add_pedido(request):
     # Se a requisição for do tipo POST (formulário enviado)
     if request.method == "POST":
         # Cria uma instância do formulário com os dados enviados
-        form = PedidoForm(request.POST)
+        form = PedidoForm(request.POST, empresa=request.user.empresa)
 
         # Valida se o formulário está correto
         if form.is_valid():
@@ -231,7 +231,7 @@ def add_pedido(request):
             })
     else:
         # Se não for POST, apenas cria o formulário vazio
-        form = PedidoForm()
+        form = PedidoForm(empresa=request.user.empresa)
 
     # Renderiza a página com o formulário
     return render(request, "pedidos/add.html", {
@@ -260,7 +260,7 @@ def att_pedido(request, id):
         return redirect(f'/pedidos/lista/?s={pedido.id}')
     if request.method == "POST":
         # Cria o formulário com os dados enviados e a instância existente
-        form = PedidoForm(request.POST, instance=pedido)
+        form = PedidoForm(request.POST, instance=pedido, empresa=request.user.empresa)
 
         if form.is_valid():
             pedido = form.save(commit=False)
@@ -315,7 +315,7 @@ def att_pedido(request, id):
             })
     else:
         # Se não for POST, carrega o formulário com os dados da pedido
-        form = PedidoForm(instance=pedido)
+        form = PedidoForm(instance=pedido, empresa=request.user.empresa)
 
     return render(request, "pedidos/att.html", {
         "form": form,

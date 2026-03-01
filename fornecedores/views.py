@@ -173,7 +173,7 @@ def add_fornecedor(request):
         messages.info(request, 'Você não tem permissão para adicionar fornecedores.')
         return redirect('/fornecedores/lista/')
     if request.method == 'POST':
-        form = FornecedorForm(request.POST)
+        form = FornecedorForm(request.POST, empresa=request.user.empresa)
         if form.is_valid():
             c = form.save(commit=False)
 
@@ -214,7 +214,7 @@ def add_fornecedor(request):
                     for error in field.errors:
                         error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'fornecedores/add.html', {'form': form, 'error_messages': error_messages})
-    else: form = FornecedorForm()
+    else: form = FornecedorForm(empresa=request.user.empresa)
     return render(request, 'fornecedores/add.html', {'form': form})
 
 @verifica_alguma_permissao(
@@ -225,12 +225,12 @@ def add_fornecedor(request):
 @login_required
 def att_fornecedor(request, id):
     cli = get_object_or_404(Fornecedor, pk=id)
-    form = FornecedorForm(instance=cli)
+    form = FornecedorForm(instance=cli, empresa=request.user.empresa)
     if not request.user.has_perm('fornecedores.change_fornecedor'):
         messages.info(request, 'Você não tem permissão para editar fornecedores.')
         return redirect('/fornecedores/lista/')
     if request.method == 'POST':
-        form = FornecedorForm(request.POST, instance=cli)
+        form = FornecedorForm(request.POST, instance=cli, empresa=request.user.empresa)
         if form.is_valid():
             cli.save()
             clie = str(cli.id)
@@ -244,6 +244,7 @@ def att_fornecedor(request, id):
                         error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'fornecedores/att.html', {'form': form, 'cli': cli, 'error_messages': error_messages})
     else:
+        form = FornecedorForm(instance=cli, empresa=request.user.empresa)
         return render(request, 'fornecedores/att.html', {'form': form, 'cli': cli})
 
 @login_required

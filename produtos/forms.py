@@ -79,12 +79,12 @@ class ProdutoForm(forms.ModelForm):
             # GRUPOS
             self.fields['grupo'].queryset = Grupo.objects.filter(
                 vinc_emp=empresa
-            ).order_by('descricao')
+            ).order_by('nome_grupo')
 
             # UNIDADES
             self.fields['unidProd'].queryset = Unidade.objects.filter(
                 vinc_emp=empresa
-            ).order_by('descricao')
+            ).order_by('nome_unidade')
 
 class ProdutoTabelaForm(forms.ModelForm):
     vl_prod = forms.DecimalField(localize=False)

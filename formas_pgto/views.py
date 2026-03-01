@@ -57,6 +57,13 @@ def lista_formas_pgto_ajax(request):
     data = {'formas_pgto': [{'id': forma_pgto.id, 'descricao': forma_pgto.descricao} for forma_pgto in formas_pgto]}
     return JsonResponse(data)
 
+@login_required
+def forma_pgto_info(request, id):
+    fp = FormaPgto.objects.get(pk=id)
+    return JsonResponse({
+        "gera_parcelas": fp.gera_parcelas
+    })
+
 def get_forma_pgto(request):
     forma_id = request.GET.get("id")
     try:

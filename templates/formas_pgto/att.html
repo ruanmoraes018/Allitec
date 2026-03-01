@@ -28,7 +28,7 @@
                     </div>
                     <div class="card-body">
                         <div class="row g-3" style="margin-left: -8px;">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 {{ form.descricao|as_crispy_field }}
                             </div>
                             <div class="col-md-2">
@@ -39,6 +39,9 @@
                             </div>
                             <div class="col-md-2">
                                 {{ form.tipo|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ form.gera_parcelas|as_crispy_field }}
                             </div>
                         </div>
                     </div>

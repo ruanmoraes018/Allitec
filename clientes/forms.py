@@ -24,34 +24,31 @@ class ClienteForm(forms.ModelForm):
     complem = forms.CharField(label='Complemento', required=False,
         widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
     bairro = forms.ModelChoiceField(
-        queryset=Bairro.objects.all(),
+        queryset=Bairro.objects.none(),
         required=False,
         widget=forms.Select(
             attrs={
-                'class': 'form-control form-control-sm border-dark-subtle text-uppercase',
-                'id': 'id_bairro'
+                'class': 'form-control form-control-sm border-dark-subtle text-uppercase'
             }
         ),
         label='Bairro'
     )
     cidade = forms.ModelChoiceField(
-        queryset=Cidade.objects.all(),
+        queryset=Cidade.objects.none(),
         required=False,
         widget=forms.Select(
             attrs={
-                'class': 'form-control form-control-sm border-dark-subtle text-uppercase',
-                'id': 'id_cidade'
+                'class': 'form-control form-control-sm border-dark-subtle text-uppercase'
             }
         ),
         label='Cidade'
     )
     uf = forms.ModelChoiceField(
-        queryset=Estado.objects.all(),
+        queryset=Estado.objects.none(),
         required=False,
         widget=forms.Select(
             attrs={
-                'class': 'form-control form-control-sm border-dark-subtle text-uppercase',
-                'id': 'id_uf'
+                'class': 'form-control form-control-sm border-dark-subtle text-uppercase'
             }
         ),
         label='Estado'
@@ -66,3 +63,24 @@ class ClienteForm(forms.ModelForm):
         fields = (
             'situacao', 'pessoa', 'cpf_cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro', 'complem', 'cidade', 'uf', 'tel', 'email'
         )
+
+    def __init__(self, *args, empresa=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if empresa:
+            # --- BAIRRO ---
+            qs_bairro = Bairro.objects.filter(vinc_emp=empresa)
+            if getattr(self.instance, 'bairro', None):
+                qs_bairro = qs_bairro | Bairro.objects.filter(pk=self.instance.bairro.pk)
+            self.fields['bairro'].queryset = qs_bairro.distinct()
+
+            # --- CIDADE ---
+            qs_cidade = Cidade.objects.filter(vinc_emp=empresa)
+            if getattr(self.instance, 'cidade', None):
+                qs_cidade = qs_cidade | Cidade.objects.filter(pk=self.instance.cidade.pk)
+            self.fields['cidade'].queryset = qs_cidade.distinct()
+
+            # --- UF ---
+            qs_uf = Estado.objects.filter(vinc_emp=empresa)
+            if getattr(self.instance, 'uf', None):
+                qs_uf = qs_uf | Estado.objects.filter(pk=self.instance.uf.pk)
+            self.fields['uf'].queryset = qs_uf.distinct()

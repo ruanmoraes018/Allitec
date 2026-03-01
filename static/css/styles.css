@@ -9,6 +9,36 @@ body, html {
   overflow-x: hidden;   /* permite scroll vertical */
   overflow-y: auto;     /* permite scroll vertical */
 }
+/* Botões do menu de opções */
+.menu-opcao {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 6px;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 8px;
+    transition: all .2s ease;
+    margin-bottom: 2px;
+}
+
+.menu-opcao i {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+}
+
+.menu-opcao:hover {
+    transform: translateX(3px);
+}
+
+/* Cores específicas */
+.op-editar   { color: #13c43f; }
+.op-clonar   { color: #483D8B; }
+.op-deletar  { color: #db1e47; }
+.op-detalhe  { color: #ff8800; }
+.op-faturar  { color: #3CB371; }
+.op-estornar { color: #5F9EA0; }
 
 @media (max-width: 768px) {
 
@@ -338,6 +368,11 @@ label {
 .modal-header.titulo-modal {
     padding: 5px; /* Diminui o espaço interno */
     height: auto; /* Define a altura como automática */
+    line-height: 1; /* Ajusta a altura das linhas, se necessário */
+}
+.modal-footer.footer-modal {
+    padding: 5px; /* Diminui o espaço interno */
+    max-height: 2rem;
     line-height: 1; /* Ajusta a altura das linhas, se necessário */
 }
 .select2-container--default .select2-selection--single {

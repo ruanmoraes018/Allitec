@@ -103,6 +103,16 @@ def verificar_ou_criar_localizacao(request):
 
     return JsonResponse(response)
 
+@login_required
+def verificar_parcelas(request):
+    parcelas = int(request.GET.get('parcelas', 0))
+    filial = request.user.filial_user
+    if parcelas > filial.max_parcelas:
+        return JsonResponse({
+            'permitido': False,
+            'maximo': filial.max_parcelas
+        })
+    return JsonResponse({'permitido': True})
 
 @login_required
 def notificacoes_ajax(request):
@@ -268,7 +278,7 @@ def add_filial(request):
         return redirect('/filiais/lista/')
 
     if request.method == 'POST':
-        form = FilialForm(request.POST, request.FILES)
+        form = FilialForm(request.POST, request.FILES, empresa=request.user.empresa)
         if form.is_valid():
             nova_filial = form.save(commit=False)
 
@@ -286,7 +296,7 @@ def add_filial(request):
             return redirect('/filiais/lista/')
 
     else:
-        form = FilialForm()
+        form = FilialForm(empresa=request.user.empresa)
 
     return render(request, 'filiais/add_filial.html', {'form': form})
 
@@ -294,7 +304,7 @@ def add_filial(request):
 @login_required
 def att_filial(request, id):
     filial = get_object_or_404(Filial, id=id)
-    form = FilialForm(instance=filial)
+    form = FilialForm(instance=filial, empresa=request.user.empresa)
     # Garante que o usuário só pode editar filiais vinculadas à sua filial principal
     # if filial.vinculada_a != request.user.usuario.filial:
     #     messages.error(request, 'Você não tem permissão para editar esta filial.')
@@ -303,7 +313,7 @@ def att_filial(request, id):
         messages.info(request, 'Você não tem permissão para editar filiais.')
         return redirect('/filiais/lista/')
     if request.method == 'POST':
-        form = FilialForm(request.POST, request.FILES, instance=filial)
+        form = FilialForm(request.POST, request.FILES, instance=filial, empresa=request.user.empresa)
         if form.is_valid():
             form.save()
             messages.success(request, 'Filial atualizada com sucesso.')
@@ -316,7 +326,7 @@ def att_filial(request, id):
                         error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'filiais/att_filial.html', {'form': form, 'filial': filial, 'error_messages': error_messages})
     else:
-        form = FilialForm(instance=filial)
+        form = FilialForm(instance=filial, empresa=request.user.empresa)
 
     return render(request, 'filiais/att_filial.html', {'form': form, 'filial': filial})
 
@@ -336,7 +346,7 @@ def del_filial(request, id):
         messages.success(request, 'Filial excluída com sucesso.')
         return redirect('/filiais/lista/')
 
-    form = FilialReadOnlyForm(instance=filial)
+    form = FilialReadOnlyForm(instance=filial, empresa=request.user.empresa)
     return render(request, 'filiais/del_filial.html', {'filial': filial, 'form': form})
 
 

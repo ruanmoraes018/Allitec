@@ -139,5 +139,13 @@ def user_permissions(request):
             'perm_add_regraproduto': 'regras_produto.add_regraproduto' in permissoes,
             'perm_change_regraproduto': 'regras_produto.change_regraproduto' in permissoes,
             'perm_delete_regraproduto': 'regras_produto.delete_regraproduto' in permissoes,
+            #Contas à Receber
+            'perm_view_contareceber': 'contas_receber.view_contareceber' in permissoes,
+            'perm_add_contareceber': 'contas_receber.add_contareceber' in permissoes,
+            'perm_change_contareceber': 'contas_receber.change_contareceber' in permissoes,
+            'perm_delete_contareceber': 'contas_receber.delete_contareceber' in permissoes,
+            'perm_atribuir_desconto_cr': 'contas_receber.atribuir_desconto_cr' in permissoes,
+            'perm_baixar_cr': 'contas_receber.baixar_cr' in permissoes,
+            'perm_estornar_cr': 'contas_receber.estornar_cr' in permissoes,
         }
     return {}

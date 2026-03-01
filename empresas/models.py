@@ -74,7 +74,6 @@ class Empresa(models.Model):
     qtd_usuarios = models.PositiveIntegerField(default=1, verbose_name='Quantidade de Usuários Ativos')
 
     # Função de Juros e Multa
-
     tp_calc_juros = models.CharField(
         max_length=15,
         verbose_name="Tp. Cálculo Juros",

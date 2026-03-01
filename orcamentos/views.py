@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, date
 from django.utils import timezone
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
@@ -25,13 +25,14 @@ from util.permissoes import verifica_permissao
 from PIL import Image
 from clientes.models import Cliente
 from tecnicos.models import Tecnico
+from contas_receber.models import ContaReceber
 from django.views.decorators.http import require_POST
 from produtos.models import Produto
 from notifications.signals import notify
 from filiais.models import Filial, Usuario
 from django.views.decorators.csrf import csrf_exempt
 from notifications.models import Notification
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import locale
 from reportlab.lib.utils import ImageReader
 from reportlab.lib.units import cm
@@ -42,25 +43,11 @@ from django.template.loader import render_to_string
 import base64
 from weasyprint import HTML, CSS
 from django.contrib.staticfiles import finders
+from django.db.models import Prefetch
 
-PortaFormSet = inlineformset_factory(
-    Orcamento, PortaOrcamento,
-    form=PortaOrcamentoForm,
-    extra=1,
-    can_delete=False
-)
-ProdutoFormSet = inlineformset_factory(
-    PortaOrcamento, PortaProduto,
-    form=PortaProdutoForm,
-    extra=1,
-    can_delete=True
-)
-AdicionalFormSet = inlineformset_factory(
-    PortaOrcamento, PortaAdicional,
-    form=PortaAdicionalForm,
-    extra=1,
-    can_delete=True
-)
+PortaFormSet = inlineformset_factory( Orcamento, PortaOrcamento, form=PortaOrcamentoForm, extra=1, can_delete=False )
+ProdutoFormSet = inlineformset_factory( PortaOrcamento, PortaProduto, form=PortaProdutoForm, extra=1, can_delete=True )
+AdicionalFormSet = inlineformset_factory( PortaOrcamento, PortaAdicional, form=PortaAdicionalForm, extra=1, can_delete=True )
 
 def enviar_solicitacao(request):
     acao = request.POST.get('acao')
@@ -82,22 +69,13 @@ def enviar_solicitacao(request):
         acao=acao,expira_em=expiracao
     )
     data_formatada = timezone.localtime(solicitacao.expira_em).strftime('%d/%m/%Y %H:%M')
-    descricao = (
-        f"{usuario_logado.first_name} solicitou liberação para "
+    descricao = ( f"{usuario_logado.first_name} solicitou liberação para "
         f"{acao.replace('_',' ')} no módulo {modulo}. "
         f"Registro: {registro_desc}"
     )
 
-    notify.send(
-        usuario_logado, recipient=usuario_destino,
-        verb=f"Solicitação de Permissão ID {solicitacao.id} - {data_formatada}",
-        description=descricao, data={'solicitacao_id': solicitacao.id}
-    )
-    return JsonResponse({
-        'status': 'enviado',
-        'id': solicitacao.id,
-        'expira_em': solicitacao.expira_em.isoformat()
-    })
+    notify.send( usuario_logado, recipient=usuario_destino, verb=f"Solicitação de Permissão ID {solicitacao.id} - {data_formatada}", description=descricao, data={'solicitacao_id': solicitacao.id} )
+    return JsonResponse({ 'status': 'enviado', 'id': solicitacao.id, 'expira_em': solicitacao.expira_em.isoformat() })
 
 def verificar_status_solicitacao(request, solicitacao_id):
     try: solicitacao = SolicitacaoPermissao.objects.get(id=solicitacao_id)
@@ -269,33 +247,19 @@ def lista_orcamentos(request):
     page = request.GET.get('page')
     orcamentos = paginator.get_page(page)
     return render(request, 'orcamentos/lista.html', {
-        'orcamentos': orcamentos,
-        's': s,
-        'fil': fil,
-        'cli': cli,
-        'tec': tec,
-        'dt_ini': dt_ini,
-        'dt_fim': dt_fim,
-        'p_dt': por_dt,
-        'tp_dt': tp_dt,
-        'reg': reg,
-        'ordem': ordem,
-        'filiais': Filial.objects.filter(vinc_emp=request.user.empresa),
-        'clientes': Cliente.objects.filter(vinc_emp=request.user.empresa),
-        'tecnicos': Tecnico.objects.filter(vinc_emp=request.user.empresa),
+        'orcamentos': orcamentos, 's': s, 'fil': fil,
+        'cli': cli, 'tec': tec, 'dt_ini': dt_ini,
+        'dt_fim': dt_fim, 'p_dt': por_dt, 'tp_dt': tp_dt,
+        'reg': reg, 'ordem': ordem, 'filiais': Filial.objects.filter(vinc_emp=request.user.empresa),
+        'clientes': Cliente.objects.filter(vinc_emp=request.user.empresa), 'tecnicos': Tecnico.objects.filter(vinc_emp=request.user.empresa),
     })
 
 def paraDecimal(valor):
     try:
         if valor in (None, '', 0):
             return Decimal('0.00')
-
-        # força string
         valor = str(valor).strip()
-
-        # remove separador de milhar
         valor = valor.replace('.', '').replace(',', '.') if ',' in valor else valor
-
         return Decimal(valor)
     except (InvalidOperation, ValueError):
         return Decimal('0.00')
@@ -307,28 +271,22 @@ def add_orcamento(request):
         messages.info(request, 'Você não tem permissão para adicionar orçamentos.')
         return redirect('/orcamentos/lista/')
     if request.method == 'POST':
-        form = OrcamentoForm(request.POST)
+        form = OrcamentoForm(request.POST, empresa=request.user.empresa)
         if not form.is_valid():
-            error_messages = [
-                f"Campo ({field.label}) é obrigatório!"
-                for field in form if field.errors
-            ]
-            return render(
-                request,
-                'orcamentos/add_orcamento.html',
-                {'form': form, 'error_messages': error_messages}
-            )
+            error_messages = [f"Campo ({field.label}) é obrigatório!" for field in form if field.errors]
+            return render(request, 'orcamentos/add_orcamento.html', {'form': form, 'error_messages': error_messages})
         # 1. Criar ORÇAMENTO
         dt_emi = form.cleaned_data['dt_emi']
         hora_atual = datetime.now() - timedelta(hours=3)
         data_hora_completa = datetime.combine(dt_emi, hora_atual.time())
         o = form.save(commit=False)
+        if o.cli.vinc_emp != request.user.empresa:
+            return HttpResponseForbidden()
+        if o.vinc_fil.vinc_emp != request.user.empresa:
+            return HttpResponseForbidden()
         o.dt_emi = data_hora_completa
         o.situacao = 'Aberto'
-        dsct  = paraDecimal(request.POST.get('desconto'))
-        acres = paraDecimal(request.POST.get('acrescimo'))
-        if request.user.is_authenticated:
-            o.vinc_emp = request.user.empresa
+        o.vinc_emp = request.user.empresa
         o.save()
         # número do orçamento
         o.num_orcamento = f"{datetime.now():%Y-}{o.id}"
@@ -342,20 +300,9 @@ def add_orcamento(request):
                 lista_portas = []
             for p in lista_portas:
                 porta = PortaOrcamento.objects.create(
-                    orcamento=o,
-                    numero=p.get("numero", 1),
-                    largura=p.get("largura") or 0,
-                    altura=p.get("altura") or 0,
-                    qtd_lam=p.get("qtd_lam") or 0,
-                    m2=p.get("m2") or 0,
-                    larg_corte=p.get("larg_corte") or 0,
-                    alt_corte=p.get("alt_corte") or 0,
-                    rolo=p.get("rolo") or 0,
-                    peso=p.get("peso") or 0,
-                    fator_peso=p.get("ft_peso") or 0,
-                    eixo_motor=p.get("eix_mot") or 0,
-                    tp_lamina=p.get("tipo_lamina", "Fechada"),
-                    tp_vao=p.get("tipo_vao", "Fora do Vão")
+                    orcamento=o, numero=p.get("numero", 1), largura=p.get("largura") or 0, altura=p.get("altura") or 0, qtd_lam=p.get("qtd_lam") or 0, m2=p.get("m2") or 0, larg_corte=p.get("larg_corte") or 0,
+                    alt_corte=p.get("alt_corte") or 0, rolo=p.get("rolo") or 0, peso=p.get("peso") or 0, fator_peso=p.get("ft_peso") or 0, eixo_motor=p.get("eix_mot") or 0, tp_lamina=p.get("tipo_lamina", "Fechada"),
+                    tp_vao=p.get("tipo_vao", "Fora do Vão"), op_guia_e=p.get("op_guia_e", "Dentro do Vão"), op_guia_d=p.get("op_guia_d", "Dentro do Vão"),
                 )
                 # 3. Produtos da porta
                 for item in p.get("produtos", []):
@@ -365,263 +312,168 @@ def add_orcamento(request):
                     if not cod:
                         continue
                     try:
-                        produto = Produto.objects.get(pk=cod)
+                        produto = Produto.objects.get(pk=cod, vinc_emp=request.user.empresa)
                     except Produto.DoesNotExist:
                         continue
-                    pp = PortaProduto.objects.create(
-                        porta=porta,
-                        produto=produto,
-                        quantidade=qtd,
-                        regra_origem=regra_origem
-                    )
+                    valor_unitario = Decimal(str(item.get("vl_unit") or "0"))
+                    valor_total = Decimal(str(item.get("vl_total") or "0"))
+                    if valor_total == 0 and valor_unitario > 0 and qtd:
+                        valor_total = valor_unitario * Decimal(str(qtd))
+                    PortaProduto.objects.create(porta=porta, produto=produto, quantidade=qtd, valor_unitario=valor_unitario, valor_total=valor_total, regra_origem=regra_origem)
                 # 4. Adicionais da porta
                 for item in p.get("adicionais", []):
                     cod = item.get("codProd")
                     qtd = Decimal(item.get("qtdProd", "0"))
+                    regra_origem = item.get("regra_origem")
                     if not cod:
                         continue
                     try:
-                        produto = Produto.objects.get(pk=cod)
+                        produto = Produto.objects.get(pk=cod, vinc_emp=request.user.empresa)
                     except Produto.DoesNotExist:
                         continue
-                    ad = PortaAdicional.objects.create(
-                        porta=porta,
-                        produto=produto,
-                        quantidade=qtd
-                    )
+                    valor_unitario = Decimal(str(item.get("vl_unit") or "0"))
+                    valor_total = Decimal(str(item.get("vl_total") or "0"))
+                    if valor_total == 0 and valor_unitario > 0 and qtd:
+                        valor_total = valor_unitario * Decimal(str(qtd))
+                    PortaAdicional.objects.create(porta=porta, produto=produto, quantidade=qtd, valor_unitario=valor_unitario, valor_total=valor_total, regra_origem=regra_origem)
+        o.atualizar_subtotal()
+        o.save(update_fields=['subtotal', 'total'])
         # 5. Formas de Pagamento
         itens_pgto = request.POST.get("json_formas_pgto")
-
         if itens_pgto:
             try:
                 formas = json.loads(itens_pgto)
             except json.JSONDecodeError:
                 formas = []
-
             for f in formas:
                 nome = f.get("forma")  # ✅ CORRETO
                 valor = Decimal(f.get("valor", "0"))
-
                 if not nome or valor < Decimal("0.01"):
                     continue
-
                 try:
-                    fp = FormaPgto.objects.get(descricao=nome)
+                    fp = FormaPgto.objects.get(descricao=nome, vinc_emp=request.user.empresa)
                 except FormaPgto.DoesNotExist:
                     continue
-
-                OrcamentoFormaPgto.objects.create(
-                    orcamento=o,
-                    formas_pgto=fp,
-                    valor=valor
-                )
-
+                OrcamentoFormaPgto.objects.create(orcamento=o, formas_pgto=fp, valor=valor)
         messages.success(request, "Orçamento criado com sucesso!")
         return redirect('/orcamentos/lista/?s=' + str(o.id))
     else:
-        form = OrcamentoForm()
+        form = OrcamentoForm(empresa=request.user.empresa)
     return render(request, 'orcamentos/add_orcamento.html', {'form': form})
-
 
 @login_required
 @transaction.atomic
 def att_orcamento(request, id):
-    orcamento = get_object_or_404(
-        Orcamento.objects.prefetch_related(
-            'portas__produtos__produto',
-            'portas__adicionais__produto'
-        ),
-        pk=id
-    )
-
+    orcamento = get_object_or_404(Orcamento.objects.prefetch_related('portas__produtos__produto', 'portas__adicionais__produto'), pk=id)
     if not request.user.has_perm('orcamentos.change_orcamento'):
         messages.info(request, 'Você não tem permissão para editar orçamentos.')
         return redirect('/orcamentos/lista/')
-
     if orcamento.situacao != 'Aberto':
         messages.warning(request, 'Somente orçamentos em Aberto podem ser editados!')
         return redirect(f'/orcamentos/lista/?s={orcamento.id}')
-
-    form = OrcamentoForm(instance=orcamento)
-
+    form = OrcamentoForm(instance=orcamento, empresa=request.user.empresa)
     if request.method == "POST":
-        form = OrcamentoForm(request.POST, instance=orcamento)
-
+        form = OrcamentoForm(request.POST, instance=orcamento, empresa=request.user.empresa)
         if not form.is_valid():
-            erros = [
-                f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!"
-                for field in form if field.errors
-            ]
-            return render(request, "orcamentos/att_orcamento.html", {
-                "form": form,
-                "orcamento": orcamento,
-                "error_messages": erros
-            })
-        # 🔹 Data de emissão
+            erros = [f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!" for field in form if field.errors]
+            return render(request, "orcamentos/att_orcamento.html", {"form": form, "orcamento": orcamento, "error_messages": erros})
+        # 🔹 Data emissão
         dt_emi = form.cleaned_data["dt_emi"]
         hora_atual = (datetime.now() - timedelta(hours=3)).time()
         orcamento.dt_emi = datetime.combine(dt_emi, hora_atual)
-
-        # 🔹 Desconto / Acréscimo (seguros)
-        dsct = paraDecimal(request.POST.get('desconto'))
-        acres = paraDecimal(request.POST.get('acrescimo'))
-
-        orcamento.desconto = dsct
-        orcamento.acrescimo = acres
-
+        # 🔹 Desconto / Acréscimo
+        orcamento.desconto = Decimal(str(request.POST.get("desconto") or "0"))
+        orcamento.acrescimo = Decimal(str(request.POST.get("acrescimo") or "0"))
         form.save()
-
         portas_json = request.POST.get("json_portas")
-
         try:
             lista_portas = json.loads(portas_json) if portas_json else []
         except json.JSONDecodeError:
             lista_portas = []
-
-        # valida
-        lista_portas = [
-            p for p in lista_portas
-            if isinstance(p, dict) and p.get("largura") and p.get("altura")
-        ]
-
-        # 🔥 SÓ AGORA pode deletar
-        if lista_portas:
-            PortaOrcamento.objects.filter(orcamento=orcamento).delete()
-
-            for p in lista_portas:
-                porta = PortaOrcamento.objects.create(
-                    orcamento=orcamento,
-                    numero=p.get("numero", 1),
-                    largura=p.get("largura"),
-                    altura=p.get("altura"),
-                    qtd_lam=p.get("qtd_lam"),
-                    m2=p.get("m2"),
-                    larg_corte=p.get("larg_corte"),
-                    alt_corte=p.get("alt_corte"),
-                    rolo=p.get("rolo"),
-                    peso=p.get("peso"),
-                    fator_peso=p.get("ft_peso"),
-                    eixo_motor=p.get("eix_mot"),
-                    tp_lamina=p.get("tipo_lamina", "Fechada"),
-                    tp_vao=p.get("tipo_vao", "Fora do Vão"),
-                )
-
-                for item in p.get("produtos", []):
-                    if not isinstance(item, dict):
-                        continue
-                    cod = item.get("codProd")
-                    qtd = item.get("qtdProd")
-                    regra_origem = item.get("regra_origem")
-                    if cod:
-                        PortaProduto.objects.create(
-                            porta=porta,
-                            produto_id=cod,
-                            quantidade=qtd,
-                            regra_origem=regra_origem
-                        )
-
-                for item in p.get("adicionais", []):
-                    if not isinstance(item, dict):
-                        continue
-                    cod = item.get("codProd")
-                    qtd = item.get("qtdProd")
-                    if cod:
-                        PortaAdicional.objects.create(
-                            porta=porta,
-                            produto_id=cod,
-                            quantidade=qtd
-                        )
+        lista_portas = [p for p in lista_portas if isinstance(p, dict) and p.get("largura") and p.get("altura")]
+        PortaOrcamento.objects.filter(orcamento=orcamento).delete()
+        for p in lista_portas:
+            porta = PortaOrcamento.objects.create(
+                orcamento=orcamento, numero=p.get("numero", 1), largura=p.get("largura"), altura=p.get("altura"), qtd_lam=p.get("qtd_lam"), m2=p.get("m2"), larg_corte=p.get("larg_corte"),
+                alt_corte=p.get("alt_corte"), rolo=p.get("rolo"), peso=p.get("peso"), fator_peso=p.get("ft_peso"), eixo_motor=p.get("eix_mot"), tp_lamina=p.get("tipo_lamina", "Fechada"),
+                tp_vao=p.get("tipo_vao", "Fora do Vão"), op_guia_e=p.get("op_guia_e"), op_guia_d=p.get("op_guia_d"),
+            )
+            for item in p.get("produtos", []):
+                if not isinstance(item, dict):
+                    continue
+                cod = item.get("codProd")
+                qtd = item.get("qtdProd")
+                regra_origem = item.get("regra_origem")
+                if not cod:
+                    continue
+                valor_unitario = Decimal(str(item.get("vl_unit") or "0"))
+                valor_total = Decimal(str(item.get("vl_total") or "0"))
+                if valor_total == 0 and valor_unitario > 0 and qtd:
+                    valor_total = valor_unitario * Decimal(str(qtd))
+                PortaProduto.objects.create(porta=porta, produto_id=cod, quantidade=qtd, valor_unitario=valor_unitario, valor_total=valor_total, regra_origem=regra_origem)
+            for item in p.get("adicionais", []):
+                if not isinstance(item, dict):
+                    continue
+                cod = item.get("codProd")
+                qtd = item.get("qtdProd")
+                regra_origem = item.get("regra_origem")
+                if not cod:
+                    continue
+                valor_unitario = Decimal(str(item.get("vl_unit") or "0"))
+                valor_total = Decimal(str(item.get("vl_total") or "0"))
+                if valor_total == 0 and valor_unitario > 0 and qtd:
+                    valor_total = valor_unitario * Decimal(str(qtd))
+                PortaAdicional.objects.create(porta=porta, produto_id=cod, quantidade=qtd, valor_unitario=valor_unitario, valor_total=valor_total, regra_origem=regra_origem)
         formas_json = request.POST.get("json_formas_pgto")
         if formas_json:
             OrcamentoFormaPgto.objects.filter(orcamento=orcamento).delete()
-            formas = json.loads(formas_json)
+            try:
+                formas = json.loads(formas_json)
+            except:
+                formas = []
             for f in formas:
                 nome = f.get("forma")
-                valor = Decimal(str(f.get("valor", "0")))
-                if not nome or valor < Decimal("0.01"):
+                valor = Decimal(str(f.get("valor") or "0"))
+                if not nome or valor <= 0:
                     continue
                 try:
                     fp = FormaPgto.objects.get(descricao=nome)
                 except FormaPgto.DoesNotExist:
                     continue
-                OrcamentoFormaPgto.objects.create(
-                    orcamento=orcamento,
-                    formas_pgto=fp,
-                    valor=valor
-                )
-        # 🔹 Número do orçamento
+                OrcamentoFormaPgto.objects.create(orcamento=orcamento, formas_pgto=fp, valor=valor)
+        # 🔹 Atualiza número
         orcamento.num_orcamento = f"{datetime.now():%Y-}{orcamento.id}"
-        orcamento.save(update_fields=['num_orcamento'])
-
+        orcamento.save(update_fields=["num_orcamento"])
         messages.success(request, "Orçamento atualizado com sucesso!")
         return redirect(f'/orcamentos/lista/?s={orcamento.id}')
     portas_json = []
-
     for porta in orcamento.portas.all():
         portas_json.append({
-            "numero": porta.numero,
-            "largura": float(porta.largura),
-            "altura": float(porta.altura),
-            "qtd_lam": float(porta.qtd_lam or 0),
-            "m2": float(porta.m2 or 0),
-            "larg_corte": float(porta.larg_corte or 0),
-            "alt_corte": float(porta.alt_corte or 0),
-            "rolo": float(porta.rolo or 0),
-            "peso": float(porta.peso or 0),
-            "ft_peso": float(porta.fator_peso or 0),
-            "eix_mot": float(porta.eixo_motor or 0),
-            "tipo_lamina": porta.tp_lamina,
-            "tipo_vao": porta.tp_vao,
-
-            # 🔥 PRODUTOS NORMAIS
-            "produtos": [
-                {
-                    "codProd": pp.produto.id,
-                    "qtdProd": float(pp.quantidade),
-                    "regra_origem": pp.regra_origem
-                }
+            "numero": porta.numero, "largura": float(porta.largura), "altura": float(porta.altura),
+            "qtd_lam": float(porta.qtd_lam or 0), "m2": float(porta.m2 or 0), "larg_corte": float(porta.larg_corte or 0),
+            "alt_corte": float(porta.alt_corte or 0), "rolo": float(porta.rolo or 0), "peso": float(porta.peso or 0),
+            "ft_peso": float(porta.fator_peso or 0), "eix_mot": float(porta.eixo_motor or 0), "tipo_lamina": porta.tp_lamina, "tipo_vao": porta.tp_vao, "op_guia_e": porta.op_guia_e, "op_guia_d": porta.op_guia_d,
+            "produtos": [{"codProd": pp.produto.id, "qtdProd": float(pp.quantidade), "vl_unit": float(pp.valor_unitario or 0), "vl_total": float(pp.valor_total or 0), "regra_origem": pp.regra_origem}
                 for pp in porta.produtos.all()
             ],
-
-            # 🔥 ADICIONAIS
-            "adicionais": [
-                {
-                    "codProd": adc.produto.id,
-                    "qtdProd": float(adc.quantidade)
-                }
+            "adicionais": [{"codProd": adc.produto.id, "qtdProd": float(adc.quantidade), "vl_unit": float(adc.valor_unitario or 0), "vl_total": float(adc.valor_total or 0), "regra_origem": adc.regra_origem}
                 for adc in porta.adicionais.all()
             ]
         })
-    return render(request, "orcamentos/att_orcamento.html", {
-        "form": form,
-        "orcamento": orcamento,
-        "portas": orcamento.portas.all(),
-        "portas_json": json.dumps(portas_json)
-    })
+    return render(request, "orcamentos/att_orcamento.html", {"form": form, "orcamento": orcamento, "portas": orcamento.portas.all(), "portas_json": json.dumps(portas_json)})
 
 @login_required
 @transaction.atomic
 def clonar_orcamento(request, id):
     orcamento = get_object_or_404(Orcamento, pk=id)
-
     if not request.user.has_perm('orcamentos.clonar_orcamento'):
         messages.info(request, 'Você não tem permissão para clonar orçamentos.')
         return redirect('/orcamentos/lista/')
-
     if request.method == 'POST':
-        form = OrcamentoForm(request.POST)
-
+        form = OrcamentoForm(request.POST, empresa=request.user.empresa)
         if not form.is_valid():
-            erros = [
-                f"<i class='fa-solid fa-xmark'></i> Campo ({f.label}) é obrigatório!"
-                for f in form if f.errors
-            ]
-            return render(request, "orcamentos/clonar_orcamento.html", {
-                "form": form,
-                "orcamento": orcamento,
-                "error_messages": erros
-            })
-
+            erros = [f"<i class='fa-solid fa-xmark'></i> Campo ({f.label}) é obrigatório!" for f in form if f.errors]
+            return render(request, "orcamentos/clonar_orcamento.html", {"form": form, "orcamento": orcamento, "error_messages": erros})
         novo = form.save(commit=False)
         novo.situacao = "Aberto"
         novo.vinc_emp = orcamento.vinc_emp
@@ -631,110 +483,48 @@ def clonar_orcamento(request, id):
         # --------- PORTAS ---------
         for porta in orcamento.portas.all():
             nova_porta = PortaOrcamento.objects.create(
-                orcamento=novo,
-                numero=porta.numero,
-                largura=porta.largura,
-                altura=porta.altura,
-                qtd_lam=porta.qtd_lam,
-                m2=porta.m2,
-                larg_corte=porta.larg_corte,
-                alt_corte=porta.alt_corte,
-                rolo=porta.rolo,
-                peso=porta.peso,
-                fator_peso=porta.fator_peso,
-                eixo_motor=porta.eixo_motor,
-                tp_lamina=porta.tp_lamina,
-                tp_vao=porta.tp_vao,
+                orcamento=novo, numero=porta.numero, largura=porta.largura,
+                altura=porta.altura, qtd_lam=porta.qtd_lam, m2=porta.m2,
+                larg_corte=porta.larg_corte, alt_corte=porta.alt_corte, rolo=porta.rolo,
+                peso=porta.peso, fator_peso=porta.fator_peso, eixo_motor=porta.eixo_motor,
+                tp_lamina=porta.tp_lamina, tp_vao=porta.tp_vao, op_guia_e=porta.op_guia_e, op_guia_d=porta.op_guia_d
             )
             for p in porta.produtos.all():
-                pp = PortaProduto.objects.create(
-                    porta=nova_porta,
-                    produto=p.produto,
-                    quantidade=p.quantidade
-                )
+                PortaProduto.objects.create(porta=nova_porta, produto=p.produto, quantidade=p.quantidade, valor_unitario=p.valor_unitario, valor_total=p.valor_total)
             for ad in porta.adicionais.all():
-                pa = PortaAdicional.objects.create(
-                    porta=nova_porta,
-                    produto=ad.produto,
-                    quantidade=ad.quantidade
-                )
+                PortaAdicional.objects.create(porta=nova_porta, produto=ad.produto, quantidade=ad.quantidade, valor_unitario=ad.valor_unitario, valor_total=ad.valor_total)
         # --------- FORMAS PGTO ---------
         for fp in orcamento.formas_pgto.all():
-            OrcamentoFormaPgto.objects.create(
-                orcamento=novo,
-                formas_pgto=fp.formas_pgto,
-                valor=fp.valor
-            )
+            OrcamentoFormaPgto.objects.create(orcamento=novo, formas_pgto=fp.formas_pgto, valor=fp.valor)
         messages.success(request, "Orçamento clonado com sucesso!")
         return redirect('/orcamentos/lista/?s=' + str(novo.id))
+    # --------- JSON PARA TELA ---------
     portas_json = []
-
     for porta in orcamento.portas.all():
         portas_json.append({
-            "numero": porta.numero,
-            "largura": float(porta.largura),
-            "altura": float(porta.altura),
-            "qtd_lam": float(porta.qtd_lam or 0),
-            "m2": float(porta.m2 or 0),
-            "larg_corte": float(porta.larg_corte or 0),
-            "alt_corte": float(porta.alt_corte or 0),
-            "rolo": float(porta.rolo or 0),
-            "peso": float(porta.peso or 0),
-            "ft_peso": float(porta.fator_peso or 0),
-            "eix_mot": float(porta.eixo_motor or 0),
-            "tipo_lamina": porta.tp_lamina,
-            "tipo_vao": porta.tp_vao,
-
-            # 🔥 PRODUTOS NORMAIS
-            "produtos": [
-                {
-                    "codProd": pp.produto.id,
-                    "qtdProd": float(pp.quantidade)
-                }
-                for pp in porta.produtos.all()
-            ],
-
+            "numero": porta.numero, "largura": float(porta.largura), "altura": float(porta.altura),
+            "qtd_lam": float(porta.qtd_lam or 0), "m2": float(porta.m2 or 0), "larg_corte": float(porta.larg_corte or 0),
+            "alt_corte": float(porta.alt_corte or 0), "rolo": float(porta.rolo or 0), "peso": float(porta.peso or 0),
+            "ft_peso": float(porta.fator_peso or 0), "eix_mot": float(porta.eixo_motor or 0), "tipo_lamina": porta.tp_lamina, "tipo_vao": porta.tp_vao, "op_guia_e": porta.op_guia_e, "op_guia_d": porta.op_guia_d,
+            # 🔥 PRODUTOS
+            "produtos": [{"codProd": pp.produto.id, "qtdProd": float(pp.quantidade), "vl_unit": float(pp.valor_unitario or 0), "vl_total": float(pp.valor_total or 0)} for pp in porta.produtos.all()],
             # 🔥 ADICIONAIS
-            "adicionais": [
-                {
-                    "codProd": adc.produto.id,
-                    "qtdProd": float(adc.quantidade)
-                }
-                for adc in porta.adicionais.all()
-            ]
+            "adicionais": [{"codProd": adc.produto.id, "qtdProd": float(adc.quantidade), "vl_unit": float(adc.valor_unitario or 0), "vl_total": float(adc.valor_total or 0),} for adc in porta.adicionais.all()]
         })
-
-    form = OrcamentoForm(instance=orcamento)
-    return render(request, "orcamentos/clonar_orcamento.html", {
-        "form": form,
-        "orcamento": orcamento,
-        "portas": orcamento.portas.all(),
-        "portas_json": json.dumps(portas_json)
-    })
+    form = OrcamentoForm(instance=orcamento, empresa=request.user.empresa)
+    return render(request, "orcamentos/clonar_orcamento.html", {"form": form, "orcamento": orcamento, "portas": orcamento.portas.all(), "portas_json": json.dumps(portas_json)})
 
 @login_required
 @require_POST
 def del_orcamento(request, id):
-
     if not request.user.has_perm('orcamentos.delete_orcamento'):
-        messages.info(
-            request,
-            'Você não tem permissão para deletar orçamentos.'
-        )
+        messages.info(request, 'Você não tem permissão para deletar orçamentos.')
         return redirect('lista-orcamentos')
-
     o = get_object_or_404(Orcamento, pk=id)
-
     if o.situacao in ['Faturado', 'Cancelado']:
-        messages.warning(
-            request,
-            'Orçamentos só podem ser deletados com status Aberto!'
-        )
+        messages.warning(request, 'Orçamentos só podem ser deletados com situação Aberto!')
         return redirect('lista-orcamentos')
-
-    # Aqui o delete é executado UMA ÚNICA VEZ
     o.delete()
-
     messages.success(request, 'Orçamento deletado com sucesso!')
     return redirect('lista-orcamentos')
 
@@ -742,35 +532,54 @@ def del_orcamento(request, id):
 @login_required
 @transaction.atomic
 def faturar_orcamento(request, id):
-    orcamento = get_object_or_404(
-        Orcamento.objects.prefetch_related(
-            'portas__produtos__produto',
-            'portas__adicionais__produto'
-        ),
-        pk=id
-    )
+    orcamento = get_object_or_404(Orcamento.objects.select_related('cli', 'vinc_fil').prefetch_related('formas_pgto__formas_pgto', 'portas__produtos__produto', 'portas__adicionais__produto'),pk=id)
     if not request.user.has_perm('orcamentos.faturar_orcamento'):
-        messages.info(request, 'Você não tem permissão para faturar orçamentos!')
+        messages.error(request, 'Você não tem permissão para faturar orçamentos!')
         return redirect('/orcamentos/lista/')
     if orcamento.situacao == 'Faturado':
         messages.warning(request, 'Orçamento já está faturado!')
         return redirect('/orcamentos/lista/')
-    # 🔥 BAIXA DE ESTOQUE — PRODUTOS E ADICIONAIS (POR PORTA)
+    formas = orcamento.formas_pgto.all()
+    if not formas.exists():
+        messages.error(request, "Informe ao menos uma forma de pagamento antes de faturar.")
+        return redirect('orcamento_detalhe', pk=orcamento.pk)
+    max_parcelas = orcamento.vinc_fil.max_parcelas or 1
+    parcelas_formas = {}
+    for forma in formas:
+        fp = forma.formas_pgto
+        if fp.gera_parcelas:
+            parcelas = int(request.POST.get(f'parcelas_{fp.id}', 1))
+            if parcelas > max_parcelas:
+                messages.error(request, f"A forma {fp.descricao} permite no máximo {max_parcelas} parcelas nesta filial.")
+                return redirect('orcamento_detalhe', pk=orcamento.pk)
+            parcelas_formas[forma.id] = parcelas
+        else:
+            parcelas_formas[forma.id] = 1
+            hoje = date.today()
+        for forma in formas:
+            valor_total = forma.valor
+            parcelas = forma.parcelas
+            dias = forma.dias_intervalo
+            valor_parcela = (valor_total / parcelas).quantize(Decimal("0.01"), ROUND_HALF_UP)
+            for i in range(parcelas):
+                vencimento = hoje + timedelta(days=dias * (i + 1))
+                ContaReceber.objects.create(
+                    orcamento=orcamento, cliente=orcamento.cli, forma_pgto=forma.formas_pgto,
+                    numero_parcela=i + 1, total_parcelas=parcelas, valor=valor_parcela,
+                    data_vencimento=vencimento, situacao='Aberto'
+                )
+    orcamento.situacao = 'Faturado'
+    orcamento.dt_fat = datetime.now()
+    orcamento.save(update_fields=['situacao', 'dt_fat'])
     for porta in orcamento.portas.all():
-        # Produtos da porta
         for item in porta.produtos.all():
             produto = item.produto
             produto.estoque_prod -= item.quantidade
             produto.save(update_fields=['estoque_prod'])
-        # Adicionais da porta
         for item in porta.adicionais.all():
             produto = item.produto
             produto.estoque_prod -= item.quantidade
             produto.save(update_fields=['estoque_prod'])
-    # 🔄 Atualiza valores antes de faturar
-    orcamento.situacao = 'Faturado'
-    orcamento.dt_fat = datetime.now()
-    orcamento.save(update_fields=['situacao', 'dt_fat'])
     messages.success(request, f'Orçamento {orcamento.num_orcamento} faturado com sucesso!')
     return redirect('/orcamentos/lista/')
 
@@ -779,12 +588,7 @@ def faturar_orcamento(request, id):
 @transaction.atomic
 def cancelar_orcamento(request, id):
     orcamento = get_object_or_404(
-        Orcamento.objects.prefetch_related(
-            'portas__produtos__produto',
-            'portas__adicionais__produto'
-        ),
-        pk=id
-    )
+        Orcamento.objects.prefetch_related('portas__produtos__produto','portas__adicionais__produto'), pk=id)
     if not request.user.has_perm('orcamentos.cancelar_orcamento'):
         messages.info(request, 'Você não tem permissão para cancelar orçamentos!')
         return redirect('/orcamentos/lista/')
@@ -819,22 +623,13 @@ def alterar_status_orcamento(request):
         orc_id = request.POST.get("id")
         novo_status = request.POST.get("status")
         if not orc_id or not novo_status:
-            return JsonResponse({
-                "status": "erro",
-                "mensagem": "Dados inválidos"
-            }, status=400)
+            return JsonResponse({"status": "erro", "mensagem": "Dados inválidos"}, status=400)
         orc = get_object_or_404(Orcamento, pk=orc_id)
         orc.status = novo_status
         orc.save(update_fields=["status"])
-        return JsonResponse({
-            "status": "ok",
-            "mensagem": "Status atualizado com sucesso!"
-        })
+        return JsonResponse({"status": "ok","mensagem": "Status atualizado com sucesso!"})
     except Exception as e:
-        return JsonResponse({
-            "status": "erro",
-            "mensagem": str(e)
-        }, status=500)
+        return JsonResponse({"status": "erro","mensagem": str(e)}, status=500)
 
 @login_required
 def imprimir_comprovante(request, id):
@@ -981,17 +776,9 @@ def imprimir_comp_a4(request, id):
     response['Content-Disposition'] = f'filename="RESUMO ORÇAMENTO - {orcamento.num_orcamento}.pdf"'
     return response
 
-from reportlab.lib.utils import simpleSplit
-from weasyprint.text.fonts import FontConfiguration
-from django.template.loader import render_to_string
-
 @login_required
 def pdf_contrato_html(request, id):
-    o = Orcamento.objects.prefetch_related(
-        'portas__produtos__produto',
-        'portas__adicionais__produto'
-    ).get(pk=id)
-
+    o = Orcamento.objects.prefetch_related('portas__produtos__produto', 'portas__adicionais__produto').get(pk=id)
     portas = o.portas.all().order_by('numero')
     formas_pgto = o.formas_pgto.all()
     linhas_formas = max(formas_pgto.count(), 4)
@@ -1005,27 +792,13 @@ def pdf_contrato_html(request, id):
                 img = bg
             else:
                 img = img.convert("RGB")
-
             buffer = BytesIO()
             img.save(buffer, format="JPEG")
             logo_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-    html_string = render_to_string(
-        'orcamentos/pdf_contrato.html',
-        {
-            'o': o,
-            'portas': portas,
-            'linhas_formas': linhas_formas,
-            'logo_base64': logo_base64,
-        }
-    )
-    pdf = HTML(
-        string=html_string,
-        base_url=request.build_absolute_uri('/')
-    ).write_pdf()
+    html_string = render_to_string('orcamentos/pdf_contrato.html', {'o': o, 'portas': portas, 'linhas_formas': linhas_formas, 'logo_base64': logo_base64})
+    pdf = HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf()
     response = HttpResponse(pdf, content_type='application/pdf')
-    response['Content-Disposition'] = (
-        f'inline; filename="CONTRATO ORÇAMENTO PORTA ENROLAR - {o.num_orcamento}.pdf"'
-    )
+    response['Content-Disposition'] = (f'inline; filename="CONTRATO ORÇAMENTO PORTA ENROLAR - {o.num_orcamento}.pdf"')
     return response
 
 def img_base64(path):
@@ -1046,14 +819,8 @@ def pdf_proposta_html(request, id):
     o = Orcamento.objects.get(pk=id)
     portas = o.portas.all().order_by('numero')
     for porta in portas:
-        porta.tem_portinhola = porta.adicionais.filter(
-            produto__desc_prod__iexact="PORTINHOLA",
-            quantidade__gte=1
-        ).exists()
-        porta.tem_alcapao = porta.adicionais.filter(
-            produto__desc_prod__iexact="ALÇAPÃO",
-            quantidade__gte=1
-        ).exists()
+        porta.tem_portinhola = porta.adicionais.filter(produto__desc_prod__iexact="PORTINHOLA", quantidade__gte=1).exists()
+        porta.tem_alcapao = porta.adicionais.filter(produto__desc_prod__icontains="ALÇAP", quantidade__gte=1).exists()
     lg_emp = img_base64(o.vinc_fil.logo.path)
     finders.find('img/telefone.png')
     icone_tel = finders.find('img/telefone.png')
@@ -1073,201 +840,8 @@ def pdf_proposta_html(request, id):
     return response
 
 @login_required
-def pdf_contrato_v2(request, id):
-    """Gera o PDF da proposta comercial (dinâmico, baseado no orçamento)."""
-    o = Orcamento.objects.get(pk=id)
-    buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=A4)
-    larg_pag, alt_pag = A4
-    y = alt_pag - 70
-    pdfmetrics.registerFont(TTFont('Times', times))
-    pdfmetrics.registerFont(TTFont('Times Bold', times_bold))
-    pdfmetrics.registerFont(TTFont('Times Bold Italic', times_bold_italic))
-    p.setTitle(f"Proposta Comercial - {o.num_orcamento}")
-    # --- Logo ---
-    logo_path = os.path.join(settings.MEDIA_ROOT, str(o.vinc_fil.logo))
-    if os.path.exists(logo_path):
-        with Image.open(logo_path) as img:
-            if img.mode in ('RGBA', 'LA'):
-                background = Image.new("RGB", img.size, (255, 255, 255))
-                background.paste(img, mask=img.split()[3])
-                img = background
-            p.drawImage(ImageReader(img), (larg_pag - 6*cm)/100, alt_pag-3*cm, width=6*cm, height=2.25*cm)
-    y -= 20
-    # --- Funções auxiliares ---
-    def write_line(text, font_size=12, gap=14, bold=False):
-        nonlocal y
-        font = "Times Bold" if bold else "Helvetica"
-        p.setFont(font, font_size)
-        lines = simpleSplit(text, font, font_size, larg_pag - 50)
-        for line in lines:
-            p.drawString(30, y, line)
-            y -= gap
-    # --- Cabeçalho ---
-    p.setFont("Times Bold", 16)
-    p.drawString(40, y, "Proposta Comercial")
-    y -= 20
-    p.setFont("Times Bold Italic", 14)
-    # Texto centralizado
-    texto = "Instalação de Porta de Enrolar Automática"
-    p.drawCentredString(larg_pag / 2, y, texto)
-    # Linha abaixo do texto
-    largura_texto = p.stringWidth(texto, "Helvetica", 12)  # Fonte e tamanho devem ser iguais ao do texto
-    x_inicio = (larg_pag - largura_texto) / 2
-    x_fim = x_inicio + largura_texto
-    p.line(x_inicio - 6, y - 2, x_fim + 6, y - 2)  # linha 2 pontos abaixo do texto
-    y -= 40
-    p.setFont("Helvetica", 12)
-    # --- Corpo ---
-    write_line(f"A {o.fantasia_emp}, apresenta a seguinte proposta para fornecimento e instalação de porta de enrolar automática:", bold=False)
-    y -= 20
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(30, y, "✔ Descrição do Serviço:")
-    p.setFont("Helvetica", 12)
-    y -= 20
-    p.drawString(40, y, "• Fornecimento de porta de enrolar automática sob medida;")
-    y -= 15
-    p.drawString(40, y, "• Estrutura em aço galvanizado com pintura eletrostática;")
-    y -= 15
-    p.drawString(40, y, "• Motor automatizador com 2 controles remoto;")
-    y -= 15
-    p.drawString(40, y, "• Instalação completa e testes de funcionamento.")
-    y -= 20
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(30, y, "✔ Diferenciais:")
-    p.setFont("Helvetica", 12)
-    y -= 20
-    p.drawString(40, y, "• Profissionais qualificados;")
-    y -= 15
-    p.drawString(40, y, "• Equipamentos de alta durabilidade;")
-    y -= 15
-    p.drawString(40, y, "• Garantia de 12 meses;")
-    y -= 15
-    p.drawString(40, y, "• Suporte técnico LOCAL e especializado.")
-    y -= 20
-    # --- Valor e condições ---
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(30, y, "✔ Especificações das Portas:")
-    y -= 20
-
-    for porta in o.portas.all().order_by("numero"):
-        # Verifica portinhola APENAS desta porta
-        tem_portinhola = porta.adicionais.filter(
-            produto__desc_prod__iexact="PORTINHOLA",
-            quantidade__gte=1
-        ).exists()
-
-        texto_porta = (
-            f"• Porta {porta.numero}: "
-            f"{porta.altura}m de Altura x {porta.largura}m de Largura"
-        )
-
-        if o.pintura == "Sim" and tem_portinhola:
-            texto_porta += f", com Pintura de cor {o.cor} e com Portinhola."
-        elif o.pintura == "Sim" and not tem_portinhola and o.portao_social == "Não":
-            texto_porta += f", com Pintura de cor {o.cor} e sem Portinhola."
-        elif o.pintura != "Sim" and tem_portinhola and o.portao_social == "Sim":
-            texto_porta += ", sem Pintura e com Portinhola."
-        else:
-            texto_porta += ", sem Pintura e sem Portinhola."
-
-        write_line(texto_porta, font_size=11)
-        y -= 5
-
-        # Controle de quebra de página
-        if y < 100:
-            p.showPage()
-            y = alt_pag - 70
-            p.setFont("Helvetica", 11)
-    y -= 5
-    p.setFont("Helvetica-Bold", 12)
-    if o.portao_social == "Sim":
-        p.drawString(
-            30,
-            y,
-            f"Observações: Com instalação de Portão Social, valor: R$ {o.vl_p_s}."
-        )
-    else:
-        p.drawString(
-            30,
-            y,
-            "Observações: Sem instalação de Portão Social."
-        )
-    y -= 20
-    # TOTAL GERAL
-    p.setFont("Helvetica-Bold", 12)
-    vl_tot_fmt = f"{o.total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    p.drawString(
-        30,
-        y,
-        f"✔ Valor total do fornecimento e instalação: R$ {vl_tot_fmt}."
-    )
-    y -= 20
-    p.setFont("Helvetica", 12)
-    dez_p = o.total * Decimal('0.10')
-    vl_dsct = o.total - dez_p
-    vl_dsct_fmt = f"{vl_dsct:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
-    p.drawString(
-        30,
-        y,
-        f"Valor acima em até 10x nos cartões de crédito ou À VISTA com 10% de desconto! (R$ {vl_dsct_fmt})"
-    )
-
-    y -= 25
-
-    p.setFont("Helvetica-Bold", 12)
-    texto_bold = "✔ Forma de Pagamento:"
-    p.drawString(30, y, texto_bold)
-    largura_titulo = p.stringWidth(texto_bold, "Helvetica-Bold", 12)
-    p.setFont("Helvetica", 12)
-    p.drawString(30 + largura_titulo + 5, y, "50% no ato do fechamento e valor restante ao finalizar a instalação.")
-    y -= 20
-    p.setFont("Helvetica-Bold", 12)
-    texto_bold = "✔ Prazo de Instalação:"
-    p.drawString(30, y, texto_bold)
-    largura_titulo = p.stringWidth(texto_bold, "Helvetica-Bold", 12)
-    p.setFont("Helvetica", 12)
-    p.drawString(30 + largura_titulo + 5, y, "Até 20 dias úteis após a aprovação e pagamento, podendo variar de acordo")
-    y -= 15
-    p.drawString(30, y, "com estrutura do local de instalação.")
-    y -= 25
-    p.drawString(30, y, "Qualquer dúvida ou necessidade de ajuste, estamos à disposição!")
-    y -= 40
-    # --- Rodapé ---
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(30, y, f"{o.vinc_fil.info_comp}")
-    y -= 30
-    ic_tel = os.path.join(settings.BASE_DIR, "static", "img", "telefone.png")
-    ic_email = os.path.join(settings.BASE_DIR, "static", "img", "email.png")
-    ic_loc = os.path.join(settings.BASE_DIR, "static", "img", "local.png")
-    p.drawImage(ic_tel, 30, y, width=15, height=15)
-    p.drawString(50, y + 4, f"{o.vinc_fil.tel}")
-    y -= 20
-    p.drawImage(ic_email, 30, y, width=15, height=15)
-    p.drawString(50, y + 4, f"{o.vinc_fil.email}")
-    y -= 20
-    p.drawImage(ic_loc, 30, y, width=15, height=15)
-    p.drawString(50, y + 4, "Atendemos em todo estado do Pará!")
-    y -= 20
-    locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
-    data_formatada = o.dt_emi.strftime('%d de %B de %Y').upper()
-    p.drawString(30, y, f"{o.vinc_fil.cidade_fil} - {o.vinc_fil.uf}, {data_formatada}.")
-    y -= 100
-    p.line(100, y, larg_pag - 100, y)
-    y -= 15
-    p.drawCentredString(larg_pag / 2, y, f"{o.cli}")
-    p.showPage()
-    p.save()
-    buffer.seek(0)
-    return HttpResponse(buffer, content_type='application/pdf')
-
-@login_required
 def pdf_orcamento_html(request, id):
-    o = Orcamento.objects.prefetch_related(
-        'portas__produtos__produto',
-        'portas__adicionais__produto'
-    ).get(pk=id)
+    o = Orcamento.objects.prefetch_related(Prefetch('portas__produtos', queryset=PortaProduto.objects.select_related('produto').order_by('produto__desc_prod')), Prefetch('portas__adicionais',queryset=PortaAdicional.objects.select_related('produto').order_by('produto__desc_prod'))).get(pk=id)
     portas = o.portas.all().order_by('numero')
     formas_pgto = o.formas_pgto.all()
     linhas_formas = max(formas_pgto.count(), 4)
@@ -1285,31 +859,8 @@ def pdf_orcamento_html(request, id):
                 buffer = BytesIO()
                 img.save(buffer, format="JPEG")
                 logo_base64 = base64.b64encode(buffer.getvalue()).decode()
-    html = render_to_string('orcamentos/pdf_orcamento.html',
-        {
-            'o': o,
-            'portas': portas,
-            'linhas_formas': linhas_formas,
-            'logo_base64': logo_base64,
-        },
-        request=request
-    )
-    pdf = HTML(string=html, base_url=request.build_absolute_uri('/') ).write_pdf(
-        stylesheets=[
-            CSS(string="""
-                @page {
-                    size: A4;
-                    margin: 25mm 15mm 20mm 15mm;
-                }
-                body {
-                    font-family: Arial, sans-serif;
-                    font-size: 11px;
-                }
-            """)
-        ]
-    )
+    html = render_to_string('orcamentos/pdf_orcamento.html', {'o': o, 'portas': portas, 'linhas_formas': linhas_formas, 'logo_base64': logo_base64}, request=request)
+    pdf = HTML(string=html, base_url=request.build_absolute_uri('/') ).write_pdf( stylesheets=[CSS(string=""" @page {size: A4; margin: 25mm 15mm 20mm 15mm;} body {font-family: Arial, sans-serif; font-size: 11px;} """)])
     response = HttpResponse(pdf, content_type="application/pdf")
-    response["Content-Disposition"] = (
-        f'inline; filename="ORÇAMENTO PORTA ENROLAR - {o.num_orcamento}.pdf"'
-    )
+    response["Content-Disposition"] = (f'inline; filename="ORÇAMENTO PORTA ENROLAR - {o.num_orcamento}.pdf"')
     return response

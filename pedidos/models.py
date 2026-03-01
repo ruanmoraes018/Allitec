@@ -1,6 +1,5 @@
 from django.db import models
 from decimal import Decimal
-from filiais.models import Filial
 from clientes.models import Cliente
 from produtos.models import Produto
 from django.utils import timezone
@@ -60,7 +59,10 @@ class PedidoProduto(models.Model):
     produto = models.ForeignKey(
         Produto, on_delete=models.CASCADE, related_name="produtos_vinculados_ped"
     )
+    vl_unit = models.DecimalField(verbose_name="Valor Unitário", max_digits=10, decimal_places=2)
+    vl_total = models.DecimalField(verbose_name="Valor Unitário", max_digits=10, decimal_places=2)
     quantidade = models.DecimalField(max_digits=10, decimal_places=2)
+    tp_desc_acres = models.CharField(max_length=10, choices=[('Desconto', 'Desconto'), ('Acréscimo', 'Acréscimo')], default='Desconto')
     desc_acres = models.DecimalField(verbose_name="Desconto/Acréscimo", max_digits=10, decimal_places=2, default=0)
 
     @property

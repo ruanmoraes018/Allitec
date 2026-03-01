@@ -7,14 +7,14 @@ from fornecedores.models import Fornecedor
 class EntradaForm(forms.ModelForm):
     fornecedor = forms.ModelChoiceField(
         label='Fornecedor',
-        queryset=Fornecedor.objects.all(),
+        queryset=Fornecedor.objects.none(),
         widget=forms.Select(attrs={
             'class': 'form-select form-select-sm border-dark-subtle',
         })
     )
     vinc_fil = forms.ModelChoiceField(
         label='Filial',
-        queryset=Filial.objects.all(),
+        queryset=Filial.objects.none(),
         widget=forms.Select(attrs={
             'class': 'form-select form-select-sm border-dark-subtle text-uppercase',
         })
@@ -135,9 +135,20 @@ class EntradaForm(forms.ModelForm):
                 'class': 'form-control form-control-sm border-dark-subtle',
             }),
         }
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, empresa=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if empresa:
+            # --- FORNECEDOR ---
+            qs_fornecedor = Fornecedor.objects.filter(vinc_emp=empresa)
+            if getattr(self.instance, 'fornecedor', None):
+                qs_fornecedor = qs_fornecedor | Fornecedor.objects.filter(pk=self.instance.fornecedor.pk)
+            self.fields['fornecedor'].queryset = qs_fornecedor.distinct()
 
+            # --- FILIAL ---
+            qs_vinc_fil = Filial.objects.filter(vinc_emp=empresa)
+            if getattr(self.instance, 'vinc_fil', None):
+                qs_vinc_fil = qs_vinc_fil | Filial.objects.filter(pk=self.instance.vinc_fil.pk)
+            self.fields['vinc_fil'].queryset = qs_vinc_fil.distinct()
         # Formatar os valores se o form está sendo carregado com uma instância
         if self.instance and self.instance.pk:
             if self.instance.dt_emi:

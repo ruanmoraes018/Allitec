@@ -102,36 +102,38 @@
                             <div class="row" style="margin-left: -8px;">
                                 <div class="row g-2 align-items-end">
                                     <div class="col-md-2">
+                                        {{ form.tabela_preco|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-2">
                                         <label for="qtd_portas" class="form-label">Nº de Portas:</label>
                                         <input type="number" id="qtd_portas" class="form-control form-control-sm" min="1" value="1">
                                     </div>
                                     <div class="col-md-2">
                                         <button type="button" id="btnGerarPortas" class="btn btn-dark btn-sm"><i class="fa-solid fa-square-plus"></i> Gerar</button>
                                     </div>
-                                    <div class="col-md-8">
-                                        <small class="text-muted">Após gerar, preencha largura/altura e abra Produtos / Adicionais para visualizar os itens por porta.</small>
-                                    </div>
                                 </div>
                                 <!-- TABELA RESUMO (linhas das portas geradas) -->
-                                <div class="card mb-3" style="margin: 0; margin-top: 10px; padding-left: 0; padding-right: 0;">
+                                <div class="card mb-2" style="margin: 0; margin-top: 10px; padding-left: 0; padding-right: 0;">
                                     <div class="card-header text-center"><i class="fa-solid fa-align-justify"></i> <strong>Portas Geradas</strong></div>
                                     <div class="card-body p-1">
                                         <table class="table table-bordered table-sm table-striped mb-0" id="tabelaPortasResumo">
                                             <thead class="table-dark">
-                                                <tr>
+                                                <tr style="font-size: 12px;">
                                                     <th>#</th>
                                                     <th style="width: 6%;">Largura</th>
                                                     <th style="width: 6%;">Altura</th>
                                                     <th style="width: 6%;">Lg. Corte</th>
                                                     <th style="width: 6%;">At. Corte</th>
-                                                    <th style="width: 6%;">Qtd. Lâm</th>
+                                                    <th style="width: 6%;">Q. Lâm.</th>
                                                     <th style="width: 6%;">M²</th>
                                                     <th style="width: 6%;">Ft. Peso</th>
                                                     <th style="width: 6%;">Peso</th>
-                                                    <th style="width: 6.5%;">Eixo Motor</th>
+                                                    <th style="width: 6.5%;">Eix. Mot.</th>
                                                     <th style="width: 6%;">Rolo</th>
-                                                    <th>Tipo de Lâmina</th>
-                                                    <th>Tipo de Vão</th>
+                                                    <th style="width: 8%;">TP. Lâm.</th>
+                                                    <th style="width: 8%;">TP. Vão</th>
+                                                    <th style="width: 8%;">Guia Esquerdo</th>
+                                                    <th style="width: 8%;">Guia Direito</th>
                                                     <th style="width: 40px;">Exc.</th>
                                                 </tr>
                                             </thead>
@@ -181,6 +183,18 @@
                                     <label for="id_vl_form_pgto" class="form-label requiredField">Valor*</label>
                                     <input type="text" placeholder="0,00" style="color: #2E8B57; font-weight: bold;" class="form-control form-control-sm border-dark-subtle valor_os" id="id_vl_form_pgto" name="vl_form_pgto">
                                 </div>
+                                <div class="col-md-1" id="div_id_parcelas" style="display:none;">
+                                    <label class="form-label">Parcelas</label>
+                                    <input type="number" min="1"
+                                           class="form-control form-control-sm border-dark-subtle"
+                                           id="id_parcelas" name="parcelas" value="1">
+                                </div>
+                                <div class="col-md-1" id="div_id_dias" style="display:none;">
+                                    <label class="form-label">Dias</label>
+                                    <input type="number" min="0"
+                                           class="form-control form-control-sm border-dark-subtle"
+                                           id="id_dias" name="dias_intervalo" value="30">
+                                </div>
                                 <div class="col-md-1">
                                     <label class="form-label">&nbsp;</label> <!-- Label vazio só para alinhar -->
                                     <button type="button" class="btn btn-success btn-sm form-control" id="addItemValorFormBtn">
@@ -213,7 +227,7 @@
                                         </button>
                                     </div>
                                 </div>
-                                <div style="overflow-x: auto;">
+                                <div style="overflow-x: auto; margin-top: 10px;">
                                     <table class="table table-bordered table-striped" id="itensTableForm">
                                         <thead class="table-dark">
                                             <tr>
@@ -264,14 +278,14 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header titulo-modal">
-                    <h1 class="modal-title fs-5" id="staticBackdropLabel"><i class="fa-regular fa-circle-question"></i> Confirmação!</h1>
+                    <h5 class="modal-title" id="staticBackdropLabel"><i class="fa-regular fa-circle-question"></i> Confirmação!</h5>
                 </div>
                 <div class="modal-body">
                     <p>Você confirma a INCLUSÃO DO ORÇAMENTO?</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>
-                    <button type="button" class="btn btn-secondary" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
                 </div>
             </div>
         </div>
@@ -287,8 +301,8 @@
                     Você não tem permissão para realizar esta ação. Deseja enviar uma solicitação para um usuário autorizado?
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" id="confirmSend">Sim</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Não</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="confirmSend">Sim</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Não</button>
                 </div>
             </div>
         </div>
@@ -302,7 +316,7 @@
                 </div>
                 <div class="modal-body">
                     <label class="form-label">Usuário Autorizador</label>
-                    <select id="userSelect" class="form-select mb-3">
+                    <select id="userSelect" class="form-select mb-2">
                         <option value="">--------</option>
                     </select>
                     <label class="form-label">Senha de liberação</label>
@@ -321,7 +335,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <form>
-                    <div class="modal-header" style="background-color: #191919; color: white;">
+                    <div class="modal-header titulo-modal">
                         <h5 class="modal-title"></h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
@@ -356,9 +370,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-primary" id="saveEditBtn">Salvar</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="fechar-modal">Fechar</button>
+                    <div class="modal-footer footer-modal">
+                        <button type="button" class="btn btn-primary btn-sm" id="saveEditBtn">Salvar</button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" id="fechar-modal">Fechar</button>
                     </div>
                 </form>
             </div>
@@ -368,7 +382,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <form>
-                    <div class="modal-header" style="background-color: #191919; color: white;">
+                    <div class="modal-header titulo-modal">
                         <h5 class="modal-title"></h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
@@ -403,9 +417,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-primary" id="saveEditAdcBtn">Salvar</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <div class="modal-footer footer-modal">
+                        <button type="button" class="btn btn-primary btn-sm" id="saveEditAdcBtn">Salvar</button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
                     </div>
                 </form>
             </div>
@@ -417,10 +431,9 @@
             <div class="modal-content">
                 <div class="modal-header titulo-modal">
                     <h5 class="modal-title" id="produtoModalLabel"><i class="fa-solid fa-magnifying-glass"></i> Pesquisar Produtos Principais</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="input-group mb-3">
+                    <div class="input-group mb-2">
                         <input type="text" id="campo-pesquisa-produto-principal" class="form-control" placeholder="Digite a descrição do produto">
                         <button class="btn btn-dark" id="pesquisar-produtos-principais">🔎</button>
                     </div>
@@ -454,10 +467,9 @@
             <div class="modal-content">
                 <div class="modal-header titulo-modal">
                     <h5 class="modal-title" id="produtoAdcModalLabel"><i class="fa-solid fa-magnifying-glass"></i> Pesquisar Produtos Adicionais</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="input-group mb-3">
+                    <div class="input-group mb-2">
                         <input type="text" id="campo-pesquisa-produto-adicional" class="form-control" placeholder="Digite a descrição do produto">
                         <button class="btn btn-dark" id="pesquisar-produtos-adicionais">🔎</button>
                     </div>
@@ -488,9 +500,8 @@
     <div class="modal fade" id="modalDesconto" tabindex="-1" aria-labelledby="modalDescontoLabel" aria-hidden="true">
         <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header bg-dark text-white">
+                <div class="modal-header titulo-modal">
                     <h5 class="modal-title" id="modalDescontoLabel"><i class="fa-solid fa-circle-minus"></i> Atribuir Desconto</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="col">
@@ -502,22 +513,22 @@
                     </div>
                     <div class="col">
                         <label class="form-label fw-bold" for="campo_desconto">Valor:</label>
-                        <div class="input-group mb-3">
+                        <div class="input-group mb-2">
                             <span class="input-group-text" id="simbolo">R$</span>
                             <input class="form-control fw-bold" id="campo_desconto" type="text" placeholder="0.00" aria-describedby="simbolo">
                         </div>
                     </div>
                     <div class="col">
                         <label class="form-label fw-bold" for="auxiliar_desconto">Percentual:</label>
-                        <div class="input-group mb-3">
+                        <div class="input-group mb-2">
                             <span class="input-group-text" id="simboloAuxiliar">%</span>
                             <input class="form-control fw-bold" id="auxiliar_desconto" disabled="disabled" type="text" placeholder="0.00" aria-describedby="simboloAuxiliar">
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                    <button type="button" class="btn btn-primary" id="confirmarDesconto">Atribuir</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="confirmarDesconto">Atribuir</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
                 </div>
             </div>
         </div>
@@ -526,9 +537,8 @@
     <div class="modal fade" id="modalAcrescimo" tabindex="-1" aria-labelledby="modalAcrescimoLabel" aria-hidden="true">
         <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header bg-dark text-white">
+                <div class="modal-header titulo-modal">
                     <h5 class="modal-title" id="modalAcrescimoLabel"><i class="fa-solid fa-circle-plus"></i> Atribuir Acréscimo</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="col">
@@ -540,22 +550,22 @@
                     </div>
                     <div class="col">
                         <label class="form-label fw-bold" for="campo_acrescimo">Valor:</label>
-                        <div class="input-group mb-3">
+                        <div class="input-group mb-2">
                             <span class="input-group-text" id="simboloAc">R$</span>
                             <input class="form-control fw-bold" id="campo_acrescimo" type="text" placeholder="0.00" aria-describedby="simboloAc">
                         </div>
                     </div>
                     <div class="col">
                         <label class="form-label fw-bold" for="auxiliar_acrescimo">Percentual:</label>
-                        <div class="input-group mb-3">
+                        <div class="input-group mb-2">
                             <span class="input-group-text" id="simboloAuxiliarAc">%</span>
                             <input class="form-control fw-bold" id="auxiliar_acrescimo" disabled="disabled" type="text" placeholder="0.00" aria-describedby="simboloAuxiliarAc">
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                    <button type="button" class="btn btn-primary" id="confirmarAcrescimo">Atribuir</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="confirmarAcrescimo">Atribuir</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
                 </div>
             </div>
         </div>

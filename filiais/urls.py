@@ -14,4 +14,5 @@ urlpatterns = [
     path('filiais/del/<int:id>/', views.del_filial, name='del-filial'),
     path('verificar-localizacao/', views.verificar_ou_criar_localizacao, name='verificar_localizacao'),
     path('ajax/notificacoes/', views.notificacoes_ajax, name='notificacoes_ajax'),
+    path('ajax/verificar-parcelas/', views.verificar_parcelas, name='verificar_parcelas'),
 ]

@@ -70,7 +70,7 @@
                                     <div class="row g-3" style="margin-left: -8px;">
                                         {% for categoria, grupos in form.categorias_permissoes.items %}
                                             <div class="card mb-3" style="margin: 0; margin-left: 4px;">
-                                                <div class="card-header bg-dark-subtle text-center">
+                                                <div class="card-header bg-dark-subtle text-center" style="margin-left: -8px; margin-right: -8px;">
                                                     <h4 class="mb-1 mt-1 text-primary-emphasis" style="font-weight: bold;">{{ categoria }}</h4>
                                                 </div>
                                                 <div class="card-body">
@@ -113,12 +113,18 @@
                                                                                             <span class="badge bg-success-subtle text-dark fs-6">Efetivar</span>
                                                                                         {% elif 'faturar_' in code %}
                                                                                             <span class="badge bg-success-subtle text-dark fs-6">Faturar</span>
+                                                                                        {% elif 'baixar_' in code %}
+                                                                                            <span class="badge bg-success-subtle text-dark fs-6">Baixar</span>
                                                                                         {% elif 'cancelar_' in code %}
                                                                                             <span class="badge bg-danger-subtle text-dark fs-6">Cancelar</span>
-                                                                                        {% elif 'atribuir_desconto' in code or 'atribuir_desconto_ped' in code %}
+                                                                                        {% elif 'atribuir_desconto' in code or 'atribuir_desconto_ped' in code or 'atribuir_desconto_cr' in code %}
                                                                                             <span class="badge bg-info-subtle text-dark fs-6">Atribuir Desconto</span>
                                                                                         {% elif 'atribuir_acrescimo' in code or 'atribuir_acrescimo_ped' in code %}
                                                                                             <span class="badge bg-danger-subtle text-dark fs-6">Atribuir Acréscimo</span>
+                                                                                        {% elif 'atribuir_acrescimo' in code or 'atribuir_acrescimo_ped' in code %}
+                                                                                            <span class="badge bg-danger-subtle text-dark fs-6">Atribuir Acréscimo</span>
+                                                                                        {% elif 'estornar_' in code %}
+                                                                                            <span class="badge text-white fs-6" style="background-color: #4682B4;">Estornar</span>
                                                                                         {% else %}
                                                                                             {{ perm.name }}
                                                                                         {% endif %}

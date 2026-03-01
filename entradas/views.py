@@ -167,7 +167,7 @@ def add_entrada(request):
     # Se a requisição for do tipo POST (formulário enviado)
     if request.method == "POST":
         # Cria uma instância do formulário com os dados enviados
-        form = EntradaForm(request.POST)
+        form = EntradaForm(request.POST, empresa=request.user.empresa)
 
         # Valida se o formulário está correto
         if form.is_valid():
@@ -233,7 +233,7 @@ def add_entrada(request):
             })
     else:
         # Se não for POST, apenas cria o formulário vazio
-        form = EntradaForm()
+        form = EntradaForm(empresa=request.user.empresa)
 
     # Renderiza a página com o formulário
     return render(request, "entradas/add.html", {
@@ -265,7 +265,7 @@ def att_entrada(request, id):
         return redirect(f'/entradas/lista/?tp=numeracao&s={entrada.numeracao}')
     elif request.method == "POST":
         # Cria o formulário com os dados enviados e a instância existente
-        form = EntradaForm(request.POST, instance=entrada)
+        form = EntradaForm(request.POST, instance=entrada, empresa=request.user.empresa)
 
         if form.is_valid():
             entrada = form.save(commit=False)
@@ -321,7 +321,7 @@ def att_entrada(request, id):
             })
     else:
         # Se não for POST, carrega o formulário com os dados da entrada
-        form = EntradaForm(instance=entrada)
+        form = EntradaForm(instance=entrada, empresa=request.user.empresa)
 
     return render(request, "entradas/att.html", {
         "form": form,
@@ -407,7 +407,7 @@ def cancelar_entrada(request, id):
                 produto = item.produto
 
                 # Atualiza estoque
-                produto.estoque_prod = (produto.estoque_prod or 0) + (item.quantidade or 0)
+                produto.estoque_prod = (produto.estoque_prod or 0) - (item.quantidade or 0)
 
                 # Atualiza preço de compra
                 produto.vl_compra = str(item.preco_unitario)  # já que vl_compra é CharField

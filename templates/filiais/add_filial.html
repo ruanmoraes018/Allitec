@@ -67,10 +67,11 @@
                                     <div class="card-header bg-white">
                                         <button type="button" class="btn btn-dark" id="endBtn">Endereço</button>
                                         <button type="button" class="btn btn-dark" id="complBtn">Complementos</button>
+                                        <button type="button" class="btn btn-dark" id="financBtn">Financeiro</button>
                                     </div>
                                 </div>
                                 <div class="form-section" id="enderecos">
-                                    <div class="row g-3" style="margin-left: -8px;">
+                                    <div class="row g-3" style="margin-left: -8px; margin-top: 10px;">
                                         <div class="col-md-2">
                                             {{ form.cep|as_crispy_field }}
                                         </div>
@@ -95,7 +96,7 @@
                                     </div>
                                 </div>
                                 <div class="form-section" id="complementos">
-                                    <div class="row g-3" style="margin-left: -8px;">
+                                    <div class="row g-3" style="margin-left: -8px; margin-top: 10px;">
                                         <div class="col-md-2" id="div_id_tel">
                                             <label for="id_tel" class="form-label requiredField">Fone*</label>
                                             <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_tel" name="tel" required>
@@ -127,6 +128,25 @@
                                         </div>
                                         <div class="col-md-6">
                                             {{ form.info_local|as_crispy_field }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-section" id="financeiros">
+                                    <div class="row g-3" style="margin-left: -8px; margin-top: 10px;">
+                                        <div class="col-md-3">
+                                            {{ form.tp_calc_juros|as_crispy_field }}
+                                        </div>
+                                        <div class="col-md-2">
+                                            {{ form.ft_juros|as_crispy_field }}
+                                        </div>
+                                        <div class="col-md-3">
+                                            {{ form.tp_calc_multa|as_crispy_field }}
+                                        </div>
+                                        <div class="col-md-2">
+                                            {{ form.ft_multa|as_crispy_field }}
+                                        </div>
+                                        <div class="col-md-2">
+                                            {{ form.max_parcelas|as_crispy_field }}
                                         </div>
                                     </div>
                                 </div>

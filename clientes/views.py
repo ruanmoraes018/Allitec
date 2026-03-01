@@ -169,7 +169,7 @@ def add_cliente(request):
         messages.info(request, 'Você não tem permissão para adicionar clientes.')
         return redirect('/clientes/lista/')
     if request.method == 'POST':
-        form = ClienteForm(request.POST)
+        form = ClienteForm(request.POST, empresa=request.user.empresa)
         if form.is_valid():
             c = form.save(commit=False)
 
@@ -210,7 +210,7 @@ def add_cliente(request):
                     for error in field.errors:
                         error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'clientes/add_cliente.html', {'form': form, 'error_messages': error_messages})
-    else: form = ClienteForm()
+    else: form = ClienteForm(empresa=request.user.empresa)
     return render(request, 'clientes/add_cliente.html', {'form': form})
 
 @verifica_alguma_permissao(
@@ -221,12 +221,12 @@ def add_cliente(request):
 @login_required
 def att_cliente(request, id):
     cli = get_object_or_404(Cliente, pk=id)
-    form = ClienteForm(instance=cli)
+    form = ClienteForm(instance=cli, empresa=request.user.empresa)
     if not request.user.has_perm('clientes.change_cliente'):
         messages.info(request, 'Você não tem permissão para editar clientes.')
         return redirect('/clientes/lista/')
     if request.method == 'POST':
-        form = ClienteForm(request.POST, instance=cli)
+        form = ClienteForm(request.POST, instance=cli, empresa=request.user.empresa)
         if form.is_valid():
             cli.save()
             clie = str(cli.id)

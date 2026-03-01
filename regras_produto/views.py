@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 import pandas as pd
 from django.db import transaction
-from produtos.models import Produto
+from produtos.models import Produto, ProdutoTabela
 from .models import RegraProduto
 from .forms import RegraProdutoForm, ImportarRegraProdutoForm
 import unicodedata
@@ -17,6 +17,8 @@ from django.views.decorators.http import require_POST
 from openpyxl import Workbook
 from django.http import HttpResponse
 from openpyxl.styles import Font
+import ast
+import operator as op
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -152,15 +154,61 @@ def lista_regras_ajax(request):
     }
     return JsonResponse(data)
 
+OPERADORES = {
+    ast.Add: op.add,
+    ast.Sub: op.sub,
+    ast.Mult: op.mul,
+    ast.Div: op.truediv,
+    ast.Pow: op.pow,
+    ast.USub: op.neg,
+}
+
+def avaliar_expressao_segura(expressao, contexto):
+    def avaliar(no):
+        if isinstance(no, ast.Num):
+            return Decimal(str(no.n))
+
+        elif isinstance(no, ast.Constant):  # Python 3.8+
+            return Decimal(str(no.value))
+
+        elif isinstance(no, ast.BinOp):
+            return OPERADORES[type(no.op)](
+                avaliar(no.left),
+                avaliar(no.right)
+            )
+
+        elif isinstance(no, ast.UnaryOp):
+            return OPERADORES[type(no.op)](
+                avaliar(no.operand)
+            )
+
+        elif isinstance(no, ast.Name):
+            if no.id in contexto:
+                return Decimal(str(contexto[no.id]))
+            raise ValueError(f"Variável não permitida: {no.id}")
+
+        else:
+            raise TypeError(f"Operação não permitida: {type(no)}")
+
+    arvore = ast.parse(expressao, mode='eval')
+    return avaliar(arvore.body)
+
+
+# ================================
+# REGRAS JS (continua igual)
+# ================================
+
 @login_required
 def regras_js(request):
     empresa = request.user.empresa
     if not empresa:
         return JsonResponse({}, status=403)
+
     regras = RegraProduto.objects.filter(
         vinc_emp=empresa,
         ativo=True
     ).values('codigo', 'tipo', 'expressao')
+
     data = {
         r['codigo']: {
             'tipo': r['tipo'],
@@ -168,29 +216,40 @@ def regras_js(request):
         }
         for r in regras
     }
+
     return JsonResponse(data)
+
+
+# ================================
+# REGRA DE SELEÇÃO (sem eval)
+# ================================
 
 def aplicar_regra_selecao(regra, contexto):
     """
-    Retorna o NOME ou CÓDIGO do produto selecionado
+    Retorna o NOME do produto selecionado
     """
     dados = json.loads(regra.expressao)
 
-    # ========= MOTOR (por peso) =========
+    # ======== MOTOR (por peso) ========
     if isinstance(dados, list):
-        peso = contexto.get('peso', 0)
+        peso = Decimal(str(contexto.get('peso', 0)))
+
         for item in sorted(dados, key=lambda x: x['max']):
-            if peso <= item['max']:
+            if peso <= Decimal(str(item['max'])):
                 return item['produto']
 
-    # ========= MAPA DIRETO (lamina, pintura) =========
+    # ======== MAPA DIRETO (lamina, pintura etc) ========
     if isinstance(dados, dict):
-        # tenta chaves conhecidas
-        for chave in contexto.values():
-            if chave in dados:
-                return dados[chave]
+        for valor in contexto.values():
+            if valor in dados:
+                return dados[valor]
 
     return None
+
+
+# ================================
+# CALCULAR ORÇAMENTO (AJUSTADA)
+# ================================
 
 @require_POST
 @login_required
@@ -198,56 +257,120 @@ def calcular_orcamento(request):
     empresa = request.user.empresa
     body = json.loads(request.body)
 
+    tabela_id = body.get('tabela_id')
     contexto = body.get('contexto', {})
     produtos_req = body.get('produtos', [])
 
-    produtos_base = (
-        Produto.objects
-        .select_related('regra')
-        .filter(id__in=[p['id'] for p in produtos_req])
+    # ==========================
+    # CONTEXTO DECIMAL
+    # ==========================
+    contexto_decimal = {
+        k: Decimal(str(v)) for k, v in contexto.items()
+    }
+
+    # ==========================
+    # REMOVE DUPLICADOS JÁ AQUI
+    # ==========================
+    ids_produtos = list(set(p['id'] for p in produtos_req if 'id' in p))
+
+    produtos_base = Produto.objects.select_related('regra').filter(
+        id__in=ids_produtos,
+        vinc_emp=empresa
     )
 
-    itens = []
+    # Cache de preços da tabela
+    precos_tabela = {}
+    if tabela_id:
+        itens_tabela = ProdutoTabela.objects.filter(
+            tabela_id=tabela_id,
+            produto_id__in=ids_produtos
+        )
+        precos_tabela = {
+            item.produto_id: item.vl_prod
+            for item in itens_tabela
+        }
+
+    itens_dict = {}
     total_geral = Decimal('0.00')
 
+    # ==========================
+    # LOOP PRINCIPAL
+    # ==========================
     for prod in produtos_base:
 
         produto_final = prod
-        qtd = Decimal('0')
-        # ================= SELECAO =================
+
+        # ======================
+        # REGRA DE SELEÇÃO
+        # ======================
         if prod.regra and prod.regra.tipo == 'SELECAO':
-            produto_nome = aplicar_regra_selecao(prod.regra, contexto)
+            produto_nome = aplicar_regra_selecao(prod.regra, contexto_decimal)
 
-            if produto_nome:
-                produto_final = Produto.objects.get(
-                    desc_prod=produto_nome,
-                    vinc_emp=empresa
-                )
+            if not produto_nome:
+                continue
 
+            produto_final = Produto.objects.filter(
+                desc_prod=produto_nome,
+                vinc_emp=empresa
+            ).select_related('regra').first()
 
-        # ================= 2️⃣ QUANTIDADE =================
+            if not produto_final:
+                continue
+
+        # ======================
+        # REGRA DE QUANTIDADE
+        # ======================
+        qtd = Decimal('1')
+
         if produto_final.regra and produto_final.regra.tipo == 'QTD':
             try:
-                qtd = Decimal(str(eval(
+                qtd = avaliar_expressao_segura(
                     produto_final.regra.expressao,
-                    {},
-                    contexto
-                )))
+                    contexto_decimal
+                )
             except Exception:
                 qtd = Decimal('0')
 
-        # ================= VALORES =================
-        vl_unit = produto_final.preco_unitario()
-        total = qtd * vl_unit
-        total_geral += total
+        if qtd <= 0:
+            continue
 
-        itens.append({
+        # ======================
+        # VALOR UNITÁRIO
+        # ======================
+        vl_unit = precos_tabela.get(produto_final.id, Decimal('0.00'))
+
+        total = qtd * vl_unit
+
+        # ======================
+        # AGRUPAMENTO SEGURO
+        # ======================
+        item = itens_dict.setdefault(produto_final.id, {
             'id': produto_final.id,
             'desc': produto_final.desc_prod,
-            'qtd': float(qtd),
-            'vl_unit': float(vl_unit),
-            'total': float(total),
+            'qtd': Decimal('0'),
+            'vl_unit': vl_unit,
+            'total': Decimal('0.00'),
             'regra_aplicada': produto_final.regra.codigo if produto_final.regra else None
+        })
+
+        item['qtd'] += qtd
+        item['total'] += total
+
+    # ==========================
+    # MONTA LISTA FINAL
+    # ==========================
+    itens = []
+
+    for item in itens_dict.values():
+        total_geral += item['total']
+
+        itens.append({
+            'id': item['id'],
+            'desc': item['desc'],
+            'qtd': float(item['qtd']),
+            'vl_unit': float(item['vl_unit']),
+            'total': float(item['total']),
+            'regra_aplicada': item['regra_aplicada']
         })
 
     return JsonResponse({

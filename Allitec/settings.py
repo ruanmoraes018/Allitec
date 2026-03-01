@@ -11,7 +11,7 @@ INSTALLED_APPS = [
     'filiais', 'compras', 'entradas', 'conferencias',
     'unidades', 'clientes', 'fornecedores', 'produtos',
     'orcamentos', 'tecnicos', 'bancos', 'grupos',
-    'empresas', "bairros", "cidades", "estados",
+    'empresas', "bairros", "cidades", "estados", 'contas_receber',
     'notifications', "mensalidades", "contratos", "crispy_forms", "crispy_bootstrap5",
 ]
 MIDDLEWARE = [

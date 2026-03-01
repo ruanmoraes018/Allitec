@@ -105,36 +105,38 @@
                             <div class="row" style="margin-left: -8px;">
                                 <div class="row g-2 align-items-end">
                                     <div class="col-md-2">
+                                        {{ form.tabela_preco|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-2">
                                         <label for="qtd_portas" class="form-label">Nº de Portas:</label>
                                         <input type="number" id="qtd_portas" class="form-control form-control-sm" min="1" value="1">
                                     </div>
                                     <div class="col-md-2">
                                         <button type="button" id="btnGerarPortas" class="btn btn-dark btn-sm"><i class="fa-solid fa-square-plus"></i> Gerar</button>
                                     </div>
-                                    <div class="col-md-8">
-                                        <small class="text-muted">Após gerar, preencha largura/altura e abra Produtos / Adicionais para visualizar os itens por porta.</small>
-                                    </div>
                                 </div>
                                 <!-- TABELA RESUMO (linhas das portas geradas) -->
-                                <div class="card mb-3" style="margin: 0; margin-top: 10px; padding-left: 0; padding-right: 0;">
+                                <div class="card mb-2" style="margin: 0; margin-top: 10px; padding-left: 0; padding-right: 0;">
                                     <div class="card-header text-center"><i class="fa-solid fa-align-justify"></i> <strong>Portas Geradas</strong></div>
                                     <div class="card-body p-1">
                                         <table class="table table-bordered table-sm table-striped mb-0" id="tabelaPortasResumo">
                                             <thead class="table-dark">
-                                                <tr>
+                                                <tr style="font-size: 12px;">
                                                     <th>#</th>
                                                     <th style="width: 6%;">Largura</th>
                                                     <th style="width: 6%;">Altura</th>
                                                     <th style="width: 6%;">Lg. Corte</th>
                                                     <th style="width: 6%;">At. Corte</th>
-                                                    <th style="width: 6%;">Qtd. Lâm</th>
+                                                    <th style="width: 6%;">Q. Lâm.</th>
                                                     <th style="width: 6%;">M²</th>
                                                     <th style="width: 6%;">Ft. Peso</th>
                                                     <th style="width: 6%;">Peso</th>
-                                                    <th style="width: 6.5%;">Eixo Motor</th>
+                                                    <th style="width: 6.5%;">Eix. Mot.</th>
                                                     <th style="width: 6%;">Rolo</th>
-                                                    <th>Tipo de Lâmina</th>
-                                                    <th>Tipo de Vão</th>
+                                                    <th style="width: 8%;">TP. Lâm.</th>
+                                                    <th style="width: 8%;">TP. Vão</th>
+                                                    <th style="width: 8%;">Guia Esquerdo</th>
+                                                    <th style="width: 8%;">Guia Direito</th>
                                                     <th style="width: 40px;">Exc.</th>
                                                 </tr>
                                             </thead>
@@ -142,8 +144,8 @@
                                                 {% for pt in orcamento.portas.all %}
                                                     <tr id="linha_resumo_{{ pt.numero }}" class="linha-porta" data-porta="{{ pt.numero }}">
                                                         <td data-label="Porta:" class="mobile-2col">{{ forloop.counter|stringformat:"01d" }}</td>
-                                                        <td data-label="Larg.:" class="mobile-2col"><input type="text" class="form-control form-control-sm larg" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.largura }}"></td>
-                                                        <td data-label="Alt.:" class="mobile-2col"><input type="text" class="form-control form-control-sm alt" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.altura }}"></td>
+                                                        <td data-label="Largura:" class="mobile-2col"><input type="text" class="form-control form-control-sm larg" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.largura }}"></td>
+                                                        <td data-label="Altura:" class="mobile-2col"><input type="text" class="form-control form-control-sm alt" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.altura }}"></td>
                                                         {% load l10n %}
                                                         <td data-label="Lg. Corte:" class="mobile-2col">
                                                             <input readonly class="form-control form-control-sm larg-corte" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.larg_corte|unlocalize }}">
@@ -158,17 +160,29 @@
                                                         <td data-label="Rolo:" class="mobile-full">
                                                             <input readonly class="form-control form-control-sm rolo" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.rolo|unlocalize }}">
                                                         </td>
-                                                        <td data-label="Tp. Lâm.:" class="mobile-full">
+                                                        <td data-label="Tipo Lâmina:" class="mobile-full">
                                                             <select class="form-select form-select-sm tipo-lamina" data-porta="{{ pt.numero }}">
                                                                 <option value="Fechada" {% if pt.tp_lamina == "Fechada" %}selected{% endif %}>Fechada</option>
                                                                 <option value="Transvision" {% if pt.tp_lamina == "Transvision" %}selected{% endif %}>Transvision</option>
                                                             </select>
                                                         </td>
-                                                        <td data-label="Tp. Vão:" class="mobile-full">
+                                                        <td data-label="Tipo Vão:" class="mobile-full">
                                                             <select class="form-select form-select-sm tipo-vao" data-porta="{{ pt.numero }}">
                                                                 <option value="Fora do Vão" {% if pt.tp_vao == "Fora do Vão" %}selected{% endif %}>Fora do Vão</option>
                                                                 <option value="Dentro do Vão" {% if pt.tp_vao == "Dentro do Vão" %}selected{% endif %}>Dentro do Vão</option>
-                                                                <option value="1 Lado Dentro do Vão" {% if pt.tp_vao == "1 Lado Dentro do Vão" %}selected{% endif %}>1 Lado Dentro do Vão</option>
+                                                                <option value="1 Lado Dentro do Vão" {% if tp_vao.tipo_vao == "1 Lado Dentro do Vão" %}selected{% endif %}>1 Lado Dentro do Vão</option>
+                                                            </select>
+                                                        </td>
+                                                        <td data-label="Guia Esquerdo:" class="mobile-full">
+                                                            <select class="form-select form-select-sm guia-esq" data-porta="{{ pt.numero }}">
+                                                                <option value="Dentro do Vão" {% if pt.op_guia_e == "Dentro do Vão" %}selected{% endif %}>Dentro do Vão</option>
+                                                                <option value="Fora do Vão" {% if pt.op_guia_e == "Fora do Vão" %}selected{% endif %}>Fora do Vão</option>
+                                                            </select>
+                                                        </td>
+                                                        <td data-label="Guia Direito:" class="mobile-full">
+                                                            <select class="form-select form-select-sm guia-dir" data-porta="{{ pt.numero }}">
+                                                                <option value="Dentro do Vão" {% if pt.op_guia_d == "Dentro do Vão" %}selected{% endif %}>Dentro do Vão</option>
+                                                                <option value="Fora do Vão" {% if pt.op_guia_d == "Fora do Vão" %}selected{% endif %}>Fora do Vão</option>
                                                             </select>
                                                         </td>
                                                         <td data-label="Exc.:" class="text-center mobile-full">
@@ -214,7 +228,7 @@
                                             </h2>
                                             <div id="collapseProd_{{ pt.numero }}" class="accordion-collapse collapse">
                                                 <div class="accordion-body table-container w-100">
-                                                    <div class="row g-2 mb-3 form-produto" data-porta="{{ pt.numero }}">
+                                                    <div class="row g-2 mb-2 form-produto" data-porta="{{ pt.numero }}">
 
                                                         <div class="col-md-2">
                                                             <label class="form-label">Cód. Produto</label>
@@ -304,7 +318,7 @@
                                                                     <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">{{ pprod.produto.vl_compra }}</td>
                                                                     {% load l10n %}
                                                                     <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">
-                                                                        {{ pprod.produto.produtotabela_set.first.vl_prod|unlocalize }}
+                                                                        {{ pprod.valor_unitario|unlocalize }}
                                                                     </td>
                                                                     {% load l10n %}
                                                                     <td class="qtd-produto mobile-full" data-label="Quantidade:">
@@ -314,10 +328,10 @@
                                                                         {{ pprod.totCompraP|floatformat:2 }}
                                                                     </td>
                                                                     <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">
-                                                                        {{ pprod.subtotalP|floatformat:2 }}
+                                                                        {{ pprod.valor_total|floatformat:2 }}
                                                                     </td>
                                                                     <td data-label="Ações:" class="mobile-full">
-                                                                        <i class="fas fa-edit editBtn" style="color:#13c43f;cursor:pointer" data-bs-toggle="modal" data-bs-target="#editItemModal"></i>
+                                                                        <i class="fas fa-edit editBtn" style="color:#13c43f;cursor:pointer" data-bs-target="#editItemModal"></i>
                                                                         <i class="fas fa-trash deleteBtn" style="color:#db1e47;cursor:pointer"></i>
                                                                     </td>
                                                                 </tr>
@@ -357,7 +371,7 @@
                                             <div id="collapseAdc_{{ pt.numero }}" class="accordion-collapse collapse">
                                                 <div class="accordion-body table-container w-100">
                                                     <!-- 🔥 FORMULÁRIO ADICIONAL -->
-                                                    <div class="row g-2 mb-3 form-adicional" data-porta="{{ pt.numero }}">
+                                                    <div class="row g-2 mb-2 form-adicional" data-porta="{{ pt.numero }}">
 
                                                         <div class="col-md-2">
                                                             <label class="form-label">Cód. Produto</label>
@@ -442,7 +456,7 @@
                                                                 <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">{{ adc.produto.vl_compra }}</td>
                                                                 {% load l10n %}
                                                                 <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">
-                                                                    {{ adc.produto.produtotabela_set.first.vl_prod|unlocalize }}
+                                                                    {{ adc.valor_unitario|unlocalize }}
                                                                 </td>
                                                                 {% load l10n %}
                                                                 <td class="qtd-produto mobile-full" data-label="Quantidade:">
@@ -452,10 +466,10 @@
                                                                     {{ adc.totCompraA|floatformat:2 }}
                                                                 </td>
                                                                 <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">
-                                                                    {{ adc.subtotalA|floatformat:2 }}
+                                                                    {{ adc.valor_total|floatformat:2 }}
                                                                 </td>
                                                                 <td data-label="Ações:" class="mobile-full">
-                                                                    <i class="fas fa-edit editBtn" data-bs-toggle="modal" data-bs-target="#editItemAdcModal" style="color:#13c43f;cursor:pointer"></i>
+                                                                    <i class="fas fa-edit editBtn" data-bs-target="#editItemAdcModal" style="color:#13c43f;cursor:pointer"></i>
                                                                     <i class="fas fa-trash deleteBtn" style="color:#db1e47;cursor:pointer"></i>
                                                                 </td>
                                                             </tr>
@@ -525,7 +539,7 @@
                                         </button>
                                     </div>
                                 </div>
-                                <div style="overflow-x: auto;">
+                                <div style="overflow-x: auto; margin-top: 10px;">
                                     <table class="table table-bordered table-striped" id="itensTableForm">
                                         <thead class="table-dark">
                                             <tr>
@@ -586,14 +600,14 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header titulo-modal">
-                    <h1 class="modal-title fs-5" id="staticBackdropLabel"><i class="fa-regular fa-circle-question"></i> Confirmação!</h1>
+                    <h5 class="modal-title" id="staticBackdropLabel"><i class="fa-regular fa-circle-question"></i> Confirmação!</h5>
                 </div>
                 <div class="modal-body">
                     <p>Você confirma a INCLUSÃO DO ORÇAMENTO?</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>
-                    <button type="button" class="btn btn-secondary" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
+                    <button type="submit" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
                 </div>
             </div>
         </div>
@@ -603,9 +617,8 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <form>
-                    <div class="modal-header" style="background-color: #191919; color: white;">
+                    <div class="modal-header titulo-modal">
                         <h5 class="modal-title"></h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <div class="row g-3">
@@ -638,9 +651,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="saveEditBtn">Salvar</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="fechar-modal">Fechar</button>
+                    <div class="modal-footer footer-modal">
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal" id="saveEditBtn">Salvar</button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" id="fechar-modal">Fechar</button>
                     </div>
                 </form>
             </div>
@@ -651,9 +664,8 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <form>
-                    <div class="modal-header" style="background-color: #191919; color: white;">
+                    <div class="modal-header titulo-modal">
                         <h5 class="modal-title"></h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <div class="row g-3">
@@ -686,9 +698,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="saveEditAdcBtn">Salvar</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <div class="modal-footer footer-modal">
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal" id="saveEditAdcBtn">Salvar</button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
                     </div>
                 </form>
             </div>
@@ -700,10 +712,9 @@
             <div class="modal-content">
                 <div class="modal-header titulo-modal">
                     <h5 class="modal-title" id="produtoModalLabel"><i class="fa-solid fa-magnifying-glass"></i> Pesquisar Produtos Principais</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="input-group mb-3">
+                    <div class="input-group mb-2">
                         <input type="text" id="campo-pesquisa-produto-principal" class="form-control" placeholder="Digite a descrição do produto">
                         <button class="btn btn-dark" id="pesquisar-produtos-principais">🔎</button>
                     </div>
@@ -726,7 +737,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
                 </div>
             </div>
         </div>
@@ -737,10 +748,9 @@
             <div class="modal-content">
                 <div class="modal-header titulo-modal">
                     <h5 class="modal-title" id="produtoAdcModalLabel"><i class="fa-solid fa-magnifying-glass"></i> Pesquisar Produtos Adicionais</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="input-group mb-3">
+                    <div class="input-group mb-2">
                         <input type="text" id="campo-pesquisa-produto-adicional" class="form-control" placeholder="Digite a descrição do produto">
                         <button class="btn btn-dark" id="pesquisar-produtos-adicionais">🔎</button>
                     </div>
@@ -762,7 +772,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
                 </div>
             </div>
         </div>
@@ -778,8 +788,8 @@
                     Você não tem permissão para realizar esta ação. Deseja enviar uma solicitação para um usuário autorizado?
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" id="confirmSend">Sim</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Não</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="confirmSend">Sim</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Não</button>
                 </div>
             </div>
         </div>
@@ -793,7 +803,7 @@
                 </div>
                 <div class="modal-body">
                     <label class="form-label">Usuário Autorizador</label>
-                    <select id="userSelect" class="form-select mb-3">
+                    <select id="userSelect" class="form-select mb-2">
                         <option value="">--------</option>
                     </select>
                     <label class="form-label">Senha de liberação</label>
@@ -814,7 +824,6 @@
             <div class="modal-content">
                 <div class="modal-header titulo-modal">
                     <h5 class="modal-title" id="modalDescontoLabel"><i class="fa-solid fa-circle-minus"></i> Atribuir Desconto</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="col">
@@ -826,22 +835,22 @@
                     </div>
                     <div class="col">
                         <label class="form-label fw-bold" for="campo_desconto">Valor:</label>
-                        <div class="input-group mb-3">
+                        <div class="input-group mb-2">
                             <span class="input-group-text" id="simbolo">R$</span>
                             <input class="form-control" id="campo_desconto" value="{{ form.desconto.value }}" type="text" placeholder="0.00" aria-describedby="simbolo">
                         </div>
                     </div>
                     <div class="col">
                         <label class="form-label fw-bold" for="auxiliar_desconto">Percentual:</label>
-                        <div class="input-group mb-3">
+                        <div class="input-group mb-2">
                             <span class="input-group-text" id="simboloAuxiliar">%</span>
                             <input class="form-control" id="auxiliar_desconto" disabled="disabled" type="text" placeholder="0.00" aria-describedby="simboloAuxiliar">
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" id="confirmarDesconto">Atribuir</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="confirmarDesconto">Atribuir</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
                 </div>
             </div>
         </div>
@@ -852,7 +861,6 @@
             <div class="modal-content">
                 <div class="modal-header titulo-modal">
                     <h5 class="modal-title" id="modalAcrescimoLabel"><i class="fa-solid fa-circle-plus"></i> Atribuir Acréscimo</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="col">
@@ -864,22 +872,22 @@
                     </div>
                     <div class="col">
                         <label class="form-label fw-bold" for="campo_acrescimo">Valor:</label>
-                        <div class="input-group mb-3">
+                        <div class="input-group mb-2">
                             <span class="input-group-text" id="simboloAc">R$</span>
                             <input class="form-control" id="campo_acrescimo" value="{{ form.acrescimo.value }}" type="text" placeholder="0.00" aria-describedby="simboloAc">
                         </div>
                     </div>
                     <div class="col">
                         <label class="form-label fw-bold" for="auxiliar_acrescimo">Percentual:</label>
-                        <div class="input-group mb-3">
+                        <div class="input-group mb-2">
                             <span class="input-group-text" id="simboloAuxiliarAc">%</span>
                             <input class="form-control" id="auxiliar_acrescimo" disabled="disabled" type="text" placeholder="0.00" aria-describedby="simboloAuxiliarAc">
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" id="confirmarAcrescimo">Atribuir</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="confirmarAcrescimo">Atribuir</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
                 </div>
             </div>
         </div>

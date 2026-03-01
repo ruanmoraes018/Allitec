@@ -8,4 +8,5 @@ urlpatterns = [
     path("del/<int:id>/", views.del_regra, name='del-regra'),
     path('js/', views.regras_js, name='regras_js'),
     path('exportar/', views.exportar_regras_produto, name='exp-regras'),
+    path('calcular_orcamento/', views.calcular_orcamento, name='calcular_orcamento'),
 ]
