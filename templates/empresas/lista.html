@@ -141,7 +141,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-empresa' empresa.id %}"><span><i class="fas fa-edit" title="Editar empresa" data-bs-toggle="modal" data-bs-target="#loadingModal"></i></span></a>
+                                <a href="{% url 'att-empresa' empresa.id %}?next={{ request.get_full_path|urlencode }}"><span><i class="fas fa-edit" title="Editar empresa" data-bs-toggle="modal" data-bs-target="#loadingModal"></i></span></a>
                             </td>
                             <td style="text-align: center; padding: 5px;">
                                 {% if empresa.situacao == 'Ativa' %}

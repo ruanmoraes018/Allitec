@@ -132,7 +132,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-tecnico' tecnico.id %}" class="btn-permissao" data-permissao="tecnicos.change_tecnico" data-msg-negado="Seu usuário não pode editar técnicos!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
+                                <a href="{% url 'att-tecnico' tecnico.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="tecnicos.change_tecnico" data-msg-negado="Seu usuário não pode editar técnicos!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                             </td>
                             <td style="align-items: center;">{{ tecnico.id }}</td>
                             <td style="text-align: center; padding: 5px;">

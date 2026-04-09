@@ -132,7 +132,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-usuario' usuario.id %}" class="btn-permissao" data-permissao="filiais.change_usuario" data-msg-negado="Seu usuário não pode editar usuários!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
+                                <a href="{% url 'att-usuario' usuario.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="filiais.change_usuario" data-msg-negado="Seu usuário não pode editar usuários!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                             </td>
                             <td style="align-items: center; width: 6%;">{{ usuario.codigo_local }}</td>
                             <td style="text-align: center; padding: 5px;">

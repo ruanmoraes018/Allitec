@@ -22,17 +22,10 @@
             <div class="row g-3 align-items-end">
                 <div class="col-md-2 search-div flex-md-fill">
                     <label class="form-label">Filial:</label>
-                    <select class="form-control" id="vinc_emp" name="fil">
+                    <select class="form-select form-select-sm" id="vinc_emp" name="fil">
                         <option value="">Selecione uma filial</option>
-                        {% if filial_selecionada %}
-                            <option value="{{ filial_selecionada.id }}" selected>
-                                {{ filial_selecionada.fantasia }}
-                            </option>
-                        {% endif %}
-                        {% for filial in filiais %}
-                            <option value="{{ filial.id }}" {% if request.GET.fil == filial.id|stringformat:"s" %}selected{% endif %}>
-                                {{ filial.fantasia }}
-                            </option>
+                        {% for f in filiais %}
+                            <option value="{{ f.id }}" {% if request.GET.fil == f.id|stringformat:"s" %}selected{% endif %}>{{ f }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -42,17 +35,10 @@
                 </div>
                 <div class="col-md-2 search-div flex-md-fill">
                     <label class="form-label">Fornecedor:</label>
-                    <select class="form-control" id="fornecedor" name="cl">
-                        <option value="">Escolha uma opção</option>
-                        {% if fornecedor_selecionado %}
-                            <option value="{{ fornecedor_selecionado.id }}" selected>
-                                {{ fornecedor_selecionado.fantasia }}
-                            </option>
-                        {% endif %}
-                        {% for fornecedor in fornecedores %}
-                            <option value="{{ fornecedor.id }}" {% if request.GET.cl == fornecedor.id|stringformat:"s" %}selected{% endif %}>
-                                {{ fornecedor.fantasia }}
-                            </option>
+                    <select class="form-select form-select-sm" id="fornecedor" name="forn">
+                        <option value="">Selecione um fornecedor</option>
+                        {% for fn in fornecedores %}
+                            <option value="{{ fn.id }}" {% if request.GET.forn == fn.id|stringformat:"s" %}selected{% endif %}>{{ fn }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -151,7 +137,7 @@
                                                 </div>
                                             </div>
                                             <div class="modal-body d-grid gap-2">
-                                                <a href="{% url 'att-entrada' entrada.id %}" class="btn-permissao" data-permissao="entradas.change_entrada" data-msg-negado="Seu usuário não pode editar entradas de NF/Pedidos!">
+                                                <a href="{% url 'att-entrada' entrada.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="entradas.change_entrada" data-msg-negado="Seu usuário não pode editar entradas de NF/Pedidos!">
                                                     <button class="btn btn-outline-dark" type="button" id="botoes-modal" data-id="{{ entrada.id }}">
                                                         <span><i class="fas fa-edit" title="Editar Orçamento"></i></span>
                                                         <strong style="color: #13c43f; font-size: 20px;">EDITAR</strong>
@@ -164,7 +150,7 @@
                                                         <strong style="color: #db1e47; font-size: 20px;">DELETAR</strong>
                                                     </button>
                                                 {% else %}
-                                                    <a href="{% url 'del-entrada' entrada.id %}">
+                                                    <a href="{% url 'del-entrada' entrada.id %}?next={{ request.get_full_path|urlencode }}">
                                                         <button class="btn btn-outline-dark btn-delete" type="button" data-orcamento-id="{{ entrada.id }}" data-bs-dismiss="modal">
                                                             <span><i class="fas fa-trash"></i></span>
                                                             <strong style="color: #db1e47; font-size: 20px;">DELETAR</strong>
@@ -202,7 +188,7 @@
                                                     <button class="btn btn-outline-dark btn-faturar btn-permissao"
                                                         type="button"
                                                         data-bs-toggle="modal"
-                                                        data-bs-target="#faturarModal-{{ entrada.id }}"
+                                                        data-bs-target="#efetivarModal-{{ entrada.id }}"
                                                         data-permissao="entradas.efetivar_entrada"
                                                         data-msg-negado="Seu usuário não pode efetivar entradas de NF/Pedidos!"
                                                         data-orcamento-id="{{ entrada.id }}"
@@ -247,7 +233,7 @@
                                         </div>
                                     </div>
                                 {% endif %}
-                                <div class="modal fade" id="faturarModal-{{ entrada.id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal fade" id="efetivarModal-{{ entrada.id }}" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered modal-lg">
                                         <div class="modal-content">
                                             <div class="modal-header titulo-modal">
@@ -272,7 +258,7 @@
                                                         <input class="form-control mb-3" id="dt_efet_ent" type="text">
                                                     </div>
                                                 </div>
-                                                <div class="card">
+                                                <div class="card mt-2 mb-2" style="margin: 0;">
                                                     <h6 class="card-header text-center fw-bold">GERAÇÃO DE TÍTULOS À PAGAR</h6>
                                                     <div class="card-body">
                                                         <div class="row g-3">

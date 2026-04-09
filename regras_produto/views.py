@@ -9,7 +9,6 @@ from .models import RegraProduto
 from .forms import RegraProdutoForm, ImportarRegraProdutoForm
 import unicodedata
 from django.http import JsonResponse
-from filiais.models import Usuario
 from util.permissoes import verifica_permissao
 import json
 from decimal import Decimal
@@ -24,57 +23,47 @@ def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
     return ''.join([c for c in nfkd_form if not unicodedata.combining(c)])
 
+COLUNAS_OBRIGATORIAS = ["codigo", "descricao", "tipo", "expressao", "ativo",]
+
+@verifica_permissao('regras_produto.view_regraproduto')
+@login_required
+def baixar_modelo_regras(request):
+    colunas = COLUNAS_OBRIGATORIAS
+    df = pd.DataFrame(columns=colunas)
+    df.loc[0] = ["001", "Descrição exemplo", "QTD", "x > 10", True]
+    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = 'attachment; filename="modelo_importacao_regras.xlsx"'
+    with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False)
+    return response
+
+@verifica_permissao('regras_produto.view_regraproduto')
+@login_required
 def exportar_regras_produto(request):
     empresa = request.user.empresa
-
     wb = Workbook()
     ws = wb.active
     ws.title = 'regras_produto'
-
     # Cabeçalho IGUAL à planilha matriz
     headers = ['codigo', 'descricao', 'tipo', 'expressao', 'ativo']
     ws.append(headers)
-
     # Negrito na primeira linha
     bold_font = Font(bold=True)
-
     for col in range(1, len(headers) + 1):
         ws.cell(row=1, column=col).font = bold_font
-
     regras = RegraProduto.objects.filter(vinc_emp=empresa).order_by('id')
-
     for regra in regras:
-        ws.append([
-            regra.codigo,
-            regra.descricao,
-            regra.tipo,               # QTD ou SELECAO
-            regra.expressao,
-            'Sim' if regra.ativo else 'Não'
-        ])
-
-    response = HttpResponse(
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-    response['Content-Disposition'] = (
-        f'attachment; filename=regras_produto_{empresa.id}.xlsx'
-    )
-
+        ws.append([regra.codigo, regra.descricao, regra.tipo, regra.expressao, 'Sim' if regra.ativo else 'Não'])
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = (f'attachment; filename=regras_produto_{empresa.id}.xlsx')
     wb.save(response)
     return response
-
-COLUNAS_OBRIGATORIAS = [
-    "codigo",
-    "descricao",
-    "tipo",
-    "expressao",
-    "ativo",
-]
-
 
 @verifica_permissao('regras_produto.view_regraproduto')
 @login_required
 @transaction.atomic
 def lista_regras(request):
+    empresa = request.user.empresa
     if request.method == "POST":
         form = ImportarRegraProdutoForm(request.POST, request.FILES)
         if form.is_valid():
@@ -104,7 +93,6 @@ def lista_regras(request):
                 for erro in erros:
                     messages.error(request, erro)
                 return redirect("lista-regras")
-            empresa = request.user.empresa
             for _, row in df.iterrows():
                 RegraProduto.objects.update_or_create(
                     vinc_emp=empresa,
@@ -117,13 +105,13 @@ def lista_regras(request):
     s = request.GET.get('s')
     tp = request.GET.get('tp')
     reg = request.GET.get('reg', '10')
-    regras = RegraProduto.objects.filter(vinc_emp=request.user.empresa)
+    regras = RegraProduto.objects.filter(vinc_emp=empresa)
     if tp == 'desc' and s:
         norm_s = remove_accents(s).lower()
         regras = regras.filter(descricao__icontains=norm_s).order_by('descricao')
     elif tp == 'cod' and s:
         try:
-            regras = regras.filter(id__iexact=s).order_by('descricao')
+            regras = regras.filter(codigo__iexact=s).order_by('descricao')
         except ValueError:
             regras = RegraProduto.objects.none()
     if reg == 'todos':
@@ -141,7 +129,7 @@ def lista_regras(request):
 @login_required
 def lista_regras_ajax(request):
     term = request.GET.get('term', '')
-    regras = RegraProduto.objects.filter(descricao__icontains=term)[:50]
+    regras = RegraProduto.objects.filter(descricao__icontains=term, vinc_emp=request.user.empresa)[:20]
     data = {
         'regras': [
             {
@@ -154,123 +142,73 @@ def lista_regras_ajax(request):
     }
     return JsonResponse(data)
 
-OPERADORES = {
-    ast.Add: op.add,
-    ast.Sub: op.sub,
-    ast.Mult: op.mul,
-    ast.Div: op.truediv,
-    ast.Pow: op.pow,
-    ast.USub: op.neg,
-}
+OPERADORES = {ast.Add: op.add, ast.Sub: op.sub, ast.Mult: op.mul, ast.Div: op.truediv, ast.Pow: op.pow, ast.USub: op.neg,}
 
 def avaliar_expressao_segura(expressao, contexto):
     def avaliar(no):
         if isinstance(no, ast.Num):
             return Decimal(str(no.n))
-
         elif isinstance(no, ast.Constant):  # Python 3.8+
             return Decimal(str(no.value))
-
         elif isinstance(no, ast.BinOp):
-            return OPERADORES[type(no.op)](
-                avaliar(no.left),
-                avaliar(no.right)
-            )
-
+            return OPERADORES[type(no.op)](avaliar(no.left), avaliar(no.right))
         elif isinstance(no, ast.UnaryOp):
-            return OPERADORES[type(no.op)](
-                avaliar(no.operand)
-            )
-
+            return OPERADORES[type(no.op)](avaliar(no.operand))
         elif isinstance(no, ast.Name):
             if no.id in contexto:
                 return Decimal(str(contexto[no.id]))
             raise ValueError(f"Variável não permitida: {no.id}")
-
         else:
             raise TypeError(f"Operação não permitida: {type(no)}")
-
     arvore = ast.parse(expressao, mode='eval')
     return avaliar(arvore.body)
-
-
-# ================================
-# REGRAS JS (continua igual)
-# ================================
 
 @login_required
 def regras_js(request):
     empresa = request.user.empresa
     if not empresa:
         return JsonResponse({}, status=403)
-
     regras = RegraProduto.objects.filter(
         vinc_emp=empresa,
         ativo=True
-    ).values('codigo', 'tipo', 'expressao')
-
+    ).values('codigo', 'tipo', 'expressao', 'expressao_json')
     data = {
         r['codigo']: {
             'tipo': r['tipo'],
             'expressao': r['expressao'],
+            'expressao_json': r['expressao_json'],
         }
         for r in regras
     }
-
     return JsonResponse(data)
 
-
-# ================================
-# REGRA DE SELEÇÃO (sem eval)
-# ================================
-
 def aplicar_regra_selecao(regra, contexto):
-    """
-    Retorna o NOME do produto selecionado
-    """
-    dados = json.loads(regra.expressao)
-
-    # ======== MOTOR (por peso) ========
+    dados = regra.expressao_json or []
     if isinstance(dados, list):
         peso = Decimal(str(contexto.get('peso', 0)))
-
-        for item in sorted(dados, key=lambda x: x['max']):
-            if peso <= Decimal(str(item['max'])):
-                return item['produto']
-
-    # ======== MAPA DIRETO (lamina, pintura etc) ========
+        for item in sorted(dados, key=lambda x: x.get('condicoes', {}).get('max', 0)):
+            max_val = item.get('condicoes', {}).get('max')
+            if max_val is not None and peso <= Decimal(str(max_val)):
+                return item.get('produto_id')
     if isinstance(dados, dict):
         for valor in contexto.values():
             if valor in dados:
                 return dados[valor]
-
     return None
-
-
-# ================================
-# CALCULAR ORÇAMENTO (AJUSTADA)
-# ================================
 
 @require_POST
 @login_required
 def calcular_orcamento(request):
     empresa = request.user.empresa
     body = json.loads(request.body)
-
     tabela_id = body.get('tabela_id')
     contexto = body.get('contexto', {})
     produtos_req = body.get('produtos', [])
 
-    # ==========================
-    # CONTEXTO DECIMAL
-    # ==========================
     contexto_decimal = {
         k: Decimal(str(v)) for k, v in contexto.items()
     }
 
-    # ==========================
-    # REMOVE DUPLICADOS JÁ AQUI
-    # ==========================
     ids_produtos = list(set(p['id'] for p in produtos_req if 'id' in p))
 
     produtos_base = Produto.objects.select_related('regra').filter(
@@ -278,12 +216,13 @@ def calcular_orcamento(request):
         vinc_emp=empresa
     )
 
-    # Cache de preços da tabela
     precos_tabela = {}
     if tabela_id:
         itens_tabela = ProdutoTabela.objects.filter(
             tabela_id=tabela_id,
-            produto_id__in=ids_produtos
+            produto_id__in=ids_produtos,
+            produto__vinc_emp=empresa,
+            tabela__vinc_emp=empresa
         )
         precos_tabela = {
             item.produto_id: item.vl_prod
@@ -293,19 +232,11 @@ def calcular_orcamento(request):
     itens_dict = {}
     total_geral = Decimal('0.00')
 
-    # ==========================
-    # LOOP PRINCIPAL
-    # ==========================
     for prod in produtos_base:
-
         produto_final = prod
 
-        # ======================
-        # REGRA DE SELEÇÃO
-        # ======================
         if prod.regra and prod.regra.tipo == 'SELECAO':
             produto_nome = aplicar_regra_selecao(prod.regra, contexto_decimal)
-
             if not produto_nome:
                 continue
 
@@ -317,9 +248,6 @@ def calcular_orcamento(request):
             if not produto_final:
                 continue
 
-        # ======================
-        # REGRA DE QUANTIDADE
-        # ======================
         qtd = Decimal('1')
 
         if produto_final.regra and produto_final.regra.tipo == 'QTD':
@@ -334,16 +262,9 @@ def calcular_orcamento(request):
         if qtd <= 0:
             continue
 
-        # ======================
-        # VALOR UNITÁRIO
-        # ======================
         vl_unit = precos_tabela.get(produto_final.id, Decimal('0.00'))
-
         total = qtd * vl_unit
 
-        # ======================
-        # AGRUPAMENTO SEGURO
-        # ======================
         item = itens_dict.setdefault(produto_final.id, {
             'id': produto_final.id,
             'desc': produto_final.desc_prod,
@@ -356,14 +277,9 @@ def calcular_orcamento(request):
         item['qtd'] += qtd
         item['total'] += total
 
-    # ==========================
-    # MONTA LISTA FINAL
-    # ==========================
     itens = []
-
     for item in itens_dict.values():
         total_geral += item['total']
-
         itens.append({
             'id': item['id'],
             'desc': item['desc'],
@@ -384,17 +300,18 @@ def add_regra(request):
         messages.info(request, 'Você não tem permissão para adicionar regras de produto.')
         return redirect('/regras_produto/lista/')
     if request.method == 'POST':
+        expressao_json = request.POST.get('expressao_json')
         form = RegraProdutoForm(request.POST)
         if form.is_valid():
             e = form.save(commit=False)
-            if request.user.is_authenticated:
-                try:
-                    e.vinc_emp = request.user.empresa  # Busca a filial do usuário logado
-                except Usuario.DoesNotExist:
-                    return JsonResponse({'error': 'Usuário não possui filial vinculada'}, status=400)
+            e.vinc_emp = request.user.empresa
+            try:
+                e.expressao_json = json.loads(expressao_json) if expressao_json else []
+            except:
+                e.expressao_json = []
             e.save()
             messages.success(request, 'Regra adicionada com sucesso!')
-            est = str(e.id)
+            est = str(e.codigo)
             return redirect('/regras_produto/lista/?tp=cod&s=' + est)
         else:
             error_messages = []
@@ -408,18 +325,29 @@ def add_regra(request):
 
 @login_required
 def att_regra(request, id):
-    e = get_object_or_404(RegraProduto, pk=id)
+    e = get_object_or_404(RegraProduto, pk=id, vinc_emp=request.user.empresa)
     form = RegraProdutoForm(instance=e)
     if not request.user.has_perm('regras_produto.change_regraproduto'):
         messages.info(request, 'Você não tem permissão para editar regras de produto.')
         return redirect('/regras_produto/lista/')
     if request.method == 'POST':
+        expressao_json = request.POST.get('expressao_json')
         form = RegraProdutoForm(request.POST, instance=e)
         if form.is_valid():
+            e = form.save(commit=False)
+            e.vinc_emp = request.user.empresa
+            try:
+                e.expressao_json = json.loads(expressao_json) if expressao_json else []
+            except:
+                e.expressao_json = []
             e.save()
-            est = str(e.id)
+            est = str(e.codigo)
             messages.success(request, 'Regra atualizada com sucesso!')
-            return redirect('/regras_produto/lista/?tp=cod&s=' + est)
+            next_url = request.POST.get('next') or request.GET.get('next')
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect('/regras_produto/lista/?tp=cod&s=' + est)
         else:
             error_messages = []
             for field in form:
@@ -428,14 +356,14 @@ def att_regra(request, id):
                         error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'regras_produto/att.html', {'form': form, 'e': e, 'error_messages': error_messages})
     else:
-        return render(request, 'regras_produto/att.html', {'form': form, 'e': e})
+        return render(request, 'regras_produto/att.html', {'form': form, 'e': e, 'expressao_json_str': json.dumps(e.expressao_json or [])})
 
 @login_required
 def del_regra(request, id):
     if not request.user.has_perm('regras_produto.delete_regraproduto'):
         messages.info(request, 'Você não tem permissão para deletar regras de produto.')
         return redirect('/regras_produto/lista/')
-    e = get_object_or_404(RegraProduto, pk=id)
+    e = get_object_or_404(RegraProduto, pk=id, vinc_emp=request.user.empresa)
     e.delete()
     messages.success(request, 'Regra deletada com sucesso!')
     return redirect('/regras_produto/lista/')

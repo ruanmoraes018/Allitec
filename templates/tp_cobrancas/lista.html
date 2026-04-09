@@ -71,7 +71,6 @@
                                        data-permissao="tipo_cobranca.delete_tipocobranca"
                                        data-msg-negado="Seu usuário não pode deletar tipos de cobrança!">
                                     </i>
-                                    <i class="fas fa-trash" title="Deletar" data-bs-toggle="modal" data-bs-target="#modal-{{ tp_cobranca.id }}"></i>
                                 </span>
                                 <!-- Modal ÚNICO para cada tp_cobranca -->
                                 <div class="modal fade" id="modal-{{ tp_cobranca.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ tp_cobranca.id }}" aria-hidden="true">
@@ -99,7 +98,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-tp_cobranca' tp_cobranca.id %}" class="btn-permissao"
+                                <a href="{% url 'att-tp_cobranca' tp_cobranca.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
                                   data-permissao="tipo_cobranca.change_tipocobranca"
                                   data-msg-negado="Seu usuário não pode editar tipos de cobrança!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                             </td>

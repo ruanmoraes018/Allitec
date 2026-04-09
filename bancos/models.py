@@ -6,15 +6,9 @@ def remove_accents(input_str):
     return ''.join([c for c in nfkd_form if not unicodedata.combining(c)])
 
 class Banco(models.Model):
-    nome_banco = models.CharField(
-        max_length=100,
-        verbose_name="Nome"
-    )
-    cod_banco = models.CharField(
-        max_length=100,
-        verbose_name="Código Banco"
-    )
-    vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE, null=True, blank=True)
+    nome_banco = models.CharField(max_length=100, verbose_name="Nome")
+    cod_banco = models.CharField(max_length=100, verbose_name="Código Banco")
+    vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
 
     def save(self, *args, **kwargs):
         self.banco_normalizado = remove_accents(self.nome_banco).lower()
@@ -27,3 +21,6 @@ class Banco(models.Model):
 
     class Meta:
         verbose_name_plural = "Bancos"
+        constraints = [
+            models.UniqueConstraint(fields=['nome_banco', 'vinc_emp'], name='unique_banco_por_empresa')
+        ]

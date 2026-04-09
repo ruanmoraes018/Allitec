@@ -6,8 +6,8 @@ def remove_accents(input_str):
     return ''.join([c for c in nfkd_form if not unicodedata.combining(c)])
 
 class Unidade(models.Model):
-    nome_unidade = models.CharField(max_length=100, unique=True)
-    vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE, null=True, blank=True)
+    nome_unidade = models.CharField(max_length=100)
+    vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
 
     def save(self, *args, **kwargs):
         self.nome_unidade = self.nome_unidade.upper()
@@ -18,3 +18,6 @@ class Unidade(models.Model):
 
     class Meta:
         verbose_name_plural = "Unidades"
+        constraints = [
+            models.UniqueConstraint(fields=['nome_unidade', 'vinc_emp'], name='unique_unidade_por_empresa')
+        ]

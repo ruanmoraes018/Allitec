@@ -20,8 +20,8 @@ def lista_grupos(request):
     s = request.GET.get('s')
     tp = request.GET.get('tp')
     reg = request.GET.get('reg', '10')
-
-    grupos = Grupo.objects.filter(vinc_emp=request.user.empresa)
+    empresa = request.user.empresa
+    grupos = Grupo.objects.filter(vinc_emp=empresa)
 
     if tp == 'desc' and s:
         norm_s = remove_accents(s).lower()
@@ -54,8 +54,8 @@ def lista_grupos(request):
 @login_required
 def lista_grupos_ajax(request):
     term = request.GET.get('term', '')
-    grupos = Grupo.objects.filter(nome_grupo__icontains=term)[:10]
-    data = {'grupos': [{'id': grupo.id, 'nome_grupo': grupo.nome_grupo} for grupo in grupos]}
+    grupos = Grupo.objects.filter(nome_grupo__icontains=term, vinc_emp=request.user.empresa)
+    data = {'grupos': [{'id': grupo.id, 'text': grupo.nome_grupo} for grupo in grupos]}
     return JsonResponse(data)
 
 @login_required
@@ -67,11 +67,7 @@ def add_grupo(request):
         form = GrupoForm(request.POST)
         if form.is_valid():
             g = form.save(commit=False)
-            if request.user.is_authenticated:
-                try:
-                    g.vinc_emp = request.user.empresa  # Busca a filial do usuário logado
-                except Usuario.DoesNotExist:
-                    return JsonResponse({'error': 'Usuário não possui filial vinculada'}, status=400)
+            g.vinc_emp = request.user.empresa
             g.save()
             messages.success(request, 'Grupo adicionado com sucesso!')
             gp = str(g.id)
@@ -105,7 +101,7 @@ def add_grupo_ajax(request):
 
 @login_required
 def att_grupo(request, id):
-    g = get_object_or_404(Grupo, pk=id)
+    g = get_object_or_404(Grupo, pk=id, vinc_emp=request.user.empresa)
     form = GrupoForm(instance=g)
     if not request.user.has_perm('grupos.change_grupo'):
         messages.info(request, 'Você não tem permissão para editar grupos.')
@@ -114,9 +110,13 @@ def att_grupo(request, id):
         form = GrupoForm(request.POST, instance=g)
         if form.is_valid():
             g.save()
+            next_url = request.POST.get('next') or request.GET.get('next')
             gp = str(g.id)
             messages.success(request, 'Grupo atualizado com sucesso!')
-            return redirect('/grupos/lista/?tp=cod&s=' + gp)
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect('/grupos/lista/?tp=cod&s=' + gp)
         else:
             error_messages = []
             for field in form:
@@ -132,7 +132,7 @@ def del_grupo(request, id):
     if not request.user.has_perm('grupos.delete_grupo'):
         messages.info(request, 'Você não tem permissão para deletar grupos.')
         return redirect('/grupos/lista/')
-    g = get_object_or_404(Grupo, pk=id)
+    g = get_object_or_404(Grupo, pk=id, vinc_emp=request.user.empresa)
     g.delete()
     messages.success(request, 'Grupo deletado com sucesso!')
     return redirect('/grupos/lista/')

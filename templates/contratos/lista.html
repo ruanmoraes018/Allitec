@@ -161,7 +161,7 @@
                                     </div>
                                 </div>
                                 {% if contrato.status == "Pendente" %}
-                                    <a href="{% url 'att-contrato' contrato.id %}" class="btn-permissao"
+                                    <a href="{% url 'att-contrato' contrato.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
                                       data-permissao="contratos.change_contrato"
                                       data-msg-negado="Seu usuário não pode editar contratos!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                                     <a href="{% url 'aprovar-contrato' contrato.id %}"><span><i class="fa-regular fa-square-check" title="Aprovar contrato"></i></span></a>

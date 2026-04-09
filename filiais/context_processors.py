@@ -64,6 +64,8 @@ def user_permissions(request):
             'perm_cancelar_orcamento': 'orcamentos.cancelar_orcamento' in permissoes,
             'perm_atribuir_desconto': 'orcamentos.atribuir_desconto' in permissoes,
             'perm_atribuir_acrescimo': 'orcamentos.atribuir_acrescimo' in permissoes,
+            'perm_alterar_dt_venc_orc': 'orcamentos.alterar_dt_venc_orc' in permissoes,
+            'perm_alterar_dt_fat_orc': 'orcamentos.alterar_dt_fat_orc' in permissoes,
             # Técnicos
             'perm_view_tecnicos': 'tecnicos.view_tecnico' in permissoes,
             'perm_add_tecnico': 'tecnicos.add_tecnico' in permissoes,

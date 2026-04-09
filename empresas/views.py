@@ -223,8 +223,12 @@ def att_empresa(request, id):
         form = EmpresaForm(request.POST, request.FILES, instance=empresa)
         if form.is_valid():
             form.save()
+            next_url = request.POST.get('next') or request.GET.get('next')
             messages.success(request, 'Empresa atualizada com sucesso.')
-            return redirect('/empresas/lista/')
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect('/empresas/lista/')
         else:
             error_messages = []
             for field in form:

@@ -26,20 +26,15 @@ class PedidoForm(forms.ModelForm):
                 'class': 'form-control form-control-sm border-dark-subtle',
             }),
         }
-    def __init__(self, *args, empresa=None, **kwargs):
+    def __init__(self, *args, empresa=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         if empresa:
             # --- CLIENTE ---
-            qs_cli = Cliente.objects.filter(vinc_emp=empresa)
-            if getattr(self.instance, 'cli', None):
-                qs_cli = qs_cli | Cliente.objects.filter(pk=self.instance.cli.pk)
-            self.fields['cli'].queryset = qs_cli.distinct()
-
+            self.fields['cli'].queryset = Cliente.objects.filter(vinc_emp=empresa)
             # --- Filial ---
-            qs_vinc_fil = Filial.objects.filter(vinc_emp=empresa)
-            if getattr(self.instance, 'vinc_fil', None):
-                qs_vinc_fil = qs_vinc_fil | Filial.objects.filter(pk=self.instance.vinc_fil.pk)
-            self.fields['vinc_fil'].queryset = qs_vinc_fil.distinct()
+            self.fields['vinc_fil'].queryset = Filial.objects.filter(vinc_emp=empresa)
+            if not self.instance.pk and user and user.filial_user:
+                self.fields['vinc_fil'].initial = user.filial_user.pk
         # Formatar os valores se o form está sendo carregado com uma instância
         if self.instance and self.instance.pk:
             if self.instance.dt_emi:

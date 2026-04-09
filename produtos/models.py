@@ -34,7 +34,7 @@ class Produto(models.Model):
     desc_prod = models.CharField(max_length=50)
     desc_normalizado = models.CharField(max_length=255, blank=True, null=True)
 
-    vl_compra = models.CharField(max_length=50, default='0.00')
+    vl_compra = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     estoque_prod = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     regra = models.ForeignKey(
@@ -43,6 +43,7 @@ class Produto(models.Model):
         blank=True,
         on_delete=models.SET_NULL
     )
+    especifico = models.CharField(verbose_name='Produto Específico', null=True, blank=True, max_length=50, choices=[('', ''), ('Portinhola', 'Portinhola'), ('Alçapão', 'Alçapão'), ('Coluna Removível', 'Coluna Removível'), ('Serviço/Transporte', 'Serviço/Transporte'),], default='')
 
     def save(self, *args, **kwargs):
         self.desc_prod = self.desc_prod.upper()
@@ -71,13 +72,68 @@ class ProdutoTabela(models.Model):
     def __str__(self):
         return f"{self.produto.desc_prod} — {self.tabela.descricao} (R$ {self.vl_prod}) Margem: {self.margem}%"
 
+    def clean(self):
+        if self.produto and self.tabela:
+            if self.produto.vinc_emp != self.tabela.vinc_emp:
+                raise ValidationError('O produto e a tabela de preço devem pertencer à mesma empresa.')
+
+class ProdutoFornecedor(models.Model):
+    vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
+    fornecedor = models.ForeignKey(
+        'fornecedores.Fornecedor',
+        on_delete=models.CASCADE,
+        related_name='produtos_fornecedor'
+    )
+
+    produto = models.ForeignKey(
+        Produto,
+        on_delete=models.CASCADE,
+        related_name='fornecedores_vinculados'
+    )
+    codigo_fornecedor = models.CharField(max_length=60, blank=True, default='')
+    descricao_fornecedor = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.fornecedor} -> {self.produto} [{self.codigo_fornecedor}]"
+
+    def clean(self):
+        errors = {}
+
+        if self.produto and self.vinc_emp and self.produto.vinc_emp_id != self.vinc_emp_id:
+            errors['produto'] = 'O produto precisa pertencer à mesma empresa do vínculo.'
+
+        if self.fornecedor and self.vinc_emp and self.fornecedor.vinc_emp_id != self.vinc_emp_id:
+            errors['fornecedor'] = 'O fornecedor precisa pertencer à mesma empresa do vínculo.'
+
+        if errors:
+            raise ValidationError(errors)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['vinc_emp', 'fornecedor', 'codigo_fornecedor'],
+                name='unique_codigo_fornecedor_por_empresa'
+            )
+        ]
+
 class CodigoProduto(models.Model):
+    vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
     produto = models.ForeignKey(Produto, on_delete=models.CASCADE, related_name='codigos')
-    codigo = models.CharField(max_length=50, unique=True)
+    codigo = models.CharField(max_length=50)
 
     def __str__(self):
         return f"{self.codigo} ({self.produto.desc_prod})"
 
     def clean(self):
-        if CodigoProduto.objects.exclude(pk=self.pk).filter(codigo=self.codigo).exists():
-            raise ValidationError({'codigo': 'Este código já está vinculado a outro produto.'})
+        if self.produto and self.vinc_emp != self.produto.vinc_emp:
+            raise ValidationError({
+                'produto': 'O produto precisa pertencer à mesma empresa do código.'
+            })
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['vinc_emp', 'codigo'],
+                name='unique_codigo_por_empresa'
+            )
+        ]

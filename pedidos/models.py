@@ -2,15 +2,11 @@ from django.db import models
 from decimal import Decimal
 from clientes.models import Cliente
 from produtos.models import Produto
-from django.utils import timezone
-from django.contrib.auth.models import User
-from django.conf import settings
-from formas_pgto.models import FormaPgto
 
 class Pedido(models.Model):
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
-    vinc_fil = models.ForeignKey('filiais.Filial', on_delete=models.CASCADE)
-    cli = models.ForeignKey(Cliente, on_delete=models.CASCADE)
+    vinc_fil = models.ForeignKey('filiais.Filial', on_delete=models.PROTECT)
+    cli = models.ForeignKey(Cliente, on_delete=models.PROTECT)
     vendedor = models.CharField(max_length=100)
     nome_cli = models.CharField(max_length=255, blank=True)
 

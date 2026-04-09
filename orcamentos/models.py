@@ -8,14 +8,42 @@ from django.utils import timezone
 from django.conf import settings
 
 class SolicitacaoPermissao(models.Model):
-    solicitante = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="solicitacoes_criadas")
-    autorizado_por = models.ForeignKey( settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True, related_name="solicitacoes_autorizadas")
-    acao = models.CharField(max_length=100)  # exemplo: 'atribuir_desconto'
-    status = models.CharField(max_length=20, choices=[('Pendente', 'Pendente'), ('Aprovada', 'Aprovada'), ('Negada', 'Negada'), ('Expirada', 'Expirada') ], default='Pendente' )
+    vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE, related_name='solicitacoes_permissao')
+    solicitante = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="solicitacoes_criadas"
+    )
+    autorizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="solicitacoes_autorizadas"
+    )
+    acao = models.CharField(max_length=100)
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('Pendente', 'Pendente'),
+            ('Aprovada', 'Aprovada'),
+            ('Negada', 'Negada'),
+            ('Expirada', 'Expirada')
+        ],
+        default='Pendente'
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
     expira_em = models.DateTimeField()
+
     def esta_ativa(self):
         return self.status == 'Pendente' and timezone.now() < self.expira_em
+
+    def save(self, *args, **kwargs):
+        if not self.vinc_emp_id:
+            if self.solicitante and getattr(self.solicitante, 'empresa', None):
+                self.vinc_emp = self.solicitante.empresa
+        super().save(*args, **kwargs)
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -23,10 +51,10 @@ def remove_accents(input_str):
 
 class Orcamento(models.Model):
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
-    vinc_fil = models.ForeignKey('filiais.Filial', on_delete=models.CASCADE, db_index=True)
+    vinc_fil = models.ForeignKey('filiais.Filial', on_delete=models.PROTECT, null=True, db_index=True)
     tabela_preco = models.ForeignKey('tabelas_preco.TabelaPreco', on_delete=models.PROTECT, null=True, blank=True)
-    cli = models.ForeignKey(Cliente, on_delete=models.CASCADE, db_index=True)
-    solicitante = models.ForeignKey(Tecnico, on_delete=models.CASCADE, null=True, blank=True, db_index=True)
+    cli = models.ForeignKey(Cliente, on_delete=models.PROTECT, null=True, db_index=True)
+    solicitante = models.ForeignKey(Tecnico, on_delete=models.PROTECT, null=True, blank=True, db_index=True)
     fantasia_emp = models.CharField(max_length=255, blank=True)
     nome_cli = models.CharField(max_length=255, blank=True)
     nome_solicitante = models.CharField(max_length=255, blank=True)
@@ -36,14 +64,13 @@ class Orcamento(models.Model):
     obs_cli = models.TextField(default="", blank=True)
     pintura = models.CharField(max_length=5, choices=[('Sim', 'Sim'), ('Não', 'Não')], default='Sim')
     portao_social = models.CharField(max_length=5, choices=[('Não', 'Não'), ('Sim', 'Sim')], default='Não')
-    vl_p_s = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    vl_p_s = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, default=0)
     tp_pintura = models.CharField(max_length=13, choices=[('Eletrostática', 'Eletrostática'), ('Automotiva', 'Automotiva')], default='Eletrostática')
-
     cor = models.CharField(max_length=30,
         choices=[
             ('', ''), ('Preto', 'Preto'), ('Branco', 'Branco'), ('Amarelo', 'Amarelo'), ('Vermelho', 'Vermelho'), ('Roxo Açaí', 'Roxo Açaí'), ('Azul Pepsi', 'Azul Pepsi'), ('Azul Claro', 'Azul Claro'),
-            ('Cinza Claro', 'Cinza Claro'), ('Cinza Grafite', 'Cinza Grafite'), ('Verde', 'Verde'), ('Bege', 'Bege'), ('Bege Areia', 'Bege Areia'), ('Marrom', 'Marrom'), ('Marrom Café', 'Marrom Café'),
-            ('Laranja', 'Laranja'), ('Azul Royal', 'Azul Royal'), ('Azul Marinho', 'Azul Marinho'), ('Verde Musgo', 'Verde Musgo'), ('Verde Bandeira', 'Verde Bandeira'), ('Vinho', 'Vinho'), ('Prata', 'Prata'),
+            ('Cinza Claro', 'Cinza Claro'), ('Cinza Grafite', 'Cinza Grafite'), ('Cinza Chumbo', 'Cinza Chumbo'), ('Chumbo', 'Chumbo'), ('Verde', 'Verde'), ('Bege', 'Bege'), ('Bege Areia', 'Bege Areia'), ('Marrom', 'Marrom'), ('Marrom Café', 'Marrom Café'),
+            ('Laranja', 'Laranja'), ('Azul Royal', 'Azul Royal'), ('Azul Marinho', 'Azul Marinho'), ('Azul Pepsi', 'Azul Pepsi'), ('Verde Musgo', 'Verde Musgo'), ('Verde Bandeira', 'Verde Bandeira'), ('Vinho', 'Vinho'), ('Prata', 'Prata'),
         ], default='Preto'
     )
     obs_form_pgto = models.TextField(default="", blank=True)
@@ -79,6 +106,7 @@ class Orcamento(models.Model):
         permissions = [
             ("clonar_orcamento", "Pode clonar orçamento"), ("faturar_orcamento", "Pode faturar orçamento"), ("cancelar_orcamento", "Pode cancelar orçamento"),
             ("atribuir_desconto", "Pode atribuir descontos em orçamento"), ("atribuir_acrescimo", "Pode atribuir acréscimo em orçamento"),
+            ("alterar_dt_venc_orc", "Pode alterar a data de vencimento na fatura de orçamento"), ("alterar_dt_fat_orc", "Pode alterar a data de faturamento na fatura de orçamento"),
         ]
 # 🔥 NOVO MODELO — uma porta pertence a um orçamento
 class PortaOrcamento(models.Model):
@@ -135,6 +163,13 @@ class PortaAdicional(models.Model):
     valor_unitario = models.DecimalField(max_digits=10, decimal_places=2)
     valor_total = models.DecimalField(max_digits=10, decimal_places=2)
     regra_origem = models.CharField(max_length=50, null=True, blank=True)
+    LADO_CHOICES = (
+        ('', '---------'),
+        ('E', 'Esquerdo'),
+        ('D', 'Direito'),
+        ('C', 'Centro'),
+    )
+    lado = models.CharField(max_length=1, choices=LADO_CHOICES, blank=True, default='')
 
     @property
     def subtotalA(self):

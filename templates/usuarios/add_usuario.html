@@ -125,6 +125,10 @@
                                                                                             <span class="badge bg-danger-subtle text-dark fs-6">Atribuir Acréscimo</span>
                                                                                         {% elif 'estornar_' in code %}
                                                                                             <span class="badge text-white fs-6" style="background-color: #4682B4;">Estornar</span>
+                                                                                        {% elif 'alterar_dt_venc_orc' in code %}
+                                                                                            <span class="badge text-white fs-6" style="background-color: #808000;">Alterar data de Vencimento das Parcelas</span>
+                                                                                        {% elif 'alterar_dt_fat_orc' in code %}
+                                                                                            <span class="badge text-dark fs-6" style="background-color: #D8BFD8;">Alterar data de Faturamento</span>
                                                                                         {% else %}
                                                                                             {{ perm.name }}
                                                                                         {% endif %}
@@ -152,7 +156,7 @@
                     </div>
                     <div class="card-footer">
                         <div class="base_botao">
-                            <button type="button" class="btn btn-success botoes" data-bs-toggle="modal" data-bs-target="#staticBackdrop" id="openModalBtn">Criar</button>
+                            <button type="button" class="btn btn-success botoes" data-bs-target="#staticBackdrop" id="openModalBtn">Criar</button>
                             <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#loadingModal">Voltar</a>
                         </div>
                     </div>

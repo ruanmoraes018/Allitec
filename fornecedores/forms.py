@@ -28,20 +28,6 @@ class FornecedorForm(forms.ModelForm):
     def __init__(self, *args, empresa=None, **kwargs):
         super().__init__(*args, **kwargs)
         if empresa:
-            # --- BAIRRO ---
-            qs_bairro = Bairro.objects.filter(vinc_emp=empresa)
-            if getattr(self.instance, 'bairro', None):
-                qs_bairro = qs_bairro | Bairro.objects.filter(pk=self.instance.bairro.pk)
-            self.fields['bairro'].queryset = qs_bairro.distinct()
-
-            # --- CIDADE ---
-            qs_cidade = Cidade.objects.filter(vinc_emp=empresa)
-            if getattr(self.instance, 'cidade', None):
-                qs_cidade = qs_cidade | Cidade.objects.filter(pk=self.instance.cidade.pk)
-            self.fields['cidade'].queryset = qs_cidade.distinct()
-
-            # --- UF ---
-            qs_uf = Estado.objects.filter(vinc_emp=empresa)
-            if getattr(self.instance, 'uf', None):
-                qs_uf = qs_uf | Estado.objects.filter(pk=self.instance.uf.pk)
-            self.fields['uf'].queryset = qs_uf.distinct()
+            self.fields['bairro'].queryset = Bairro.objects.filter(vinc_emp=empresa)
+            self.fields['cidade'].queryset = Cidade.objects.filter(vinc_emp=empresa)
+            self.fields['uf'].queryset = Estado.objects.filter(vinc_emp=empresa)

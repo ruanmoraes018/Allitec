@@ -1,31 +1,15 @@
 from django import forms
 from .models import RegraProduto
-from unidades.models import Unidade
 import ast
 
 class RegraProdutoForm(forms.ModelForm):
-    codigo = forms.CharField(label="Cód. Identificador",
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle text-uppercase'
-        }))
-    descricao = forms.CharField(label="Descrição",
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle text-uppercase'
-        }))
-    ativo = forms.ChoiceField(
-        label='Ativo',
-        choices=[(True, 'Sim'), (False, 'Não')],
-        widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle'})
-    )
+    codigo = forms.CharField(label="Cód. Identificador", widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
+    descricao = forms.CharField(label="Descrição", widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
+    ativo = forms.ChoiceField(label='Ativo', choices=[(True, 'Sim'), (False, 'Não')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
+    tipo_regra = forms.ChoiceField(label='Tipo Regra', required=False, choices=[('', ''), ('peso', 'Por Peso (máx)'), ('simples', 'Valor Simples')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
     class Meta:
         model = RegraProduto
-        fields = [
-            'codigo',
-            'descricao',
-            'tipo',
-            'expressao',
-            'ativo'
-        ]
+        fields = ['codigo', 'descricao', 'tipo', 'expressao', 'ativo', 'tipo_regra']
         widgets = {
             'codigo': forms.TextInput(attrs={
                 'class': 'form-control form-control-sm border-dark-subtle text-uppercase',
@@ -36,11 +20,11 @@ class RegraProdutoForm(forms.ModelForm):
                 'placeholder': 'Descrição da regra'
             }),
             'tipo': forms.Select(attrs={
-                'class': 'form-control form-control-sm border-dark-subtle'
+                'class': 'form-select form-select-sm border-dark-subtle'
             }),
             'expressao': forms.Textarea(attrs={
                 'class': 'form-control form-control-sm border-dark-subtle',
-                'rows': 4,
+                'rows': 6,
                 'placeholder': 'Ex: (alt_c + 0.2) * 2'
             }),
             'ativo': forms.CheckboxInput(attrs={
@@ -51,9 +35,7 @@ class RegraProdutoForm(forms.ModelForm):
         expr = self.cleaned_data['expressao']
         tipo = self.cleaned_data.get('tipo')
         VARIAVEIS_PERMITIDAS = {
-            'larg', 'larg_c',
-            'alt', 'alt_c',
-            'm2', 'peso'
+            'larg', 'larg_c', 'alt', 'alt_c', 'm2', 'peso', 'ft_peso', 'qtd_lam', 'eix_mot', 'rolo'
         }
         if tipo == 'QTD':
             try:
@@ -75,7 +57,7 @@ class RegraProdutoForm(forms.ModelForm):
                 ):
                     raise forms.ValidationError("Operação não permitida.")
         return expr
-    
+
 class ImportarRegraProdutoForm(forms.Form):
     arquivo = forms.FileField(
         label="Planilha de Regras (.xlsx)",

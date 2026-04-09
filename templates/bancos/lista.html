@@ -99,7 +99,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-banco' banco.id %}" class="btn-permissao"
+                                <a href="{% url 'att-banco' banco.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
                                   data-permissao="bancos.change_banco"
                                   data-msg-negado="Seu usuário não pode editar bancos!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                             </td>

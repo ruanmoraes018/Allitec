@@ -167,7 +167,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <a href="{% url 'att-mensalidade' mensalidade.id %}" class="btn-permissao"
+                                    <a href="{% url 'att-mensalidade' mensalidade.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
                                       data-permissao="mensalidades.change_mensalidade"
                                       data-msg-negado="Seu usuário não pode editar mensalidades!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                                     <span><i class="fa-solid fa-circle-down" style="float: right; font-size: 20px; margin: 5px; color: #2E8B57; cursor: pointer;" title="Baixar Mensalidade" data-bs-toggle="modal" data-bs-target="#mdBaixa-{{ mensalidade.id }}"></i></span>
@@ -197,7 +197,7 @@
                                         </div>
                                     </div>
                                 {% else %}
-                                    <a href="{% url 'estornar-mensalidade' mensalidade.id %}"><i class="fa-solid fa-arrow-rotate-left" style="float: right; font-size: 20px; margin: 5px; color: #5F9EA0; cursor: pointer;" title="Estornar Mensalidade"></i></a>
+                                    <a href="{% url 'estornar-mensalidade' mensalidade.id %}?next={{ request.get_full_path|urlencode }}"><i class="fa-solid fa-arrow-rotate-left" style="float: right; font-size: 20px; margin: 5px; color: #5F9EA0; cursor: pointer;" title="Estornar Mensalidade"></i></a>
                                 {% endif %}
                             </td>
                             <td style="align-items: center;">{{ mensalidade.num_mens }}</td>

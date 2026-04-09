@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+{% load static %}
+{% load custom_filters %}
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Ordem de Produção - Porta de Enrolar - {{ o.num_orcamento }}</title>
+    <style>
+        @page {size: A4; margin: 12mm 10mm 12mm 10mm;}
+        body {font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #111; margin: 0; padding: 0;}
+        .page {width: 100%;}
+        .header {width: 100%; border-collapse: collapse; margin-bottom: 8px;}
+        .header td, .header th, .tbl td, .tbl th {border: 1px solid #222; padding: 5px 6px; vertical-align: middle; word-wrap: break-word;}
+        .header-title {background: #1f2937; color: #fff; text-align: center; font-size: 16px; font-weight: bold; letter-spacing: 0.4px;}
+        .subhead {background: #e5e7eb; font-weight: bold; text-align: center;}
+        .label {background: #f3f4f6; font-weight: bold; width: 18%;}
+        .tbl {width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed;}
+        .section-title {background: #374151; color: #fff; font-weight: bold; text-align: center; font-size: 12px;}
+        .section-soft {background: #dbeafe; font-weight: bold; text-align: center;}
+        .center { text-align: center; }
+        .right { text-align: right; }
+        .bold { font-weight: bold; }
+        .obs-box {min-height: 45px;}
+        .assinaturas {margin-top: 16px;}
+        .assinaturas td {height: 58px; vertical-align: bottom; text-align: center; font-weight: bold;}
+        .small {font-size: 10px;}
+        .page-break {page-break-before: always;}
+        .checklist td {height: 24px;}
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- CABEÇALHO -->
+        <table class="header">
+            <tr>
+                <td rowspan="4" style="width: 18%; text-align:center;">
+                    {% if logo_base64 %}
+                        <img src="data:image/jpeg;base64,{{ logo_base64 }}" style="max-width: 110px; max-height: 70px;">
+                    {% else %}
+                        <strong>{{ o.fantasia_emp }}</strong>
+                    {% endif %}
+                </td>
+                <td colspan="6" class="header-title">ORDEM DE PRODUÇÃO – PORTA DE ENROLAR</td>
+            </tr>
+            <tr>
+                <td class="label">Empresa</td>
+                <td>{{ o.fantasia_emp }}</td>
+                <td class="label">Nº OP / Ref.</td>
+                <td>{{ o.num_orcamento }}</td>
+                <td class="label">Dt. Emissão</td>
+                <td>{{ o.dt_emi|date:"d/m/Y H:i" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Dt. Entrega</td>
+                <td>{{ o.dt_ent|date:"d/m/Y" }}</td>
+                <td class="label">Solicitante</td>
+                <td>{{ o.nome_solicitante }}</td>
+                <td class="label">Fornecedor</td>
+                <td>________________________________</td>
+            </tr>
+        </table>
+        <!-- DADOS GERAIS DE PRODUÇÃO -->
+        <table class="tbl">
+            <tr>
+                <th colspan="6" class="section-title">CONFIGURAÇÕES GERAIS</th>
+            </tr>
+            <tr class="section-soft">
+                <td>Pintura</td>
+                <td>Tipo de Pintura</td>
+                <td>Cor</td>
+                <td>Portão Social</td>
+                <td>Valor Portão Social</td>
+                <td>Observação</td>
+            </tr>
+            <tr class="center">
+                <td class="bold">{{ o.pintura }}</td>
+                <td class="bold">{% if o.pintura == "Não" %}-{% else %}{{ o.tp_pintura }}{% endif %}</td>
+                <td class="bold">{% if o.pintura == "Não" %}-{% else %}{{ o.cor }}{% endif %}</td>
+                <td class="bold">{{ o.portao_social }}</td>
+                <td class="bold">{% if o.portao_social == "Não" %}-{% else %}R$ {{ o.vl_p_s|moeda_br }}{% endif %}</td>
+                <td class="bold">{{ o.obs_form_pgto|default:"-" }}</td>
+            </tr>
+        </table>
+        {% for pt in o.portas.all %}
+            <table class="tbl {% if not forloop.first %}page-break{% endif %}">
+                <tr>
+                    <th colspan="8" class="section-title">PORTA {{ pt.numero }} – ESPECIFICAÇÃO TÉCNICA</th>
+                </tr>
+                <tr class="section-soft">
+                    <td>Largura</td>
+                    <td>Altura</td>
+                    <td>Tam. Lâmina</td>
+                    <td>Altura Corte</td>
+                    <td>Qtd. Lâminas</td>
+                    <td>M²</td>
+                    <td>Peso</td>
+                    <td>Rolo</td>
+                </tr>
+                <tr class="center">
+                    <td><strong>{{ pt.largura }}</strong></td>
+                    <td><strong>{{ pt.altura }}</strong></td>
+                    <td><strong>{{ pt.larg_corte }}</strong></td>
+                    <td><strong>{{ pt.alt_corte }}</strong></td>
+                    <td><strong>{{ pt.qtd_lam }}</strong></td>
+                    <td><strong>{{ pt.m2 }}</strong></td>
+                    <td><strong>{{ pt.peso }}</strong></td>
+                    <td><strong>{{ pt.rolo }}</strong></td>
+                </tr>
+                <tr class="section-soft">
+                    <td>Eixo do Motor</td>
+                    <td>Tipo Lâmina</td>
+                    <td colspan="2">Tipo do Vão</td>
+                    <td colspan="2">Guia Esquerdo</td>
+                    <td colspan="2">Guia Direito</td>
+                </tr>
+                <tr class="center">
+                    <td><strong>{{ pt.eixo_motor }}</strong></td>
+                    <td><strong>{{ pt.tp_lamina }}</strong></td>
+                    <td colspan="2"><strong>{{ pt.tp_vao }}</strong></td>
+                    <td colspan="2"><strong>{{ pt.op_guia_e }}</strong></td>
+                    <td colspan="2"><strong>{{ pt.op_guia_d }}</strong></td>
+                </tr>
+            </table>
+            <table class="tbl">
+                <tr>
+                    <th colspan="6" class="section-title">LISTA DE COMPONENTES – PORTA {{ pt.numero }}</th>
+                </tr>
+                <tr class="section-soft">
+                    <td style="width: 8%;">Código</td>
+                    <td colspan="2" style="width: 44%;">Descrição</td>
+                    <td style="width: 12%;">Qtd.</td>
+                    <td style="width: 18%;">Aplicação</td>
+                    <td style="width: 18%;">Conferência</td>
+                </tr>
+                {% for p in pt.produtos.all %}
+                <tr>
+                    <td class="center">{{ p.produto.id }}</td>
+                    <td colspan="2">{{ p.produto.desc_prod }}</td>
+                    <td class="center">{{ p.quantidade }} {{ p.produto.unidProd }}</td>
+                    <td class="center">Produção</td>
+                    <td></td>
+                </tr>
+                {% endfor %}
+                {% for a in pt.adicionais.all %}
+                <tr>
+                    <td class="center">{{ a.produto.id }}</td>
+                    <td colspan="2">{{ a.produto.desc_prod }} {% if a.lado == 'E' %}<strong>(Lado Esquerdo)</strong>{% elif a.lado == 'D' %}<strong>(Lado Direito)</strong>{% elif a.lado == 'C' %}<strong>(Centro)</strong>{% endif %}</td>
+                    <td class="center">{{ a.quantidade }} {{ a.produto.unidProd }}</td>
+                    <td class="center">Adicional</td>
+                    <td></td>
+                </tr>
+                {% endfor %}
+            </table>
+        {% endfor %}
+        <table class="tbl assinaturas">
+            <tr>
+                <th colspan="3" class="section-title">LIBERAÇÃO</th>
+            </tr>
+            <tr>
+                <td class="center">
+                    ____________________________________<br>
+                    EMITIDO POR
+                </td>
+                <td class="center">
+                    ____________________________________<br>
+                    CONFERIDO POR
+                </td>
+                <td class="center">
+                    ____________________________________<br>
+                    RECEBIDO PELO FORNECEDOR
+                </td>
+            </tr>
+        </table>
+        <table class="tbl">
+            <tr>
+                <th class="section-title">OBSERVAÇÕES FINAIS DE FABRICAÇÃO</th>
+            </tr>
+            <tr>
+                <td class="obs-box">
+                    1. Fabricar conforme medidas e especificações desta ordem de produção.<br>
+                    2. Qualquer divergência dimensional ou técnica deve ser comunicada antes do início da fabricação.<br>
+                    3. Não produzir com base em orçamento comercial; este documento prevalece para produção.<br>
+                    4. Conferir acabamento, acessórios e sentido de instalação antes da expedição.
+                </td>
+            </tr>
+        </table>
+        <div class="small center">
+            Documento interno de produção / fabricação – uso exclusivo entre contratante e fornecedor.
+        </div>
+    </div>
+</body>
+</html>

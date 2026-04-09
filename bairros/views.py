@@ -19,8 +19,8 @@ def lista_bairros(request):
     s = request.GET.get('s')
     tp = request.GET.get('tp')
     reg = request.GET.get('reg', '10')
-
-    bairros = Bairro.objects.filter(vinc_emp=request.user.empresa)
+    empresa = request.user.empresa
+    bairros = Bairro.objects.filter(vinc_emp=empresa)
 
     if tp == 'desc' and s:
         norm_s = remove_accents(s).lower()
@@ -54,7 +54,7 @@ def lista_bairros(request):
 def lista_bairros_ajax(request):
     term = request.GET.get('term', '')
     bairros = Bairro.objects.filter(nome_bairro__icontains=term)[:10]
-    data = {'bairros': [{'id': bairro.id, 'nome_bairro': bairro.nome_bairro} for bairro in bairros]}
+    data = {'bairros': [{'id': bairro.id, 'text': bairro.nome_bairro} for bairro in bairros]}
     return JsonResponse(data)
 
 @login_required
@@ -66,11 +66,7 @@ def add_bairro(request):
         form = BairroForm(request.POST)
         if form.is_valid():
             b = form.save(commit=False)
-            if request.user.is_authenticated:
-                try:
-                    b.vinc_emp = request.user.empresa  # Busca a filial do usuário logado
-                except Usuario.DoesNotExist:
-                    return JsonResponse({'error': 'Usuário não possui filial vinculada'}, status=400)
+            b.vinc_emp = request.user.empresa
             b.save()
             messages.success(request, 'Bairro adicionado com sucesso!')
             bai = str(b.id)
@@ -87,7 +83,7 @@ def add_bairro(request):
 
 @login_required
 def att_bairro(request, id):
-    b = get_object_or_404(Bairro, pk=id)
+    b = get_object_or_404(Bairro, pk=id, vinc_emp=request.user.empresa)
     form = BairroForm(instance=b)
     if not request.user.has_perm('bairros.change_bairro'):
         messages.info(request, 'Você não tem permissão para editar bairros.')
@@ -96,9 +92,13 @@ def att_bairro(request, id):
         form = BairroForm(request.POST, instance=b)
         if form.is_valid():
             b.save()
+            next_url = request.POST.get('next') or request.GET.get('next')
             bai = str(b.id)
             messages.success(request, 'Bairro atualizado com sucesso!')
-            return redirect('/bairros/lista/?tp=cod&s=' + bai)
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect('/bairros/lista/?tp=cod&s=' + bai)
         else:
             error_messages = []
             for field in form:
@@ -114,7 +114,7 @@ def del_bairro(request, id):
     if not request.user.has_perm('bairros.delete_bairro'):
         messages.info(request, 'Você não tem permissão para deletar bairros.')
         return redirect('/bairros/lista/')
-    b = get_object_or_404(Bairro, pk=id)
+    b = get_object_or_404(Bairro, pk=id, vinc_emp=request.user.empresa)
     b.delete()
     messages.success(request, 'Bairro deletado com sucesso!')
     return redirect('/bairros/lista/')

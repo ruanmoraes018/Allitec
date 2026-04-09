@@ -1,9 +1,8 @@
 from django.db import models
 
-# Create your models here.
 class Bairro(models.Model):
-    nome_bairro = models.CharField(max_length=100, unique=True)
-    vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE, null=True, blank=True)
+    nome_bairro = models.CharField(max_length=100)
+    vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
 
     def save(self, *args, **kwargs):
         self.nome_bairro = self.nome_bairro.strip().upper()
@@ -14,3 +13,6 @@ class Bairro(models.Model):
 
     class Meta:
         verbose_name_plural = "Bairros"
+        constraints = [
+            models.UniqueConstraint(fields=['nome_bairro', 'vinc_emp'], name='unique_bairro_por_empresa')
+        ]

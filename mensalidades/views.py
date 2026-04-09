@@ -146,9 +146,13 @@ def att_mensalidade(request, id):
         form = MensalidadeForm(request.POST, instance=mensalidade)
         if form.is_valid():
             mensalidade.save()
+            next_url = request.POST.get('next') or request.GET.get('next')
             cid = str(mensalidade.id)
             messages.success(request, 'Mensalidade atualizada com sucesso!')
-            return redirect('/mensalidades/lista/?tp=cod&s=' + cid)
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect('/mensalidades/lista/?tp=cod&s=' + cid)
         else:
             error_messages = []
             for field in form:

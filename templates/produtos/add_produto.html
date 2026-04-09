@@ -50,7 +50,7 @@
                                                 <div class="col-md-2">
                                                     <label class="form-label mb-2">Marca*</label>
                                                     <div class="input-group input-group-sm" id="marca-wrapper">
-                                                        <div id="marca-select-area" style="flex:1;">
+                                                        <div id="marca-select-area" class="flex-grow-1">
                                                             {{ form.marca }}
                                                         </div>
                                                         <div id="marca-input-area" style="flex:1; display:none;">
@@ -69,8 +69,8 @@
                                                 </div>
                                                 <div class="col-md-2">
                                                     <label class="form-label mb-2">Grupo*</label>
-                                                    <div class="input-group input-group-sm" id="marca-wrapper">
-                                                        <div id="grupo-select-area" style="flex:1;">
+                                                    <div class="input-group input-group-sm" id="grupo-wrapper">
+                                                        <div id="grupo-select-area" class="flex-grow-1">
                                                             {{ form.grupo }}
                                                         </div>
                                                         <div id="grupo-input-area" style="flex:1; display:none;">
@@ -118,7 +118,7 @@
                                                 </div>
                                                 <div class="col-md-2">
                                                     <label for="id_vl_prod" class="form-label">Preço de Venda*</label>
-                                                    <input type="Decimal" id="id_vl_prod" class="form-control form-control-sm border-dark-subtle" style='color: darkgreen; font-weight: bold; background: honeydew;' name="vl_prod">
+                                                    <input type="Decimal" id="id_vl_tab" class="form-control form-control-sm border-dark-subtle" style='color: darkgreen; font-weight: bold; background: honeydew;' name="vl_prod">
                                                 </div>
                                                 <div class="col-md-2 d-flex align-items-start">
                                                     <button class="btn btn-dark btn-sm w-100" type="button" id="add-tab" style="margin-top: 30px;">
@@ -167,9 +167,12 @@
                                                 <div class="col-md-4">
                                                     {{ form.regra|as_crispy_field }}
                                                 </div>
+                                                <div class="col-md-2">
+                                                    {{ form.especifico|as_crispy_field }}
+                                                </div>
                                             </div>
                                             <div class="row">
-                                                <div class="card" style="margin: 0; width: 30rem;">
+                                                <div class="card" style="margin: 0; margin-top: 15px; width: 30rem;">
                                                     <div class="card-header fw-bold bg-light text-secondary">
                                                         Código Secundário
                                                     </div>
@@ -219,7 +222,7 @@
                     </div>
                     <div class="card-footer">
                         <div class="base_botao">
-                            <button type="button" class="btn btn-success botoes" data-bs-toggle="modal" data-bs-target="#staticBackdrop" id="openModalBtn">Criar</button>
+                            <button type="button" class="btn btn-success botoes" data-bs-target="#staticBackdrop" id="openModalBtn">Criar</button>
                             <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#loadingModal">Voltar</a>
                         </div>
                     </div>

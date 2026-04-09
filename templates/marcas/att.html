@@ -28,6 +28,7 @@
                     </div>
                     <div class="card-body">
                         <div class="row g-3" style="margin-left: -8px;">
+                            <input type="hidden" name="next" value="{{ request.GET.next }}">
                             <div class="col-md-12">
                                 {{ form.nome_marca|as_crispy_field }}
                             </div>
@@ -35,7 +36,7 @@
                     </div>
                     <div class="card-footer">
                         <div class="base_botao">
-                            <button type="button" class="btn btn-success botoes" data-bs-toggle="modal" data-bs-target="#staticBackdrop" id="openModalBtn">Alterar</button>
+                            <button type="button" class="btn btn-success botoes" data-bs-target="#staticBackdrop" id="openModalBtn">Alterar</button>
                             <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#loadingModal">Voltar</a>
                         </div>
                     </div>

@@ -97,7 +97,7 @@
                                    data-permissao="filiais.delete_filial"
                                    data-msg-negado="Seu usuário não pode deletar filiais!">
                                 </i>
-                                <a href="{% url 'att-filial' filial.id %}" class="btn-permissao"
+                                <a href="{% url 'att-filial' filial.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
                                   data-permissao="filiais.change_filial"
                                   data-msg-negado="Seu usuário não pode editar filiais!"><span><i class="fas fa-edit" title="Editar filial"></i></span></a>
                             </td>

@@ -4,7 +4,7 @@ from datetime import date
 
 class ContaReceber(models.Model):
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
-    vinc_fil = models.ForeignKey('filiais.Filial', on_delete=models.SET_NULL, null=True, blank=True,)
+    vinc_fil = models.ForeignKey('filiais.Filial', on_delete=models.SET_NULL, null=True)
     SITUACAO = [('Aberta', 'Aberta'), ('Paga', 'Paga')]
     # Origem
     orcamento = models.ForeignKey('orcamentos.Orcamento', on_delete=models.SET_NULL, null=True, blank=True, related_name='titulos_orc')
@@ -12,7 +12,7 @@ class ContaReceber(models.Model):
     cliente = models.ForeignKey('clientes.Cliente', on_delete=models.PROTECT, related_name='contas_receber_orc')
     forma_pgto = models.ForeignKey('formas_pgto.FormaPgto', on_delete=models.PROTECT, null=True, blank=True)
     # Identificação da parcela
-    num_conta = models.CharField(max_length=10, verbose_name="Nº Conta", null=True, blank=True)
+    num_conta = models.CharField(max_length=50, verbose_name="Nº Conta", null=True, blank=True)
     # Valores
     tp_juros = models.CharField(max_length=15, verbose_name="Tp. Cálculo Juros", choices=[('Percentual', 'Percentual'), ('Valor', 'Valor')], default="Percentual")
     tp_multa = models.CharField(max_length=15, verbose_name="Tp. Cálculo Multa", choices=[('Percentual', 'Percentual'), ('Valor', 'Valor')], default="Percentual")
@@ -44,7 +44,7 @@ class ContaReceber(models.Model):
         return total_corrigido - self.valor_pago
     @property
     def esta_vencido(self):
-        if self.situacao == 'Pago':
+        if self.situacao == 'Paga':
             return False
         return date.today() > self.data_vencimento
     @property
@@ -77,3 +77,16 @@ class ContaReceber(models.Model):
         return self.valor + self.valor_multa + self.valor_juros
     def __str__(self):
         return f"{self.num_conta}"
+
+class ContaReceberBaixaForma(models.Model):
+    vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
+    conta_receber = models.ForeignKey(ContaReceber, on_delete=models.CASCADE, related_name='formas_baixa')
+    forma_pgto = models.ForeignKey('formas_pgto.FormaPgto', on_delete=models.PROTECT)
+    valor = models.DecimalField(max_digits=12, decimal_places=2)
+
+    class Meta:
+        verbose_name = 'Forma de pagamento da baixa'
+        verbose_name_plural = 'Formas de pagamento da baixa'
+
+    def __str__(self):
+        return f'{self.conta_receber.num_conta} - {self.forma_pgto} - {self.valor}'

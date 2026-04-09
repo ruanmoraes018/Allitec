@@ -15,6 +15,7 @@ def data_hoje_formatada():
 
 class Cliente(models.Model):
     vinc_emp = models.ForeignKey("empresas.Empresa", on_delete=models.CASCADE)
+    vinc_fil = models.ForeignKey("filiais.Filial", on_delete=models.SET_NULL, null=True)
     situacao = models.CharField(
         max_length=10,
         verbose_name="Situação",
@@ -44,7 +45,7 @@ class Cliente(models.Model):
     complem = models.CharField(max_length=30, blank=True, default="")
     tel = models.CharField(max_length=30)
     email = models.EmailField(max_length=40)
-    dt_reg = models.CharField(max_length=10, verbose_name="Data de Registro", default=data_hoje_formatada)
+    dt_reg = models.DateField(verbose_name="Data de Registro", null=True, blank=True, db_index=True)
     def save(self, *args, **kwargs):
         self.razao_social = self.razao_social.upper()
         self.fantasia = self.fantasia.upper()
@@ -58,3 +59,6 @@ class Cliente(models.Model):
 
     class Meta:
         verbose_name_plural = "Clientes"
+        constraints = [
+            models.UniqueConstraint(fields=['cpf_cnpj', 'vinc_emp'], name='unique_cpf_cnpj_por_empresa')
+        ]

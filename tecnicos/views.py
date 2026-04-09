@@ -31,9 +31,8 @@ def lista_tecnicos(request):
     dt_fim = request.GET.get('dt_fim')
     p_dt = request.GET.get('p_dt')
     reg = request.GET.get('reg', '10')
-
-    tecnicos = Tecnico.objects.filter(vinc_emp=request.user.empresa)
-
+    empresa=request.user.empresa
+    tecnicos = Tecnico.objects.filter(vinc_emp=empresa)
     if tp == 'nome' and s:
         norm_s = remove_accents(s).lower()
         tecnicos = tecnicos.filter(nome__icontains=norm_s).order_by('nome')
@@ -42,21 +41,13 @@ def lista_tecnicos(request):
             tecnicos = tecnicos.filter(id__iexact=s).order_by('nome')
         except ValueError:
             tecnicos = Tecnico.objects.none()
-
-    tecnicos = tecnicos.annotate(
-        dt_reg_sortable=Concat(Substr('dt_reg', 7, 4), Substr('dt_reg', 4, 2), Substr('dt_reg', 1, 2))
-    )
-
     if p_dt == 'Sim' and dt_ini and dt_fim:
         try:
-            dt_ini_dt = datetime.strptime(dt_ini, '%d/%m/%Y')
-            dt_fim_dt = datetime.strptime(dt_fim, '%d/%m/%Y')
-            dt_ini_sort = dt_ini_dt.strftime('%Y%m%d')
-            dt_fim_sort = dt_fim_dt.strftime('%Y%m%d')
-            tecnicos = tecnicos.filter(dt_reg_sortable__gte=dt_ini_sort, dt_reg_sortable__lte=dt_fim_sort)
+            dt_ini_dt = datetime.strptime(dt_ini, '%d/%m/%Y').date()
+            dt_fim_dt = datetime.strptime(dt_fim, '%d/%m/%Y').date()
+            tecnicos = tecnicos.filter(dt_reg__range=(dt_ini_dt, dt_fim_dt))
         except ValueError:
             tecnicos = Tecnico.objects.none()
-
     if f_s in ['Ativo', 'Inativo']:
         tecnicos = tecnicos.filter(situacao=f_s).order_by('nome')
     if reg == 'todos':
@@ -66,11 +57,9 @@ def lista_tecnicos(request):
             num_pagina = int(reg)
         except ValueError:
             num_pagina = 10
-
     paginator = Paginator(tecnicos, num_pagina)
     page = request.GET.get('page')
     tecnicos = paginator.get_page(page)
-
     return render(request, 'tecnicos/lista.html', {
         'tecnicos': tecnicos,
         's': s,
@@ -84,14 +73,14 @@ def lista_tecnicos(request):
 @login_required
 def lista_tecnicos_ajax(request):
     term = request.GET.get('term', '').strip()  # Captura o termo digitado
-    tecnicos = Tecnico.objects.filter(
+    tecnicos = Tecnico.objects.filter(vinc_emp=request.user.empresa,
+    ).filter(
         Q(id__icontains=term) | Q(nome__icontains=term)  # Busca por ID ou fantasia
-    )[:10]  # Limita a 10 resultados
-
+    )[:20]  # Limita a 10 resultados
     tecnicos_data = [
         {
             'id': tecnico.id,
-            'nome': tecnico.nome
+            'text': tecnico.nome
         }
         for tecnico in tecnicos
     ]
@@ -106,11 +95,7 @@ def add_tecnico(request):
         form = TecnicoForm(request.POST, empresa=request.user.empresa)
         if form.is_valid():
             t = form.save(commit=False)
-            if request.user.is_authenticated:
-                try:
-                    t.vinc_emp = request.user.empresa  # Busca a filial do usuário logado
-                except Usuario.DoesNotExist:
-                    return JsonResponse({'error': 'Usuário não possui filial vinculada'}, status=400)
+            t.vinc_emp = request.user.empresa
             t.save()
             messages.success(request, 'Técnico adicionado com sucesso!')
             tec = str(t.id)
@@ -127,7 +112,7 @@ def add_tecnico(request):
 
 @login_required
 def att_tecnico(request, id):
-    tec = get_object_or_404(Tecnico, pk=id)
+    tec = get_object_or_404(Tecnico, pk=id, vinc_emp=request.user.empresa)
     form = TecnicoForm(instance=tec, empresa=request.user.empresa)
     if not request.user.has_perm('tecnicos.change_tecnico'):
         messages.info(request, 'Você não tem permissão para editar técnicos.')
@@ -135,10 +120,15 @@ def att_tecnico(request, id):
     if request.method == 'POST':
         form = TecnicoForm(request.POST, instance=tec, empresa=request.user.empresa)
         if form.is_valid():
+            tec = form.save(commit=False)
             tec.save()
             t = str(tec.id)
             messages.success(request, 'Técnico atualizado com sucesso!')
-            return redirect('/tecnicos/lista/?tp=cod&s=' + t)
+            next_url = request.POST.get('next') or request.GET.get('next')
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect('/tecnicos/lista/?tp=cod&s=' + t)
         else:
             error_messages = []
             for field in form:
@@ -155,7 +145,7 @@ def del_tecnico(request, id):
     if not request.user.has_perm('tecnicos.delete_tecnico'):
         messages.info(request, 'Você não tem permissão para deletar técnicos.')
         return redirect('/tecnicos/lista/')
-    tec = get_object_or_404(Tecnico, pk=id)
+    tec = get_object_or_404(Tecnico, pk=id, vinc_emp=request.user.empresa)
     tec.delete()
     messages.success(request, 'Técnico deletado com sucesso!')
     return redirect('/tecnicos/lista/')

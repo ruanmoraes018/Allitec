@@ -93,7 +93,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-estado' estado.id %}" class="btn-permissao"
+                                <a href="{% url 'att-estado' estado.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
                                   data-permissao="estados.change_estado"
                                   data-msg-negado="Seu usuário não pode editar estados!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                             </td>

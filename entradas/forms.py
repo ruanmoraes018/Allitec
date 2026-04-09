@@ -5,151 +5,33 @@ from .models import Entrada, EntradaProduto
 from fornecedores.models import Fornecedor
 
 class EntradaForm(forms.ModelForm):
-    fornecedor = forms.ModelChoiceField(
-        label='Fornecedor',
-        queryset=Fornecedor.objects.none(),
-        widget=forms.Select(attrs={
-            'class': 'form-select form-select-sm border-dark-subtle',
-        })
-    )
-    vinc_fil = forms.ModelChoiceField(
-        label='Filial',
-        queryset=Filial.objects.none(),
-        widget=forms.Select(attrs={
-            'class': 'form-select form-select-sm border-dark-subtle text-uppercase',
-        })
-    )
-    obs = forms.CharField(
-        label='Observações',
-        required=False,
-        widget=forms.Textarea(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle text-uppercase',
-            'rows': 2
-        })
-    )
-    numeracao = forms.CharField(
-        label='Nº NF/Ped.',
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle'
-        })
-    )
-    tp_frete = forms.ChoiceField(
-        label="Frete",
-        choices=[
-            ('CIF', 'CIF'),
-            ('FOB', 'FOB')
-        ],
-        widget=forms.Select(attrs={
-            'class': 'form-select form-select-sm border-dark-subtle',
-        })
-    )
-    tipo = forms.ChoiceField(
-        choices=[
-            ('Pedido', 'Pedido'),
-            ('Nota Fiscal', 'Nota Fiscal')
-        ],
-        widget=forms.Select(attrs={
-            'class': 'form-select form-select-sm border-dark-subtle',
-        })
-    )
-    modelo = forms.CharField(
-        label='Modelo',
-        required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
-            'disabled': 'disabled',
-        })
-    )
-    serie = forms.CharField(
-        label='Série',
-        required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
-            'disabled': 'disabled',
-        })
-    )
-    nat_op = forms.CharField(
-        label='Natureza de Operação',
-        required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
-            'disabled': 'disabled',
-        })
-    )
-    chave_acesso = forms.CharField(
-        label='Chave de Acesso',
-        required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
-            'disabled': 'disabled',
-        })
-    )
-    motivo = forms.CharField(
-        label='Motivo',
-        required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
-        })
-    )
-    dt_emi = forms.DateField(
-        label='Dt. Emissão',
-        input_formats=['%d/%m/%Y'],
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
-        })
-    )
-    dt_ent = forms.DateField(
-        label='Dt. Entrega',
-        input_formats=['%d/%m/%Y'],
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
-        })
-    )
-    frete = forms.CharField(
-        widget=forms.TextInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
-            'hidden': ''
-        })
-
-    )
-    total = forms.DecimalField(
-        label="Total",
-        required=False,
-        widget=forms.NumberInput(attrs={
-            'class': 'form-control form-control-sm border-dark-subtle',
-            'readonly': 'readonly'
-        })
-    )
+    fornecedor = forms.ModelChoiceField(label='Fornecedor', queryset=Fornecedor.objects.none(), widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
+    vinc_fil = forms.ModelChoiceField(label='Filial', queryset=Filial.objects.none(), widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle text-uppercase'}))
+    obs = forms.CharField(label='Observações', required=False, widget=forms.Textarea(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase', 'rows': 2}))
+    numeracao = forms.CharField(label='Nº', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
+    tp_frete = forms.ChoiceField(label="Frete", choices=[('CIF', 'CIF'), ('FOB', 'FOB')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
+    tipo = forms.ChoiceField(choices=[('Pedido', 'Pedido'), ('Nota Fiscal', 'Nota Fiscal')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
+    modelo = forms.CharField(label='Modelo', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'readonly': 'readonly'}))
+    serie = forms.CharField(label='Série', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'readonly': 'readonly'}))
+    nat_op = forms.CharField(label='Natureza de Operação', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'readonly': 'readonly'}))
+    chave_acesso = forms.CharField(label='Chave de Acesso', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'readonly': 'readonly'}))
+    motivo = forms.CharField(label='Motivo', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
+    dt_emi = forms.DateField(label='Dt Emissão.', input_formats=['%d/%m/%Y'], widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
+    dt_ent = forms.DateField(label='Dt Entrega', input_formats=['%d/%m/%Y'], widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
+    frete = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'hidden': ''}))
+    total = forms.DecimalField(label="Total", required=False, widget=forms.NumberInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'readonly': 'readonly'}))
 
     class Meta:
         model = Entrada
-        fields = (
-            'numeracao', 'fornecedor', 'obs', 'tp_frete', 'tipo', 'modelo', 'serie', 'nat_op', 'chave_acesso', 'motivo',
-            'dt_emi', 'dt_ent', 'frete', 'total', 'vinc_fil'
-        )
-        widgets = {
-            'dt_emi': forms.TextInput(attrs={
-                'class': 'form-control form-control-sm border-dark-subtle',
-            }),
-            'dt_ent': forms.TextInput(attrs={
-                'class': 'form-control form-control-sm border-dark-subtle',
-            }),
-        }
-    def __init__(self, *args, empresa=None, **kwargs):
+        exclude = ('vinc_emp', 'situacao', 'motivo')
+
+    def __init__(self, *args, empresa=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         if empresa:
-            # --- FORNECEDOR ---
-            qs_fornecedor = Fornecedor.objects.filter(vinc_emp=empresa)
-            if getattr(self.instance, 'fornecedor', None):
-                qs_fornecedor = qs_fornecedor | Fornecedor.objects.filter(pk=self.instance.fornecedor.pk)
-            self.fields['fornecedor'].queryset = qs_fornecedor.distinct()
-
-            # --- FILIAL ---
-            qs_vinc_fil = Filial.objects.filter(vinc_emp=empresa)
-            if getattr(self.instance, 'vinc_fil', None):
-                qs_vinc_fil = qs_vinc_fil | Filial.objects.filter(pk=self.instance.vinc_fil.pk)
-            self.fields['vinc_fil'].queryset = qs_vinc_fil.distinct()
-        # Formatar os valores se o form está sendo carregado com uma instância
+            self.fields['fornecedor'].queryset = Fornecedor.objects.filter(vinc_emp=empresa)
+            self.fields['vinc_fil'].queryset = Filial.objects.filter(vinc_emp=empresa)
+            if not self.instance.pk and user and user.filial_user:
+                self.fields['vinc_fil'].initial = user.filial_user.pk
         if self.instance and self.instance.pk:
             if self.instance.dt_emi:
                 self.initial['dt_emi'] = self.instance.dt_emi.strftime('%d/%m/%Y')

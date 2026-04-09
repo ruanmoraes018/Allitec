@@ -60,8 +60,8 @@
                 </li>
             {% endfor %}
         </ul>
-        <h4><i>Observações: {%if o.portao_social == "Sim"%}Com instalação de Portão Social, Valor R$ {{o.vl_p_s}}{%else%}Sem instalação de Portão Social{%endif%}.</i></h4>
-        <h4>✔ Valor total do fornecimento e instalação: R$ {{o.total|moeda_br}}.</h4>
+        <h4><i>Observações: {%if o.portao_social == "Sim"%}Com instalação de Portão Social, Valor: R$ {{o.vl_p_s|moeda_br}}{%else%}Sem instalação de Portão Social{%endif%}.</i></h4>
+        <h4>✔ Valor total do fornecimento e instalação: R$ {{o.total|moeda_br}} {% if o.portao_social == "Sim" %}(Incluso valor do Portão Social){% endif %}.</h4>
         <p>Valor acima em até 10x nos <strong>cartões de crédito</strong> ou À VISTA com 10% de desconto ({{vl_tot_dsct|moeda_br}})!</p>
         <p><strong>✔ Forma de Pagamento:</strong> 50% no ato do fechamento e valor restante ao finalizar a instalação.</p>
         <p><strong>✔ Prazo de Instalação:</strong> Até 20 dias úteis após a aprovação e pagamento, podendo variar de acordo com a estrutura do local de instalação.</p>

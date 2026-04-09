@@ -55,8 +55,8 @@ def lista_pedidos(request):
     fil = request.GET.get('fil')
     reg = request.GET.get('reg', '10')
     hoje = datetime.today()
-
-    pedidos = Pedido.objects.filter(vinc_emp=request.user.empresa).prefetch_related("itens__produto")
+    empresa = request.user.empresa
+    pedidos = Pedido.objects.filter(vinc_emp=empresa).prefetch_related("itens__produto")
     if s:
         pedidos = pedidos.filter(id__iexact=s).order_by('id')
     # Filtro por data
@@ -140,7 +140,7 @@ def lista_pedidos(request):
     })
 
 def pedidos_por_produto(request, produto_id):
-    pedidos = PedidoProduto.objects.filter(produto_id=produto_id).select_related('pedido', 'pedido__cliente')
+    pedidos = PedidoProduto.objects.filter(produto_id=produto_id, vinc_emp=request.user.empresa).select_related('pedido', 'pedido__cliente')
 
     data = []
     for ep in pedidos:
@@ -150,7 +150,7 @@ def pedidos_por_produto(request, produto_id):
             'data': pedido.dt_ent.strftime('%d/%m/%Y') if pedido.dt_ent else '',
             'cliente': str(pedido.cli),  # converte para string
             'quantidade': float(ep.quantidade),
-            'valor_unitario': Decimal(str(self.produto.vl_prod)),
+            'valor_unitario': Decimal(ep.vl_unit),
             'total_pedido': float(pedido.total),  # 👈 total da pedido
         })
 
@@ -166,12 +166,13 @@ def add_pedido(request):
     # Se a requisição for do tipo POST (formulário enviado)
     if request.method == "POST":
         # Cria uma instância do formulário com os dados enviados
-        form = PedidoForm(request.POST, empresa=request.user.empresa)
+        form = PedidoForm(request.POST, empresa=request.user.empresa, user=request.user)
 
         # Valida se o formulário está correto
         if form.is_valid():
             # Cria o objeto pedido sem salvar ainda no banco
             pedido = form.save(commit=False)
+            pedido.vinc_emp = request.user.empresa
             pedido.save()  # Salva a pedido no banco
 
             # Dicionário para organizar os produtos enviados no POST
@@ -194,7 +195,7 @@ def add_pedido(request):
             for dados in produtos_dict.values():
                 try:
                     # Busca o produto no banco pelo código
-                    produto = Produto.objects.get(pk=dados.get("codigo"))
+                    produto = Produto.objects.get(pk=dados.get("codigo"), vinc_emp=request.user.empresa)
                 except Produto.DoesNotExist:
                     # Se não encontrar, mostra aviso e ignora este produto
                     messages.warning(request, f"Produto {dados.get('produto')} não encontrado e foi ignorado.")
@@ -231,7 +232,7 @@ def add_pedido(request):
             })
     else:
         # Se não for POST, apenas cria o formulário vazio
-        form = PedidoForm(empresa=request.user.empresa)
+        form = PedidoForm(empresa=request.user.empresa, user=request.user)
 
     # Renderiza a página com o formulário
     return render(request, "pedidos/add.html", {
@@ -248,7 +249,7 @@ def add_pedido(request):
 @login_required
 def att_pedido(request, id):
     # Busca a pedido no banco (ou retorna 404 se não existir)
-    pedido = get_object_or_404(Pedido, pk=id)
+    pedido = get_object_or_404(Pedido, pk=id, vinc_emp=request.user.empresa)
 
     # Verifica se o usuário tem permissão de alteração
     if not request.user.has_perm('pedidos.change_pedido'):
@@ -260,12 +261,12 @@ def att_pedido(request, id):
         return redirect(f'/pedidos/lista/?s={pedido.id}')
     if request.method == "POST":
         # Cria o formulário com os dados enviados e a instância existente
-        form = PedidoForm(request.POST, instance=pedido, empresa=request.user.empresa)
+        form = PedidoForm(request.POST, instance=pedido, empresa=request.user.empresa, user=request.user)
 
         if form.is_valid():
             pedido = form.save(commit=False)
             pedido.save()
-
+            next_url = request.POST.get('next') or request.GET.get('next')
             # Dicionário temporário para os produtos
             produtos_dict = {}
             for key, value in request.POST.items():
@@ -282,7 +283,7 @@ def att_pedido(request, id):
             produtos_ids = []
             for dados in produtos_dict.values():
                 try:
-                    produto = Produto.objects.get(pk=dados.get("codigo"))
+                    produto = Produto.objects.get(pk=dados.get("codigo"), vinc_emp=request.user.empresa)
                 except Produto.DoesNotExist:
                     messages.warning(request, f"Produto {dados.get('produto')} não encontrado e foi ignorado.")
                     continue
@@ -302,7 +303,10 @@ def att_pedido(request, id):
             pedido.save(update_fields=["total"])
 
             messages.success(request, f'Pedido atualizado com sucesso!')
-            return redirect(f'/pedidos/lista/?s={pedido.id}')
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect(f'/pedidos/lista/?s={pedido.id}')
         else:
             error_messages = []
             for field in form:
@@ -315,7 +319,7 @@ def att_pedido(request, id):
             })
     else:
         # Se não for POST, carrega o formulário com os dados da pedido
-        form = PedidoForm(instance=pedido, empresa=request.user.empresa)
+        form = PedidoForm(instance=pedido, empresa=request.user.empresa, user=request.user)
 
     return render(request, "pedidos/att.html", {
         "form": form,
@@ -326,7 +330,7 @@ def att_pedido(request, id):
 
 @login_required
 def del_pedido(request, id):
-    pedido = get_object_or_404(Pedido, pk=id)
+    pedido = get_object_or_404(Pedido, pk=id, vinc_emp=request.user.empresa)
 
     if not request.user.has_perm('pedidos.delete_pedido'):
         messages.info(request, 'Você não tem permissão para deletar pedidos.')
@@ -343,7 +347,7 @@ def del_pedido(request, id):
 @require_POST
 @login_required
 def faturar_pedido(request, id):
-    pedido = get_object_or_404(Pedido, pk=id)
+    pedido = get_object_or_404(Pedido, pk=id, vinc_emp=request.user.empresa)
 
     if not request.user.has_perm('pedidos.faturar_pedido'):
         messages.info(request, 'Você não tem permissão para faturar pedidos.')
@@ -375,7 +379,7 @@ def faturar_pedido(request, id):
 @require_POST
 @login_required
 def cancelar_pedido(request, id):
-    pedido = get_object_or_404(Pedido, pk=id)
+    pedido = get_object_or_404(Pedido, pk=id, vinc_emp=request.user.empresa)
 
     if not request.user.has_perm('pedidos.cancelar_pedido'):
         messages.info(request, 'Você não tem permissão para cancelar pedidos.')

@@ -49,37 +49,28 @@
                 </div>
                 <div class="col-md-2 search-div flex-md-fill">
                     <label class="form-label">Marca:</label>
-                    <select class="form-control" id="marca" name="marc">
+                    <select class="form-select form-select-sm" id="marca" name="marc">
                         <option value="">Escolha uma marca</option>
-                        {% if marca_selec %}
-                            <option value="{{ marca_selec.id }}" selected>{{ marca_selec.nome_grupo }}</option>
-                        {% endif %}
-                        {% for marca in marcas %}
-                            <option value="{{ marca.id }}" {% if request.GET.gp == marca.id|stringformat:"s" %}selected{% endif %}>{{ marca.nome_marca }}</option>
+                        {% for m in marcas %}
+                            <option value="{{ m.id }}" {% if request.GET.marc == m.id|stringformat:"s" %}selected{% endif %}>{{ m }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="col-md-1 search-div flex-md-fill">
                     <label class="form-label">Grupo:</label>
-                    <select class="form-control" id="grupo" name="gp">
-                        <option value="">Escolha uma opção</option>
-                        {% if grupo_selecionado %}
-                            <option value="{{ grupo_selecionado.id }}" selected>{{ grupo_selecionado.nome_grupo }}</option>
-                        {% endif %}
-                        {% for grupo in grupos %}
-                            <option value="{{ grupo.id }}" {% if request.GET.gp == grupo.id|stringformat:"s" %}selected{% endif %}>{{ grupo.nome_grupo }}</option>
+                    <select class="form-select form-select-sm" id="grupo" name="gp">
+                        <option value="">Escolha um grupo</option>
+                        {% for g in grupos %}
+                            <option value="{{ g.id }}" {% if request.GET.gp == g.id|stringformat:"s" %}selected{% endif %}>{{ g }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="col-md-2 search-div flex-md-fill">
                     <label class="form-label">Unidade:</label>
-                    <select class="form-control" id="unidade" name="unid">
+                    <select class="form-select form-select-sm" id="unidade" name="unid">
                         <option value="">Escolha uma unidade</option>
-                        {% if unidade_selecionado %}
-                            <option value="{{ unidade_selecionado.id }}" selected>{{ unidade_selecionado.nome_unidade }}</option>
-                        {% endif %}
-                        {% for unidade in unidades %}
-                            <option value="{{ unidade.id }}" {% if request.GET.unid == unidade.id|stringformat:"s" %}selected{% endif %}>{{ unidade.nome_unidade }}</option>
+                        {% for u in unidades %}
+                            <option value="{{ u.id }}" {% if request.GET.unid == u.id|stringformat:"s" %}selected{% endif %}>{{ u }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -146,7 +137,7 @@
                                                 </div>
                                             </div>
                                             <div class="modal-body d-grid gap-2">
-                                                <a href="{% url 'att-produto' produto.id %}" class="btn-permissao" data-permissao="produtos.change_produto" data-msg-negado="Seu usuário não pode editar produtos!">
+                                                <a href="{% url 'att-produto' produto.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="produtos.change_produto" data-msg-negado="Seu usuário não pode editar produtos!">
                                                     <button class="btn btn-outline-dark" type="button" id="botoes-modal" data-id="{{ produto.id }}">
                                                         <span><i class="fas fa-edit" title="Editar Produto"></i></span>
                                                         <strong style="color: #13c43f; font-size: 20px;">EDITAR</strong>
@@ -156,7 +147,7 @@
                                                     <span><i class="fas fa-trash"></i></span>
                                                     <strong style="color: #db1e47; font-size: 20px;">DELETAR</strong>
                                                 </button>
-                                                <a href="{% url 'clonar-produto' produto.id %}" class="btn-permissao" data-permissao="produtos.clonar_produto" data-msg-negado="Seu usuário não pode clonar produtos!">
+                                                <a href="{% url 'clonar-produto' produto.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="produtos.clonar_produto" data-msg-negado="Seu usuário não pode clonar produtos!">
                                                     <button class="btn btn-outline-dark" type="button" id="botoes-modal" data-id="{{ produto.id }}">
                                                         <span><i class="fa-solid fa-clone" title="Clonar"></i></span>
                                                         <strong style="color: #483D8B; font-size: 20px;">CLONAR</strong>
@@ -294,7 +285,7 @@
                 </a>
                 <button type="button" style="float: right; margin-right: 10px;" class="btn btn-sucess btn-sm bg-success text-white fw-bold dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Outras</button>
                 <ul class="dropdown-menu">
-                    <li><button class="dropdown-item" type="button" data-bs-toggle="modal" id="update-selected" data-bs-target="#updateModal">Atribuir Campos</button></li>
+                    <li><button class="dropdown-item" type="button" id="update-selected">Atribuir Campos</button></li>
                     <li><button class="dropdown-item" type="button" data-bs-toggle="modal" id="mdAttTbPreco">Atribuir Tabela</button></li>
                 </ul>
             </div>

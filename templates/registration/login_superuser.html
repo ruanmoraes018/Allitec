@@ -22,7 +22,7 @@
                 <form method="post">
                     {% csrf_token %}
                     {{ form|crispy }}
-                    <div class="d-grid gap-2">
+                    <div class="d-grid gap-2 mt-2">
                         <div style="text-align: center;">
                             <button type="submit" id="btn-login" data-bs-toggle="modal" data-bs-target="#loadingModal" class="btn btn-primary btn-login">
                                 Entrar

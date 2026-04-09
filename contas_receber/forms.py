@@ -25,17 +25,8 @@ class ContaReceberForm(forms.ModelForm):
     def __init__(self, *args, empresa=None, **kwargs):
         super().__init__(*args, **kwargs)
         if empresa:
-            # --- FILIAL ---
-            qs_vinc_fil = Filial.objects.filter(vinc_emp=empresa)
-            if getattr(self.instance, 'vinc_fil', None):
-                qs_vinc_fil = qs_vinc_fil | Filial.objects.filter(pk=self.instance.vinc_fil.pk)
-            self.fields['vinc_fil'].queryset = qs_vinc_fil.distinct()
-
-            # --- CLIENTE ---
-            qs_cliente = Cliente.objects.filter(vinc_emp=empresa)
-            if getattr(self.instance, 'cliente', None):
-                qs_cliente = qs_cliente | Cliente.objects.filter(pk=self.instance.cliente.pk)
-            self.fields['cliente'].queryset = qs_cliente.distinct()
+            self.fields['vinc_fil'].queryset = Filial.objects.filter(vinc_emp=empresa)
+            self.fields['cliente'].queryset = Cliente.objects.filter(vinc_emp=empresa)
 
         if self.instance and self.instance.pk:
             if self.instance.data_vencimento:

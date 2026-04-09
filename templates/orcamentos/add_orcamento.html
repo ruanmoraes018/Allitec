@@ -29,7 +29,7 @@
                         <button type="button" class="btn btn-dark mb-1" id="clienteBtn">Cliente</button>
                         <button type="button" class="btn btn-dark mb-1" id="prod_servBtn">Produtos</button>
                         <button type="button" class="btn btn-dark mb-1" id="adicionaisBtn">Adicionais</button>
-                        <button type="button" class="btn btn-dark mb-1" id="form_pgtoBtn">Form. Pgto.</button>
+                        <button type="button" class="btn btn-dark mb-1" id="form_pgtoBtn">Formas de Pagamento</button>
                     </div>
                     <div class="card-body">
                         <!--Cliente-->
@@ -234,6 +234,8 @@
                                                 <th col="auto" id="thTableForm" style="text-align: justify;">#</th>
                                                 <th col="auto" id="thTableForm" style="text-align: justify;">Forma Pgto.</th>
                                                 <th col="auto valor_os" id="thTableForm" style="text-align: justify;">Valor</th>
+                                                <th col="auto" id="thTableForm" style="text-align: justify;">Parcelas</th>
+                                                <th col="auto" id="thTableForm" style="text-align: justify;">Dias</th>
                                                 <th col="auto" style="text-align: justify; width: 40px;">Ações</th>
                                             </tr>
                                         </thead>
@@ -370,7 +372,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer footer-modal">
+                    <div class="modal-footer">
                         <button type="button" class="btn btn-primary btn-sm" id="saveEditBtn">Salvar</button>
                         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" id="fechar-modal">Fechar</button>
                     </div>
@@ -384,7 +386,6 @@
                 <form>
                     <div class="modal-header titulo-modal">
                         <h5 class="modal-title"></h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <div class="row g-3">
@@ -417,8 +418,8 @@
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer footer-modal">
-                        <button type="button" class="btn btn-primary btn-sm" id="saveEditAdcBtn">Salvar</button>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-dark btn-sm" id="saveEditAdcBtn">Salvar</button>
                         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
                     </div>
                 </form>

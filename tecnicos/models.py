@@ -1,10 +1,9 @@
 from django.db import models
 import unicodedata
-from filiais.models import Filial
-from datetime import datetime
 from bairros.models import Bairro
 from cidades.models import Cidade
 from estados.models import Estado
+from datetime import datetime
 
 def data_hoje_formatada():
     return datetime.now().strftime('%d/%m/%Y')
@@ -32,11 +31,7 @@ class Tecnico(models.Model):
     uf = models.ForeignKey(Estado, on_delete=models.SET_NULL, null=True)
     tel = models.CharField(max_length=30)
     email = models.EmailField(max_length=40)
-    dt_reg = models.CharField(
-        max_length=30,
-        verbose_name='Data de Registro',
-        default=data_hoje_formatada
-    )
+    dt_reg = models.DateField(verbose_name="Data de Registro", null=True, blank=True, db_index=True)
     def save(self, *args, **kwargs):
         self.nome = self.nome.upper()
         self.endereco = self.endereco.upper()

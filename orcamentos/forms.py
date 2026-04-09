@@ -21,17 +21,14 @@ class OrcamentoForm(forms.ModelForm):
     cor = forms.ChoiceField(
         choices = [
             ('', ''), ('Preto', 'Preto'), ('Branco', 'Branco'),('Amarelo', 'Amarelo'), ('Vermelho', 'Vermelho'),('Azul Claro', 'Azul Claro'), ('Cinza Claro', 'Cinza Claro'),
-            ('Cinza Grafite', 'Cinza Grafite'), ('Verde', 'Verde'),('Bege', 'Bege'), ('Bege Areia', 'Bege Areia'),('Marrom', 'Marrom'), ('Marrom Café', 'Marrom Café'),
-            ('Laranja', 'Laranja'), ('Azul Royal', 'Azul Royal'),('Azul Marinho', 'Azul Marinho'), ('Verde Musgo', 'Verde Musgo'),('Verde Bandeira', 'Verde Bandeira'), ('Vinho', 'Vinho'), ('Prata', 'Prata'),
+            ('Cinza Grafite', 'Cinza Grafite'), ('Cinza Chumbo', 'Cinza Chumbo'), ('Chumbo', 'Chumbo'), ('Verde', 'Verde'),('Bege', 'Bege'), ('Bege Areia', 'Bege Areia'),('Marrom', 'Marrom'), ('Marrom Café', 'Marrom Café'),
+            ('Laranja', 'Laranja'), ('Azul Royal', 'Azul Royal'), ('Azul Marinho', 'Azul Marinho'), ('Azul Pepsi', 'Azul Pepsi'), ('Verde Musgo', 'Verde Musgo'),('Verde Bandeira', 'Verde Bandeira'), ('Vinho', 'Vinho'), ('Prata', 'Prata'),
         ],
         required=False, widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'})
     )
     obs_form_pgto = forms.CharField(label='Observações', required=False, widget=forms.Textarea(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase', 'rows': 2}))
     vl_p_s = forms.DecimalField(required=False, label="Vl. P. Social", max_digits=10, decimal_places=2,
-        widget=forms.TextInput(attrs={
-            "type": "number", "step":"0.01", "min": "0", 'placeholder': '0.00', 'disabled': 'disabled',
-            'class': 'form-control border-dark-subtle', 'style': 'color: darkgreen; font-weight: bold; background: honeydew;'
-        })
+        widget=forms.TextInput(attrs={"type": "number", "step":"0.01", "min": "0", 'placeholder': '0.00', 'disabled': 'disabled', 'class': 'form-control border-dark-subtle', 'style': 'color: darkgreen; font-weight: bold; background: honeydew;'})
     )
     desconto = forms.DecimalField(required=False, max_digits=10, decimal_places=2, widget=forms.TextInput(attrs={'class': 'form-control border-dark-subtle', 'style': 'color: #2E8B57; font-weight: bold; background-color: #808080;', 'placeholder': '0.00', 'readonly': 'readonly'}))
     acrescimo = forms.DecimalField(required=False,max_digits=10,decimal_places=2,widget=forms.TextInput(attrs={'class': 'form-control border-dark-subtle','style': 'color: #2E8B57; font-weight: bold; background-color: #808080;','placeholder': '0.00','readonly': 'readonly'}))
@@ -45,11 +42,7 @@ class OrcamentoForm(forms.ModelForm):
     class Meta:
         model = Orcamento
         exclude = ('motivo', 'dt_fat', 'vinc_emp', 'situacao', 'status')
-        widgets = {
-            'dt_emi': forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}),
-            'dt_ent': forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}),
-        }
-    def __init__(self, *args, empresa=None, **kwargs):
+    def __init__(self, *args, empresa=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
 
         # Inicializa crispy-forms (opcional, se você usa layout personalizado)
@@ -62,30 +55,15 @@ class OrcamentoForm(forms.ModelForm):
         )
 
         if empresa:
-            # --- CLIENTE ---
-            qs_cli = Cliente.objects.filter(vinc_emp=empresa)
-            if getattr(self.instance, 'cli', None):
-                qs_cli = qs_cli | Cliente.objects.filter(pk=self.instance.cli.pk)
-            self.fields['cli'].queryset = qs_cli.distinct()
-
-            # --- FILIAL ---
-            qs_fil = Filial.objects.filter(vinc_emp=empresa)
-            if getattr(self.instance, 'vinc_fil', None):
-                qs_fil = qs_fil | Filial.objects.filter(pk=self.instance.vinc_fil.pk)
-            self.fields['vinc_fil'].queryset = qs_fil.distinct()
-
-            # --- TÉCNICO ---
-            qs_tec = Tecnico.objects.filter(vinc_emp=empresa)
-            if getattr(self.instance, 'solicitante', None):
-                qs_tec = qs_tec | Tecnico.objects.filter(pk=self.instance.solicitante.pk)
-            self.fields['solicitante'].queryset = qs_tec.distinct()
-
-            # --- TABELA DE PREÇO ---
-            qs_tp = TabelaPreco.objects.filter(vinc_emp=empresa)
-            if getattr(self.instance, 'tabela_preco', None):
-                qs_tp = qs_tp | TabelaPreco.objects.filter(pk=self.instance.tabela_preco.pk)
-            self.fields['tabela_preco'].queryset = qs_tp.distinct()
-
+            self.fields['cli'].queryset = Cliente.objects.filter(vinc_emp=empresa)
+            self.fields['vinc_fil'].queryset = Filial.objects.filter(vinc_emp=empresa)
+            self.fields['solicitante'].queryset = Tecnico.objects.filter(vinc_emp=empresa)
+            self.fields['tabela_preco'].queryset = TabelaPreco.objects.filter(vinc_emp=empresa)
+            if not self.instance.pk and user and user.filial_user:
+                self.fields['vinc_fil'].initial = user.filial_user.pk
+                self.fields['cli'].initial = user.filial_user.cli.pk
+                self.fields['solicitante'].initial = user.filial_user.tec.pk
+                self.fields['tabela_preco'].initial = user.filial_user.tb_preco.pk
             # --- FORMAS DE PAGAMENTO ---
             qs_formas = FormaPgto.objects.filter(vinc_emp=empresa, situacao='Ativo')
             tabela = getattr(self.instance, 'tabela_preco', None)

@@ -3,7 +3,7 @@ body, html {
   min-height: 100%;
   margin: 0;
   padding: 0;
-  background: #0f1d2b;
+  background: radial-gradient(circle at top right, rgba(70, 140, 255, 0.18), transparent 25%), linear-gradient(135deg, #071a2f 0%, #0c2340 45%, #10395c 100%);
   font-size: 15px;
   font-family: Times;
   overflow-x: hidden;   /* permite scroll vertical */
@@ -22,6 +22,88 @@ body, html {
     margin-bottom: 2px;
 }
 
+.loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(7, 26, 47, 0.28);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .25s ease, visibility .25s ease;
+}
+
+.loading-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.loading-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.loading-logo {
+    width: 52px;
+    height: 52px;
+    animation: pulseGlow 1.6s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+    0%, 100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 0px rgba(13, 110, 253, 0.0));
+    }
+    50% {
+        transform: scale(1.18);
+        filter: drop-shadow(0 0 12px rgba(13, 110, 253, 0.35));
+    }
+}
+
+.col-tabelas-wrap{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    min-width:140px;
+}
+
+.linha-tabela-pill{
+    background:#6f7b88;
+    color:#fff;
+    border-radius:12px;
+    padding:3px 8px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:12px;
+    font-weight:700;
+    line-height:1.1;
+}
+
+.linha-tabela-pill .tp-nome{
+    margin-right:10px;
+    text-transform:uppercase;
+}
+
+.linha-tabela-pill .tp-valor{
+    white-space:nowrap;
+}
+
+.linha-tabela-pill.sem-tabela{
+    background:#9aa3ad;
+}
+
 .menu-opcao i {
     font-size: 16px;
     width: 20px;
@@ -32,6 +114,28 @@ body, html {
     transform: translateX(3px);
 }
 
+.readonly-disabled {
+    background-color: var(--bs-secondary-bg) !important;
+    opacity: 1 !important;
+    cursor: not-allowed;
+}
+
+.produto-vinculado-box {
+    min-height: 31px;
+    display: flex;
+    align-items: center;
+    white-space: normal;
+    line-height: 1.1rem;
+}
+
+#xml-itens-body td {
+    vertical-align: middle;
+}
+
+#xml-itens-body td:nth-child(3) {
+    min-width: 280px;
+}
+
 /* Cores específicas */
 .op-editar   { color: #13c43f; }
 .op-clonar   { color: #483D8B; }
@@ -39,6 +143,7 @@ body, html {
 .op-detalhe  { color: #ff8800; }
 .op-faturar  { color: #3CB371; }
 .op-estornar { color: #5F9EA0; }
+.op-cancelar { color: #FF0000; }
 
 @media (max-width: 768px) {
 
@@ -196,42 +301,42 @@ body, html {
     100% { transform: rotate(0deg); }
 }
 
-#marca-wrapper .select2-container{
-    width:100% !important;
-}
+/*#marca-wrapper .select2-container{*/
+/*    width:100% !important;*/
+/*}*/
 
 /* caixa do select2 */
-#marca-wrapper .select2-selection--single{
-    position:relative;
-    padding-right:30px !important; /* espaço para o X ficar na direita */
-}
-#marca-wrapper .select2-selection__clear{
-    position:absolute !important;
-    right:8px;          /* joga pra direita */
-    left:auto !important;
-    top:50%;
-    transform:translateY(-50%);
-    margin:0 !important;
-    font-size:12px;
-    color:#6c757d;
-    z-index:5;
-}
+/*#marca-wrapper .select2-selection--single{*/
+/*    position:relative;*/
+/*    padding-right:30px !important;*/
+/*}*/
+/*#marca-wrapper .select2-selection__clear{*/
+/*    position:absolute !important;*/
+/*    right:8px;         */
+/*    left:auto !important;*/
+/*    top:50%;*/
+/*    transform:translateY(-50%);*/
+/*    margin:0 !important;*/
+/*    font-size:12px;*/
+/*    color:#6c757d;*/
+/*    z-index:5;*/
+/*}*/
 
 /* TEXTO (AQUI ESTAVA O PROBLEMA) */
-#marca-wrapper .select2-selection__rendered{
-    padding-right:28px !important;
-}
+/*#marca-wrapper .select2-selection__rendered{*/
+/*    padding-right:28px !important;*/
+/*}*/
 
 /* seta */
-#marca-wrapper .select2-selection__arrow{
-    height:29px !important;
-    top:1px !important;
-}
+/*#marca-wrapper .select2-selection__arrow{*/
+/*    height:29px !important;*/
+/*    top:1px !important;*/
+/*}*/
 
 /* remove borda dupla com o botão */
-#marca-wrapper .select2-container--default .select2-selection--single{
-    border-right:0 !important;
-}
+/*#marca-wrapper .select2-container--default .select2-selection--single{*/
+/*    border-right:0 !important;*/
+/*}*/
 .card {
     margin-left: 10px; margin-right: 10px; margin-bottom: 130px;
 }
@@ -486,7 +591,7 @@ ul.messages li {list-style: none;}
 .titulo {margin-left: 20px;}
 .botoes {margin-bottom: 10px;}
 .formularios {margin-left: 20px; margin-right: 15px;}
-.base_botao {margin-top: 15px;}
+.base_botao {margin-top: 2px;}
 /*Messages*/
 ul.messages {padding: 0;}
 ul.messages li {list-style: none;}

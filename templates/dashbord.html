@@ -12,13 +12,37 @@
                 {% endfor %}
             ]'></div>
         {% endif %}
+        <style>
+            .ui-datepicker {
+                z-index: 2000 !important;
+            }
+
+            .modal,
+            .modal-dialog,
+            .modal-content,
+            .modal-body {
+                overflow: visible !important;
+            }
+        </style>
         <div class="container-fluid bg-white">
-            <h1 class="text-center" style="font-size: 30px;">Dashboard</h1>
+            <div class="row mb-1">
+                <h1 class="text-center" style="font-size: 30px;">Dashboard</h1>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <button class="btn btn-success btm-sm" type="button" data-bs-toggle="modal" data-bs-target="#mdResOrc"><i class="fa-solid fa-calendar-days"></i> Alterar Período</button>
+                </div>
+            </div>
             <div class="row">
                 <div class="col-sm-6 mb-3 mb-sm-3" style="margin-bottom: 10px;">
                     <div class="card">
                         <div class="card-header bg-secondary-subtle">
-                            <h5 class="card-title text-info-emphasis text-center">Resumo de Orçamentos <i class="fa-solid fa-calendar-days"></i> {{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }}</h5>
+                            <h5 class="card-title text-info-emphasis text-center">
+                                Resumo de Orçamentos <i class="fa-solid fa-calendar-days"></i>
+                                {% if data_inicial and data_final %}
+                                    {{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }}
+                                {% else %}
+                                    {{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }}
+                                {% endif %}
+                            </h5>
                         </div>
                         <div class="card-body">
                             <div class="row g-3">
@@ -39,7 +63,7 @@
                                     <div class="d-flex flex-column p-2 border rounded bg-light">
                                         <div class="d-flex align-items-center justify-content-between">
                                             <span class="badge bg-success fs-6 px-3 py-2">
-                                                <i class="fa-solid fa-circle-check me-1"></i> 
+                                                <i class="fa-solid fa-circle-check me-1"></i>
                                                 {{ orcamentos_faturados }}
                                                 {% if orcamentos_faturados > 1 %} Faturados {% else %} Faturado {% endif %}
                                             </span>
@@ -60,7 +84,7 @@
                                             {% if orcamentos_cancelados > 1 %} Cancelados {% else %} Cancelado {% endif %}
                                         </span>
                                         <span class="fw-bold text-danger">
-                                            {{ total_cancelados|moeda_br }}
+                                            R$ {{ total_cancelados|moeda_br }}
                                         </span>
                                     </div>
                                     {% endif %}
@@ -77,7 +101,14 @@
                 <div class="col-sm-6" style="margin-bottom: 10px;">
                     <div class="card">
                         <div class="card-header bg-secondary-subtle">
-                            <h5 class="card-title text-info-emphasis text-center">Orçamentos por Técnico <i class="fa-solid fa-calendar-days"></i> {{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }}</h5>
+                            <h5 class="card-title text-info-emphasis text-center">
+                                Orçamentos por Técnico <i class="fa-solid fa-calendar-days"></i>
+                                {% if data_inicial and data_final %}
+                                    {{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }}
+                                {% else %}
+                                    {{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }}
+                                {% endif %}
+                            </h5>
                         </div>
                         <div class="card-body">
                             <div class="d-flex flex-column gap-2">
@@ -101,6 +132,62 @@
                                 </div>
                                 {% endfor %}
                             </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal fade" id="mdResOrc" tabindex="-1" aria-labelledby="mdResOrcLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-sm">
+                        <div class="modal-content">
+                            <div class="modal-header titulo-modal">
+                                <h5 class="modal-title" id="mdResOrcLabel">
+                                    <i class="fa-solid fa-calendar-days"></i> Alterar Período
+                                </h5>
+                            </div>
+
+                            <form method="get" action="{% url 'inicio' %}">
+                                <div class="modal-body">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <select class="form-control" id="usar-data" name="p_dt" style="display: none;">
+                                                <option value="Sim" selected>Sim</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label">Data Início:</label>
+                                            <input
+                                                type="text"
+                                                class="form-control form-control-sm"
+                                                name="dt_ini"
+                                                id="data_inicio2"
+                                                autocomplete="off"
+                                                value="{{ dt_ini|default:'' }}"
+                                            >
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label">Data Final:</label>
+                                            <input
+                                                type="text"
+                                                class="form-control form-control-sm"
+                                                name="dt_fim"
+                                                id="data_fim2"
+                                                autocomplete="off"
+                                                value="{{ dt_fim|default:'' }}"
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button type="submit" class="btn btn-dark btn-sm" id="data-btn">
+                                        Confirmar
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                                        Fechar
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>

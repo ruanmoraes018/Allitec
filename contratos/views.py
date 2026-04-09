@@ -133,9 +133,13 @@ def att_contrato(request, id):
         form = ContratoForm(request.POST, instance=contrato)
         if form.is_valid():
             contrato.save()
+            next_url = request.POST.get('next') or request.GET.get('next')
             cid = str(contrato.id)
             messages.success(request, 'Contrato atualizado com sucesso!')
-            return redirect('/contratos/lista/?tp=cod&s=' + cid)
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect('/contratos/lista/?tp=cod&s=' + cid)
         else:
             error_messages = []
             for field in form:
@@ -215,28 +219,20 @@ def aprovar_contrato(request, id):
 @transaction.atomic
 def cancelar_contrato(request, id):
     contrato = get_object_or_404(Contrato, id=id)
-
-    # Se já estiver cancelado, não faz nada
     if contrato.situacao == 'Cancelado':
         messages.warning(request, 'Contrato já está cancelado.')
         return redirect('/contratos/lista/')
-
-    # Mensalidades em aberto desse contrato
     mensalidades_abertas = Mensalidade.objects.filter(
         contrato=contrato,
         situacao='Aberta'
     )
-
     total_excluidas = mensalidades_abertas.count()
     mensalidades_abertas.delete()
-
     # Atualiza situação do contrato
     contrato.situacao = 'Cancelado'
     contrato.save(update_fields=['situacao'])
-
     messages.success(
         request,
         f'Contrato cancelado com sucesso. {total_excluidas} mensalidade(s) em aberto foram excluídas.'
     )
-
     return redirect(f'/contratos/lista/?tp=cod&s={contrato.id}')

@@ -19,10 +19,8 @@ def lista_bancos(request):
     s = request.GET.get('s')
     tp = request.GET.get('tp')
     reg = request.GET.get('reg', '10')
-
-    bancos = Banco.objects.filter(vinc_emp=request.user.empresa)
-
-
+    empresa = request.user.empresa
+    bancos = Banco.objects.filter(vinc_emp=empresa)
     if tp == 'desc' and s:
         norm_s = remove_accents(s).lower()
         bancos = bancos.filter(banco_normalizado__icontains=norm_s).order_by('nome_banco')
@@ -31,7 +29,6 @@ def lista_bancos(request):
             bancos = bancos.filter(id__iexact=s).order_by('nome_banco')
         except ValueError:
             bancos = Banco.objects.none()
-
     if reg == 'todos':
         num_pagina = bancos.count() or 1
     else:
@@ -54,8 +51,8 @@ def lista_bancos(request):
 @login_required
 def lista_bancos_ajax(request):
     term = request.GET.get('term', '')
-    bancos = Banco.objects.filter(nome_banco__icontains=term)[:10]
-    data = {'bancos': [{'id': banco.id, 'nome_banco': banco.nome_banco} for banco in bancos]}
+    bancos = Banco.objects.filter(nome_banco__icontains=term, vinc_emp=request.user.empresa).order_by('nome_banco')[:20]
+    data = {'bancos': [{'id': banco.id, 'text': banco.nome_banco} for banco in bancos]}
     return JsonResponse(data)
 
 @login_required
@@ -67,11 +64,7 @@ def add_banco(request):
         form = BancoForm(request.POST)
         if form.is_valid():
             b = form.save(commit=False)
-            if request.user.is_authenticated:
-                try:
-                    b.vinc_emp = request.user.filial_user  # Busca a filial do usuário logado
-                except Usuario.DoesNotExist:
-                    return JsonResponse({'error': 'Usuário não possui filial vinculada'}, status=400)
+            b.vinc_emp = request.user.empresa
             b.save()
             messages.success(request, 'Banco adicionado com sucesso!')
             bank = str(b.id)
@@ -94,12 +87,16 @@ def att_banco(request, id):
         messages.info(request, 'Você não tem permissão para editar bancos.')
         return redirect('/bancos/lista/')
     if request.method == 'POST':
-        form = BancoForm(request.POST, instance=b)
+        form = BancoForm(request.POST, instance=b, vinc_emp=request.user.empresa)
         if form.is_valid():
             b.save()
+            next_url = request.POST.get('next') or request.GET.get('next')
             bank = str(b.id)
             messages.success(request, 'Banco atualizado com sucesso!')
-            return redirect('/bancos/lista/?tp=cod&s=' + bank)
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect('/bancos/lista/?tp=cod&s=' + bank)
         else:
             error_messages = []
             for field in form:
@@ -115,7 +112,7 @@ def del_banco(request, id):
     if not request.user.has_perm('bancos.delete_banco'):
         messages.info(request, 'Você não tem permissão para deletar bancos.')
         return redirect('/bancos/lista/')
-    b = get_object_or_404(Banco, pk=id)
+    b = get_object_or_404(Banco, pk=id, vinc_emp=request.user.empresa)
     b.delete()
     messages.success(request, 'Banco deletado com sucesso!')
     return redirect('/bancos/lista/')

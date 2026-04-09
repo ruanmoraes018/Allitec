@@ -19,8 +19,8 @@ def lista_unidades(request):
     s = request.GET.get('s')
     tp = request.GET.get('tp')
     reg = request.GET.get('reg', '10')
-
-    unidades = Unidade.objects.filter(vinc_emp=request.user.empresa)
+    empresa = request.user.empresa
+    unidades = Unidade.objects.filter(vinc_emp=empresa)
 
     if tp == 'desc' and s:
         norm_s = remove_accents(s).lower()
@@ -30,7 +30,6 @@ def lista_unidades(request):
             unidades = unidades.filter(id__iexact=s).order_by('nome_unidade')
         except ValueError:
             unidades = Unidade.objects.none()
-
     if reg == 'todos':
         num_pagina = unidades.count() or 1
     else:
@@ -38,11 +37,9 @@ def lista_unidades(request):
             num_pagina = int(reg) if int(reg) > 0 else 1
         except ValueError:
             num_pagina = 10  # Valor padrão
-
     paginator = Paginator(unidades, num_pagina)
     page = request.GET.get('page')
     unidades = paginator.get_page(page)
-
     return render(request, 'unidades/lista.html', {
         'unidades': unidades,
         's': s,
@@ -53,8 +50,8 @@ def lista_unidades(request):
 @login_required
 def lista_unidades_ajax(request):
     term = request.GET.get('term', '')
-    unidades = Unidade.objects.filter(nome_unidade__icontains=term)[:10]
-    data = {'unidades': [{'id': unidade.id, 'nome_unidade': unidade.nome_unidade} for unidade in unidades]}
+    unidades = Unidade.objects.filter(nome_unidade__icontains=term, vinc_emp=request.user.empresa)[:20]
+    data = {'unidades': [{'id': unidade.id, 'text': unidade.nome_unidade} for unidade in unidades]}
     return JsonResponse(data)
 
 @login_required
@@ -66,11 +63,7 @@ def add_unidade(request):
         form = UnidadeForm(request.POST)
         if form.is_valid():
             c = form.save(commit=False)
-            if request.user.is_authenticated:
-                try:
-                    c.vinc_emp = request.user.empresa  # Busca a filial do usuário logado
-                except Usuario.DoesNotExist:
-                    return JsonResponse({'error': 'Usuário não possui filial vinculada'}, status=400)
+            c.vinc_emp = request.user.empresa
             c.save()
             messages.success(request, 'Unidade adicionada com sucesso!')
             cid = str(c.id)
@@ -87,7 +80,7 @@ def add_unidade(request):
 
 @login_required
 def att_unidade(request, id):
-    c = get_object_or_404(Unidade, pk=id)
+    c = get_object_or_404(Unidade, pk=id, vinc_emp=request.user.empresa)
     form = UnidadeForm(instance=c)
     if not request.user.has_perm('unidades.change_unidade'):
         messages.info(request, 'Você não tem permissão para editar unidades.')
@@ -95,10 +88,15 @@ def att_unidade(request, id):
     if request.method == 'POST':
         form = UnidadeForm(request.POST, instance=c)
         if form.is_valid():
+            c = form.save(commit=False)
             c.save()
             cid = str(c.id)
             messages.success(request, 'Unidade atualizada com sucesso!')
-            return redirect('/unidades/lista/?tp=cod&s=' + cid)
+            next_url = request.POST.get('next') or request.GET.get('next')
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect('/unidades/lista/?tp=cod&s=' + cid)
         else:
             error_messages = []
             for field in form:
@@ -114,7 +112,7 @@ def del_unidade(request, id):
     if not request.user.has_perm('unidades.delete_unidade'):
         messages.info(request, 'Você não tem permissão para deletar unidades.')
         return redirect('/unidades/lista/')
-    c = get_object_or_404(Unidade, pk=id)
+    c = get_object_or_404(Unidade, pk=id, vinc_emp=request.user.empresa)
     c.delete()
     messages.success(request, 'Unidade deletada com sucesso!')
     return redirect('/unidades/lista/')

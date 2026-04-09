@@ -1,17 +1,13 @@
 from django.db import models
 import unicodedata
-from django.contrib.auth.models import User
 from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
-import re
 from datetime import datetime
-from bancos.models import Banco
 from empresas.models import Empresa
-from bairros.models import Bairro
-from cidades.models import Cidade
-from estados.models import Estado
 from django.contrib.auth.models import AbstractUser
+import os
+from django.core.exceptions import ValidationError
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -21,47 +17,15 @@ def data_hoje_formatada():
     return datetime.now().strftime('%d/%m/%Y')
 
 class Filial(models.Model):
-    situacao = models.CharField(
-        max_length=10,
-        verbose_name="Situação",
-        choices=[
-            ('Ativa', 'Ativa'),
-            ('Inativa', 'Inativa')
-        ]
-    )
-    layout_contrato = models.CharField(
-        max_length=10,
-        verbose_name="Layout Contrato",
-        choices=[
-            ('Layout 1', 'Layout 1'),
-            ('Layout 2', 'Layout 2')
-        ],
-        default="Layout 1"
-    )
-    tp_chave = models.CharField(
-        max_length=20,
-        verbose_name="Tipo de Chave Pix",
-        choices=[
-            ('CPF', 'CPF'),
-            ('CNPJ', 'CNPJ'),
-            ('E-mail', 'E-mail'),
-            ('Telefone', 'Telefone'),
-            ('Chave Aleatória', 'Chave Aleatória')
-        ]
-    )
-    chave_pix = models.CharField(
-        max_length=100,
-        verbose_name="Chave Pix"
-    )
-    banco_fil = models.ForeignKey('bancos.Banco', on_delete=models.CASCADE, null=True, blank=True)
-
+    situacao = models.CharField(max_length=10, verbose_name="Situação", choices=[('Ativa', 'Ativa'), ('Inativa', 'Inativa')])
+    layout_contrato = models.CharField(max_length=10, verbose_name="Layout Contrato", choices=[('Layout 1', 'Layout 1'), ('Layout 2', 'Layout 2')], default="Layout 1")
+    tp_chave = models.CharField(max_length=20, verbose_name="Tipo de Chave Pix", choices=[('CPF', 'CPF'), ('CNPJ', 'CNPJ'), ('E-mail', 'E-mail'), ('Telefone', 'Telefone'), ('Chave Aleatória', 'Chave Aleatória')])
+    chave_pix = models.CharField(max_length=100, verbose_name="Chave Pix")
+    banco_fil = models.ForeignKey('bancos.Banco', on_delete=models.SET_NULL, null=True, blank=True)
     beneficiario = models.CharField(max_length=255, verbose_name='Nome Beneficiário')
-
     info_comp = models.TextField(default="Obrigado pela preferência!", blank=True)
     info_local = models.TextField(default="Atendemos em todo estado do Pará!", blank=True)
-
     info_orcamento = models.TextField(default="*Caro cliente, caso você encontre um orçamento com valor inferior, podemos analisar o orçamento concorrente para fecharmos negócio.", blank=True)
-
     cnpj = models.CharField(max_length=20, verbose_name='CNPJ')
     ie = models.CharField(max_length=20, verbose_name='Inscrição Estadual')
     razao_social = models.CharField(max_length=100, verbose_name='Razão Social')
@@ -69,6 +33,9 @@ class Filial(models.Model):
     endereco = models.CharField(max_length=100, verbose_name='Endereço')
     cep = models.CharField(max_length=10, verbose_name='CEP')
     numero = models.CharField(max_length=10, verbose_name='Nº')
+    tb_preco = models.ForeignKey('tabelas_preco.TabelaPreco', on_delete=models.SET_NULL, null=True)
+    cli = models.ForeignKey('clientes.Cliente', on_delete=models.SET_NULL, null=True)
+    tec = models.ForeignKey('tecnicos.Tecnico', on_delete=models.SET_NULL, null=True)
     bairro_fil = models.ForeignKey('bairros.Bairro', on_delete=models.SET_NULL, null=True)
     complem = models.CharField(max_length=20, verbose_name='Complemento', blank=True)
     cidade_fil = models.ForeignKey('cidades.Cidade', on_delete=models.SET_NULL, null=True)
@@ -78,38 +45,13 @@ class Filial(models.Model):
     fantasia_normalizado = models.CharField(max_length=255, editable=False)
     logo = models.FileField(upload_to='logo/', null=True, blank=True, default='default_logo.png')
     vinc_emp = models.ForeignKey(Empresa, on_delete=models.CASCADE)
-
-    dt_criacao = models.CharField(
-        max_length=30,
-        verbose_name='Data de Registro',
-        default=data_hoje_formatada
-    )
-    dt_inativacao = models.CharField(max_length=30, verbose_name='Data de Inativação', blank=True, null=True)
+    dt_criacao = models.DateField(verbose_name="Data de Registro", null=True, blank=True, db_index=True)
+    dt_inativacao = models.DateField(verbose_name="Data de Inativação", null=True, blank=True, db_index=True)
     max_parcelas = models.PositiveIntegerField(default=1)
-
-    tp_calc_juros = models.CharField(
-        max_length=15,
-        verbose_name="Tp. Cálculo Juros",
-        choices=[
-            ('Percentual', 'Percentual'),
-            ('Valor', 'Valor')
-        ],
-        default="Percentual"
-    )
-
-    tp_calc_multa = models.CharField(
-        max_length=15,
-        verbose_name="Tp. Cálculo Multa",
-        choices=[
-            ('Percentual', 'Percentual'),
-            ('Valor', 'Valor')
-        ],
-        default="Percentual"
-    )
-
+    tp_calc_juros = models.CharField(max_length=15, verbose_name="Tp. Cálculo Juros", choices=[('Percentual', 'Percentual'), ('Valor', 'Valor')], default="Percentual")
+    tp_calc_multa = models.CharField(max_length=15, verbose_name="Tp. Cálculo Multa", choices=[('Percentual', 'Percentual'), ('Valor', 'Valor')], default="Percentual")
     ft_multa = models.DecimalField(verbose_name="Fator Multa", max_digits=10, decimal_places=2, default=0, null=True, blank=True)
     ft_juros = models.DecimalField(verbose_name="Fator Juros",max_digits=10, decimal_places=2, default=0, null=True, blank=True)
-
     principal = models.BooleanField(default=False, verbose_name='Filial Principal')
     vinculada_a = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='filiais_secundarias', verbose_name='Filial Vinculada à')
     def save(self, *args, **kwargs):
@@ -125,23 +67,30 @@ class Filial(models.Model):
         self.tel = self.tel.upper()
         self.email = self.email.lower()
         self.fantasia_normalizado = remove_accents(self.fantasia).lower()
-        self.fantasia = self.fantasia_normalizado
-        if self.logo and self.logo.name != 'media/default_logo.png':  # Ignorar o redimensionamento da logo padrão
-            # Abrir a imagem da logo
-            img = Image.open(self.logo)
-
-            # Definir o tamanho desejado para a logo
-            max_size = (300, 300)  # Redimensionar para 300x300 (ajustável)
-
-            # Redimensionar a imagem mantendo a proporção
+        logo_alterada = False
+        logo_file = self.logo
+        super().save(*args, **kwargs)
+        if logo_file and os.path.basename(logo_file.name) != 'default_logo.png':
+            img = Image.open(logo_file)
+            if img.mode in ('RGBA', 'P'):
+                img = img.convert('RGB')
+            max_size = (300, 300)
             img.thumbnail(max_size)
-
-            # Salvar a nova imagem redimensionada em um arquivo temporário
             img_io = BytesIO()
-            img.save(img_io, format='PNG')  # Salve no formato desejado, aqui 'PNG'
-            img_content = ContentFile(img_io.getvalue(), name=f'{self.id}.png')
-        super(Filial, self).save(*args, **kwargs)
+            img.save(img_io, format='PNG', quality=90)
+            novo_nome = f'logo_{self.pk}.png'
+            self.logo.save(novo_nome, ContentFile(img_io.getvalue()), save=False)
+            logo_alterada = True
+        if logo_alterada:
+            super().save(update_fields=['logo'])
 
+    def clean(self):
+        if self.principal:
+            qs = Filial.objects.filter(vinc_emp=self.vinc_emp, principal=True)
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            if qs.exists():
+                raise ValidationError("Já existe uma filial principal para esta empresa.")
     def __str__(self):
         return f"{self.fantasia}"
 
@@ -150,6 +99,7 @@ class Filial(models.Model):
 
 class Usuario(AbstractUser):
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name="usuarios", null=True, blank=True)
+    username = models.CharField(max_length=150)
     filial_user = models.ForeignKey(Filial, on_delete=models.SET_NULL, null=True, blank=True, related_name="usuarios")
     codigo_local = models.PositiveIntegerField(blank=True, null=True)
     gerar_senha_lib = models.BooleanField(default=False, verbose_name='Gerar Senha de Liberação')

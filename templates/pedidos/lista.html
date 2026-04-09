@@ -163,13 +163,13 @@
                                                 </div>
                                             </div>
                                             <div class="modal-body d-grid gap-2">
-                                                <a href="{% url 'att-pedido' pedido.id %}" class="btn-permissao" data-permissao="pedidos.change_pedido" data-msg-negado="Seu usuário não pode editar pedidos!">
+                                                <a href="{% url 'att-pedido' pedido.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="pedidos.change_pedido" data-msg-negado="Seu usuário não pode editar pedidos!">
                                                     <button class="btn btn-outline-dark" type="button" id="botoes-modal" data-id="{{ pedido.id }}">
                                                         <span><i class="fas fa-edit" title="Editar Orçamento"></i></span>
                                                         <strong style="color: #13c43f; font-size: 20px;">EDITAR</strong>
                                                     </button>
                                                 </a>
-                                                <a href="{% url 'clonar-pedido' pedido.id %}" class="btn-permissao" data-permissao="pedidos.clonar_pedido" data-msg-negado="Seu usuário não pode clonar pedidos!">
+                                                <a href="{% url 'clonar-pedido' pedido.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="pedidos.clonar_pedido" data-msg-negado="Seu usuário não pode clonar pedidos!">
                                                     <button class="btn btn-outline-dark" type="button" id="botoes-modal" data-id="{{ pedido.id }}">
                                                         <span><i class="fa-solid fa-clone" title="Clonar Orçamento"></i></span>
                                                         <strong style="color: #483D8B; font-size: 20px;">CLONAR</strong>
@@ -182,7 +182,7 @@
                                                         <strong style="color: #db1e47; font-size: 20px;">DELETAR</strong>
                                                     </button>
                                                 {% else %}
-                                                    <a href="{% url 'del-pedido' pedido.id %}">
+                                                    <a href="{% url 'del-pedido' pedido.id %}?next={{ request.get_full_path|urlencode }}">
                                                         <button class="btn btn-outline-dark btn-delete" type="button" data-orcamento-id="{{ pedido.id }}">
                                                             <span><i class="fas fa-trash"></i></span>
                                                             <strong style="color: #db1e47; font-size: 20px;">DELETAR</strong>

@@ -19,8 +19,8 @@ def lista_estados(request):
     s = request.GET.get('s')
     tp = request.GET.get('tp')
     reg = request.GET.get('reg', '10')
-
-    estados = Estado.objects.filter(vinc_emp=request.user.empresa)
+    empresa = request.user.empresa
+    estados = Estado.objects.filter(vinc_emp=empresa)
 
     if tp == 'desc' and s:
         norm_s = remove_accents(s).lower()
@@ -53,8 +53,8 @@ def lista_estados(request):
 @login_required
 def lista_estados_ajax(request):
     term = request.GET.get('term', '')
-    estados = Estado.objects.filter(nome_estado__icontains=term)[:10]
-    data = {'estados': [{'id': estado.id, 'nome_estado': estado.nome_estado} for estado in estados]}
+    estados = Estado.objects.filter(nome_estado__icontains=term, vinc_emp=request.user.empresa)[:20]
+    data = {'estados': [{'id': estado.id, 'text': estado.nome_estado} for estado in estados]}
     return JsonResponse(data)
 
 @login_required
@@ -66,11 +66,7 @@ def add_estado(request):
         form = EstadoForm(request.POST)
         if form.is_valid():
             e = form.save(commit=False)
-            if request.user.is_authenticated:
-                try:
-                    e.vinc_emp = request.user.empresa  # Busca a filial do usuário logado
-                except Usuario.DoesNotExist:
-                    return JsonResponse({'error': 'Usuário não possui filial vinculada'}, status=400)
+            e.vinc_emp = request.user.empresa
             e.save()
             messages.success(request, 'Estado adicionado com sucesso!')
             est = str(e.id)
@@ -87,7 +83,7 @@ def add_estado(request):
 
 @login_required
 def att_estado(request, id):
-    e = get_object_or_404(Estado, pk=id)
+    e = get_object_or_404(Estado, pk=id, vinc_emp=request.user.empresa)
     form = EstadoForm(instance=e)
     if not request.user.has_perm('estados.change_estado'):
         messages.info(request, 'Você não tem permissão para editar estados.')
@@ -96,9 +92,13 @@ def att_estado(request, id):
         form = EstadoForm(request.POST, instance=e)
         if form.is_valid():
             e.save()
+            next_url = request.POST.get('next') or request.GET.get('next')
             est = str(e.id)
             messages.success(request, 'Estado atualizado com sucesso!')
-            return redirect('/estados/lista/?tp=cod&s=' + est)
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect('/estados/lista/?tp=cod&s=' + est)
         else:
             error_messages = []
             for field in form:
@@ -114,7 +114,7 @@ def del_estado(request, id):
     if not request.user.has_perm('estados.delete_estado'):
         messages.info(request, 'Você não tem permissão para deletar estados.')
         return redirect('/estados/lista/')
-    e = get_object_or_404(Estado, pk=id)
+    e = get_object_or_404(Estado, pk=id, vinc_emp=request.user.empresa)
     e.delete()
     messages.success(request, 'Estado deletado com sucesso!')
     return redirect('/estados/lista/')

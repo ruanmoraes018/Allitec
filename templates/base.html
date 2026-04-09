@@ -297,15 +297,20 @@
                     </div>
                 </div>
             </div>
-            <div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal border-0 d-flex align-items-center">
-                        <div class="modal-body text-center">
-                            <div class="spinner-border text-dark spinner-lg" role="status" style="width: 3rem; height: 3rem;">
-                                <span class="visually-hidden">Carregando...</span>
-                            </div>
-                        </div>
-                    </div>
+            <!--<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">-->
+            <!--    <div class="modal-dialog modal-dialog-centered">-->
+            <!--        <div class="modal border-0 d-flex align-items-center">-->
+            <!--            <div class="modal-body text-center">-->
+            <!--                <div class="spinner-border text-dark spinner-lg" role="status" style="width: 3rem; height: 3rem;">-->
+            <!--                    <span class="visually-hidden">Carregando...</span>-->
+            <!--                </div>-->
+            <!--            </div>-->
+            <!--        </div>-->
+            <!--    </div>-->
+            <!--</div>-->
+            <div id="loadingOverlay" class="loading-overlay" hidden>
+                <div class="loading-box">
+                    <img src="{% static 'img/favicon.png' %}" alt="Carregando" class="loading-logo">
                 </div>
             </div>
         </div>

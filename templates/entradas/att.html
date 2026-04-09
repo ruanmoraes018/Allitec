@@ -20,18 +20,19 @@
                         {"text": "{% for message in error_messages %}{{ message }}<br>{% endfor %}", "tag": "error"}
                     ]'></div>
                 {% endif %}
-                <div class="card">
+                <div class="card" style="margin: 0;">
                     <div class="card-header">
                         <span>
                             ALTERAÇÃO DE NF/PEDIDOS
                         </span>
                     </div>
-                    <div class="card-body">
-                        <div class="row g-3" style="margin-left: -8px;">
-                            <div class="col-md-4">
+                    <div class="card-body" style="margin-bottom: -5px;">
+                        <div class="row" style="margin-left: -8px;">
+                            <input type="hidden" name="next" value="{{ request.GET.next }}">
+                            <div class="col-md-3">
                                 {{ form.fornecedor|as_crispy_field }}
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 {{ form.vinc_fil|as_crispy_field }}
                             </div>
                             <div class="col-md-1">
@@ -40,10 +41,10 @@
                             <div class="col-md-1">
                                 {{ form.tp_frete|as_crispy_field }}
                             </div>
-                            <div class="col-md-1">
+                            <div class="col-md-2">
                                 {{ form.dt_emi|as_crispy_field }}
                             </div>
-                            <div class="col-md-1">
+                            <div class="col-md-2">
                                 {{ form.dt_ent|as_crispy_field }}
                             </div>
                             <div class="col-md-1">
@@ -66,16 +67,16 @@
                                     <i class="fa-solid fa-plus"></i> Adicionar Item
                                 </button>
                             </div>
-                            <div class="card" style="margin: 0; margin-left: 4px;">
-                                <div class="form-buttons" style="margin-left: 10px; margin-top: 10px;">
+                            <div class="card mt-2" style="margin: 0; margin-left: 4px;">
+                                <div class="form-buttons" style="margin-left: 10px; margin-top: 2px;">
                                     <div class="card-header bg-white">
                                         <button type="button" class="btn btn-dark" id="endBtn">Produtos</button>
                                         <button type="button" class="btn btn-dark" id="complBtn">Observações</button>
                                     </div>
                                 </div>
                                 <div class="form-section" id="enderecos">
-                                    <div class="row g-3" style="overflow-x: auto;">
-                                        <table class="table table-sm table-bordered table-striped table-hover table-responsive-md table-rounded" id="tabela-produtos">
+                                    <div class="row mt-2" style="overflow-x: auto;">
+                                        <table class="table table-sm table-bordered table-striped table-hover table-responsive-md table-rounded mb-2" id="tabela-produtos">
                                             <thead class="table-dark">
                                                 <tr>
                                                     <th>Código</th>
@@ -84,7 +85,7 @@
                                                     <th>Vl. Unit.</th>
                                                     <th>Desconto</th>
                                                     <th>Vl. Total</th>
-                                                    <th style="width: 6%;">Ações</th>
+                                                    <th style="width: 75px;">Ações</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -132,7 +133,7 @@
                                     </div>
                                 </div>
                                 <div class="form-section" id="complementos">
-                                    <div class="row g-3" style="margin-left: -8px;">
+                                    <div class="row mt-2" style="margin-left: -8px;">
                                         <div class="col-md-12">
                                             {{ form.obs|as_crispy_field }}
                                         </div>
@@ -143,24 +144,27 @@
                                         <h6 class="fw-bold" style="margin-top: -10px;">TOTAIS DA NOTA/PEDIDO</h6>
                                     </div>
                                 </div>
-                                <div class="card mt-2 mb-2 mx-auto" style="width: 18rem;">
-                                    <ul class="list-group list-group-flush">
-                                        <li class="list-group-item fw-bold">Total Desconto: <span style="background-color: #20B2AA; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" id="total-desconto">0.00</span></li>
-                                        <li class="list-group-item fw-bold">Total dos Produtos: <span style="background-color: #3CB371; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" id="total-produtos">0.00</span></li>
-                                        <li class="list-group-item fw-bold">
-                                            Total Frete: <span title="Clique para inserir o valor do frete" id="total-frete" style="background-color: #F08080; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" class="editable">{{ form.frete.value }}</span>
-                                            <input type="hidden" id="id_frete" name="frete" value="{{ form.frete.value }}">
-                                        </li>
-
-                                        <li class="list-group-item fw-bold">Valor Total: <span style="background-color: #32CD32; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" id="valor-total">0.00</span></li>
-                                    </ul>
+                                <div class="card mt-2 mb-2 mx-auto" style="width: 50rem;">
+                                    <div class="row">
+                                        <ul class="list-group col" style="border-radius: 15px; margin: 10px 5px 10px 10px;">
+                                            <li class="list-group-item fw-bold">Total Desconto: <span style="background-color: #20B2AA; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" id="total-desconto">0.00</span></li>
+                                            <li class="list-group-item fw-bold">Total dos Produtos: <span style="background-color: #3CB371; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" id="total-produtos">0.00</span></li>
+                                        </ul>
+                                        <ul class="list-group col" style="border-radius: 15px; margin: 10px 5px 10px 10px;">
+                                            <li class="list-group-item fw-bold">
+                                                Total Frete: <span title="Clique para inserir o valor do frete" id="total-frete" style="background-color: #F08080; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" class="editable">{{ form.frete.value }}</span><span style="float: right;">R$ </span>
+                                                <input type="hidden" id="id_frete" name="frete" value="{{ form.frete.value }}">
+                                            </li>
+                                            <li class="list-group-item fw-bold">Valor Total: <span style="background-color: #32CD32; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" id="valor-total">0.00</span></li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="card-footer">
+                    <div class="card-footer" style="margin-bottom: -10px;">
                         <div class="base_botao">
-                            <button type="button" class="btn btn-success botoes" data-bs-toggle="modal" data-bs-target="#staticBackdrop" id="openModalBtn">Alterar</button>
+                            <button type="button" class="btn btn-success botoes" data-bs-target="#staticBackdrop" id="openModalBtn">Alterar</button>
                             <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#loadingModal">Voltar</a>
                         </div>
                     </div>
@@ -173,14 +177,14 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header titulo-modal">
-                    <h1 class="modal-title fs-5" id="staticBackdropLabel"><i class="fa-regular fa-circle-question"></i> Confirmação!</h1>
+                    <h5 class="modal-title" id="staticBackdropLabel"><i class="fa-regular fa-circle-question"></i> Confirmação!</h5>
                 </div>
                 <div class="modal-body">
                     <p>Você confirma a ALTERAÇÃO DE NF/PEDIDO?</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>
-                    <button type="button" class="btn btn-secondary" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
+                    <button type="submit" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
                 </div>
             </div>
         </div>
@@ -194,32 +198,39 @@
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Conteúdo da Pesquisa:</label>
-                            <input type="text" id="campo-pesquisa-produto" class="form-control" placeholder="Digite a descrição do produto">
+                            <input type="text" id="campo-pesquisa-produto" class="form-control form-control-sm" placeholder="Digite a descrição do produto">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-1">
                             <label class="form-label">Tipo:</label>
-                            <select class="form-select" id="campo-tipo-produto">
+                            <select class="form-select form-select-sm" id="campo-tipo-produto">
+                                <option value="">Todos</option>
                                 <option value="Principal">Principal</option>
                                 <option value="Adicional">Adicional</option>
                             </select>
                         </div>
                         <div class="col-md-2">
+                            <label class="form-label">Marca:</label>
+                            <select class="form-select form-select-sm" id="campo-marca-produto">
+                                <option value="">Selecione uma marca</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
                             <label class="form-label">Grupo:</label>
-                            <select class="form-select" id="campo-grupo-produto">
+                            <select class="form-select form-select-sm" id="campo-grupo-produto">
                                 <option value="">Selecione um grupo</option>
                             </select>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Unidade:</label>
-                            <select class="form-select" id="campo-unidade-produto">
+                            <select class="form-select form-select-sm" id="campo-unidade-produto">
                                 <option value="">Selecione uma unidade</option>
                             </select>
                         </div>
                         <div class="col-md-1">
                             <label class="form-label">Reg.:</label>
-                            <select class="form-select" id="campo-pagina">
+                            <select class="form-select form-select-sm" id="campo-pagina">
                                 <option value="10">10</option>
                                 <option value="20">20</option>
                                 <option value="30">30</option>
@@ -229,10 +240,9 @@
                             </select>
                         </div>
                         <div class="col-md-1 d-flex align-items-start">
-                            <button class="btn btn-dark w-100" id="pesq-produtos" style="margin-top: 30px;">Listar</button>
+                            <button class="btn btn-dark btn-sm w-100" id="pesq-produtos" style="margin-top: 30px;"><i class="fa-solid fa-magnifying-glass"></i></button>
                         </div>
                     </div>
-
                     <div class="table-container mt-3">
                         <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
                             <thead class="table-dark">
@@ -255,7 +265,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
                 </div>
             </div>
         </div>
@@ -265,7 +275,7 @@
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header titulo-modal">
-                    <h1 class="modal-title fs-5" id="edProdModalLabel"><i class="fa-solid fa-file-pen"></i> Adição/Edição de Item</h1>
+                    <h5 class="modal-title" id="edProdModalLabel"><i class="fa-solid fa-file-pen"></i> Adição/Edição de Item</h5>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3" style="margin-left: -8px;">
@@ -276,13 +286,17 @@
                                 <button class="btn btn-outline-dark btn-sm" type="button" id="add-prod"><i class="fa-solid fa-magnifying-glass"></i></button>
                             </div>
                         </div>
-                        <div class="col-md-7" id="div_id_desc_prod">
+                        <div class="col-md-5" id="div_id_desc_prod">
                             <label for="id_desc_prod" class="form-label requiredField">Descrição</label>
                             <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_desc_prod" autofocus name="desc_prod" disabled="disabled">
                         </div>
-                        <div class="col-md-2" id="div_id_unidProd">
-                            <label for="id_unidProd" class="form-label requiredField">Unidade</label>
-                            <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_unidProd" name="unidProd" disabled="disabled">
+                        <div class="col-md-4" id="div_id_marca">
+                            <label for="id_marcaProd" class="form-label requiredField">Marca</label>
+                            <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_marcaProd" name="marca" disabled="disabled">
+                        </div>
+                        <div class="col-md-2" id="div_id_unidProduto">
+                            <label for="id_unidProduto" class="form-label requiredField">Unidade</label>
+                            <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_unidProduto" name="unidProd" disabled="disabled">
                         </div>
                         <div class="col-md-4" id="div_id_grupo">
                             <label for="id_grupoProd" class="form-label requiredField">Grupo</label>
@@ -290,21 +304,21 @@
                         </div>
                         <div class="col-md-2" id="div_id_preco_unit">
                             <label for="id_preco_unit" class="form-label requiredField">Preço Unitário*</label>
-                            <input type="decimal" class="form-control form-control-sm border-dark-subtle" id="id_preco_unit" name="preco_unit">
+                            <input type="decimal" class="form-control form-control-sm border-dark-subtle text-end fw-bold" id="id_preco_unit" name="preco_unit">
                         </div>
                         <div class="col-md-2" id="div_id_quantidade">
                             <label for="id_quantidade" class="form-label requiredField">Quantidade*</label>
-                            <input type="decimal" class="form-control form-control-sm border-dark-subtle" id="id_quantidade" name="quantidade">
+                            <input type="decimal" class="form-control form-control-sm border-dark-subtle text-end fw-bold" id="id_quantidade" name="quantidade">
                         </div>
                         <div class="col-md-2" id="div_id_desconto">
                             <label for="id_desconto" class="form-label requiredField">Desconto</label>
-                            <input type="decimal" class="form-control form-control-sm border-dark-subtle" id="id_desconto" name="desconto">
+                            <input type="decimal" class="form-control form-control-sm border-dark-subtle text-end fw-bold" id="id_desconto" name="desconto">
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-dark" id="add-produto-lista">Confirmar</button>
-                    <button type="button" class="btn btn-secondary" id="cancelar-produto-lista" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-dark btn-sm" id="add-produto-lista">Confirmar</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="cancelar-produto-lista" data-bs-dismiss="modal">Cancelar</button>
                 </div>
             </div>
         </div>

@@ -19,9 +19,8 @@ def lista_tabelas_preco(request):
     s = request.GET.get('s')
     tp = request.GET.get('tp')
     reg = request.GET.get('reg', '10')
-
-    tabelas_preco = TabelaPreco.objects.filter(vinc_emp=request.user.empresa)
-
+    empresa = request.user.empresa
+    tabelas_preco = TabelaPreco.objects.filter(vinc_emp=empresa)
     if tp == 'desc' and s:
         norm_s = remove_accents(s).lower()
         tabelas_preco = tabelas_preco.filter(descricao__icontains=norm_s).order_by('descricao')
@@ -30,7 +29,6 @@ def lista_tabelas_preco(request):
             tabelas_preco = tabelas_preco.filter(id__iexact=s).order_by('descricao')
         except ValueError:
             tabelas_preco = TabelaPreco.objects.none()
-
     if reg == 'todos':
         num_pagina = tabelas_preco.count() or 1
     else:
@@ -38,11 +36,9 @@ def lista_tabelas_preco(request):
             num_pagina = int(reg) if int(reg) > 0 else 1
         except ValueError:
             num_pagina = 10  # Valor padrão
-
     paginator = Paginator(tabelas_preco, num_pagina)
     page = request.GET.get('page')
     tabelas_preco = paginator.get_page(page)
-
     return render(request, 'tabelas_preco/lista.html', {
         'tabelas_preco': tabelas_preco,
         's': s,
@@ -53,14 +49,15 @@ def lista_tabelas_preco(request):
 @login_required
 def lista_tabelas_preco_ajax(request):
     term = request.GET.get('term', '')
-    tabelas_preco = TabelaPreco.objects.filter(descricao__icontains=term)[:10]
-    data = {'tabelas_preco': [{'id': tabela_preco.id, 'descricao': tabela_preco.descricao} for tabela_preco in tabelas_preco]}
+    tabelas_preco = TabelaPreco.objects.filter(descricao__icontains=term, vinc_emp=request.user.empresa)[:20]
+    data = {'tabelas_preco': [{'id': tabela_preco.id, 'text': tabela_preco.descricao} for tabela_preco in tabelas_preco]}
     return JsonResponse(data)
 
+@login_required
 def get_tabela_preco(request):
     tabela_id = request.GET.get("id")
     try:
-        tabela = TabelaPreco.objects.get(pk=tabela_id)
+        tabela = TabelaPreco.objects.get(pk=tabela_id, vinc_emp=request.user.empresa)
         return JsonResponse({"id": tabela.id, "descricao": tabela.descricao, "margem": tabela.margem})
     except TabelaPreco.DoesNotExist:
         return JsonResponse({"error": "Tabela não encontrada"}, status=404)
@@ -74,11 +71,7 @@ def add_tabelas_preco(request):
         form = TabelaPrecoForm(request.POST)
         if form.is_valid():
             c = form.save(commit=False)
-            if request.user.is_authenticated:
-                try:
-                    c.vinc_emp = request.user.empresa  # Busca a filial do usuário logado
-                except Usuario.DoesNotExist:
-                    return JsonResponse({'error': 'Usuário não possui filial vinculada'}, status=400)
+            c.vinc_emp = request.user.empresa
             c.save()
             messages.success(request, 'Tabela de Preço adicionada com sucesso!')
             cid = str(c.id)
@@ -95,7 +88,7 @@ def add_tabelas_preco(request):
 
 @login_required
 def att_tabelas_preco(request, id):
-    c = get_object_or_404(TabelaPreco, pk=id)
+    c = get_object_or_404(TabelaPreco, pk=id, vinc_emp=request.user.empresa)
     form = TabelaPrecoForm(instance=c)
     if not request.user.has_perm('tabelas_preco.change_tabelapreco'):
         messages.info(request, 'Você não tem permissão para editar tabelas de preço.')
@@ -103,10 +96,15 @@ def att_tabelas_preco(request, id):
     if request.method == 'POST':
         form = TabelaPrecoForm(request.POST, instance=c)
         if form.is_valid():
+            c = form.save(commit=False)
             c.save()
             cid = str(c.id)
             messages.success(request, 'Tabela de Preço atualizada com sucesso!')
-            return redirect('/tabelas_preco/lista/?tp=cod&s=' + cid)
+            next_url = request.POST.get('next') or request.GET.get('next')
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect('/tabelas_preco/lista/?tp=cod&s=' + cid)
         else:
             error_messages = []
             for field in form:
@@ -122,7 +120,7 @@ def del_tabelas_preco(request, id):
     if not request.user.has_perm('tabelas_preco.delete_tabelapreco'):
         messages.info(request, 'Você não tem permissão para deletar tabelas de preço.')
         return redirect('/tabelas_preco/lista/')
-    c = get_object_or_404(TabelaPreco, pk=id)
+    c = get_object_or_404(TabelaPreco, pk=id, vinc_emp=request.user.empresa)
     c.delete()
     messages.success(request, 'Tabela de Preço deletada com sucesso!')
     return redirect('/tabelas_preco/lista/')

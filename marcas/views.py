@@ -20,8 +20,8 @@ def lista_marcas(request):
     s = request.GET.get('s')
     tp = request.GET.get('tp')
     reg = request.GET.get('reg', '10')
-
-    marcas = Marca.objects.filter(vinc_emp=request.user.empresa)
+    empresa = request.user.empresa
+    marcas = Marca.objects.filter(vinc_emp=empresa)
 
     if tp == 'desc' and s:
         norm_s = remove_accents(s).lower()
@@ -54,8 +54,8 @@ def lista_marcas(request):
 @login_required
 def lista_marcas_ajax(request):
     term = request.GET.get('term', '')
-    marcas = Marca.objects.filter(nome_marca__icontains=term)[:10]
-    data = {'marcas': [{'id': marca.id, 'nome_marca': marca.nome_marca} for marca in marcas]}
+    marcas = Marca.objects.filter(nome_marca__icontains=term, vinc_emp=request.user.empresa)
+    data = {'marcas': [{'id': marca.id, 'text': marca.nome_marca} for marca in marcas]}
     return JsonResponse(data)
 
 @login_required
@@ -67,11 +67,7 @@ def add_marca(request):
         form = MarcaForm(request.POST)
         if form.is_valid():
             b = form.save(commit=False)
-            if request.user.is_authenticated:
-                try:
-                    b.vinc_emp = request.user.empresa  # Busca a filial do usuário logado
-                except Usuario.DoesNotExist:
-                    return JsonResponse({'error': 'Usuário não possui filial vinculada'}, status=400)
+            b.vinc_emp = request.user.empresa
             b.save()
             messages.success(request, 'Marca adicionada com sucesso!')
             bai = str(b.id)
@@ -105,7 +101,7 @@ def add_marca_ajax(request):
 
 @login_required
 def att_marca(request, id):
-    b = get_object_or_404(Marca, pk=id)
+    b = get_object_or_404(Marca, pk=id, vinc_emp=request.user.empresa)
     form = MarcaForm(instance=b)
     if not request.user.has_perm('marcas.change_marca'):
         messages.info(request, 'Você não tem permissão para editar marcas.')
@@ -114,9 +110,13 @@ def att_marca(request, id):
         form = MarcaForm(request.POST, instance=b)
         if form.is_valid():
             b.save()
+            next_url = request.POST.get('next') or request.GET.get('next')
             bai = str(b.id)
             messages.success(request, 'Marca atualizada com sucesso!')
-            return redirect('/marcas/lista/?tp=cod&s=' + bai)
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect('/marcas/lista/?tp=cod&s=' + bai)
         else:
             error_messages = []
             for field in form:
@@ -132,7 +132,7 @@ def del_marca(request, id):
     if not request.user.has_perm('marcas.delete_marca'):
         messages.info(request, 'Você não tem permissão para deletar marcas.')
         return redirect('/marcas/lista/')
-    b = get_object_or_404(Marca, pk=id)
+    b = get_object_or_404(Marca, pk=id, vinc_emp=request.user.empresa)
     b.delete()
     messages.success(request, 'Marca deletada com sucesso!')
     return redirect('/marcas/lista/')

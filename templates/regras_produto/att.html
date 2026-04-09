@@ -28,17 +28,41 @@
                     </div>
                     <div class="card-body">
                         <div class="row g-3" style="margin-left: -8px;">
+                            <input type="hidden" name="next" value="{{ request.GET.next }}">
                             <div class="col-md-1">
                                 {{ form.ativo|as_crispy_field }}
                             </div>
                             <div class="col-md-3">
                                 {{ form.codigo|as_crispy_field }}
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 {{ form.descricao|as_crispy_field }}
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-2">
                                 {{ form.tipo|as_crispy_field }}
+                            </div>
+                            <div id="bloco-regras-selecao">
+                                <div class="row">
+                                    <div class="col-md-2">
+                                        {{ form.tipo_regra|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" id="add-linha" class="btn btn-dark btn-sm" style="margin-top: 30px;">
+                                            <i class="fas fa-plus"></i> Adicionar linha
+                                        </button>
+                                    </div>
+                                    <div class="table-responsive mt-2">
+                                        <table class="table table-sm table-bordered table-responsive-md table-rounded table-striped" id="tabela-regras">
+                                            <thead class="table-dark"></thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <textarea id="id_expressao_json" class="form-control form-control-sm border-dark-subtle bg-secondary" name="expressao_json" readonly rows="6">
+                                            {{ expressao_json_str|safe }}
+                                        </textarea>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-12">
                                 {{ form.expressao|as_crispy_field }}
@@ -47,7 +71,7 @@
                     </div>
                     <div class="card-footer">
                         <div class="base_botao">
-                            <button type="button" class="btn btn-success botoes" data-bs-toggle="modal" data-bs-target="#staticBackdrop" id="openModalBtn">Alterar</button>
+                            <button type="button" class="btn btn-success botoes" data-bs-target="#staticBackdrop" id="openModalBtn">Alterar</button>
                             <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#loadingModal">Voltar</a>
                         </div>
                     </div>

@@ -19,8 +19,8 @@ def lista_cidades(request):
     s = request.GET.get('s')
     tp = request.GET.get('tp')
     reg = request.GET.get('reg', '10')
-
-    cidades = Cidade.objects.filter(vinc_emp=request.user.empresa)
+    empresa = request.user.empresa
+    cidades = Cidade.objects.filter(vinc_emp=empresa)
 
     if tp == 'desc' and s:
         norm_s = remove_accents(s).lower()
@@ -53,8 +53,8 @@ def lista_cidades(request):
 @login_required
 def lista_cidades_ajax(request):
     term = request.GET.get('term', '')
-    cidades = Cidade.objects.filter(nome_cidade__icontains=term)[:10]
-    data = {'cidades': [{'id': cidade.id, 'nome_cidade': cidade.nome_cidade} for cidade in cidades]}
+    cidades = Cidade.objects.filter(nome_cidade__icontains=term, vinc_emp=request.user.empresa)[:20]
+    data = {'cidades': [{'id': cidade.id, 'text': cidade.nome_cidade} for cidade in cidades]}
     return JsonResponse(data)
 
 @login_required
@@ -66,11 +66,7 @@ def add_cidade(request):
         form = CidadeForm(request.POST)
         if form.is_valid():
             c = form.save(commit=False)
-            if request.user.is_authenticated:
-                try:
-                    c.vinc_emp = request.user.empresa  # Busca a filial do usuário logado
-                except Usuario.DoesNotExist:
-                    return JsonResponse({'error': 'Usuário não possui filial vinculada'}, status=400)
+            c.vinc_emp = request.user.empresa
             c.save()
             messages.success(request, 'Cidade adicionada com sucesso!')
             cid = str(c.id)
@@ -87,7 +83,7 @@ def add_cidade(request):
 
 @login_required
 def att_cidade(request, id):
-    c = get_object_or_404(Cidade, pk=id)
+    c = get_object_or_404(Cidade, pk=id, vinc_emp=request.user.empresa)
     form = CidadeForm(instance=c)
     if not request.user.has_perm('cidades.change_cidade'):
         messages.info(request, 'Você não tem permissão para editar cidades.')
@@ -96,9 +92,13 @@ def att_cidade(request, id):
         form = CidadeForm(request.POST, instance=c)
         if form.is_valid():
             c.save()
+            next_url = request.POST.get('next') or request.GET.get('next')
             cid = str(c.id)
             messages.success(request, 'Cidade atualizada com sucesso!')
-            return redirect('/cidades/lista/?tp=cod&s=' + cid)
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect('/cidades/lista/?tp=cod&s=' + cid)
         else:
             error_messages = []
             for field in form:
@@ -114,7 +114,7 @@ def del_cidade(request, id):
     if not request.user.has_perm('cidades.delete_cidade'):
         messages.info(request, 'Você não tem permissão para deletar cidades.')
         return redirect('/cidades/lista/')
-    c = get_object_or_404(Cidade, pk=id)
+    c = get_object_or_404(Cidade, pk=id, vinc_emp=request.user.empresa)
     c.delete()
     messages.success(request, 'Cidade deletada com sucesso!')
     return redirect('/cidades/lista/')

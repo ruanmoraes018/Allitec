@@ -9,4 +9,7 @@ urlpatterns = [
     path("efetivar/<int:id>/", views.efetivar_entrada, name='efetivar-entrada'),
     path("cancelar/<int:id>/", views.cancelar_entrada, name='cancelar-entrada'),
     path('entradas-produto/<int:produto_id>/', views.entradas_por_produto, name='entradas_por_produto'),
+    path('ler_xml/', views.ler_xml_entrada, name='ler-xml-entrada'),
+    path('criar_fornecedor_xml/', views.criar_fornecedor_por_xml, name='criar-fornecedor-xml'),
+    path('criar_produto_xml/', views.criar_produto_por_xml, name='criar-produto-xml'),
 ]

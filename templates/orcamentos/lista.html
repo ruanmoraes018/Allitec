@@ -29,10 +29,7 @@
                     <select class="form-control" id="id_filial_user" name="fil">
                         <option value="">Selecione uma filial</option>
                         {% for f in filiais %}
-                            <option value="{{ f.id }}"
-                                {% if request.GET.fil == f.id|stringformat:"s" %}selected{% endif %}>
-                                {{ f.fantasia }}
-                            </option>
+                            <option value="{{ f.id }}" {% if request.GET.fil == f.id|stringformat:"s" %}selected{% endif %}>{{ f.fantasia }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -41,10 +38,7 @@
                     <select class="form-control" id="cliente" name="cl">
                         <option value="">Selecione um cliente</option>
                         {% for cliente in clientes %}
-                            <option value="{{ cliente.id }}"
-                                {% if request.GET.cl == cliente.id|stringformat:"s" %}selected{% endif %}>
-                                {{ cliente.fantasia }}
-                            </option>
+                            <option value="{{ cliente.id }}" {% if request.GET.cl == cliente.id|stringformat:"s" %}selected{% endif %}>{{ cliente.fantasia }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -53,10 +47,7 @@
                     <select class="form-control" id="tecnico" name="tec">
                         <option value="">Selecione um técnico</option>
                         {% for tecnico in tecnicos %}
-                            <option value="{{ tecnico.id }}"
-                                {% if request.GET.tec == tecnico.id|stringformat:"s" %}selected{% endif %}>
-                                {{ tecnico.nome }}
-                            </option>
+                            <option value="{{ tecnico.id }}" {% if request.GET.tec == tecnico.id|stringformat:"s" %}selected{% endif %}>{{ tecnico.nome }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -132,10 +123,7 @@
             <table class="table table-sm table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
                 <thead thead class="table-dark">
                     <tr>
-                        <th style="width: 30px;">Opções</th> <th>Nº Orçamento</th> <th style="width: 20px;"></th>
-                        <th>Situação</th> <th>Filial</th> <th>Cliente</th>
-                        <th>Solicitante</th> <th>Status</th> <th>Dt. Emissão</th>
-                        <th>Dt. Fatura</th> <th>Dt. Entrega</th> <th>Valor</th> <th>Formas</th>
+                        <th style="width: 30px;">Opções</th> <th>Nº Orçamento</th> <th style="width: 20px;"></th><th>Situação</th> <th>Filial</th> <th>Cliente</th><th>Solicitante</th> <th>Status</th> <th>Dt. Emissão</th><th>Dt. Fatura</th> <th>Dt. Entrega</th> <th>Valor</th> <th>Formas</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -143,10 +131,7 @@
                         <tr>
                             <td data-label="Opções:" class="mobile-2col">
                                 <div style="text-align: left;">
-                                    <button class="btn btn-dark btn-sm"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#menuModal{{ orcamento.id }}"
-                                            title="Opções">
+                                    <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#menuModal{{ orcamento.id }}" title="Opções">
                                         <i class="fa-solid fa-bars"></i>
                                     </button>
                                 </div>
@@ -154,64 +139,73 @@
                                 <div class="modal fade modal-sm" id="menuModal{{ orcamento.id }}" data-orcamento-id="{{ orcamento.id }}" tabindex="-1" aria-labelledby="menuModalLabel{{ orcamento.id }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
-                                            <div class="modal-header titulo-modal">
-                                                <h5 class="modal-title fw-bold mx-auto" id="menuModalLabel{{ orcamento.id }}">Opções - {{ orcamento.num_orcamento }}</h5>
-                                            </div>
+                                            <div class="modal-header titulo-modal"><h5 class="modal-title fw-bold mx-auto" id="menuModalLabel{{ orcamento.id }}">Opções - {{ orcamento.num_orcamento }}</h5></div>
                                             <div class="modal-body p-2">
-                                                <a href="{% url 'att-orcamento' orcamento.id %}"
-                                                   class="btn btn-light w-100 text-start menu-opcao op-editar border border-secondary">
+                                                <a href="{% url 'att-orcamento' orcamento.id %}?next={{ request.get_full_path|urlencode }}" data-permissao="orcamentos.change_orcamento" data-msg-negado="Seu usuário não pode editar orçamentos!" class="btn btn-light w-100 text-start menu-opcao op-editar border border-secondary btn-permissao" >
                                                     <i class="fas fa-edit"></i> Editar
                                                 </a>
-                                                <a href="{% url 'clonar-orcamento' orcamento.id %}"
-                                                   class="btn btn-light w-100 text-start menu-opcao op-clonar border border-secondary">
+                                                <a href="{% url 'clonar-orcamento' orcamento.id %}?next={{ request.get_full_path|urlencode }}" data-permissao="orcamentos.clonar_orcamento" data-msg-negado="Seu usuário não pode clonar orçamentos!" class="btn btn-light w-100 text-start menu-opcao op-clonar border border-secondary btn-permissao">
                                                     <i class="fa-solid fa-clone"></i> Clonar
                                                 </a>
                                                 {% if orcamento.situacao == 'Aberto' %}
-                                                <button class="btn btn-light w-100 text-start menu-opcao op-deletar btn-delete border border-secondary"
-                                                        data-orcamento-id="{{ orcamento.id }}">
+                                                <button class="btn btn-light w-100 text-start menu-opcao op-deletar btn-delete border border-secondary btn-permissao" data-orcamento-id="{{ orcamento.id }}" data-permissao="orcamentos.delete_orcamento" data-msg-negado="Seu usuário não pode deletar orçamentos!">
                                                     <i class="fas fa-trash"></i> Deletar
                                                 </button>
-                                                <button class="btn btn-light w-100 text-start menu-opcao op-faturar btn-faturar border border-secondary"
-                                                        data-id="{{ orcamento.id }}">
+                                                <button class="btn btn-light w-100 text-start menu-opcao op-faturar btn-faturar border border-secondary btn-permissao" data-id="{{ orcamento.id }}" data-permissao="orcamentos.faturar_orcamento" data-msg-negado="Seu usuário não pode faturar orçamentos!">
                                                     <i class="fa-solid fa-money-bill"></i> Faturar
                                                 </button>
                                                 {% endif %}
-                                                <button class="btn btn-light w-100 text-start menu-opcao op-detalhe border border-secondary"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#infoEntModal{{ orcamento.id }}">
+                                                <button class="btn btn-light w-100 text-start menu-opcao op-detalhe border border-secondary" data-id="{{ orcamento.id }}" data-bs-toggle="modal" data-bs-target="#infoEntModal{{ orcamento.id }}">
                                                     <i class="fa-solid fa-circle-info"></i> Detalhes
                                                 </button>
+                                                {% if orcamento.situacao == 'Faturado' %}
+                                                <button class="btn btn-light w-100 text-start menu-opcao op-cancelar border border-secondary btn-permissao" data-permissao="orcamentos.cancelar_orcamento" data-msg-negado="Seu usuário não pode cancelar orçamentos!" data-collapse="#colCancelar{{ orcamento.id }}">
+                                                    <i class="fa-solid fa-circle-xmark"></i> Cancelar
+                                                </button>
+                                                <div class="collapse" id="colCancelar{{ orcamento.id }}">
+                                                    <div class="card" style="margin: 0;">
+                                                        <div class="card-body">
+                                                            <label class="form-label fw-bold">Motivo do cancelamento</label>
+                                                            <textarea id="motivoCancelamento{{ orcamento.id }}" class="form-control form-control-sm border-dark-subtle text-uppercase" rows="2" required></textarea>
+                                                            <div class="mt-3 d-flex justify-content-end gap-2">
+                                                                <button type="button" class="btn btn-danger btn-sm btn-abrir-modal-cancelamento" data-orcamento-id="{{ orcamento.id }}" data-bs-target="#modalConfirmarCancelamento{{ orcamento.id }}">
+                                                                    Cancelar orçamento
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal fade" id="modalConfirmarCancelamento{{ orcamento.id }}" tabindex="-1" aria-hidden="true">
+                                                    <div class="modal-dialog modal-dialog-centered">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header titulo-modal">
+                                                                <h5 class="modal-title"><i class="fa-regular fa-circle-question"></i>Confirmação</h5>
+                                                            </div>
+                                                            <div class="modal-body"><p class="mb-2">Você confirma o CANCELAMENTO DO ORÇAMENTO <strong>{{ orcamento.num_orcamento }}</strong>?</p></div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-primary btn-confirmar btn-confirmar-cancelamento" data-orcamento-id="{{ orcamento.id }}" disabled><u>S</u>im <span class="contador">3</span></button>
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
                                                 <div class="dropdown w-100">
-                                                    <button class="btn btn-light w-100 text-start menu-opcao border border-secondary dropdown-toggle"
-                                                            type="button"
-                                                            data-bs-toggle="dropdown"
-                                                            data-bs-auto-close="true">
+                                                    <button class="btn btn-light w-100 text-start menu-opcao border border-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="true">
                                                         <i class="fa-solid fa-print"></i> Impressão
                                                     </button>
-
                                                     <ul class="dropdown-menu w-100">
                                                         <li>
-                                                            <a href="{% url 'pdf-orcamento' orcamento.id %}"
-                                                               target="_blank"
-                                                               class="dropdown-item">
-                                                                <i class="fa-solid fa-file-pdf text-danger"></i> Orçamento
-                                                            </a>
+                                                            <a href="{% url 'pdf-proposta' orcamento.id %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Proposta</a>
                                                         </li>
-
                                                         <li>
-                                                            <a href="{% url 'pdf-proposta' orcamento.id %}"
-                                                               target="_blank"
-                                                               class="dropdown-item">
-                                                                <i class="fa-solid fa-file-pdf text-danger"></i> Proposta
-                                                            </a>
+                                                            <a href="{% url 'pdf-orcamento' orcamento.id %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Orçamento</a>
                                                         </li>
-
                                                         <li>
-                                                            <a href="{% url 'pdf-contrato' orcamento.id %}"
-                                                               target="_blank"
-                                                               class="dropdown-item">
-                                                                <i class="fa-solid fa-file-pdf text-danger"></i> Contrato
-                                                            </a>
+                                                            <a href="{% url 'pdf-contrato' orcamento.id %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Contrato</a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="{% url 'pdf-producao' orcamento.id %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Produção</a>
                                                         </li>
                                                     </ul>
                                                 </div>
@@ -228,213 +222,107 @@
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
                                                 <div class="modal-header titulo-modal">
-                                                    <h1 class="modal-title fs-5" id="modalTitle-{{ orcamento.id }}"> <i class="fa-regular fa-circle-question"></i> Confirmação! </h1>
+                                                    <h5 class="modal-title" id="modalTitle-{{ orcamento.id }}"> <i class="fa-regular fa-circle-question"></i> Confirmação! </h5>
                                                 </div>
                                                 <div class="modal-body"> <p>Você confirma a EXCLUSÃO DO ORÇAMENTO <strong>{{ orcamento.num_orcamento }}</strong>?</p> </div>
                                                 <div class="modal-footer">
                                                     <form method="post" action="{% url 'del-orcamento' orcamento.id %}" id="form-del-{{ orcamento.id }}">
                                                         {% csrf_token %}
-                                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled>
-                                                            <u>S</u>im <span class="contador">3</span>
-                                                        </button>
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                                            <u>N</u>ão
-                                                        </button>
+                                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled><u>S</u>im <span class="contador">3</span></button>
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
                                                     </form>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 {% endif %}
-                                <div class="modal fade" id="faturarModal-{{ orcamento.id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal fade modal-faturar-orcamento" id="faturarModal-{{ orcamento.id }}" tabindex="-1" aria-hidden="true" data-orcamento-id="{{ orcamento.id }}" data-num-orcamento="{{ orcamento.num_orcamento }}" data-pode-editar-preview="{% if perms.contas_receber.alterar_preview_cr %}1{% else %}0{% endif %}" >
                                     <div class="modal-dialog modal-dialog-centered modal-lg">
                                         <div class="modal-content">
-                                            <div class="modal-header bg-success text-white"> <h5 class="modal-title"><i class="fa-solid fa-money-bill" style="float: none;"></i> Faturar Orçamento {{ orcamento.num_orcamento }}</h5>
+                                            <div class="modal-header bg-success text-white" style="max-height: 30px;">
+                                                <h5 class="modal-title"><i class="fa-solid fa-money-bill" style="float: none;"></i> Faturar Orçamento {{ orcamento.num_orcamento }}</h5>
                                             </div>
                                             <div class="modal-body">
-                                                <div class="row">
-                                                    <div class="col-md-8">
-                                                        <label class="form-label fw-bold" for="cliente_orcamento">Cliente:</label>
-                                                        <input class="form-control mb-3 fw-bold" id="cliente_orcamento" value="{{ orcamento.cli }}" disabled="disabled">
+                                                <div class="d-flex gap-2 align-items-end">
+                                                    <div style="flex: 1;">
+                                                        <label class="form-label fw-bold">Cliente:</label>
+                                                        <input class="form-control fw-bold" value="{{ orcamento.cli }}" disabled>
                                                     </div>
-                                                    <div class="col-md-4">
-                                                        <label class="form-label fw-bold" for="dt_emi_orcamento">Data Emissão:</label>
-                                                        <input class="form-control mb-3 fw-bold" id="dt_emi_orcamento" value="{{ orcamento.dt_emi|date:'d/m/Y' }}" disabled="disabled">
+                                                    <div style="width:150px;">
+                                                        <label class="form-label fw-bold">Data Emissão:</label>
+                                                        <input class="form-control fw-bold dt-emi-orcamento" value="{{ orcamento.dt_emi|date:'d/m/Y' }}" disabled>
+                                                    </div>
+                                                    <div style="width:160px;">
+                                                        <label class="form-label fw-bold">Data Faturamento:</label>
+                                                        <input id="dt-fat-orcamento-{{ orcamento.id }}" class="form-control fw-bold dt-fat-orcamento" value="{{ orcamento.dt_fat|date:'d/m/Y' }}" readonly>
+                                                    </div>
+                                                    <div style="width:45px;">
+                                                        <label class="form-label">&nbsp;</label>
+                                                        <button class="btn btn-warning btn-sm w-100 btn-lib-dt-fat" type="button" data-permissao="orcamentos.alterar_dt_fat_orc" data-msg-negado="Seu usuário não pode alterar datas de faturamento ao faturar orçamentos!">
+                                                            <i class="fa-regular fa-pen-to-square"></i>
+                                                        </button>
                                                     </div>
                                                 </div>
-                                                <h6 style="font-weight: bold;">Resumo das Formas de Pagamento</h6>
-                                                <div style="overflow-x: auto;">
-                                                    <table class="table table-bordered table-striped" id="itensTableForm">
+                                                <h6 class="fw-bold">Resumo das Formas de Pagamento</h6>
+                                                <div style="overflow-x:auto;">
+                                                    <table class="table table-bordered table-striped">
                                                         <thead class="table-dark">
                                                             <tr>
-                                                                <th>Item</th>
-                                                                <th>Forma Pgto.</th>
-                                                                <th>Valor</th>
+                                                                <th>Item</th> <th>Forma Pgto.</th> <th>Valor</th> <th>Parcelas</th> <th>Intervalo (dias)</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
                                                             {% for forma in orcamento.formas_pgto.all %}
-                                                                <tr>
-                                                                    <td>{{ forloop.counter|stringformat:"01d" }}</td>
+                                                                <tr class="linha-forma-pgto" data-forma-id="{{ forma.formas_pgto.id }}" data-valor="{{ forma.valor }}" data-parcelas="{{ forma.parcelas|default:1 }}" data-intervalo="{{ forma.dias_intervalo|default:0 }}" data-gera-parcelas="{{ forma.formas_pgto.gera_parcelas|yesno:'1,0' }}">
+                                                                    <td>{{ forloop.counter }}</td>
                                                                     <td>{{ forma.formas_pgto.descricao }}</td>
                                                                     <td>{{ forma.valor|moeda_br }}</td>
+                                                                    <td>{% if forma.formas_pgto.gera_parcelas %}{{ forma.parcelas }}{% else %} - {% endif %}</td>
+                                                                    <td>{% if forma.formas_pgto.gera_parcelas %}{{ forma.dias_intervalo }}{% else %} - {% endif %}</td>
                                                                 </tr>
                                                             {% empty %}
-                                                                <tr><td colspan="3" class="text-center">Nenhuma forma de pagamento registrada.</td></tr>
+                                                                <tr><td colspan="5" class="text-center">Nenhuma forma de pagamento registrada.</td></tr>
                                                             {% endfor %}
                                                         </tbody>
                                                     </table>
                                                 </div>
+                                                {% if orcamento.tem_forma_com_parcela %}
+                                                    <h6 class="mt-4 fw-bold">Pré-visualização das Contas a Receber</h6>
+                                                    <div style="overflow-x:auto;">
+                                                        <table class="table table-bordered table-striped align-middle" id="previewContasTable-{{ orcamento.id }}">
+                                                            <thead class="table-dark">
+                                                                <tr>
+                                                                    <th style="width:120px;">Nº Conta</th> <th>Valor da Parcela</th> <th>Data de Vencimento</th> <th style="width:50px;">Ações</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody></tbody>
+                                                        </table>
+                                                    </div>
+                                                    <div class="d-flex justify-content-end mt-1">
+                                                        <div class="border rounded px-2 py-1 bg-light">
+                                                            <strong>Total das Parcelas: </strong><span class="rounded-pill bg-success fw-bold ps-2 pe-2" id="previewContasTotal-{{ orcamento.id }}">0.00</span>
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
                                             </div>
                                             <div class="modal-footer">
                                                 <form method="post" action="{% url 'faturar-orcamento' orcamento.id %}">
                                                     {% csrf_token %}
-                                                    <button
-                                                        type="button"
-                                                        class="btn btn-success btn-sm btn-confirmar-faturamento"
-                                                        data-id="{{ orcamento.id }}">
-                                                        Faturar
-                                                    </button>
+                                                    {% if orcamento.tem_forma_com_parcela %}<input type="hidden" name="preview_contas_json" id="previewContasJson-{{ orcamento.id }}">{% endif %}
+                                                    <button type="submit" class="btn btn-success btn-sm btn-confirmar-faturamento" data-id="{{ orcamento.id }}">Faturar</button>
                                                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                                    <div class="modal fade" id="staticBackdrop{{ orcamento.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel{{ orcamento.id }}" aria-hidden="true">
-                                                        <div class="modal-dialog modal-dialog-centered">
-                                                            <div class="modal-content">
-                                                                <div class="modal-header titulo-modal">
-                                                                    <h1 class="modal-title fs-5" id="staticBackdropLabel{{ orcamento.id }}"><i class="fa-regular fa-circle-question"></i> Confirmação!</h1>
-                                                                </div>
-                                                                <div class="modal-body">
-                                                                    <p>Você confirma o FATURAMENTO DO ORÇAMENTO {{ orcamento.num_orcamento }}?</p>
-                                                                </div>
-                                                                <div class="modal-footer">
-                                                                    <button type="submit" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>
-                                                                    <button type="button" class="btn btn-secondary" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
                                                 </form>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="modal fade" id="infoEntModal{{ orcamento.id }}" tabindex="-1" aria-labelledby="infoEntModalLabel{{ orcamento.id }}" aria-hidden="true">
+                                <div class="modal fade" id="infoEntModal" tabindex="-1" aria-labelledby="infoEntModalLabel" aria-hidden="true">
                                     <div class="modal-dialog modal-lg">
                                         <div class="modal-content">
-                                            <div class="modal-header titulo-modal"> <h1 class="modal-title fs-5" id="infoEntModalLabel{{ orcamento.id }}"><i class="fa-solid fa-circle-info text-white" style="float: none;"></i> Detalhes - Orçamento Nº {{ orcamento.num_orcamento }}</h1>
+                                            <div class="modal-header titulo-modal">
+                                                <h5 class="modal-title" id="infoEntModalLabel"></h5>
                                             </div>
-                                            <div class="modal-body">
-                                                <div class="row g-3">
-                                                    <div class="col-md-2">
-                                                        <label class="form-label">Nº Orçamento:</label>
-                                                        <input class="form-control form-control-sm fw-bold" type="text" value="{{ orcamento.num_orcamento }}" disabled readonly>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Cliente:</label>
-                                                        <input class="form-control form-control-sm fw-bold" type="text" value="{{ orcamento.nome_cli }}" disabled readonly>
-                                                    </div>
-                                                    <div class="col-md-2">
-                                                        <label class="form-label">Solicitante:</label>
-                                                        <input class="form-control form-control-sm fw-bold" type="text" value="{{ orcamento.nome_solicitante }}" disabled readonly>
-                                                    </div>
-                                                    <div class="col-md-2">
-                                                        <label class="form-label">Data Emissão:</label>
-                                                        <input class="form-control form-control-sm fw-bold" type="text" value="{{ orcamento.dt_emi|date:'d/m/Y' }}" disabled readonly>
-                                                    </div>
-                                                    <div class="col-md-2">
-                                                        <label class="form-label">Data Entrega:</label>
-                                                        <input class="form-control form-control-sm fw-bold" type="text" value="{{ orcamento.dt_ent|date:'d/m/Y' }}" disabled readonly>
-                                                    </div>
-                                                    <div class="col-md-2">
-                                                        <label class="form-label">Valor Total:</label>
-                                                        <input class="form-control form-control-sm fw-bold" type="text" style="color: #2E8B57;" value="{{ orcamento.total|moeda_br }}" disabled readonly>
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        {% if orcamento.situacao == "Faturado" %}
-                                                            <label class="form-label text-black" for="sel-status">
-                                                                Status:
-                                                                <i class="fa-solid fa-pen-to-square edit-status" id="edit-status-{{ orcamento.id }}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Alterar" data-id="{{ orcamento.id }}"></i>
-                                                                <i class="fa-regular fa-circle-xmark" id="cancel-status-{{ orcamento.id }}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Cancelar" data-id="{{ orcamento.id }}" style="display: none;"></i>
-                                                            </label>
-                                                            <select class="form-select form-select-sm" id="sel-status-{{ orcamento.id }}" name="sel-status-{{ orcamento.id }}" disabled>
-                                                                <option value="Em Produção" {% if orcamento.status == "Em Produção" %}selected{% endif %}>Em Produção</option>
-                                                                <option value="Embalada" {% if orcamento.status == "Embalada" %}selected{% endif %}>Embalada</option>
-                                                                <option value="Instalada" {% if orcamento.status == "Instalada" %}selected{% endif %}>Instalada</option>
-                                                                <option value="Entregue" {% if orcamento.status == "Entregue" %}selected{% endif %}>Entregue</option>
-                                                            </select>
-                                                        {% endif %}
-                                                    </div>
-                                                    <div class="col-12 mt-2">
-                                                        <div class="card" style="margin: 0;">
-                                                            <div class="card-header bg-secondary-subtle">
-                                                                <button type="button" class="btn btn-dark btn-sm" id="medidasBtn{{ orcamento.id }}">Produtos</button>
-                                                                <button type="button" class="btn btn-dark btn-sm" id="clienteBtn{{ orcamento.id }}">Adicionais</button>
-                                                            </div>
-                                                            <div class="card-body">
-                                                                <div class="form-section" id="medidas{{ orcamento.id }}">
-                                                                    <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
-                                                                        <table class="table table-bordered table-responsive-sm table-rounded table-striped w-100">
-                                                                            <thead class="table-dark">
-                                                                                <tr>
-                                                                                    <th style="width: 1%;">Itens</th> <th style="width: 1%;">Código</th> <th style="width: 30%;">Descrição</th>
-                                                                                    <th style="width: 4%;">Unidade</th> <th style="width: 14%;">Vl. Unit.</th> <th style="width: 6%;">Qtde</th> <th>Vl. Total</th>
-                                                                                </tr>
-                                                                            </thead>
-                                                                            <tbody>
-                                                                                {% for produto in orcamento.produtos.all %}
-                                                                                    <tr>
-                                                                                        <td>{{ forloop.counter|stringformat:"03d" }}</td>
-                                                                                        <td>{{ produto.produto.id }}</td>
-                                                                                        <td>{{ produto.produto.desc_prod }}</td>
-                                                                                        <td>{{ produto.produto.unidProd.nome_unidade }}</td>
-                                                                                        <td style="font-weight: bold; color: #2E8B57;">
-                                                                                            {{ produto.produto.produtotabela_set.first.vl_prod }}
-                                                                                        </td>
-                                                                                        <td>{{ produto.quantidade }}</td>
-                                                                                        <td style="font-weight: bold; color: #2E8B57;">{{ produto.subtotalVenda1|floatformat:2 }}</td>
-                                                                                    </tr>
-                                                                                {% endfor %}
-                                                                            </tbody>
-                                                                        </table>
-                                                                    </div>
-                                                                </div>
-                                                                <!--Medidas-->
-                                                                <div class="form-section" id="clientes{{ orcamento.id }}" style="display:none;">
-                                                                    <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
-                                                                        <table class="table table-bordered table-responsive-sm table-rounded table-striped w-100">
-                                                                            <thead class="table-dark">
-                                                                                <tr>
-                                                                                    <th style="width: 1%;">Itens</th>
-                                                                                    <th style="width: 1%;">Código</th>
-                                                                                    <th style="width: 30%;">Descrição</th>
-                                                                                    <th style="width: 4%;">Unidade</th>
-                                                                                    <th style="width: 14%;">Vl. Unit.</th>
-                                                                                    <th style="width: 6%;">Qtde</th>
-                                                                                    <th>Vl. Total</th>
-                                                                                </tr>
-                                                                            </thead>
-                                                                            <tbody>
-                                                                                {% for adicional in orcamento.adicionais.all %}
-                                                                                    <tr>
-                                                                                        <td>{{ forloop.counter|stringformat:"03d" }}</td>
-                                                                                        <td>{{ adicional.produto.id }}</td>
-                                                                                        <td>{{ adicional.produto.desc_prod }}</td>
-                                                                                        <td>{{ adicional.produto.unidProd.nome_unidade }}</td>
-                                                                                        <td style="font-weight: bold; color: #2E8B57;">
-                                                                                            {{ adicional.produto.produtotabela_set.first.vl_prod }}
-                                                                                        </td>
-                                                                                        <td>{{ adicional.quantidade }}</td>
-                                                                                        <td style="font-weight: bold; color: #2E8B57;">{{ adicional.subtotalVenda2|floatformat:2 }}</td>
-                                                                                    </tr>
-                                                                                {% endfor %}
-                                                                            </tbody>
-                                                                        </table>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <div class="modal-body" id="infoEntBody"></div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                                             </div>
@@ -445,13 +333,12 @@
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header titulo-modal">
-                                                <h1 class="modal-title fs-5" id="modalConfirmacaoStatusLabel{{ orcamento.id }}">
+                                                <h5 class="modal-title" id="modalConfirmacaoStatusLabel{{ orcamento.id }}">
                                                     <i class="fa-regular fa-circle-question"></i> Confirmação!
-                                                </h1>
+                                                </h5>
                                             </div>
                                             <div class="modal-body">
-                                                Tem certeza que deseja alterar o status para:
-                                                <strong id="novoStatusTexto{{ orcamento.id }}"></strong>?
+                                                Tem certeza que deseja alterar o status para: <strong id="novoStatusTexto{{ orcamento.id }}"></strong>?
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-primary confirm-status"> Sim </button>
@@ -462,12 +349,7 @@
                                 </div>
                             </td>
                             <td data-label="Nº Orçamento:" class="mobile-2col">{{ orcamento.num_orcamento }}</td>
-                            <td class="icon-cell mx-auto mobile-2col" data-label="">
-                                <i class="fa-solid fa-circle-info"
-                                   data-bs-toggle="modal"
-                                   data-bs-target="#infoEntModal{{ orcamento.id }}"
-                                   style="cursor: pointer;"></i>
-                            </td>
+                            <td class="icon-cell mx-auto mobile-2col" data-label=""><i class="fa-solid fa-circle-info" id="info-icon" data-id="{{ orcamento.id }}" style="cursor: pointer;" title="Detalhes do Orçamento"></i></td>
                             <td data-label="Situação:" class="mobile-2col" style="text-align: center;">
                                 {% if orcamento.situacao == 'Aberto' %}
                                     <div style="background-color: #005eff; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px; font-size: 12px;">
@@ -508,10 +390,7 @@
                                 {% endif %}
                             </td>
                             <td data-label="Dt. Emissão:" class="mobile-2col" style="text-align: center;">
-                                {% load tz %}
-                                {% timezone "UTC" %}
-                                    {{ orcamento.dt_emi|date:"d/m/Y H:i" }}
-                                {% endtimezone %}
+                                {{ orcamento.dt_emi|date:"d/m/Y H:i" }}
                             </td>
                             <td data-label="Dt. Fatura:" class="mobile-2col" style="align-items: center;">{{ orcamento.dt_fat|date:"d/m/Y" }}</td>
                             <td data-label="Dt. Entrega:" class="mobile-2col" style="align-items: center;">{{ orcamento.dt_ent|date:"d/m/Y" }}</td>
@@ -549,7 +428,7 @@
                     <ul class="pagination justify-content-center">
                         {% if orcamentos.number > 1 and orcamentos.number > 3 %}
                             <li class="page-item">
-                                <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="First">
+                                <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value|urlencode }}{% endif %}{% endfor %}" aria-label="First">
                                     <span aria-hidden="true" style="color: #0f1d2b;">1</span>
                                 </a>
                             </li>
@@ -567,19 +446,19 @@
                                     </li>
                                 {% else %}
                                     <li class="page-item">
-                                        <a class="page-link" style="color: #0f1d2b;" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                                        <a class="page-link" style="color: #0f1d2b;" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value|urlencode }}{% endif %}{% endfor %}">{{ num }}</a>
                                     </li>
                                 {% endif %}
                             {% endif %}
                         {% endfor %}
                         {% if orcamentos.number < orcamentos.paginator.num_pages|add:'-3' %}
                             <li class="page-item disabled">
-                                <a class="page-link">...</a>
+                                <span class="page-link">...</span>
                             </li>
                         {% endif %}
                         {% if orcamentos.number < orcamentos.paginator.num_pages and orcamentos.number < orcamentos.paginator.num_pages|add:'-2' %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ orcamentos.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                <a class="page-link" href="?page={{ orcamentos.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value|urlencode }}{% endif %}{% endfor %}">
                                     <span aria-hidden="true" style="color: #0f1d2b;">{{ orcamentos.paginator.num_pages }}</span>
                                 </a>
                             </li>

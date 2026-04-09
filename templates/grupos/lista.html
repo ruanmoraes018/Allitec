@@ -98,7 +98,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-grupo' grupo.id %}" class="btn-permissao"
+                                <a href="{% url 'att-grupo' grupo.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
                                   data-permissao="grupos.change_grupo"
                                   data-msg-negado="Seu usuário não pode editar grupos!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                             </td>

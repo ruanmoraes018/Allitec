@@ -29,6 +29,7 @@
                     </div>
                     <div class="card-body">
                         <div class="row g-3" style="margin-left: -8px;">
+                            <input type="hidden" name="next" value="{{ request.GET.next }}">
                             <div class="col-md-1">
                                 {{ form.is_active|as_crispy_field }}
                             </div>
@@ -124,6 +125,10 @@
                                                                                             <span class="badge bg-danger-subtle text-dark fs-6">Atribuir Acréscimo</span>
                                                                                         {% elif 'estornar_' in code %}
                                                                                             <span class="badge text-white fs-6" style="background-color: #4682B4;">Estornar</span>
+                                                                                        {% elif 'alterar_dt_venc_orc' in code %}
+                                                                                            <span class="badge text-white fs-6" style="background-color: #808000;">Alterar data de Vencimento das Parcelas</span>
+                                                                                        {% elif 'alterar_dt_fat_orc' in code %}
+                                                                                            <span class="badge text-dark fs-6" style="background-color: #D8BFD8;">Alterar data de Faturamento</span>
                                                                                         {% else %}
                                                                                             {{ perm.name }}
                                                                                         {% endif %}

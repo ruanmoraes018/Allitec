@@ -31,19 +31,22 @@
                             <div class="col-md-1">
                                 {{ form.situacao|as_crispy_field }}
                             </div>
+                            <div class="col-md-2">
+                                {{ form.vinc_fil|as_crispy_field }}
+                            </div>
                             <div class="col-md-1">
                                 {{ form.pessoa|as_crispy_field }}
                             </div>
                             <div class="col-md-2">
                                 {{ form.cpf_cnpj|as_crispy_field }}
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 {{ form.ie|as_crispy_field }}
                             </div>
                             <div class="col-md-3">
                                 {{ form.razao_social|as_crispy_field }}
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 {{ form.fantasia|as_crispy_field }}
                             </div>
                             <div class="col-md-2">
@@ -77,7 +80,7 @@
                     </div>
                     <div class="card-footer">
                         <div class="base_botao">
-                            <button type="button" class="btn btn-success botoes" data-bs-toggle="modal" data-bs-target="#staticBackdrop" id="openModalBtn">Criar</button>
+                            <button type="button" class="btn btn-success botoes" data-bs-target="#staticBackdrop" id="openModalBtn">Criar</button>
                             <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#loadingModal">Voltar</a>
                         </div>
                     </div>

@@ -98,7 +98,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-formas_pgto' f_p.id %}" class="btn-permissao"
+                                <a href="{% url 'att-formas_pgto' f_p.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
                                   data-permissao="formas_pgto.change_formapgto"
                                   data-msg-negado="Seu usuário não pode editar formas de pagamento!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                             </td>

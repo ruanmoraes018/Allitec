@@ -40,7 +40,7 @@ class Fornecedor(models.Model):
     complem = models.CharField(max_length=30, blank=True, default="")
     tel = models.CharField(max_length=30)
     email = models.EmailField(max_length=40)
-    dt_reg = models.DateField(verbose_name="Data de Registro", null=True, blank=True)
+    dt_reg = models.DateField(verbose_name="Data de Registro", null=True, blank=True, db_index=True)
     def save(self, *args, **kwargs):
         self.razao_social = self.razao_social.upper()
         self.fantasia = self.fantasia.upper()

@@ -3,42 +3,174 @@
 {% load crispy_forms_tags %}
 {% block title %}Login{% endblock %}
 {% block content %}
+<style>
+    .login-card {
+        width: 100%;
+        max-width: 460px;
+        background: rgba(255, 255, 255, 0.97);
+        border-radius: 18px;
+        padding: 34px 30px;
+        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        animation: fadeUp .4s ease;
+    }
+    .login-logo {
+        text-align: center;
+        margin-bottom: 14px;
+    }
+    .login-logo img {
+        max-width: 180px;
+        height: auto;
+    }
+    .login-title {
+        text-align: center;
+        font-size: 1.9rem;
+        color: #1f2430;
+        margin-bottom: 18px;
+        font-weight: 600;
+    }
+    .demo-badge {
+        width: fit-content;
+        margin: 0 auto 24px auto;
+        background: linear-gradient(135deg, #138a5d, #1eaa74);
+        color: #fff;
+        font-weight: 700;
+        font-size: 1rem;
+        padding: 10px 22px;
+        border-radius: 10px;
+        box-shadow: 0 8px 18px rgba(19, 138, 93, 0.25);
+        letter-spacing: 0.4px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 7px;
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.97rem;
+    }
+    .input-icon {
+        display: flex;
+        align-items: center;
+        border: 1px solid #d5dbe5;
+        border-radius: 10px;
+        background: #f8fafc;
+        overflow: hidden;
+        transition: all .2s ease;
+    }
+    .input-icon:focus-within {
+        border-color: #2d6cdf;
+        box-shadow: 0 0 0 4px rgba(45, 108, 223, 0.12);
+        background: #fff;
+    }
+    .input-icon span {
+        width: 48px;
+        min-width: 48px;
+        text-align: center;
+        color: #334155;
+        font-size: 1rem;
+        border-right: 1px solid #dbe2ea;
+    }
+    .input-icon .form-control {
+        border: none;
+        box-shadow: none !important;
+        background: transparent;
+        height: 26px;
+        font-size: 1rem;
+        padding: 5px 7px;
+    }
+    .input-icon .form-control:focus {
+        outline: none;
+    }
+    .password-wrapper .form-control {
+        padding-right: 10px;
+    }
+    .toggle-password {
+        border: none;
+        background: transparent;
+        width: 48px;
+        min-width: 48px;
+        color: #334155;
+        cursor: pointer;
+        transition: .2s;
+    }
+    .toggle-password:hover {
+        color: #0d6efd;
+    }
+    .btn-login {
+        width: 100%;
+        height: 50px;
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #0d6efd, #2f7df6);
+        color: #fff;
+        font-size: 1.15rem;
+        font-weight: 700;
+        letter-spacing: .3px;
+        transition: all .2s ease;
+        box-shadow: 0 10px 20px rgba(13, 110, 253, 0.22);
+    }
+    .btn-login:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 14px 28px rgba(13, 110, 253, 0.28);
+    }
+    .btn-login:active {
+        transform: translateY(0);
+    }
+    @keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(18px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
 <div class="row">
     <div class="col-md-4 offset-md-4" style="margin-top: 5%;">
-        <div class="card auth-card">
-            <div class="card-body">
-                <div class="mx-auto text-center">
-                    <img src="{% static 'img/Allitec logo.png' %}" style="width: 12rem; text-align: center;">
-                </div>
-                <h4 class="card-title text-center">Realize seu login no Sistema</h4>
-                {% if messages %}
-                    <div id="django-messages" data-messages='[
-                        {% for message in messages %}
-                            {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
-                            {% if not forloop.last %},{% endif %}
-                        {% endfor %}
-                    ]'></div>
-                {% endif %}
-                <form method="post">
-                    {% csrf_token %}
-                    <!-- Campo escondido inicialmente -->
-                    <div id="container_fantasia" class="container-fluid" hidden>
-                        <div class="row">
-                            <div class="col-12">
-                                <input class="form-control cont_fant" id="fantasia_fantasia" readonly>
-                            </div>
-                        </div>
-                    </div>
-                    {{ form|crispy }}
-                    <div class="d-grid gap-2">
-                        <div style="text-align: center;">
-                            <button type="submit" id="btn-login" data-bs-toggle="modal" data-bs-target="#loadingModal" class="btn btn-primary btn-login">
-                                Entrar
-                            </button>
-                        </div>
-                    </div>
-                </form>
+        <div class="login-card">
+            <div class="login-logo">
+                <img src="{% static 'img/Allitec logo.png' %}" style="width: 12rem; text-align: center;">
             </div>
+            <h3 class="login-title">Realize seu login no Sistema</h3>
+            {% if messages %}
+                <div id="django-messages" data-messages='[
+                    {% for message in messages %}
+                        {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
+                        {% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ]'></div>
+            {% endif %}
+            <div class="demo-badge" id="fantasia_fantasia" hidden></div>
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-group mb-3">
+                    <label for="id_empresa">ID da Empresa*</label>
+                    <div class="input-icon">
+                        <span><i class="fa-solid fa-building"></i></span>
+                        <input type="text" name="empresa_login" id="id_empresa_login" class="form-control form-control-sm" placeholder="Digite o ID da empresa">
+                    </div>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="id_username">Usuário*</label>
+                    <div class="input-icon">
+                        <span><i class="fa-solid fa-user"></i></span>
+                        <input type="text" name="username" id="id_username" class="form-control form-control-sm" placeholder="Digite seu usuário">
+                    </div>
+                </div>
+                <div class="form-group mb-4">
+                    <label for="id_password">Senha*</label>
+                    <div class="input-icon password-wrapper">
+                        <span><i class="fa-solid fa-lock"></i></span>
+                        <input type="password" name="password" id="id_password" class="form-control form-control-sm" placeholder="Digite sua senha">
+                        <button type="button" class="toggle-password" id="togglePassword">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn-login">Entrar</button>
+            </form>
         </div>
     </div>
 </div>
@@ -54,35 +186,21 @@
     </div>
 </div>
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    // Função para adicionar input-group com ícone
-    function adicionarInputGroup(campoId, icone) {
-        const input = document.getElementById(campoId);
-        if (input) {
-            const wrapper = document.createElement('div');
-            wrapper.classList.add('input-group');
-
-            const span = document.createElement('span');
-            span.classList.add('input-group-text');
-
-            const icon = document.createElement('i');
-            icon.className = icone;  // Ex: "fa-solid fa-user" ou "fa-solid fa-lock"
-
-            span.appendChild(icon);
-
-            // Insere o input e o span no wrapper
-            input.parentNode.insertBefore(wrapper, input);
-            wrapper.appendChild(span);
-            wrapper.appendChild(input);
-        }
-    }
-
-    // Adiciona ícones aos campos
-    adicionarInputGroup('id_empresa_login', 'fa-solid fa-list-ol');
-    adicionarInputGroup('id_username', 'fa-solid fa-user');
-    adicionarInputGroup('id_password', 'fa-solid fa-lock');
     document.getElementById("id_username").removeAttribute("autofocus");
     document.getElementById("id_empresa_login").focus();
-});
+    document.getElementById('togglePassword').addEventListener('click', function () {
+        const input = document.getElementById('id_password');
+        const icon = this.querySelector('i');
+
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    });
 </script>
 {% endblock %}

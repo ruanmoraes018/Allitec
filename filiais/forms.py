@@ -7,7 +7,9 @@ from cidades.models import Cidade
 from estados.models import Estado
 from django.contrib.auth import get_user_model
 from empresas.models import Empresa
-from django.db.models import Q
+from clientes.models import Cliente
+from tecnicos.models import Tecnico
+from tabelas_preco.models import TabelaPreco
 
 Usuario = get_user_model()
 
@@ -44,10 +46,10 @@ class FilialForm(forms.ModelForm):
     fantasia = forms.CharField(label='Fantasia', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
     endereco = forms.CharField(label='Endereço', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
     cep = forms.CharField(label='CEP', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
-    bairro_fil = forms.ModelChoiceField(queryset=Bairro.objects.none(), required=False, widget=forms.Select(attrs={ 'class': 'form-control form-control-sm border-dark-subtle text-uppercase', 'id': 'id_bairro_fil'}), label='Bairro')
+    bairro_fil = forms.ModelChoiceField(queryset=Bairro.objects.none(), required=False, widget=forms.Select(attrs={ 'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Bairro')
     complem = forms.CharField(label='Complemento', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
-    cidade_fil = forms.ModelChoiceField(queryset=Cidade.objects.none(), required=False, widget=forms.Select(attrs={ 'class': 'form-control form-control-sm border-dark-subtle text-uppercase', 'id': 'id_cidade_fil'}), label='Cidade')
-    uf = forms.ModelChoiceField(queryset=Estado.objects.none(), required=False, widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase', 'id': 'id_uf'}), label='Estado')
+    cidade_fil = forms.ModelChoiceField(queryset=Cidade.objects.none(), required=False, widget=forms.Select(attrs={ 'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Cidade')
+    uf = forms.ModelChoiceField(queryset=Estado.objects.none(), required=False, widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Estado')
     numero = forms.CharField(label='Nº', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
     tel = forms.CharField(label="Fone", max_length=20, widget=forms.TextInput(attrs={'maxlength': '20', 'class': 'form-control form-control-sm border-dark-subtle'}))
     email = forms.CharField(label='E-mail', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-lowercase'}))
@@ -55,7 +57,7 @@ class FilialForm(forms.ModelForm):
     banco_fil = forms.ModelChoiceField(queryset=Banco.objects.none(), required=False, widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Banco')
     beneficiario = forms.CharField(label='Beneficiário', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
     chave_pix = forms.CharField(label='Chave Pix', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-lowercase'}))
-    dt_criacao = forms.CharField(label='DT. Criação', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-lowercase', 'disabled': 'disabled'}))
+    dt_criacao = forms.CharField(label='Dt. Criação', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-lowercase bg-secondary', 'readonly': 'readonly'}))
     info_comp = forms.CharField(label='Informações Rodapé - Comprovantes', required=False, widget=forms.Textarea(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'rows': 2}))
     info_local = forms.CharField(label='Info. Local Atendimento - Propostas', required=False, widget=forms.Textarea(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'rows': 2}))
     info_orcamento = forms.CharField(label='Informações Rodapé - Orçamento', required=False, widget=forms.Textarea(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'rows': 2}))
@@ -64,42 +66,32 @@ class FilialForm(forms.ModelForm):
     tp_calc_multa = forms.ChoiceField(label="Tp. Cálculo Multa", choices=[('Percentual', 'Percentual'), ('Valor', 'Valor')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
     ft_juros = forms.DecimalField(label='Fator Juros', max_digits=10, decimal_places=2, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase text-end fw-bold'}))
     ft_multa = forms.DecimalField(label='Fator Multa', max_digits=10, decimal_places=2, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase text-end fw-bold'}))
-    max_parcelas = forms.DecimalField(label='Máx. Parc. (Contas R.)', max_digits=10, decimal_places=2, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase text-end fw-bold'}))
-
+    max_parcelas = forms.DecimalField(label='Máx. Parc. (Contas à Receber)', max_digits=10, decimal_places=2, widget=forms.TextInput(attrs={'type': 'number', 'class': 'form-control form-control-sm border-dark-subtle text-uppercase text-end fw-bold'}))
+    cli = forms.ModelChoiceField(queryset=Cliente.objects.none(), widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Cliente Padrão')
+    tec = forms.ModelChoiceField(queryset=Tecnico.objects.none(), widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Técnico Padrão')
+    tb_preco = forms.ModelChoiceField(queryset=TabelaPreco.objects.none(), widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Tabela de Preço Padrão')
+    vendedor = forms.CharField(label='Vendedor Padrão', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
     class Meta:
         model = Filial
         fields = (
-            'situacao', 'cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro_fil', 'cidade_fil', 'uf', 'tel', 'email', 'dt_criacao', 'logo', 'tp_chave', 'chave_pix', 'banco_fil', 'info_comp', 'complem',
-            'beneficiario', 'info_orcamento', 'layout_contrato', 'info_local', 'tp_calc_juros', 'tp_calc_multa', 'ft_juros', 'ft_multa', 'max_parcelas'
+            'situacao', 'cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro_fil', 'cidade_fil', 'uf', 'tel', 'email', 'logo', 'tp_chave', 'chave_pix', 'banco_fil', 'info_comp', 'complem',
+            'beneficiario', 'info_orcamento', 'layout_contrato', 'info_local', 'tp_calc_juros', 'tp_calc_multa', 'ft_juros', 'ft_multa', 'max_parcelas', 'cli', 'tec', 'vendedor', 'tb_preco'
         )
 
     def __init__(self, *args, empresa=None, **kwargs):
         super().__init__(*args, **kwargs)
         if empresa:
-            # --- BAIRRO ---
-            qs_bairro_fil = Bairro.objects.filter(vinc_emp=empresa)
-            if getattr(self.instance, 'bairro_fil', None):
-                qs_bairro_fil = qs_bairro_fil | Bairro.objects.filter(pk=self.instance.bairro_fil.pk)
-            self.fields['bairro_fil'].queryset = qs_bairro_fil.distinct()
+            self.fields['bairro_fil'].queryset = Bairro.objects.filter(vinc_emp=empresa)
+            self.fields['cidade_fil'].queryset = Cidade.objects.filter(vinc_emp=empresa)
+            self.fields['uf'].queryset = Estado.objects.filter(vinc_emp=empresa)
+            self.fields['banco_fil'].queryset = Banco.objects.filter(vinc_emp=empresa)
+            self.fields['cli'].queryset = Cliente.objects.filter(vinc_emp=empresa)
+            self.fields['tec'].queryset = Tecnico.objects.filter(vinc_emp=empresa)
+            self.fields['tb_preco'].queryset = TabelaPreco.objects.filter(vinc_emp=empresa)
 
-            # --- CIDADE ---
-            qs_cidade_fil = Cidade.objects.filter(vinc_emp=empresa)
-            if getattr(self.instance, 'cidade_fil', None):
-                qs_cidade_fil = qs_cidade_fil | Cidade.objects.filter(pk=self.instance.cidade_fil.pk)
-            self.fields['cidade_fil'].queryset = qs_cidade_fil.distinct()
-
-            # --- UF ---
-            qs_uf = Estado.objects.filter(vinc_emp=empresa)
-            if getattr(self.instance, 'uf', None):
-                qs_uf = qs_uf | Estado.objects.filter(pk=self.instance.uf.pk)
-            self.fields['uf'].queryset = qs_uf.distinct()
-
-            # --- BAIRRO ---
-            qs_banco = Banco.objects.filter(vinc_emp=empresa)
-            if getattr(self.instance, 'banco_fil', None):
-                qs_banco = qs_banco | Banco.objects.filter(pk=self.instance.banco_fil.pk)
-            self.fields['banco_fil'].queryset = qs_banco.distinct()
-
+        if getattr(self.instance, 'pk', None):
+            if getattr(self.instance, 'dt_criacao', None):
+                self.initial['dt_criacao'] = self.instance.dt_criacao.strftime('%d/%m/%Y')
 
 class FilialReadOnlyForm(forms.ModelForm):
     class Meta:

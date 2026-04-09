@@ -19,9 +19,8 @@ def lista_formas_pgto(request):
     s = request.GET.get('s')
     tp = request.GET.get('tp')
     reg = request.GET.get('reg', '10')
-
-    formas_pgto = FormaPgto.objects.filter(vinc_emp=request.user.empresa)
-
+    empresa = request.user.empresa
+    formas_pgto = FormaPgto.objects.filter(vinc_emp=empresa)
     if tp == 'desc' and s:
         norm_s = remove_accents(s).lower()
         formas_pgto = formas_pgto.filter(descricao__icontains=norm_s).order_by('descricao')
@@ -30,7 +29,6 @@ def lista_formas_pgto(request):
             formas_pgto = formas_pgto.filter(id__iexact=s).order_by('descricao')
         except ValueError:
             formas_pgto = FormaPgto.objects.none()
-
     if reg == 'todos':
         num_pagina = formas_pgto.count() or 1
     else:
@@ -38,11 +36,9 @@ def lista_formas_pgto(request):
             num_pagina = int(reg) if int(reg) > 0 else 1
         except ValueError:
             num_pagina = 10  # Valor padrão
-
     paginator = Paginator(formas_pgto, num_pagina)
     page = request.GET.get('page')
     formas_pgto = paginator.get_page(page)
-
     return render(request, 'formas_pgto/lista.html', {
         'formas_pgto': formas_pgto,
         's': s,
@@ -53,21 +49,22 @@ def lista_formas_pgto(request):
 @login_required
 def lista_formas_pgto_ajax(request):
     term = request.GET.get('term', '')
-    formas_pgto = FormaPgto.objects.filter(descricao__icontains=term)[:10]
-    data = {'formas_pgto': [{'id': forma_pgto.id, 'descricao': forma_pgto.descricao} for forma_pgto in formas_pgto]}
+    formas_pgto = FormaPgto.objects.filter(descricao__icontains=term, vinc_emp=request.user.empresa)[:10]
+    data = {'formas_pgto': [{'id': forma_pgto.id, 'text': forma_pgto.descricao} for forma_pgto in formas_pgto]}
     return JsonResponse(data)
 
 @login_required
 def forma_pgto_info(request, id):
-    fp = FormaPgto.objects.get(pk=id)
+    fp = get_object_or_404(FormaPgto, pk=id, vinc_emp=request.user.empresa)
     return JsonResponse({
         "gera_parcelas": fp.gera_parcelas
     })
 
+@login_required
 def get_forma_pgto(request):
     forma_id = request.GET.get("id")
     try:
-        forma = FormaPgto.objects.get(pk=forma_id)
+        forma = FormaPgto.objects.get(pk=forma_id, vinc_emp=request.user.empresa)
         return JsonResponse({"id": forma.id, "descricao": forma.descricao})
     except FormaPgto.DoesNotExist:
         return JsonResponse({"error": "Forma não encontrada"}, status=404)
@@ -81,11 +78,7 @@ def add_formas_pgto(request):
         form = FormaPgtoForm(request.POST)
         if form.is_valid():
             c = form.save(commit=False)
-            if request.user.is_authenticated:
-                try:
-                    c.vinc_emp = request.user.empresa  # Busca a filial do usuário logado
-                except Usuario.DoesNotExist:
-                    return JsonResponse({'error': 'Usuário não possui filial vinculada'}, status=400)
+            c.vinc_emp = request.user.empresa  # Busca a filial do usuário logado
             c.save()
             messages.success(request, 'Forma de Pagamento adicionada com sucesso!')
             cid = str(c.id)
@@ -102,7 +95,7 @@ def add_formas_pgto(request):
 
 @login_required
 def att_formas_pgto(request, id):
-    c = get_object_or_404(FormaPgto, pk=id)
+    c = get_object_or_404(FormaPgto, pk=id, vinc_emp=request.user.empresa)
     form = FormaPgtoForm(instance=c)
     if not request.user.has_perm('formas_pgto.change_formapgto'):
         messages.info(request, 'Você não tem permissão para editar formas de pagamento.')
@@ -111,9 +104,13 @@ def att_formas_pgto(request, id):
         form = FormaPgtoForm(request.POST, instance=c)
         if form.is_valid():
             c.save()
+            next_url = request.POST.get('next') or request.GET.get('next')
             cid = str(c.id)
             messages.success(request, 'Forma de Pagamento atualizada com sucesso!')
-            return redirect('/formas_pgto/lista/?tp=cod&s=' + cid)
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect('/formas_pgto/lista/?tp=cod&s=' + cid)
         else:
             error_messages = []
             for field in form:
@@ -129,7 +126,7 @@ def del_formas_pgto(request, id):
     if not request.user.has_perm('formas_pgto.delete_formapgto'):
         messages.info(request, 'Você não tem permissão para deletar formas de pagamento.')
         return redirect('/formas_pgto/lista/')
-    c = get_object_or_404(FormaPgto, pk=id)
+    c = get_object_or_404(FormaPgto, pk=id, vinc_emp=request.user.empresa)
     c.delete()
     messages.success(request, 'Forma de Pagamento deletada com sucesso!')
     return redirect('/formas_pgto/lista/')

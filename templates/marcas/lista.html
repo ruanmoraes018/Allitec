@@ -98,7 +98,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-marca' marca.id %}" class="btn-permissao"
+                                <a href="{% url 'att-marca' marca.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
                                   data-permissao="marcas.change_marca"
                                   data-msg-negado="Seu usuário não pode editar marcas!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                             </td>

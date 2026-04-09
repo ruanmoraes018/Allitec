@@ -98,7 +98,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-unidade' unidade.id %}" class="btn-permissao"
+                                <a href="{% url 'att-unidade' unidade.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
                                   data-permissao="unidades.change_unidade"
                                   data-msg-negado="Seu usuário não pode editar unidades!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                             </td>

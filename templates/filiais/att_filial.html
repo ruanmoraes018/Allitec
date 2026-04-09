@@ -22,131 +22,79 @@
                 {% endif %}
                 <div class="card">
                     <div class="card-header">
-                        <span>
-                            ALTERAÇÃO DE FILIAIS
-                        </span>
+                        <span>ALTERAÇÃO DE FILIAIS</span>
                     </div>
                     <div class="card-body">
-                        <div class="row g-3" style="margin-left: -8px;">
-                            <div class="col-md-1">
-                                {{ form.situacao|as_crispy_field }}
-                            </div>
-                            <div class="col-md-2">
-                                {{ form.cnpj|as_crispy_field }}
-                            </div>
-                            <div class="col-md-2">
-                                {{ form.ie|as_crispy_field }}
-                            </div>
-                            <div class="col-md-3">
-                                {{ form.razao_social|as_crispy_field }}
-                            </div>
-                            <div class="col-md-2">
-                                {{ form.fantasia|as_crispy_field }}
-                            </div>
-                            <div class="col-md-1">
-                                {{ form.dt_criacao|as_crispy_field }}
-                            </div>
+                        <div class="row">
+                            <input type="hidden" name="next" value="{{ request.GET.next }}">
+                            <div class="col-md-1">{{ form.situacao|as_crispy_field }}</div>
+                            <div class="col-md-2">{{ form.cnpj|as_crispy_field }}</div>
+                            <div class="col-md-2">{{ form.ie|as_crispy_field }}</div>
+                            <div class="col-md-3">{{ form.razao_social|as_crispy_field }}</div>
+                            <div class="col-md-2">{{ form.fantasia|as_crispy_field }}</div>
+                            <div class="col-md-1">{{ form.dt_criacao|as_crispy_field }}</div>
                             <div class="col-md-1">
                                 <input type="file" id="id_logo" name="logo" style="display: none;" onchange="previewImage(event)">
-                                <img id="logo-preview"
-                                    class="form-control form-control-sm border-dark-subtle"
-                                    src="{% if filial.logo %}{{ filial.logo.url }}{% else %}https://www.freeiconspng.com/thumbs/camera-icon/camera-icon-21.png{% endif %}"
-                                    alt="Logo da filial"
-                                    title="Clique para alterar a imagem"
-                                    style="cursor: pointer; width: 90px; height: 90px; border: 1px solid #ddd; border-radius: 5px;">
+                                <img id="logo-preview" class="form-control form-control-sm border-dark-subtle" src="{% if filial.logo %}{{ filial.logo.url }}{% else %}https://www.freeiconspng.com/thumbs/camera-icon/camera-icon-21.png{% endif %}"
+                                    alt="Logo da filial" title="Clique para alterar a imagem" style="cursor: pointer; width: 90px; height: 90px; border: 1px solid #ddd; border-radius: 5px;">
                             </div>
-                            <div class="card" style="margin: 0; margin-top: 5px;">
-                                <div class="form-buttons" style="margin-left: 10px; margin-top: 10px;">
-                                    <div class="card-header bg-white">
-                                        <button type="button" class="btn btn-dark" id="endBtn">Endereço</button>
-                                        <button type="button" class="btn btn-dark" id="complBtn">Complementos</button>
-                                        <button type="button" class="btn btn-dark" id="financBtn">Financeiro</button>
-                                    </div>
+                            <div class="col-md-2">{{ form.tel|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.email|as_crispy_field }}</div>
+                        </div>
+                        <div class="card" style="margin: 0; margin-top: 5px;">
+                            <div class="form-buttons" style="margin-left: 10px; margin-top: 10px;">
+                                <div class="card-header bg-white">
+                                    <button type="button" class="btn btn-dark" id="endBtn">Endereço</button>
+                                    <button type="button" class="btn btn-dark" id="faturBtn">Faturamento</button>
+                                    <button type="button" class="btn btn-dark" id="complBtn">Complementos</button>
+                                    <button type="button" class="btn btn-dark" id="financBtn">Financeiro</button>
                                 </div>
-                                <div class="form-section" id="enderecos">
-                                    <div class="row g-3" style="margin-left: -8px; margin-bottom: 10px;">
-                                        <div class="col-md-2">
-                                            {{ form.cep|as_crispy_field }}
-                                        </div>
-                                        <div class="col-md-4">
-                                            {{ form.endereco|as_crispy_field }}
-                                        </div>
-                                        <div class="col-md-1">
-                                            {{ form.numero|as_crispy_field }}
-                                        </div>
-                                        <div class="col-md-3">
-                                            {{ form.bairro_fil|as_crispy_field }}
-                                        </div>
-                                        <div class="col-md-2">
-                                            {{ form.cidade_fil|as_crispy_field }}
-                                        </div>
-                                        <div class="col-md-3">
-                                            {{ form.complem|as_crispy_field }}
-                                        </div>
-                                        <div class="col-md-1">
-                                            {{ form.uf|as_crispy_field }}
-                                        </div>
-                                    </div>
+                            </div>
+                            <div class="form-section" id="enderecos">
+                                <div class="row" style="margin-left: -8px; margin-bottom: 10px;">
+                                    <div class="col-md-2">{{ form.cep|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ form.endereco|as_crispy_field }}</div>
+                                    <div class="col-md-1">{{ form.numero|as_crispy_field }}</div>
+                                    <div class="col-md-3">{{ form.bairro_fil|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.cidade_fil|as_crispy_field }}</div>
+                                    <div class="col-md-3">{{ form.complem|as_crispy_field }}</div>
+                                    <div class="col-md-1">{{ form.uf|as_crispy_field }}</div>
                                 </div>
-                                <div class="form-section" id="complementos">
-                                    <div class="row g-3" style="margin-left: -8px; margin-bottom: 10px;">
-                                        <div class="col-md-2">
-                                            {{ form.tel|as_crispy_field }}
-                                        </div>
-                                        <div class="col-md-4">
-                                            {{ form.email|as_crispy_field }}
-                                        </div>
-                                        <div class="col-md-2">
-                                            {{ form.tp_chave|as_crispy_field }}
-                                        </div>
-                                        <div class="col-md-2">
-                                            {{ form.chave_pix|as_crispy_field }}
-                                        </div>
-                                        <div class="col-md-2">
-                                            {{ form.banco_fil|as_crispy_field }}
-                                        </div>
-                                        <div class="col-md-2">
-                                            {{ form.layout_contrato|as_crispy_field }}
-                                        </div>
-                                        <div class="col-md-4">
-                                            {{ form.beneficiario|as_crispy_field }}
-                                        </div>
-                                        <div class="col-md-6">
-                                            {{ form.info_comp|as_crispy_field }}
-                                        </div>
-                                        <div class="col-md-6">
-                                            {{ form.info_orcamento|as_crispy_field }}
-                                        </div>
-                                        <div class="col-md-6">
-                                            {{ form.info_local|as_crispy_field }}
-                                        </div>
-                                    </div>
+                            </div>
+                            <div class="form-section" id="faturamentos">
+                                <div class="row" style="margin-left: -8px; margin-bottom: 10px;">
+                                    <div class="col-md-3">{{ form.tb_preco|as_crispy_field }}</div>
+                                    <div class="col-md-3">{{ form.vendedor|as_crispy_field }}</div>
+                                    <div class="col-md-3">{{ form.cli|as_crispy_field }}</div>
+                                    <div class="col-md-3">{{ form.tec|as_crispy_field }}</div>
                                 </div>
-                                <div class="form-section" id="financeiros">
-                                    <div class="row g-3" style="margin-left: -8px; margin-bottom: 10px;">
-                                        <div class="col-md-3">
-                                            {{ form.tp_calc_juros|as_crispy_field }}
-                                        </div>
-                                        <div class="col-md-2">
-                                            {{ form.ft_juros|as_crispy_field }}
-                                        </div>
-                                        <div class="col-md-3">
-                                            {{ form.tp_calc_multa|as_crispy_field }}
-                                        </div>
-                                        <div class="col-md-2">
-                                            {{ form.ft_multa|as_crispy_field }}
-                                        </div>
-                                        <div class="col-md-2">
-                                            {{ form.max_parcelas|as_crispy_field }}
-                                        </div>
-                                    </div>
+                            </div>
+                            <div class="form-section" id="complementos">
+                                <div class="row" style="margin-left: -8px; margin-bottom: 10px;">
+                                    <div class="col-md-2">{{ form.tp_chave|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.chave_pix|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.banco_fil|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.layout_contrato|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ form.beneficiario|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ form.info_comp|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ form.info_orcamento|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ form.info_local|as_crispy_field }}</div>
+                                </div>
+                            </div>
+                            <div class="form-section" id="financeiros">
+                                <div class="row" style="margin-left: -8px; margin-bottom: 10px;">
+                                    <div class="col-md-3">{{ form.tp_calc_juros|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.ft_juros|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.tp_calc_multa|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.ft_multa|as_crispy_field }}</div>
+                                    <div class="col-md-3">{{ form.max_parcelas|as_crispy_field }}</div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="card-footer">
                         <div class="base_botao">
-                            <button type="button" class="btn btn-success botoes" data-bs-toggle="modal" data-bs-target="#staticBackdrop" id="openModalBtn">Alterar</button>
+                            <button type="button" class="btn btn-success botoes" data-bs-target="#staticBackdrop" id="openModalBtn">Alterar</button>
                             <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#loadingModal">Voltar</a>
                         </div>
                     </div>
