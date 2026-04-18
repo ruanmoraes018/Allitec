@@ -57,7 +57,24 @@
                                 {{ form.numero|as_crispy_field }}
                             </div>
                             <div class="col-md-3">
-                                {{ form.bairro|as_crispy_field }}
+                                <label class="form-label mb-2">Bairro*</label>
+                                <div class="input-group input-group-sm" id="bairro-wrapper">
+                                    <div id="bairro-select-area" class="flex-grow-1">
+                                        {{ form.bairro }}
+                                    </div>
+                                    <div id="bairro-input-area" style="flex:1; display:none;">
+                                        <input type="text" id="novo-bairro" class="form-control form-control-sm border-dark-subtle " placeholder="Digite o novo bairro">
+                                    </div>
+                                    <button type="button" class="btn btn-dark rounded-end" id="btn-novo-bairro">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-success btn-sm" id="btn-confirmar-bairro" style="display:none;">
+                                        <i class="fa-solid fa-check"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-sm" id="btn-cancelar-bairro" style="display:none;">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="col-md-2">
                                 {{ form.cidade|as_crispy_field }}

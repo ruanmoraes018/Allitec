@@ -1,12 +1,10 @@
 from django.db import models
-from filiais.models import Filial
 from unidecode import unidecode
 from grupos.models import Grupo
 from marcas.models import Marca
 from unidades.models import Unidade
 from tabelas_preco.models import TabelaPreco
 from django.core.exceptions import ValidationError
-from regras_produto.models import RegraProduto
 
 class Produto(models.Model):
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
@@ -36,13 +34,6 @@ class Produto(models.Model):
 
     vl_compra = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     estoque_prod = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-
-    regra = models.ForeignKey(
-        RegraProduto,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL
-    )
     especifico = models.CharField(verbose_name='Produto Específico', null=True, blank=True, max_length=50, choices=[('', ''), ('Portinhola', 'Portinhola'), ('Alçapão', 'Alçapão'), ('Coluna Removível', 'Coluna Removível'), ('Serviço/Transporte', 'Serviço/Transporte'),], default='')
 
     def save(self, *args, **kwargs):
@@ -76,6 +67,9 @@ class ProdutoTabela(models.Model):
         if self.produto and self.tabela:
             if self.produto.vinc_emp != self.tabela.vinc_emp:
                 raise ValidationError('O produto e a tabela de preço devem pertencer à mesma empresa.')
+    def get_preco_tabela(self, tabela):
+        pt = ProdutoTabela.objects.filter(produto=self, tabela=tabela).first()
+        return pt.vl_prod if pt else None
 
 class ProdutoFornecedor(models.Model):
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)

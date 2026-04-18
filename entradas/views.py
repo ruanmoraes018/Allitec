@@ -78,7 +78,7 @@ def lista_entradas(request):
 
 @login_required
 def entradas_por_produto(request, produto_id):
-    entradas = EntradaProduto.objects.filter(produto_id=produto_id, vinc_emp=request.user.empresa).select_related('entrada', 'entrada__fornecedor')
+    entradas = EntradaProduto.objects.filter(produto_id=produto_id).select_related('entrada', 'entrada__fornecedor')
     data = []
     for ep in entradas:
         entrada = ep.entrada
@@ -102,60 +102,32 @@ def formatar_decimal_en(valor):
 def parse_nfe_xml(xml_file):
     tree = ET.parse(xml_file)
     root = tree.getroot()
-
     ns = {'nfe': 'http://www.portalfiscal.inf.br/nfe'}
-
     infNFe = root.find('.//nfe:infNFe', ns)
     if infNFe is None:
         raise ValueError('XML inválido: infNFe não encontrada.')
-
     ide = infNFe.find('nfe:ide', ns)
     emit = infNFe.find('nfe:emit', ns)
     total = infNFe.find('nfe:total/nfe:ICMSTot', ns)
-
     dados = {
-        'chave': '',
-        'numero': text(ide, 'nfe:nNF', ns),
-        'serie': text(ide, 'nfe:serie', ns),
-        'data_emissao': text(ide, 'nfe:dhEmi', ns) or text(ide, 'nfe:dEmi', ns),
-        'nat_op': text(ide, 'nfe:natOp', ns),
-        'modelo': text(ide, 'nfe:mod', ns),
-        'fornecedor': {
-            'cnpj': somente_numeros(text(emit, 'nfe:CNPJ', ns)),
-            'cpf': somente_numeros(text(emit, 'nfe:CPF', ns)),
-            'nome': text(emit, 'nfe:xNome', ns),
-            'fantasia': text(emit, 'nfe:xFant', ns),
-            'ie': text(emit, 'nfe:IE', ns),
-        },
-        'total_nota': parse_decimal(text(total, 'nfe:vNF', ns)),
-        'itens': []
+        'chave': '', 'numero': text(ide, 'nfe:nNF', ns), 'serie': text(ide, 'nfe:serie', ns), 'data_emissao': text(ide, 'nfe:dhEmi', ns) or text(ide, 'nfe:dEmi', ns),
+        'nat_op': text(ide, 'nfe:natOp', ns), 'modelo': text(ide, 'nfe:mod', ns),
+        'fornecedor': {'cnpj': somente_numeros(text(emit, 'nfe:CNPJ', ns)), 'cpf': somente_numeros(text(emit, 'nfe:CPF', ns)), 'nome': text(emit, 'nfe:xNome', ns),
+            'fantasia': text(emit, 'nfe:xFant', ns), 'ie': text(emit, 'nfe:IE', ns),}, 'total_nota': parse_decimal(text(total, 'nfe:vNF', ns)), 'itens': []
     }
-
     if 'Id' in infNFe.attrib:
         dados['chave'] = infNFe.attrib['Id'].replace('NFe', '')
-
     for det in infNFe.findall('nfe:det', ns):
         prod = det.find('nfe:prod', ns)
         if prod is None:
             continue
-
         item = {
-            'codigo_fornecedor': text(prod, 'nfe:cProd', ns),
-            'ean': text(prod, 'nfe:cEAN', ns),
-            'descricao': text(prod, 'nfe:xProd', ns),
-            'ncm': text(prod, 'nfe:NCM', ns),
-            'cfop': text(prod, 'nfe:CFOP', ns),
-            'unidade': text(prod, 'nfe:uCom', ns),
-            'quantidade': parse_decimal(text(prod, 'nfe:qCom', ns)),
-            'valor_unitario': parse_decimal(text(prod, 'nfe:vUnCom', ns)),
-            'subtotal': parse_decimal(text(prod, 'nfe:vProd', ns)),
-            'desconto': parse_decimal(text(prod, 'nfe:vDesc', ns, '0')),
-            'marca': '',
+            'codigo_fornecedor': text(prod, 'nfe:cProd', ns), 'ean': text(prod, 'nfe:cEAN', ns), 'descricao': text(prod, 'nfe:xProd', ns), 'ncm': text(prod, 'nfe:NCM', ns),
+            'cfop': text(prod, 'nfe:CFOP', ns), 'unidade': text(prod, 'nfe:uCom', ns), 'quantidade': parse_decimal(text(prod, 'nfe:qCom', ns)), 'valor_unitario': parse_decimal(text(prod, 'nfe:vUnCom', ns)),
+            'subtotal': parse_decimal(text(prod, 'nfe:vProd', ns)), 'desconto': parse_decimal(text(prod, 'nfe:vDesc', ns, '0')), 'marca': '',
         }
         dados['itens'].append(item)
-
     return dados
-
 
 def parse_data_xml_para_input(data_str):
     if not data_str:
@@ -260,7 +232,6 @@ def ler_xml_entrada(request):
                 "ie": get_text(emit, "nfe:IE", ns),
             }, "itens": itens_payload
         })
-
     except Exception as e:
         return JsonResponse({"ok": False, "erro": f"Erro ao ler XML: {str(e)}"}, status=400)
 
@@ -326,7 +297,6 @@ def criar_fornecedor_por_xml(request):
             endereco=endereco or "NÃO INFORMADO", cep=cep or "00000000", numero=numero, bairro=bairro, cidade=cidade, uf=estado, complem="", tel=tel or "00000000000", email="sememail@fornecedor.local", dt_reg=date.today()
         )
         return JsonResponse({"ok": True, "fornecedor": {"id": fornecedor.id, "nome": fornecedor.razao_social or fornecedor.fantasia, "ja_existia": False}})
-
     except Exception as e:
         return JsonResponse({"ok": False, "erro": f"Erro ao criar fornecedor: {str(e)}"}, status=400)
 
@@ -393,6 +363,56 @@ def criar_produto_por_xml(request):
         )
     return JsonResponse({"ok": True, "produto": {"id": produto.id, "descricao": produto.desc_prod, "ja_existia": ja_existia,}})
 
+@login_required
+@require_POST
+@transaction.atomic
+def criar_produtos_em_massa(request):
+    empresa = request.user.empresa
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    produtos = body.get("produtos", [])
+    if not produtos:
+        return JsonResponse({"ok": False, "erro": "Nenhum produto enviado."}, status=400)
+    resultados = []
+    for item in produtos:
+        fornecedor_id = item.get("fornecedor_id")
+        grupo_id = item.get("grupo_id")
+        marca_id = item.get("marca_id")
+        unidade_id = item.get("unidade_id")
+        tp_prod = (item.get("tp_prod") or "Principal").strip()
+        descricao = (item.get("descricao") or "").strip()
+        ean = (item.get("ean") or "").strip()
+        codigo_fornecedor = (item.get("codigo_fornecedor") or "").strip()
+        descricao_fornecedor = (item.get("descricao_fornecedor") or descricao).strip()
+        fornecedor = Fornecedor.objects.filter(id=fornecedor_id, vinc_emp=empresa).first() if fornecedor_id else None
+        grupo = Grupo.objects.filter(id=grupo_id, vinc_emp=empresa).first() if grupo_id else None
+        marca = Marca.objects.filter(id=marca_id, vinc_emp=empresa).first() if marca_id else None
+        unidade = Unidade.objects.filter(id=unidade_id, vinc_emp=empresa).first() if unidade_id else None
+        produto = None
+        # 🔎 tenta achar pelo EAN
+        if ean and ean not in ["SEM GTIN", "SEMGTIN"]:
+            codigo_obj = CodigoProduto.objects.filter(vinc_emp=empresa, codigo=ean).select_related("produto").first()
+            if codigo_obj:
+                produto = codigo_obj.produto
+        # 🆕 cria produto se não existir
+        if not produto:
+            produto = Produto.objects.create(vinc_emp=empresa, desc_prod=descricao, grupo=grupo, unidProd=unidade, marca=marca,
+                tp_prod=tp_prod if tp_prod in ["Principal", "Adicional"] else "Principal", situacao="Ativo", vl_compra=Decimal("0.00"), estoque_prod=Decimal("0.00"))
+            ja_existia = False
+        else:
+            ja_existia = True
+        # 🔗 EAN
+        if ean and ean not in ["SEM GTIN", "SEMGTIN"]:
+            CodigoProduto.objects.get_or_create(vinc_emp=empresa, codigo=ean, defaults={"produto": produto})
+        # 🔗 fornecedor
+        if fornecedor and codigo_fornecedor:
+            ProdutoFornecedor.objects.update_or_create(vinc_emp=empresa, fornecedor=fornecedor, codigo_fornecedor=codigo_fornecedor,
+                defaults={"produto": produto, "descricao_fornecedor": descricao_fornecedor})
+        resultados.append({"idx": item.get("idx"), "produto": {"id": produto.id, "descricao": produto.desc_prod, "ja_existia": ja_existia}})
+    return JsonResponse({"ok": True, "resultados": resultados})
+
 def montar_produtos_post(post_data):
     produtos_dict = {}
     for key, value in post_data.items():
@@ -440,12 +460,8 @@ def add_entrada(request):
                 except Produto.DoesNotExist:
                     messages.warning(request, f"Produto {dados.get('produto')} não encontrado e foi ignorado.")
                     continue
-                ep = EntradaProduto.objects.create(
-                    entrada=entrada,
-                    produto=produto,
-                    quantidade=parse_decimal(dados.get("quantidade")),
-                    preco_unitario=parse_decimal(dados.get("preco_unitario")),
-                    desconto=parse_decimal(dados.get("desconto"))
+                ep = EntradaProduto.objects.create(entrada=entrada, produto=produto, quantidade=parse_decimal(dados.get("quantidade")),
+                    preco_unitario=parse_decimal(dados.get("preco_unitario")), desconto=parse_decimal(dados.get("desconto"))
                 )
                 for tab in dados.get("tabelas", {}).values():
                     tabela_id = tab.get("tabela_id")
@@ -464,20 +480,8 @@ def add_entrada(request):
                         margem = parse_decimal(tab.get("margem"))
                     except Exception:
                         margem = Decimal('0.00')
-                    EntradaProdutoTabela.objects.create(
-                        entrada_produto=ep,
-                        tabela_preco=tabela,
-                        margem=margem,
-                        valor=valor
-                    )
-                    ProdutoTabela.objects.update_or_create(
-                        produto=produto,
-                        tabela=tabela,
-                        defaults={
-                            "vl_prod": valor,
-                            "margem": margem
-                        }
-                    )
+                    EntradaProdutoTabela.objects.create(entrada_produto=ep, tabela_preco=tabela, margem=margem, valor=valor)
+                    ProdutoTabela.objects.update_or_create(produto=produto, tabela=tabela, defaults={"vl_prod": valor, "margem": margem})
             entrada.total = entrada.atualizar_total()
             entrada.save(update_fields=["total"])
             messages.success(request, f'Registro de {entrada.tipo} - {entrada.numeracao} realizado com sucesso!')
@@ -529,7 +533,7 @@ def att_entrada(request, id):
                 except Produto.DoesNotExist:
                     messages.warning(request, f"Produto {dados.get('produto')} não encontrado e foi ignorado.")
                     continue
-                ep, created = EntradaProduto.objects.update_or_create(
+                ep, _ = EntradaProduto.objects.update_or_create(
                     entrada=entrada,
                     produto=produto,
                     defaults={
@@ -557,7 +561,7 @@ def att_entrada(request, id):
                         margem = parse_decimal(tab.get("margem"))
                     except Exception:
                         margem = Decimal('0.00')
-                    ept, created = EntradaProdutoTabela.objects.update_or_create(
+                    ept, _ = EntradaProdutoTabela.objects.update_or_create(
                         entrada_produto=ep,
                         tabela_preco=tabela,
                         defaults={
@@ -566,26 +570,10 @@ def att_entrada(request, id):
                         }
                     )
                     tab_ids_mantidas.append(ept.id)
-                    ProdutoTabela.objects.update_or_create(
-                        produto=produto,
-                        tabela=tabela,
-                        defaults={
-                            "vl_prod": valor,
-                            "margem": margem
-                        }
-                    )
-                EntradaProdutoTabela.objects.filter(
-                    entrada_produto=ep,
-                    tabela_preco__vinc_emp=request.user.empresa
-                ).exclude(id__in=tab_ids_mantidas).delete()
-            EntradaProdutoTabela.objects.filter(
-                entrada_produto__entrada=entrada,
-                entrada_produto__produto__vinc_emp=request.user.empresa
-            ).exclude(entrada_produto_id__in=itens_ids_mantidos).delete()
-            EntradaProduto.objects.filter(
-                entrada=entrada,
-                produto__vinc_emp=request.user.empresa
-            ).exclude(id__in=itens_ids_mantidos).delete()
+                    ProdutoTabela.objects.update_or_create(produto=produto, tabela=tabela, defaults={"vl_prod": valor, "margem": margem})
+                EntradaProdutoTabela.objects.filter(entrada_produto=ep, tabela_preco__vinc_emp=request.user.empresa).exclude(id__in=tab_ids_mantidas).delete()
+            EntradaProdutoTabela.objects.filter(entrada_produto__entrada=entrada, entrada_produto__produto__vinc_emp=request.user.empresa).exclude(entrada_produto_id__in=itens_ids_mantidos).delete()
+            EntradaProduto.objects.filter(entrada=entrada, produto__vinc_emp=request.user.empresa).exclude(id__in=itens_ids_mantidos).delete()
             entrada.total = entrada.atualizar_total()
             entrada.save(update_fields=["total"])
             messages.success(request, f'Registro de {entrada.tipo} - {entrada.numeracao} atualizado com sucesso!')
@@ -634,12 +622,9 @@ def efetivar_entrada(request, id):
         if entrada.situacao == 'Pendente':
             entrada.situacao = "Efetivada"
             entrada.save()
-            # Atualiza estoque e preço dos produtos da entrada
             for item in entrada.itens.all():
                 produto = item.produto
-                # Atualiza estoque
                 produto.estoque_prod = (produto.estoque_prod or 0) + (item.quantidade or 0)
-                # Atualiza preço de compra
                 produto.vl_compra = str(item.preco_unitario)  # já que vl_compra é CharField
                 produto.save(update_fields=["estoque_prod", "vl_compra"])
             messages.success(request, f'Registro de {entrada.tipo} - {entrada.numeracao} efetivado com sucesso!')
@@ -658,12 +643,9 @@ def cancelar_entrada(request, id):
         if entrada.situacao == 'Efetivada':
             entrada.situacao = "Cancelada"
             entrada.save()
-            # Atualiza estoque e preço dos produtos da entrada
             for item in entrada.itens.all():
                 produto = item.produto
-                # Atualiza estoque
                 produto.estoque_prod = (produto.estoque_prod or 0) - (item.quantidade or 0)
-                # Atualiza preço de compra
                 produto.vl_compra = str(item.preco_unitario)  # já que vl_compra é CharField
                 produto.save(update_fields=["estoque_prod", "vl_compra"])
             messages.success(request, f'Registro de {entrada.tipo} - {entrada.numeracao} cancelado com sucesso!')

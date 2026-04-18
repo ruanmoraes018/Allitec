@@ -8,6 +8,7 @@ import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
 from filiais.models import Usuario
+from django.db.models import Q
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -50,11 +51,20 @@ def lista_bancos(request):
 
 @login_required
 def lista_bancos_ajax(request):
-    term = request.GET.get('term', '')
-    bancos = Banco.objects.filter(nome_banco__icontains=term, vinc_emp=request.user.empresa).order_by('nome_banco')[:20]
-    data = {'bancos': [{'id': banco.id, 'text': banco.nome_banco} for banco in bancos]}
-    return JsonResponse(data)
-
+    termo_busca = request.GET.get('term') or request.GET.get('q') or ''
+    empresa = request.user.empresa
+    try:
+        if termo_busca.isdigit():
+            condicao_busca = Q(nome_banco__icontains=termo_busca) | Q(id=termo_busca)
+        else:
+            condicao_busca = Q(nome_banco__icontains=termo_busca)
+        bancos = Banco.objects.filter(condicao_busca & Q(vinc_emp=empresa))[:20]
+        results = [{'id': banco.id, 'text': f"{banco.id} - {banco.nome_banco.upper()}"} for banco in bancos]
+        return JsonResponse({'results': results})
+    except Exception as e:
+        print(f"Erro na busca AJAX: {e}")
+        return JsonResponse({'results': [], 'error': str(e)})
+    
 @login_required
 def add_banco(request):
     if not request.user.has_perm('bancos.add_banco'):

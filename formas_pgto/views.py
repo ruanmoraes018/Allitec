@@ -1,3 +1,5 @@
+import json
+from django.forms import ValidationError
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.contrib import messages
@@ -8,6 +10,10 @@ import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
 from filiais.models import Usuario
+from django.db.models import Q
+from django.db import IntegrityError, DatabaseError, transaction
+from django.core.exceptions import ObjectDoesNotExist
+
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -48,16 +54,28 @@ def lista_formas_pgto(request):
 
 @login_required
 def lista_formas_pgto_ajax(request):
-    term = request.GET.get('term', '')
-    formas_pgto = FormaPgto.objects.filter(descricao__icontains=term, vinc_emp=request.user.empresa)[:10]
-    data = {'formas_pgto': [{'id': forma_pgto.id, 'text': forma_pgto.descricao} for forma_pgto in formas_pgto]}
-    return JsonResponse(data)
+    termo_busca = request.GET.get('term') or request.GET.get('q') or ''
+    empresa = request.user.empresa
+    try:
+        if termo_busca.isdigit():
+            condicao_busca = Q(descricao__icontains=termo_busca) | Q(id=termo_busca)
+        else:
+            condicao_busca = Q(descricao__icontains=termo_busca)
+        formas_pgto = FormaPgto.objects.filter(condicao_busca & Q(vinc_emp=empresa))[:20]
+        results = [{'id': forma_pgto.id, 'text': f"{forma_pgto.descricao.upper()}"} for forma_pgto in formas_pgto]
+        return JsonResponse({'results': results})
+    except Exception as e:
+        print(f"Erro na busca AJAX: {e}")
+        return JsonResponse({'results': [], 'error': str(e)})
 
 @login_required
 def forma_pgto_info(request, id):
     fp = get_object_or_404(FormaPgto, pk=id, vinc_emp=request.user.empresa)
     return JsonResponse({
-        "gera_parcelas": fp.gera_parcelas
+        "gera_parcelas": fp.gera_parcelas,
+        "troco": fp.troco == "Sim",
+        "gateway": fp.gateway,
+        "credenciais": fp.credenciais,
     })
 
 @login_required
@@ -71,55 +89,106 @@ def get_forma_pgto(request):
 
 @login_required
 def add_formas_pgto(request):
+    error_messages = []
     if not request.user.has_perm('formas_pgto.add_formapgto'):
         messages.info(request, 'Você não tem permissão para adicionar formas de pagamento.')
         return redirect('/formas_pgto/lista/')
-    if request.method == 'POST':
-        form = FormaPgtoForm(request.POST)
-        if form.is_valid():
+    try:
+        if request.method == 'POST':
+            form = FormaPgtoForm(request.POST)
+            if not form.is_valid():
+                error_messages = [f"Campo ({field.label}) é obrigatório!" for field in form if field.errors]
+                return render(request, 'formas_pgto/add.html', {'form': form, 'error_messages': error_messages})
             c = form.save(commit=False)
             c.vinc_emp = request.user.empresa  # Busca a filial do usuário logado
             c.save()
             messages.success(request, 'Forma de Pagamento adicionada com sucesso!')
             cid = str(c.id)
             return redirect('/formas_pgto/lista/?tp=cod&s=' + cid)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors:
-                    for error in field.errors:
-                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'formas_pgto/add.html', {'form': form, 'error_messages': error_messages})
-    else: form = FormaPgtoForm()
+        form = FormaPgtoForm()
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco de dados: {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}") 
     return render(request, 'formas_pgto/add.html', {'form': form})
 
 @login_required
 def att_formas_pgto(request, id):
-    c = get_object_or_404(FormaPgto, pk=id, vinc_emp=request.user.empresa)
-    form = FormaPgtoForm(instance=c)
+    error_messages = []
+
+    c = get_object_or_404(
+        FormaPgto,
+        pk=id,
+        vinc_emp=request.user.empresa
+    )
+
     if not request.user.has_perm('formas_pgto.change_formapgto'):
         messages.info(request, 'Você não tem permissão para editar formas de pagamento.')
         return redirect('/formas_pgto/lista/')
+
     if request.method == 'POST':
         form = FormaPgtoForm(request.POST, instance=c)
-        if form.is_valid():
-            c.save()
-            next_url = request.POST.get('next') or request.GET.get('next')
-            cid = str(c.id)
-            messages.success(request, 'Forma de Pagamento atualizada com sucesso!')
-            if next_url:
-                return redirect(next_url)
+
+        try:
+            if form.is_valid():
+                c = form.save()  # 🔥 ESSENCIAL (salva credenciais corretamente)
+
+                next_url = request.POST.get('next') or request.GET.get('next')
+                cid = str(c.id)
+
+                messages.success(request, 'Forma de Pagamento atualizada com sucesso!')
+
+                if next_url:
+                    return redirect(next_url)
+                else:
+                    return redirect(f'/formas_pgto/lista/?tp=cod&s={cid}')
             else:
-                return redirect('/formas_pgto/lista/?tp=cod&s=' + cid)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors:
+                # erros de campo
+                for field in form:
                     for error in field.errors:
-                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'formas_pgto/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
+                        error_messages.append(
+                            f"<i class='fa-solid fa-xmark'></i> {field.label}: {error}"
+                        )
+
+        except ValidationError as e:
+            # erros do clean()
+            if hasattr(e, 'messages'):
+                for msg in e.messages:
+                    error_messages.append(
+                        f"<i class='fa-solid fa-xmark'></i> {msg}"
+                    )
+            else:
+                error_messages.append(
+                    f"<i class='fa-solid fa-xmark'></i> Erro de validação."
+                )
+
+        except IntegrityError as e:
+            error_messages.append(
+                f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}"
+            )
+
+        except DatabaseError as e:
+            error_messages.append(
+                f"<i class='fa-solid fa-xmark'></i> Erro de banco de dados: {str(e)}"
+            )
+
+        except Exception as e:
+            error_messages.append(
+                f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}"
+            )
+
     else:
-        return render(request, 'formas_pgto/att.html', {'form': form, 'c': c})
+        form = FormaPgtoForm(instance=c)
+        form.initial['credenciais'] = json.dumps(form.initial.get('credenciais', {}))
+    return render(request, 'formas_pgto/att.html', {
+        'form': form,
+        'c': c,
+        'error_messages': error_messages
+    })
 
 @login_required
 def del_formas_pgto(request, id):

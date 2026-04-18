@@ -279,7 +279,7 @@
         </div>
         <div class="card">
             <div class="card-body dropup">
-                <strong>Total de Produtos: {{ produtos.paginator.count }}</strong>
+                <strong>Total de Produtos: {{ produtos|length }}</strong>
                 <a id="add-link" href="{% url 'add-produto' %}" style="margin-left: 1%; margin-right: 1%; float: right;" class="btn-permissao" data-permissao="produtos.add_produto" data-msg-negado="Seu usuário não pode adicionar produtos!">
                     <button type="button" class="btn btn-primary btn-sm" id="add-produto"><i class="fas fa-plus"></i> Novo</button>
                 </a>

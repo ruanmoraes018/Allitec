@@ -26,33 +26,19 @@
                 </div>
                 <div class="col-md-2 search-div flex-md-fill">
                     <label class="form-label">Filial:</label>
-                    <select class="form-control" id="filial" name="filial">
+                    <select class="form-control" id="id_filial_user" name="fil">
                         <option value="">Selecione uma filial</option>
-                        {% if filial_selecionada %}
-                            <option value="{{ filial_selecionada.id }}" selected>
-                                {{ filial_selecionada.fantasia }}
-                            </option>
-                        {% endif %}
                         {% for f in filiais %}
-                            <option value="{{ f.id }}" {% if request.GET.filial == f.id|stringformat:"s" %}selected{% endif %}>
-                                {{ f.fantasia }}
-                            </option>
+                            <option value="{{ f.id }}" {% if request.GET.fil == f.id|stringformat:"s" %}selected{% endif %}>{{ f.fantasia }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="col-md-2 search-div flex-md-fill">
                     <label class="form-label">Cliente:</label>
                     <select class="form-control" id="cliente" name="cl">
-                        <option value="">Escolha uma opção</option>
-                        {% if cliente_selecionado %}
-                            <option value="{{ cliente_selecionado.id }}" selected>
-                                {{ cliente_selecionado.fantasia }}
-                            </option>
-                        {% endif %}
+                        <option value="">Selecione um cliente</option>
                         {% for cliente in clientes %}
-                            <option value="{{ cliente.id }}" {% if request.GET.cl == cliente.id|stringformat:"s" %}selected{% endif %}>
-                                {{ cliente.fantasia }}
-                            </option>
+                            <option value="{{ cliente.id }}" {% if request.GET.cl == cliente.id|stringformat:"s" %}selected{% endif %}>{{ cliente.fantasia }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -219,7 +205,8 @@
                                                         data-permissao="pedidos.faturar_pedido"
                                                         data-msg-negado="Seu usuário não pode faturar pedidos!"
                                                         data-bs-toggle="modal"
-                                                        data-bs-target="#faturarModal-{{ pedido.id }}"
+                                                        data-bs-target="#faturarModalP-{{ pedido.id }}"
+                                                        data-id="{{ pedido.id }}"
                                                         data-orcamento-id="{{ pedido.id }}"
                                                         id="doc-botao">
                                                     <span><i class="fa-solid fa-money-bill" title="Faturar Orçamento"></i></span>
@@ -249,10 +236,10 @@
                                                 <div class="modal-footer">
                                                     <form method="post" action="{% url 'del-pedido' pedido.id %}" class="form-excluir">
                                                         {% csrf_token %}
-                                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                                        <button type="submit" class="btn btn-primary btn-confirmar" id="confirmBtn" disabled>
                                                             <u>S</u>im <span class="contador">3</span>
                                                         </button>
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                        <button type="button" class="btn btn-secondary" id="btnRecusa" data-bs-dismiss="modal">
                                                             <u>N</u>ão
                                                         </button>
                                                     </form>
@@ -261,61 +248,143 @@
                                         </div>
                                     </div>
                                 {% endif %}
-                                <div class="modal fade" id="faturarModal-{{ pedido.id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal fade modal-faturar-pedido" id="faturarModalP-{{ pedido.id }}" tabindex="-1" aria-hidden="true" data-pedido-id="{{ pedido.id }}" data-num-pedido="{{ pedido.id }}">
                                     <div class="modal-dialog modal-dialog-centered modal-lg">
                                         <div class="modal-content">
                                             <div class="modal-header bg-success text-white">
-                                                <h5 class="modal-title"><i class="fa-solid fa-money-bill" style="float: none;"></i> Faturar Pedido {{ pedido.id }}</h5>
+                                                <h5 class="modal-title"><i class="fa-solid fa-money-bill"></i> Faturar Pedido {{ pedido.id }}</h5>
                                             </div>
                                             <div class="modal-body">
+                                                <!-- CLIENTE -->
                                                 <div class="row">
-                                                    <div class="col-md-8">
-                                                        <label class="form-label fw-bold" for="cliente_pedido">Cliente:</label>
-                                                        <input class="form-control mb-3 fw-bold" id="cliente_pedido" value="{{ pedido.cli }}" disabled="disabled">
+                                                    <div style="flex: 1;">
+                                                        <label class="form-label fw-bold">Cliente:</label>
+                                                        <input class="form-control fw-bold" value="{{ pedido.cli }}" disabled>
                                                     </div>
-                                                    <div class="col-md-4">
-                                                        <label class="form-label fw-bold" for="dt_emi_pedido">Data Emissão:</label>
-                                                        <input class="form-control mb-3 fw-bold" id="dt_emi_pedido" value="{{ pedido.dt_emi|date:'d/m/Y' }}" disabled="disabled">
+                                                    <div style="width:150px;">
+                                                        <label class="form-label fw-bold">Data Emissão:</label>
+                                                        <input class="form-control fw-bold dt-emi-pedido"
+                                                            value="{{ pedido.dt_emi|date:'d/m/Y' }}" disabled>
+                                                    </div>
+                                                    <div style="width:160px;">
+                                                        <label class="form-label fw-bold">Data Faturamento:</label>
+                                                        <input class="form-control fw-bold dt-fat-pedido" value="{{ pedido.dt_fat|date:'d/m/Y' }}" readonly>
+                                                    </div>
+                                                    <div style="width:45px;">
+                                                        <label class="form-label">&nbsp;</label>
+                                                        <button type="button"
+                                                            class="btn btn-outline-secondary btn-sm btn-lib-dt-fat-ped"
+                                                            data-permissao="pedidos.alterar_data_faturamento"
+                                                            data-msg-negado="Sem permissão para alterar data de faturamento."
+                                                            data-editando="0">
+                                                            <i class="fa fa-pen"></i>
+                                                        </button>
                                                     </div>
                                                 </div>
-                                                <h6 style="font-weight: bold;">Resumo das Formas de Pagamento</h6>
-                                                <div style="overflow-x: auto;">
-                                                    <table class="table table-bordered table-striped" id="itensTableForm">
-                                                        <thead class="table-dark">
-                                                            <tr>
-                                                                <th>Item</th>
-                                                                <th>Forma Pgto.</th>
-                                                                <th>Valor</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {% for forma in pedido.formas_convertidas %}
-                                                                <tr>
-                                                                    <td>{{ forloop.counter|stringformat:"03d" }}</td>
-                                                                    <td>{{ forma.descricao }}</td>
-                                                                    <td>{{ forma.valor|moeda_br }}</td>
-                                                                </tr>
-                                                            {% empty %}
-                                                                <tr><td colspan="3" class="text-center">Nenhuma forma de pagamento registrada.</td></tr>
+                                                <hr>
+                                                <!-- INSERÇÃO DE FORMA -->
+                                                <div class="row align-items-end g-2">
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-bold">Forma Pgto</label>
+                                                        <select class="form-select form-select-sm" id="formaPgtoSelect-{{ pedido.id }}">
+                                                            <option value="">Selecione</option>
+                                                            {% for f in formas_pgto %}
+                                                                <option value="{{ f.id }}" data-gera="{{ f.gera_parcelas|yesno:'1,0' }}">
+                                                                    {{ f.descricao }}
+                                                                </option>
                                                             {% endfor %}
-                                                        </tbody>
-                                                    </table>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <label class="form-label fw-bold">Valor</label>
+                                                        <input type="text" class="form-control form-control-sm inp-valor-pgto" id="valorPgto-{{ pedido.id }}" value="{{ pedido.total|floatformat:2 }}">
+                                                    </div>
+                                                    <div class="col-md-2 campos-parcela d-none">
+                                                        <label class="form-label fw-bold">Parcelas</label>
+                                                        <input type="number" min="1" value="1" class="form-control form-control-sm" id="parcelasPgto-{{ pedido.id }}">
+                                                    </div>
+                                                    <div class="col-md-2 campos-parcela d-none">
+                                                        <label class="form-label fw-bold">Dias</label>
+                                                        <input type="number" min="0" value="30" class="form-control form-control-sm" id="diasPgto-{{ pedido.id }}">
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <button class="btn btn-success btn-sm w-100 btn-add-forma">
+                                                            Adicionar
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <hr>
+                                                <!-- TABELA FORMAS -->
+                                                <h6 class="fw-bold">Formas de Pagamento</h6>
+                                                <table class="table table-bordered table-striped" id="tableFormas-{{ pedido.id }}">
+                                                    <thead class="table-dark">
+                                                        <tr>
+                                                            <th>#</th><th>Forma</th><th>Valor</th><th>Parcelas</th><th>Dias</th><th style="width:50px;">Ações</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody></tbody>
+                                                </table>
+                                                <!-- PREVIEW -->
+                                                <h6 class="fw-bold mt-3 d-none preview-title">Parcelas</h6>
+                                                <table class="table table-bordered d-none preview-table" id="previewPedido-{{ pedido.id }}">
+                                                    <thead class="table-dark">
+                                                        <tr>
+                                                            <th>Nº</th><th>Valor</th><th>Vencimento</th><th style="width:50px;">Ações</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody></tbody>
+                                                </table>
+                                                <div class="row">
+                                                    <div class="mt-2">
+                                                        <small class="fw-bold text-muted saldo-restante">
+                                                            Saldo Restante: R$ 0.00
+                                                        </small>
+                                                    </div>
+                                                    <div class="col-md-2 d-none">
+                                                        <label class="form-label fw-bold">Troco</label>
+                                                        <input type="text" class="form-control form-control-sm" id="troco-{{ pedido.id }}" readonly>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div class="modal-footer">
                                                 <form method="post" action="{% url 'faturar-pedido' pedido.id %}">
                                                     {% csrf_token %}
-                                                    <button type="button" onclick="imprimirEFaturar({{ pedido.id }})"
-                                                            class="btn btn-success"
-                                                            data-id="{{ pedido.id }}"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#loadingModal">
-                                                        Confirmar Faturamento
-                                                    </button>
-
+                                                    <input type="hidden" name="dados_pagamento" id="dadosPagamento-{{ pedido.id }}">
+                                                    <input type="hidden" name="parcelas_json" id="parcelasJson-{{ pedido.id }}">
+                                                    <button type="submit" class="btn btn-success btn-confirmar-pedido">Faturar</button>
                                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                                                 </form>
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal fade" id="modalPixPagamento" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content border-0 shadow-lg">
+
+                                            <div class="modal-header bg-success text-white">
+                                                <h5 class="modal-title">Pagamento via PIX</h5>
+                                            </div>
+
+                                            <div class="modal-body text-center">
+
+                                                <!-- QR -->
+                                                <div id="pixQrContainer" class="mb-3"></div>
+
+                                                <!-- Status -->
+                                                <div id="statusPix" class="mt-3">
+                                                    <div class="spinner-border text-success mb-2"></div>
+                                                    <div class="fw-semibold">Aguardando pagamento...</div>
+                                                </div>
+
+                                                <!-- Sucesso -->
+                                                <div id="statusSucesso" class="d-none mt-3">
+                                                    <div class="check-anim">✔</div>
+                                                    <div class="fw-bold text-success">Pagamento confirmado!</div>
+                                                </div>
+
+                                            </div>
+
                                         </div>
                                     </div>
                                 </div>
@@ -340,9 +409,9 @@
                                     </div>
                                 </td>
                             {% endif %}
-                            <td style="align-items: center;">{{ pedido.fantasia_emp }}</td>
-                            <td style="color: #36454F; font-weight: bold;">{{ pedido.cli }}</td>
-                            <td style="color: #36454F; font-weight: bold;">{{ pedido.vendedor }}</td>
+                            <td style="align-items: center;">{{ pedido.fantasia_fil }}</td>
+                            <td style="color: #36454F; font-weight: bold;">{{ pedido.nome_cli }}</td>
+                            <td style="color: #36454F; font-weight: bold;">{{ pedido.nome_vend }}</td>
                             <td style="align-items: center;">{{ pedido.dt_emi|date:"d/m/Y" }}</td>
                             <td style="align-items: center;">{{ pedido.dt_fat|date:"d/m/Y" }}</td>
                             <td style="color: #36454F; font-weight: bold;">{{ pedido.total|moeda_br }}</td>

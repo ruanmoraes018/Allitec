@@ -126,6 +126,9 @@ def user_permissions(request):
             'perm_faturar_pedido': 'pedidos.faturar_pedido' in permissoes,
             'perm_cancelar_pedido': 'pedidos.cancelar_pedido' in permissoes,
             'perm_clonar_pedido': 'pedidos.clonar_pedido' in permissoes,
+            'perm_vender_sem_estoque_ped': 'pedidos.vender_sem_estoque_ped' in permissoes,
+            'perm_alt_vl_ped': 'pedidos.alt_vl_ped' in permissoes,
+            'perm_alterar_data_faturamento': 'pedidos.alterar_data_faturamento' in permissoes,
             #Marcas
             'perm_view_marcas': 'marcas.view_marca' in permissoes,
             'perm_add_marca': 'marcas.add_marca' in permissoes,

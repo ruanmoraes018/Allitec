@@ -26,7 +26,7 @@
                     </div>
                     <div class="form-buttons text-center" style="margin-left: 10px; margin-top: 10px;">
                         <button type="button" class="btn btn-dark mb-1" id="medidasBtn">Medidas</button>
-                        <button type="button" class="btn btn-dark mb-1" id="clienteBtn">Cliente</button>
+                        <button type="button" class="btn btn-dark mb-1" id="clienteBtn">Dados Gerais</button>
                         <button type="button" class="btn btn-dark mb-1" id="prod_servBtn">Produtos</button>
                         <button type="button" class="btn btn-dark mb-1" id="adicionaisBtn">Adicionais</button>
                         <button type="button" class="btn btn-dark mb-1" id="form_pgtoBtn">Formas de Pagamento</button>
@@ -35,27 +35,16 @@
                         <!--Cliente-->
                         <div class="form-section" id="clientes">
                             <div class="row" style="margin-left: -8px;">
-                                <div class="col-md-1">
-                                    {{ form.num_orcamento|as_crispy_field }}
-                                </div>
-                                <div class="col-md-3">
-                                    {{ form.vinc_fil|as_crispy_field }}
-                                </div>
-                                <div class="col-md-3">
-                                    {{ form.solicitante|as_crispy_field }}
-                                </div>
-                                <div class="col-md-2">
-                                    {{ form.dt_emi|as_crispy_field }}
-                                </div>
-                                <div class="col-md-2">
-                                    {{ form.dt_ent|as_crispy_field }}
-                                </div>
+                                <div class="col-md-1">{{ form.num_orcamento|as_crispy_field }}</div>
+                                <div class="col-md-2">{{ form.vinc_fil|as_crispy_field }}</div>
+                                <div class="col-md-3">{{ form.solicitante|as_crispy_field }}</div>
+                                <div class="col-md-2">{{ form.fornecedor|as_crispy_field }}</div>
+                                <div class="col-md-2">{{ form.dt_emi|as_crispy_field }}</div>
+                                <div class="col-md-2">{{ form.dt_ent|as_crispy_field }}</div>
                             </div>
                             <hr>
                             <div class="row" style="margin-left: -8px;">
-                                <div class="col-md-3">
-                                    {{ form.cli|as_crispy_field }}
-                                </div>
+                                <div class="col-md-3">{{ form.cli|as_crispy_field }}</div>
                                 <div class="col-md-2" id="div_id_cpfCnpj">
                                     <label for="id_cpfCnpj" class="form-label requiredField">CPF/CNPJ</label>
                                     <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_cpfCnpj" name="cpfCnpj" disabled="disabled">
@@ -92,9 +81,7 @@
                                     <label for="id_uf_txt" class="form-label requiredField">Estado*</label>
                                     <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_uf_txt" name="uf" disabled="disabled">
                                 </div>
-                                <div class="col-md-12">
-                                    {{ form.obs_cli|as_crispy_field }}
-                                </div>
+                                <div class="col-md-12">{{ form.obs_cli|as_crispy_field }}</div>
                             </div>
                         </div>
                         <!--Medidas-->
@@ -119,43 +106,22 @@
                                         <table class="table table-bordered table-sm table-striped mb-0" id="tabelaPortasResumo">
                                             <thead class="table-dark">
                                                 <tr style="font-size: 12px;">
-                                                    <th>#</th>
-                                                    <th style="width: 6%;">Largura</th>
-                                                    <th style="width: 6%;">Altura</th>
-                                                    <th style="width: 6%;">Lg. Corte</th>
-                                                    <th style="width: 6%;">At. Corte</th>
-                                                    <th style="width: 6%;">Q. Lâm.</th>
-                                                    <th style="width: 6%;">M²</th>
-                                                    <th style="width: 6%;">Ft. Peso</th>
-                                                    <th style="width: 6%;">Peso</th>
-                                                    <th style="width: 6.5%;">Eix. Mot.</th>
-                                                    <th style="width: 6%;">Rolo</th>
-                                                    <th style="width: 8%;">TP. Lâm.</th>
-                                                    <th style="width: 8%;">TP. Vão</th>
-                                                    <th style="width: 8%;">Guia Esquerdo</th>
-                                                    <th style="width: 8%;">Guia Direito</th>
-                                                    <th style="width: 40px;">Exc.</th>
+                                                    <th>#</th><th style="width: 6%;">Largura</th><th style="width: 6%;">Altura</th><th style="width: 6%;">Lg. Corte</th>
+                                                    <th style="width: 6%;">At. Corte</th><th style="width: 6%;">Q. Lâm.</th><th style="width: 6%;">M²</th>
+                                                    <th style="width: 6%;">Ft. Peso</th><th style="width: 6%;">Peso</th><th style="width: 6.5%;">Eix. Mot.</th>
+                                                    <th style="width: 6%;">Rolo</th><th style="width: 8%;">TP. Lâm.</th><th style="width: 8%;">TP. Vão</th>
+                                                    <th style="width: 8%;">Guia Esquerdo</th><th style="width: 8%;">Guia Direito</th><th style="width: 40px;">Exc.</th>
                                                 </tr>
                                             </thead>
                                             <tbody></tbody>
                                         </table>
                                     </div>
                                 </div>
-                                <div class="col-md-1">
-                                    {{ form.pintura|as_crispy_field }}
-                                </div>
-                                <div class="col-md-2">
-                                    {{ form.tp_pintura|as_crispy_field }}
-                                </div>
-                                <div class="col-md-2">
-                                    {{ form.cor|as_crispy_field }}
-                                </div>
-                                <div class="col-md-2">
-                                    {{ form.portao_social|as_crispy_field }}
-                                </div>
-                                <div class="col-md-2">
-                                    {{ form.vl_p_s|as_crispy_field }}
-                                </div>
+                                <div class="col-md-1">{{ form.pintura|as_crispy_field }}</div>
+                                <div class="col-md-2">{{ form.tp_pintura|as_crispy_field }}</div>
+                                <div class="col-md-2">{{ form.cor|as_crispy_field }}</div>
+                                <div class="col-md-2">{{ form.portao_social|as_crispy_field }}</div>
+                                <div class="col-md-2">{{ form.vl_p_s|as_crispy_field }}</div>
                                 <input type="hidden" id="id_json_portas" name="json_portas">
                             </div>
                         </div>
@@ -176,24 +142,18 @@
                             <div class="row" style="margin-left: -8px;">
                                 <input type="hidden" id="id_subtotal" name="subtotal">
                                 <input type="hidden" id="id_total" name="total">
-                                <div class="col-md-3" id="div_id_form_pgto">
-                                    {{ form.formas_pgto|as_crispy_field }}
-                                </div>
+                                <div class="col-md-3" id="div_id_form_pgto">{{ form.formas_pgto|as_crispy_field }}</div>
                                 <div class="col-md-2" id="div_id_vl_form_pgto">
                                     <label for="id_vl_form_pgto" class="form-label requiredField">Valor*</label>
                                     <input type="text" placeholder="0,00" style="color: #2E8B57; font-weight: bold;" class="form-control form-control-sm border-dark-subtle valor_os" id="id_vl_form_pgto" name="vl_form_pgto">
                                 </div>
                                 <div class="col-md-1" id="div_id_parcelas" style="display:none;">
                                     <label class="form-label">Parcelas</label>
-                                    <input type="number" min="1"
-                                           class="form-control form-control-sm border-dark-subtle"
-                                           id="id_parcelas" name="parcelas" value="1">
+                                    <input type="number" min="1" class="form-control form-control-sm border-dark-subtle" id="id_parcelas" name="parcelas" value="1">
                                 </div>
                                 <div class="col-md-1" id="div_id_dias" style="display:none;">
                                     <label class="form-label">Dias</label>
-                                    <input type="number" min="0"
-                                           class="form-control form-control-sm border-dark-subtle"
-                                           id="id_dias" name="dias_intervalo" value="30">
+                                    <input type="number" min="0" class="form-control form-control-sm border-dark-subtle" id="id_dias" name="dias_intervalo" value="30">
                                 </div>
                                 <div class="col-md-1">
                                     <label class="form-label">&nbsp;</label> <!-- Label vazio só para alinhar -->
@@ -206,8 +166,7 @@
                                     <div class="input-group">
                                         <input type="text" step="0.01" placeholder="0,00" min="0.01" class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly"
                                             id="id_desconto" name="desconto" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao"
-                                            data-permissao="orcamentos.atribuir_desconto" data-acao="atribuir_desconto" id="btnDesconto"
+                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao" data-permissao="orcamentos.atribuir_desconto" data-acao="atribuir_desconto" id="btnDesconto"
                                             data-modulo="Orçamentos" data-registro-desc="Criação de Novo Orçamento">
                                             <i class="fa-solid fa-pen-to-square"></i>
                                         </button>
@@ -220,8 +179,7 @@
                                         <input type="text" step="0.01" placeholder="0,00" min="0.01" class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly"
                                             id="id_acrescimo" name="acrescimo" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
                                         </button>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao"
-                                                data-permissao="orcamentos.atribuir_acrescimo" data-acao="atribuir_acrescimo" id="btnAcrescimo"
+                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao" data-permissao="orcamentos.atribuir_acrescimo" data-acao="atribuir_acrescimo" id="btnAcrescimo"
                                                 data-modulo="Orçamentos" data-registro-desc="Criação de Novo Orçamento">
                                             <i class="fa-solid fa-pen-to-square"></i>
                                         </button>
@@ -231,12 +189,9 @@
                                     <table class="table table-bordered table-striped" id="itensTableForm">
                                         <thead class="table-dark">
                                             <tr>
-                                                <th col="auto" id="thTableForm" style="text-align: justify;">#</th>
-                                                <th col="auto" id="thTableForm" style="text-align: justify;">Forma Pgto.</th>
-                                                <th col="auto valor_os" id="thTableForm" style="text-align: justify;">Valor</th>
-                                                <th col="auto" id="thTableForm" style="text-align: justify;">Parcelas</th>
-                                                <th col="auto" id="thTableForm" style="text-align: justify;">Dias</th>
-                                                <th col="auto" style="text-align: justify; width: 40px;">Ações</th>
+                                                <th col="auto" id="thTableForm" style="text-align: justify;">#</th><th col="auto" id="thTableForm" style="text-align: justify;">Forma Pgto.</th>
+                                                <th col="auto valor_os" id="thTableForm" style="text-align: justify;">Valor</th><th col="auto" id="thTableForm" style="text-align: justify;">Parcelas</th>
+                                                <th col="auto" id="thTableForm" style="text-align: justify;">Dias</th><th col="auto" style="text-align: justify; width: 40px;">Ações</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -247,9 +202,7 @@
                                     <li class="list-group-item"><strong>Soma das Formas de Pagamento:</strong> <span style="float: right; padding-left: 10px; padding-right: 10px;" class="border border-secondary rounded-4 bg-primary-subtle fw-bold" id="somaFormas">R$ 0,00</span></li>
                                 </ul>
                                 <input type="hidden" id="id_json_formas_pgto" name="json_formas_pgto">
-                                <div class="col-md-12">
-                                    {{ form.obs_form_pgto|as_crispy_field }}
-                                </div>
+                                <div class="col-md-12">{{ form.obs_form_pgto|as_crispy_field }}</div>
                             </div>
                         </div>
                     </div>

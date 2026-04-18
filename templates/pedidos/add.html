@@ -28,19 +28,22 @@
                     </div>
                     <div class="card-body">
                         <div class="row g-3" style="margin-left: -8px;">
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 {{ form.vinc_fil|as_crispy_field }}
                             </div>
                             <div class="col-md-1">
                                 {{ form.dt_emi|as_crispy_field }}
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 {{ form.vendedor|as_crispy_field }}
                             </div>
                             <div class="col-md-4">
                                 {{ form.cli|as_crispy_field }}
                             </div>
-                            <div class="card" style="margin: 0; margin-left: 4px;">
+                            <div class="col-md-2">
+                                {{ form.tabela_preco|as_crispy_field }}
+                            </div>
+                            <div class="card mt-2" style="margin: 0; margin-left: 4px;">
                                 <div class="form-buttons" style="margin-left: 10px; margin-top: 10px;">
                                     <div class="card-header bg-white">
                                         <button type="button" class="btn btn-dark" id="endBtn">Produtos</button>
@@ -48,12 +51,38 @@
                                     </div>
                                 </div>
                                 <div class="form-section" id="enderecos">
-                                    <div class="col-md-2 d-flex align-items-start">
-                                        <button class="btn btn-dark btn-sm w-100" type="button" id="add-produtos" style="margin-top: 30px;">
-                                            <i class="fa-solid fa-plus"></i> Adicionar Item
-                                        </button>
+                                    <div class="row d-grid gap-2 d-md-flex justify-content-md-end">
+                                        <div class="col-md-2">
+                                            <button class="btn btn-dark btn-sm w-100" type="button" id="add-produtosP" style="margin-top: 15px;">
+                                                <i class="fa-solid fa-plus"></i> Adicionar Item
+                                            </button>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button 
+                                                class="btn btn-secondary btn-sm w-100 btn-permissao"
+                                                type="button"
+                                                data-permissao="pedidos.atribuir_desconto_ped"
+                                                data-acao="atribuir_desconto_ped"
+                                                data-msg-negado="Seu usuário não pode aplicar descontos em Pedidos!"
+                                                style="margin-top: 15px;"
+                                            >
+                                                <i class="fa-solid fa-brazilian-real-sign"></i> Aplicar Desconto
+                                            </button>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button 
+                                                class="btn btn-info btn-sm w-100 btn-permissao"
+                                                type="button"
+                                                data-permissao="pedidos.atribuir_acrescimo_ped"
+                                                data-acao="atribuir_acrescimo_ped"
+                                                data-msg-negado="Seu usuário não pode aplicar acréscimos em Pedidos!"
+                                                style="margin-top: 15px;"
+                                            >
+                                                <i class="fa-solid fa-brazilian-real-sign"></i> Aplicar Acréscimo
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div class="row g-3" style="overflow-x: auto;">
+                                    <div class="row g-3" style="overflow-x: auto;" id="area-pedido">
                                         <table class="table table-sm table-bordered table-striped table-hover table-responsive-md table-rounded" id="tabela-produtos">
                                             <thead class="table-dark">
                                                 <tr>
@@ -61,7 +90,7 @@
                                                     <th>Produto</th>
                                                     <th>Quantidade</th>
                                                     <th>Vl. Unit.</th>
-                                                    <th>Desconto</th>
+                                                    <th>Desc/Acres</th>
                                                     <th>Vl. Total</th>
                                                     <th>Ações</th>
                                                 </tr>
@@ -86,17 +115,20 @@
                                         <h6 class="fw-bold" style="margin-top: -10px;">TOTAIS DO PEDIDO</h6>
                                     </div>
                                 </div>
-                                <div class="card mt-2 mb-2 mx-auto" style="width: 18rem;">
-                                    <ul class="list-group list-group-flush">
-                                        <li class="list-group-item fw-bold">Total Desconto: <span style="background-color: #20B2AA; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" id="total-desconto">0.00</span></li>
-                                        <li class="list-group-item fw-bold">Total dos Produtos: <span style="background-color: #3CB371; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" id="total-produtos">0.00</span></li>
-                                        <li class="list-group-item fw-bold">
-                                            Total Frete: <span title="Clique para inserir o valor do frete" id="total-frete" style="background-color: #F08080; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" class="editable">{{ form.frete.value }}</span>
-                                            <input type="hidden" id="id_frete" name="frete" value="{{ form.frete.value }}">
-                                        </li>
-
-                                        <li class="list-group-item fw-bold">Valor Total: <span style="background-color: #32CD32; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" id="valor-total">0.00</span></li>
-                                    </ul>
+                                <div class="card mt-2 mb-2 mx-auto" style="max-width: 50rem; width: 100%;">
+                                    <div class="row">
+                                        <ul class="list-group col" style="border-radius: 15px; margin: 10px 5px 10px 10px;">
+                                            <li class="list-group-item fw-bold">Total dos Produtos: <span style="background-color: #3CB371; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" id="total-produtos">0.00</span></li>
+                                            <li class="list-group-item fw-bold">Total Desc/Acrés: <span style="background-color: #20B2AA; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" id="total-desconto">0.00</span></li>
+                                        </ul>
+                                        <ul class="list-group col" style="border-radius: 15px; margin: 10px 5px 10px 10px;">
+                                            <li class="list-group-item fw-bold">
+                                                Total Frete: <span title="Clique para inserir o valor do frete" id="total-frete" style="background-color: #F08080; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" class="editable">{{ form.frete.value }}</span>
+                                                <input type="hidden" id="id_frete" name="frete" value="{{ form.frete.value }}">
+                                            </li>
+                                            <li class="list-group-item fw-bold">Valor Total: <span style="background-color: #32CD32; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" id="valor-total">0.00</span></li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -124,6 +156,47 @@
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>
                     <button type="button" class="btn btn-secondary" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% comment %} Modal de Desconto/Acréscimo {% endcomment %}
+    <div class="modal fade" id="modalDesconto" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h5 class="modal-title" id="tituloModal"><i class="fa-solid fa-calculator"></i> Aplicar Ajuste</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="fw-bold">Valor sem ajuste:</label>
+                        <div class="form-control text-end" id="valor-base">R$ 0.00</div>
+                    </div>
+                    <div class="mb-2">
+                        <input type="hidden" id="operacao">
+                    </div>
+                    <div class="mb-2">
+                        <label class="fw-bold">Tipo:</label>
+                        <select class="form-control" id="tipo_desconto">
+                            <option value="valor">Valor (R$)</option>
+                            <option value="percentual">Percentual (%)</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="fw-bold">Valor:</label>
+                        <div class="input-group">
+                            <span class="input-group-text" id="simbolo">R$</span>
+                            <input class="form-control text-end" id="campo_desconto" value="0.00">
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="fw-bold">Valor com ajuste:</label>
+                        <div class="form-control text-end fw-bold" id="valor-final">R$ 0.00</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary btn-sm" id="confirmarDesconto">Aplicar</button>
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
                 </div>
             </div>
         </div>
@@ -204,50 +277,83 @@
         </div>
     </div>
     <!--Modal de Inserção de Produtos-->
-    <div class="modal fade" id="edProdModal" style="z-index: 1055;" tabindex="-1" aria-labelledby="edProdModalLabel" aria-hidden="true">
+    <div class="modal fade" id="edProdModalP" style="z-index: 1055;" tabindex="-1" aria-labelledby="edProdModalPLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header titulo-modal">
-                    <h1 class="modal-title fs-5" id="edProdModalLabel"><i class="fa-solid fa-file-pen"></i> Adição/Edição de Item</h1>
+                    <h1 class="modal-title fs-5" id="edProdModalPLabel"><i class="fa-solid fa-file-pen"></i> Adição/Edição de Item</h1>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3" style="margin-left: -8px;">
                         <div class="col-md-3" id="div_id_cod_prod">
-                            <label for="id_cod_produto" class="form-label requiredField">Cód. Produto</label>
+                            <label for="id_cod_produtoP" class="form-label requiredField">Cód. Produto</label>
                             <div class="input-group">
-                                <input type="text" id="id_cod_produto" class="form-control form-control-sm border-dark-subtle" placeholder="Cód. Prod." aria-label="Cód. Prod." aria-describedby="add-prod">
-                                <button class="btn btn-outline-dark btn-sm" type="button" id="add-prod"><i class="fa-solid fa-magnifying-glass"></i></button>
+                                <input type="text" id="id_cod_produtoP" class="form-control form-control-sm border-dark-subtle" placeholder="Cód. Prod." aria-label="Cód. Prod." aria-describedby="add-prod">
+                                <button class="btn btn-outline-dark btn-sm" type="button" id="add-prodP"><i class="fa-solid fa-magnifying-glass"></i></button>
                             </div>
                         </div>
                         <div class="col-md-7" id="div_id_desc_prod">
-                            <label for="id_desc_prod" class="form-label requiredField">Descrição</label>
-                            <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_desc_prod" autofocus name="desc_prod" disabled="disabled">
+                            <label for="id_desc_prodP" class="form-label requiredField">Descrição</label>
+                            <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_desc_prodP" autofocus name="desc_prod" disabled="disabled">
                         </div>
                         <div class="col-md-2" id="div_id_unidProd">
-                            <label for="id_unidProd" class="form-label requiredField">Unidade</label>
-                            <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_unidProduto" name="unidProd" disabled="disabled">
+                            <label for="id_unidProdP" class="form-label requiredField">Unidade</label>
+                            <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_unidProdutoP" name="unidProd" disabled="disabled">
                         </div>
-                        <div class="col-md-4" id="div_id_grupo">
-                            <label for="id_grupoProd" class="form-label requiredField">Grupo</label>
-                            <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_grupoProd" name="grupo" disabled="disabled">
+                        <div class="col-md-2" id="div_id_marca">
+                            <label for="id_marcaProdP" class="form-label requiredField">Marca</label>
+                            <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_marcaProdP" name="marca" disabled="disabled">
                         </div>
-                        <div class="col-md-2" id="div_id_preco_unit">
-                            <label for="id_preco_unit" class="form-label requiredField">Preço Unitário*</label>
-                            <input type="decimal" class="form-control form-control-sm border-dark-subtle" id="id_preco_unit" name="preco_unit">
+                        <div class="col-md-2" id="div_id_grupo">
+                            <label for="id_grupoProdP" class="form-label requiredField">Grupo</label>
+                            <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_grupoProdP" name="grupo" disabled="disabled">
                         </div>
                         <div class="col-md-2" id="div_id_quantidade">
-                            <label for="id_quantidade" class="form-label requiredField">Quantidade*</label>
-                            <input type="decimal" class="form-control form-control-sm border-dark-subtle" id="id_quantidade" name="quantidade">
+                            <label for="id_quantidadeP" class="form-label requiredField">Quantidade*</label>
+                            <div class="input-group input-group-sm flex-md-fill">
+                                <button type="button" class="btn btn-info tbn-sm remQtdP"><i class="fa-solid fa-minus"></i></button>
+                                <input type="decimal" class="form-control form-control-sm border-dark-subtle" id="id_quantidadeP" name="quantidade">
+                                <button type="button" class="btn btn-info tbn-sm addQtdP"><i class="fa-solid fa-plus"></i></button>
+                            </div>
                         </div>
-                        <div class="col-md-2" id="div_id_desconto">
-                            <label for="id_desconto" class="form-label requiredField">Desconto</label>
-                            <input type="decimal" class="form-control form-control-sm border-dark-subtle" id="id_desconto" name="desconto">
+                        <div class="col-md-2" id="div_id_alt_vlP">
+                            <label for="id_alt_vlP" class="form-label requiredField btn-permissao"  data-permissao="pedidos.alt_vl_ped" data-msg-negado="Seu usuário não pode alterar valor de produtos em pedidos!">Alterar Valor</label>
+                            <select class="form-select form-select-sm border-dark-subtle" id="id_alt_vlP" name="alt_vlP">
+                                <option value="Não">Não</option>
+                                <option value="Sim">Sim</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2" id="div_id_preco_unit">
+                            <label for="id_preco_unitP" class="form-label requiredField">Valor Unitário</label>
+                            <input type="decimal" class="form-control form-control-sm border-dark-subtle" id="id_preco_unitP" name="preco_unit">
+                        </div>
+                        <div class="col-md-2" id="div_id_vl_total_preco">
+                            <label for="id_vl_total_preco" class="form-label requiredField">Valor Total</label>
+                            <input type="decimal" class="form-control form-control-sm border-dark-subtle" id="id_vl_total_preco" value="0.00" name="vl_total_preco" disabled="disabled">
+                        </div>
+                        <div class="col-md-2" id="div_id_atribuir">
+                            <label for="id_atribuir" class="form-label requiredField">Atribuir</label>
+                            <select class="form-select form-select-sm border-dark-subtle" id="id_atribuir" name="atribuir">
+                                <option value="Desconto">Desconto</option>
+                                <option value="Acréscimo">Acréscimo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2" id="div_id_tipo_desc_acres">
+                            <label for="id_tipo_desc_acres" class="form-label requiredField">Tipo</label>
+                            <select class="form-select form-select-sm border-dark-subtle" id="id_tipo_desc_acres" name="tipo_desc_acres">
+                                <option value="Percentual">Percentual</option>
+                                <option value="Valor">Valor</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2" id="div_id_desc_acres">
+                            <label for="id_desc_acres" class="form-label requiredField">Desc.: R$ 0,00</label>
+                            <input type="decimal" class="form-control form-control-sm border-dark-subtle" id="id_desc_acres" name="desc_acres" value="0.00">
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-dark" id="add-produto-lista">Confirmar</button>
-                    <button type="button" class="btn btn-secondary" id="cancelar-produto-lista" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-dark" id="add-produto-listaP">Confirmar</button>
+                    <button type="button" class="btn btn-secondary" id="cancelar-produto-listaP" data-bs-dismiss="modal">Cancelar</button>
                 </div>
             </div>
         </div>

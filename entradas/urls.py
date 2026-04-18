@@ -12,4 +12,5 @@ urlpatterns = [
     path('ler_xml/', views.ler_xml_entrada, name='ler-xml-entrada'),
     path('criar_fornecedor_xml/', views.criar_fornecedor_por_xml, name='criar-fornecedor-xml'),
     path('criar_produto_xml/', views.criar_produto_por_xml, name='criar-produto-xml'),
+    path('criar_produtos_em_massa/', views.criar_produtos_em_massa, name='criar-produtos-em-massa'),
 ]

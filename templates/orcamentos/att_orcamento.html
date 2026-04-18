@@ -27,7 +27,7 @@
                     </div>
                     <div class="form-buttons text-center" style="margin-left: 10px; margin-top: 10px;">
                         <button type="button" class="btn btn-dark" id="medidasBtn" style="margin-bottom: 5px;">Medidas</button>
-                        <button type="button" class="btn btn-dark" id="clienteBtn" style="margin-bottom: 5px;">Cliente</button>
+                        <button type="button" class="btn btn-dark" id="clienteBtn" style="margin-bottom: 5px;">Dados Gerais</button>
                         <button type="button" class="btn btn-dark" id="prod_servBtn" style="margin-bottom: 5px;">Produtos</button>
                         <button type="button" class="btn btn-dark" id="adicionaisBtn" style="margin-bottom: 5px;">Adicionais</button>
                         <button type="button" class="btn btn-dark" id="form_pgtoBtn" style="margin-bottom: 5px;">Formas de Pagamento</button>
@@ -38,7 +38,8 @@
                             <div class="row" style="margin-left: -8px;">
                                 <input type="hidden" name="next" value="{{ request.GET.next }}">
                                 <div class="col-md-1">{{ form.num_orcamento|as_crispy_field }}</div>
-                                <div class="col-md-3">{{ form.vinc_fil|as_crispy_field }}</div>
+                                <div class="col-md-2">{{ form.vinc_fil|as_crispy_field }}</div>
+                                <div class="col-md-2">{{ form.fornecedor|as_crispy_field }}</div>
                                 <div class="col-md-3">{{ form.solicitante|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.dt_emi|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.dt_ent|as_crispy_field }}</div>
@@ -104,21 +105,11 @@
                                             <thead class="table-dark">
                                                 <tr style="font-size: 12px;">
                                                     <th>#</th>
-                                                    <th style="width: 6%;">Largura</th>
-                                                    <th style="width: 6%;">Altura</th>
-                                                    <th style="width: 6%;">Lg. Corte</th>
-                                                    <th style="width: 6%;">At. Corte</th>
-                                                    <th style="width: 6%;">Q. Lâm.</th>
-                                                    <th style="width: 6%;">M²</th>
-                                                    <th style="width: 6%;">Ft. Peso</th>
-                                                    <th style="width: 6%;">Peso</th>
-                                                    <th style="width: 6.5%;">Eix. Mot.</th>
-                                                    <th style="width: 6%;">Rolo</th>
-                                                    <th style="width: 8%;">TP. Lâm.</th>
-                                                    <th style="width: 8%;">TP. Vão</th>
-                                                    <th style="width: 8%;">Guia Esquerdo</th>
-                                                    <th style="width: 8%;">Guia Direito</th>
-                                                    <th style="width: 40px;">Exc.</th>
+                                                    <th style="width: 6%;">Largura</th><th style="width: 6%;">Altura</th><th style="width: 6%;">Lg. Corte</th>
+                                                    <th style="width: 6%;">At. Corte</th><th style="width: 6%;">Q. Lâm.</th><th style="width: 6%;">M²</th>
+                                                    <th style="width: 6%;">Ft. Peso</th><th style="width: 6%;">Peso</th><th style="width: 6.5%;">Eix. Mot.</th>
+                                                    <th style="width: 6%;">Rolo</th><th style="width: 8%;">TP. Lâm.</th><th style="width: 8%;">TP. Vão</th>
+                                                    <th style="width: 8%;">Guia Esquerdo</th><th style="width: 8%;">Guia Direito</th><th style="width: 40px;">Exc.</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -131,12 +122,17 @@
                                                         <td data-label="Altura:" class="mobile-2col"><input type="text" class="form-control form-control-sm alt" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.altura|unlocalize }}"></td>
                                                         {% load l10n %}
                                                         <td data-label="Lg. Corte:" class="mobile-2col"><input readonly class="form-control form-control-sm larg-corte" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.larg_corte|unlocalize }}"></td>
-                                                        <td data-label="At. Corte:" class="mobile-2col"><input readonly class="form-control form-control-sm alt-corte" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.alt_corte }}"></td>
-                                                        <td data-label="Qtd. Lâm.:" class="mobile-2col"><input readonly class="form-control form-control-sm qtd-laminas" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.qtd_lam }}"></td>
-                                                        <td data-label="M²:" class="mobile-2col"><input readonly class="form-control form-control-sm m2" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.m2 }}"></td>
-                                                        <td data-label="Ft. Peso:" class="mobile-2col"><input readonly class="form-control form-control-sm ft-peso" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.fator_peso }}"></td>
-                                                        <td data-label="Peso:" class="mobile-2col"><input readonly class="form-control form-control-sm peso" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.peso }}"></td>
-                                                        <td data-label="Eix. Mot.:" class="mobile-2col"><input readonly class="form-control form-control-sm eix-mot" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.eixo_motor }}"></td>
+                                                        {% load l10n %}
+                                                        <td data-label="At. Corte:" class="mobile-2col"><input readonly class="form-control form-control-sm alt-corte" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.alt_corte|unlocalize }}"></td>
+                                                        <td data-label="Qtd. Lâm.:" class="mobile-2col"><input readonly class="form-control form-control-sm qtd-laminas" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.qtd_lam|unlocalize }}"></td>
+                                                        {% load l10n %}
+                                                        <td data-label="M²:" class="mobile-2col"><input readonly class="form-control form-control-sm m2" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.m2|unlocalize }}"></td>
+                                                        {% load l10n %}
+                                                        <td data-label="Ft. Peso:" class="mobile-2col"><input readonly class="form-control form-control-sm ft-peso" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.fator_peso|unlocalize }}"></td>
+                                                        {% load l10n %}
+                                                        <td data-label="Peso:" class="mobile-2col"><input readonly class="form-control form-control-sm peso" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.peso|unlocalize }}"></td>
+                                                        {% load l10n %}
+                                                        <td data-label="Eix. Mot.:" class="mobile-2col"><input readonly class="form-control form-control-sm eix-mot" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.eixo_motor|unlocalize }}"></td>
                                                         {% load l10n %}
                                                         <td data-label="Rolo:" class="mobile-full"><input readonly class="form-control form-control-sm rolo" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.rolo|unlocalize }}"></td>
                                                         <td data-label="Tipo Lâmina:" class="mobile-full">
@@ -199,7 +195,6 @@
                                                 <div class="accordion-body table-container w-100">
                                                     <!-- 🔥 FORMULÁRIO DE INSERÇÃO MANUAL -->
                                                     <div class="row g-2 mb-2 form-produto" data-porta="{{ pt.numero }}">
-
                                                         <div class="col-md-2">
                                                             <label class="form-label">Cód. Produto</label>
                                                             <div class="input-group">
@@ -234,20 +229,13 @@
                                                     <table class="table table-bordered table-sm table-striped tabela-produtos" id="tblProd_{{ pt.numero }}">
                                                         <thead class="table-dark">
                                                             <tr>
-                                                                <th>Código</th>
-                                                                <th>Descrição</th>
-                                                                <th>Unidade</th>
-                                                                <th>Vl. Compra</th>
-                                                                <th>Vl. Un.</th>
-                                                                <th>Qtde.</th>
-                                                                <th>Tot. Compra</th>
-                                                                <th>Vl. Tot.</th>
-                                                                <th style="width: 80px;">Ações</th>
+                                                                <th>Código</th><th>Descrição</th><th>Unidade</th><th>Vl. Compra</th><th>Vl. Un.</th><th>Qtde.</th>
+                                                                <th>Tot. Compra</th><th>Vl. Tot.</th><th style="width: 80px;">Ações</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
                                                             {% for pprod in pt.produtos.all %}
-                                                                <tr data-porta="{{ pt.numero }}" data-item-id="{{ pprod.produto.id }}" {% if pprod.regra_origem %} data-regra-origem="{{ pprod.regra_origem }}"{% elif pprod.produto.regra and pprod.produto.regra.codigo == 'LAMINAS_M2' %} data-regra-origem="LAMINA_TIPO" {% elif pprod.produto.regra and pprod.produto.regra.tipo == 'QTD' and pprod.produto.regra.codigo == 'MOTOR_UNIDADE' %} data-regra-origem="MOTOR_PESO"{% endif %}>
+                                                                <tr data-porta="{{ pt.numero }}" data-item-id="{{ pprod.produto.id }}" {% if pprod.regra_origem %}data-regra-origem="{{ pprod.regra_origem }}"{% endif %}>
                                                                     <td data-label="Código:" class="td-cod mobile-full">{{ pprod.produto.id }}</td>
                                                                     <td data-label="Descrição:" class="td-desc mobile-full">{{ pprod.produto.desc_prod }}</td>
                                                                     <td data-label="Unidade:" class="td-unid mobile-full">{{ pprod.produto.unidProd }}</td>
@@ -341,20 +329,13 @@
                                                     <table class="table table-bordered table-sm table-striped tabela-adicionais" id="tblAdc_{{ pt.numero }}">
                                                         <thead class="table-dark">
                                                             <tr>
-                                                                <th>Código</th>
-                                                                <th>Descrição</th>
-                                                                <th>Unidade</th>
-                                                                <th>Vl. Compra</th>
-                                                                <th>Vl. Un.</th>
-                                                                <th>Qtde.</th>
-                                                                <th>Tot. Compra</th>
-                                                                <th>Vl. Tot.</th>
-                                                                <th style="width: 80px;">Ações</th>
+                                                                <th>Código</th><th>Descrição</th><th>Unidade</th><th>Vl. Compra</th><th>Vl. Un.</th><th>Qtde.</th>
+                                                                <th>Tot. Compra</th><th>Vl. Tot.</th><th style="width: 80px;">Ações</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
                                                             {% for adc in pt.adicionais.all %}
-                                                            <tr data-porta="{{ pt.numero }}"  data-item-id="{{ adc.produto.id }}" {% if adc.produto.regra and adc.produto.regra.codigo == 'PINTURA_M2' %}data-regra-origem="PINTURA_TIPO"{% endif %}>
+                                                            <tr data-porta="{{ pt.numero }}"  data-item-id="{{ adc.produto.id }}"  {% if adc.regra_origem %}data-regra-origem="{{ adc.regra_origem }}"{% endif %}>
                                                                 <td data-label="Cód:" class="td-cod mobile-full">{{ adc.produto.id }}</td>
                                                                 <td data-label="Descrição:" class="td-desc mobile-full">{{ adc.produto.desc_prod }}</td>
                                                                 <td data-label="Unidade:" class="td-unid mobile-full">{{ adc.produto.unidProd }}</td>
@@ -439,12 +420,9 @@
                                     <table class="table table-bordered table-striped" id="itensTableForm">
                                         <thead class="table-dark">
                                             <tr>
-                                                <th col="auto" id="thTableForm" style="text-align: justify;">#</th>
-                                                <th col="auto" id="thTableForm" style="text-align: justify;">Forma Pgto.</th>
-                                                <th col="auto valor_os" id="thTableForm" style="text-align: justify;">Valor</th>
-                                                <th col="auto" id="thTableForm" style="text-align: justify;">Parcelas</th>
-                                                <th col="auto" id="thTableForm" style="text-align: justify;">Dias</th>
-                                                <th col="auto" style="text-align: justify; width: 40px;">Ações</th>
+                                                <th col="auto" id="thTableForm" style="text-align: justify;">#</th><th col="auto" id="thTableForm" style="text-align: justify;">Forma Pgto.</th>
+                                                <th col="auto valor_os" id="thTableForm" style="text-align: justify;">Valor</th><th col="auto" id="thTableForm" style="text-align: justify;">Parcelas</th>
+                                                <th col="auto" id="thTableForm" style="text-align: justify;">Dias</th><th col="auto" style="text-align: justify; width: 40px;">Ações</th>
                                             </tr>
                                         </thead>
                                         <tbody>

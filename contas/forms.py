@@ -53,8 +53,9 @@ class UsuarioCadastroForm(forms.ModelForm):
             'view_orcamento', 'add_orcamento', 'change_orcamento', 'clonar_orcamento', 'delete_orcamento', 'atribuir_desconto', 'atribuir_acrescimo', 'faturar_orcamento', 'cancelar_orcamento', 'alterar_dt_venc_orc', 'alterar_dt_fat_orc',
             'view_tecnico', 'add_tecnico', 'change_tecnico', 'delete_tecnico',
             'view_marca', 'add_marca', 'change_marca', 'delete_marca',
-            'view_regraproduto', 'add_regraproduto', 'change_regraproduto', 'delete_regraproduto'
-            'view_pedido', 'add_pedido', 'change_pedido', 'delete_pedido', 'faturar_pedido', 'cancelar_pedido', 'atribuir_desconto_ped', 'atribuir_acrescimo_ped',
+            'view_regraproduto', 'add_regraproduto', 'change_regraproduto', 'delete_regraproduto',
+            'view_pedido', 'add_pedido', 'change_pedido', 'delete_pedido', 'faturar_pedido', 'cancelar_pedido', 'atribuir_desconto_ped', 'atribuir_acrescimo_ped', 'vender_sem_estoque_ped',
+            'alt_vl_ped', 'alterar_data_faturamento',
             'view_contareceber', 'add_contareceber', 'change_contareceber', 'delete_contareceber', 'atribuir_desconto_cr', 'baixar_cr', 'estornar_cr',
         ]
         permissoes = Permission.objects.filter(content_type__app_label__in=['formas_pgto', 'tipo_cobranca', 'entradas', 'bairros', 'cidades', 'estados', 'grupos', 'bancos', 'unidades', 'filiais', 'usuarios', 'tabelas_preco',
@@ -67,13 +68,15 @@ class UsuarioCadastroForm(forms.ModelForm):
             'Estados': [], 'Grupos': [], 'Bancos': [], 'Marcas': [], 'Unidades': [], 'Filiais': [], 'Fornecedores': [], 'Usuários': [], 'Produtos': [], 'Clientes': [], 'Pedidos': [], 'Orçamentos': [], 'Técnicos': [],})
         # Permissões por App
         entradas_perms = ['view_entrada', 'add_entrada', 'change_entrada', 'delete_entrada', 'efetivar_entrada', 'cancelar_entrada']
+        fornecedores_perms = ['view_fornecedor', 'add_fornecedor', 'change_fornecedor', 'delete_fornecedor']
         produtos_perms = ['view_produto', 'add_produto', 'change_produto', 'delete_produto', 'clonar_produto']
         formas_perms = ['view_formapgto', 'add_formapgto', 'change_formapgto', 'delete_formapgto']
         tabelas_perms = ['view_tabelapreco', 'add_tabelapreco', 'change_tabelapreco', 'delete_tabelapreco']
         marcas_perms = ['view_marca', 'add_marca', 'change_marca', 'delete_marca']
         regras_perms = ['view_regraproduto', 'add_regraproduto', 'change_regraproduto', 'delete_regraproduto']
         orcamentos_perms = ['view_orcamento', 'add_orcamento', 'change_orcamento', 'clonar_orcamento', 'delete_orcamento', 'atribuir_desconto', 'atribuir_acrescimo', 'faturar_orcamento', 'cancelar_orcamento', 'alterar_dt_venc_orc', 'alterar_dt_fat_orc',]
-        pedidos_perms = ['view_pedido', 'add_pedido', 'change_pedido', 'clonar_pedido', 'delete_pedido', 'atribuir_desconto_ped', 'atribuir_acrescimo_ped', 'faturar_pedido', 'cancelar_pedido',]
+        pedidos_perms = ['view_pedido', 'add_pedido', 'change_pedido', 'clonar_pedido', 'delete_pedido', 'atribuir_desconto_ped', 'atribuir_acrescimo_ped', 'faturar_pedido', 
+                         'cancelar_pedido', 'vender_sem_estoque_ped', 'alt_vl_ped', 'alterar_data_faturamento']
         cr_perms = ['view_contareceber', 'add_contareceber', 'change_contareceber', 'delete_contareceber', 'atribuir_desconto_cr', 'baixar_cr', 'estornar_cr',]
         for perm in permissoes_ordenadas:
             if 'bairro' in perm.codename: grupo_permissoes['Bairros'].append(perm)
@@ -91,7 +94,7 @@ class UsuarioCadastroForm(forms.ModelForm):
             elif 'banco' in perm.codename: grupo_permissoes['Bancos'].append(perm)
             elif 'unidade' in perm.codename: grupo_permissoes['Unidades'].append(perm)
             elif 'filial' in perm.codename: grupo_permissoes['Filiais'].append(perm)
-            elif 'fornecedor' in perm.codename: grupo_permissoes['Fornecedores'].append(perm)
+            elif perm.codename in fornecedores_perms: grupo_permissoes['Fornecedores'].append(perm)
             elif 'usuario' in perm.codename: grupo_permissoes['Usuários'].append(perm)
             elif perm.codename in produtos_perms: grupo_permissoes['Produtos'].append(perm)
             elif 'cliente' in perm.codename: grupo_permissoes['Clientes'].append(perm)

@@ -15,6 +15,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from mensalidades.models import Mensalidade
 from django.db import transaction
+from django.db.models import Q
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -87,10 +88,19 @@ def lista_contratos(request):
 
 @login_required
 def lista_contratos_ajax(request):
-    term = request.GET.get('term', '')
-    contratos = Contrato.objects.filter(empresa__fantasia=term)[:10]
-    data = {'contratos': [{'id': contrato.id, 'empresa': contrato.empresa.fantasia} for contrato in contratos]}
-    return JsonResponse(data)
+    termo_busca = request.GET.get('term') or request.GET.get('q') or ''
+    try:
+        filtros = Q(situacao__iexact='Ativo')
+        if termo_busca.isdigit():
+            condicao_busca = Q(empresa__fantasia__icontains=termo_busca) | Q(id=termo_busca)
+        else:
+            condicao_busca = Q(empresa__fantasia__icontains=termo_busca)
+        contratos = Contrato.objects.filter(filtros & condicao_busca)[:20]
+        results = [{'id': contrato.id, 'text': f"{contrato.id} - {contrato.empresa.fantasia.upper()}"} for contrato in contratos]
+        return JsonResponse({'results': results})
+    except Exception as e:
+        print(f"Erro na busca AJAX: {e}")
+        return JsonResponse({'results': [], 'error': str(e)})
 
 @login_required
 def add_contrato(request):
@@ -195,7 +205,6 @@ def aprovar_contrato(request, id):
                 contrato=contrato,
                 dt_venc=dt_venc,
                 vl_mens=valor,
-                qtd_mens=qtd_meses,
                 situacao='Aberta',
                 tp_juros=tp_juros,
                 tp_multa=tp_multa,

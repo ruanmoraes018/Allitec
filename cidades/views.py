@@ -8,6 +8,7 @@ import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
 from filiais.models import Usuario
+from django.db.models import Q
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -52,10 +53,19 @@ def lista_cidades(request):
 
 @login_required
 def lista_cidades_ajax(request):
-    term = request.GET.get('term', '')
-    cidades = Cidade.objects.filter(nome_cidade__icontains=term, vinc_emp=request.user.empresa)[:20]
-    data = {'cidades': [{'id': cidade.id, 'text': cidade.nome_cidade} for cidade in cidades]}
-    return JsonResponse(data)
+    termo_busca = request.GET.get('term') or request.GET.get('q') or ''
+    empresa = request.user.empresa
+    try:
+        if termo_busca.isdigit():
+            condicao_busca = Q(nome_cidade__icontains=termo_busca) | Q(id=termo_busca)
+        else:
+            condicao_busca = Q(nome_cidade__icontains=termo_busca)
+        cidades = Cidade.objects.filter(condicao_busca & Q(vinc_emp=empresa))[:20]
+        results = [{'id': cidade.id, 'text': f"{cidade.nome_cidade.upper()}"} for cidade in cidades]
+        return JsonResponse({'results': results})
+    except Exception as e:
+        print(f"Erro na busca AJAX: {e}")
+        return JsonResponse({'results': [], 'error': str(e)})
 
 @login_required
 def add_cidade(request):

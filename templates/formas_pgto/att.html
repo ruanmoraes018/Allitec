@@ -45,6 +45,22 @@
                                 {{ form.gera_parcelas|as_crispy_field }}
                             </div>
                         </div>
+
+                        <hr>
+
+                        <!-- 🔥 INTEGRAÇÃO -->
+                        <div class="row g-3" style="margin-left: -8px;">
+                            <div class="col-md-3">
+                                {{ form.gateway|as_crispy_field }}
+                            </div>
+
+                            <div class="col-md-9">
+                                <div id="campos-credenciais"></div>
+                            </div>
+
+                            <!-- campo oculto que vai salvar -->
+                            <input type="hidden" name="credenciais" id="id_credenciais" value='{{ form.initial.credenciais|default:"{}" }}'>
+                        </div>
                     </div>
                     <div class="card-footer">
                         <div class="base_botao">
@@ -56,6 +72,7 @@
             {% endif %}
         </form>
     </div>
+    
     <!-- Modal -->
     <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -74,4 +91,121 @@
         </div>
     </div>
 </div>
+<script>
+    const CAMPOS_GATEWAY = {
+        mercadopago: [{name: "access_token", label: "Access Token"}],
+        pagseguro: [{name: "email", label: "Email"},{name: "token", label: "Token"}],
+        stripe: [{name: "secret_key", label: "Secret Key"}],
+        pix_direto: [{name: "client_id", label: "Client ID"},{name: "client_secret", label: "Client Secret"},{name: "chave_pix", label: "Chave Pix"}]
+    };
+    function renderCampos(callback = null) {
+        const gateway = document.getElementById("id_gateway").value;
+        const container = document.getElementById("campos-credenciais");
+        const valoresAtuais = {};
+        document.querySelectorAll(".cred-input").forEach(input => {
+            valoresAtuais[input.dataset.name] = input.value;
+        });
+        container.innerHTML = "";
+        if (!CAMPOS_GATEWAY[gateway]) return;
+        CAMPOS_GATEWAY[gateway].forEach(campo => {
+            const div = document.createElement("div");
+            div.innerHTML = `
+                <label class="form-label">${campo.label}</label>
+                <input type="text" class="form-control form-control-sm border-dark-subtle cred-input" data-name="${campo.name}" value="${valoresAtuais[campo.name] || ''}">
+            `;
+            container.appendChild(div);
+        });
+        bindEventosCredenciais();
+        // 🔥 EXECUTA CALLBACK DEPOIS DO RENDER
+        setTimeout(() => {
+            if (callback) callback();
+        }, 0);
+    }
+    function iniciarPreenchimento() {
+        const hidden = document.getElementById("id_credenciais");
+        if (!hidden || !hidden.value) return;
+        let raw = hidden.value;
+        let data = {}; // 👈 FIX AQUI
+        if (!raw || raw === "None") raw = "{}";
+        try {
+            console.log("RAW credenciais:", raw);
+            data = JSON.parse(raw);
+        } catch (e) {
+            console.log("JSON inválido bruto:", raw);
+            return;
+        }
+        Object.keys(data).forEach(key => {
+            const input = document.querySelector(`[data-name="${key}"]`);
+            if (input) {
+                input.value = data[key];
+            }
+        });
+    }
+    function atualizarJSONCredenciais() {
+        const gateway = document.getElementById("id_gateway").value;
+        const inputs = document.querySelectorAll(".cred-input");
+        const data = {};
+        if (CAMPOS_GATEWAY[gateway]) {
+            for (let campo of CAMPOS_GATEWAY[gateway]) {
+                const input = document.querySelector(`[data-name="${campo.name}"]`);
+                if (input && input.value.trim() === "") {
+                    return; // ainda não preencheu tudo
+                }
+            }
+        }
+        inputs.forEach(input => {
+            const name = input.dataset.name;
+            const value = input.value;
+            if (value) {
+                data[name] = value;
+            }
+        });
+        const hidden = document.getElementById("id_credenciais");
+        if (hidden) {
+            hidden.value = JSON.stringify(data);
+        }
+        console.log("JSON atualizado:", data);
+    }
+    function bindEventosCredenciais() {
+        document.querySelectorAll(".cred-input").forEach(input => {
+            // 🔥 atualiza ao sair do campo
+            input.addEventListener("blur", function () {
+                atualizarJSONCredenciais();
+            });
+            // 🔥 atualiza em tempo real
+            input.addEventListener("input", function () {
+                atualizarJSONCredenciais();
+            });
+        });
+    }
+    function preencherCamposExistentes() {
+        const hidden = document.getElementById("id_credenciais");
+        if (!hidden || !hidden.value) return;
+        try {
+            const data = JSON.parse(hidden.value || "{}");
+            Object.keys(data).forEach(key => {
+                const input = document.querySelector(`[data-name="${key}"]`);
+                if (input) input.value = data[key];
+            });
+        } catch (e) {
+            console.warn("Erro ao parsear credenciais:", e, hidden.value);
+        }
+    }
+    document.addEventListener("DOMContentLoaded", function () {
+        const gateway = document.getElementById("id_gateway");
+        const form = document.querySelector("form");
+        // 🔥 PRIMEIRO renderiza
+        renderCampos(() => {
+            iniciarPreenchimento();
+        });
+        gateway.addEventListener("change", function () {
+            renderCampos(() => {
+                iniciarPreenchimento();
+            });
+        });
+        form.addEventListener("submit", function () {
+            atualizarJSONCredenciais();
+        });
+    });
+</script>
 {% endblock %}

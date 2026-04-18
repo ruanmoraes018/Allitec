@@ -100,35 +100,39 @@
                                                                                 <label class="form-check-label" for="check_{{ perm.id }}">
                                                                                     {% with perm.codename as code %}
                                                                                         {% if 'add_' in code %}
-                                                                                            <span class="badge bg-success fs-6">Incluir</span>
+                                                                                            <span class="badge-permissao fs-6">Incluir</span>
                                                                                         {% elif 'change_' in code %}
-                                                                                            <span class="badge bg-warning text-dark fs-6">Editar</span>
+                                                                                            <span class="badge-permissao fs-6">Editar</span>
                                                                                         {% elif 'clonar_' in code %}
-                                                                                            <span class="badge text-white fs-6" style="background-color: #6A5ACD;">Clonar</span>
+                                                                                            <span class="badge-permissao fs-6">Clonar</span>
                                                                                         {% elif 'delete_' in code %}
-                                                                                            <span class="badge bg-danger fs-6">Excluir</span>
+                                                                                            <span class="badge-permissao fs-6">Excluir</span>
                                                                                         {% elif 'view_' in code %}
-                                                                                            <span class="badge bg-info text-dark fs-6">Visualizar</span>
+                                                                                            <span class="badge-permissao fs-6">Visualizar</span>
                                                                                         {% elif 'efetivar_' in code %}
-                                                                                            <span class="badge bg-success-subtle text-dark fs-6">Efetivar</span>
+                                                                                            <span class="badge-permissao fs-6">Efetivar</span>
                                                                                         {% elif 'faturar_' in code %}
-                                                                                            <span class="badge bg-success-subtle text-dark fs-6">Faturar</span>
+                                                                                            <span class="badge-permissao fs-6">Faturar</span>
                                                                                         {% elif 'baixar_' in code %}
-                                                                                            <span class="badge bg-success-subtle text-dark fs-6">Baixar</span>
+                                                                                            <span class="badge-permissao fs-6">Baixar</span>
                                                                                         {% elif 'cancelar_' in code %}
-                                                                                            <span class="badge bg-danger-subtle text-dark fs-6">Cancelar</span>
+                                                                                            <span class="badge-permissao fs-6">Cancelar</span>
                                                                                         {% elif 'atribuir_desconto' in code or 'atribuir_desconto_ped' in code or 'atribuir_desconto_cr' in code %}
-                                                                                            <span class="badge bg-info-subtle text-dark fs-6">Atribuir Desconto</span>
+                                                                                            <span class="badge-permissao fs-6">Atribuir Desconto</span>
                                                                                         {% elif 'atribuir_acrescimo' in code or 'atribuir_acrescimo_ped' in code %}
-                                                                                            <span class="badge bg-danger-subtle text-dark fs-6">Atribuir Acréscimo</span>
+                                                                                            <span class="badge-permissao fs-6">Atribuir Acréscimo</span>
                                                                                         {% elif 'atribuir_acrescimo' in code or 'atribuir_acrescimo_ped' in code %}
-                                                                                            <span class="badge bg-danger-subtle text-dark fs-6">Atribuir Acréscimo</span>
+                                                                                            <span class="badge-permissao fs-6">Atribuir Acréscimo</span>
                                                                                         {% elif 'estornar_' in code %}
-                                                                                            <span class="badge text-white fs-6" style="background-color: #4682B4;">Estornar</span>
+                                                                                            <span class="badge-permissao fs-6">Estornar</span>
                                                                                         {% elif 'alterar_dt_venc_orc' in code %}
-                                                                                            <span class="badge text-white fs-6" style="background-color: #808000;">Alterar data de Vencimento das Parcelas</span>
-                                                                                        {% elif 'alterar_dt_fat_orc' in code %}
-                                                                                            <span class="badge text-dark fs-6" style="background-color: #D8BFD8;">Alterar data de Faturamento</span>
+                                                                                            <span class="badge-permissao fs-6">Alterar data de Vencimento das Parcelas</span>
+                                                                                        {% elif 'alterar_dt_fat_orc' in code or 'alterar_data_faturamento' in code %}
+                                                                                            <span class="badge-permissao fs-6">Alterar data de Faturamento</span>
+                                                                                        {% elif 'vender_sem_estoque_ped' in code %}
+                                                                                            <span class="badge-permissao fs-6">Faturar Sem Estoque</span>
+                                                                                        {% elif 'alt_vl_ped' in code %}
+                                                                                            <span class="badge-permissao fs-6">Alterar Valor do Produto</span>
                                                                                         {% else %}
                                                                                             {{ perm.name }}
                                                                                         {% endif %}

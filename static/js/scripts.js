@@ -2,6 +2,12 @@ $(document).ready(function() {
     $('.mb-3').removeClass('mb-3');
     let REGRAS = {};
     let DADOS_FILIAL = {};
+    $('#id_logo').on('change', function () {
+        if (this.files && this.files[0]) {
+            const url = URL.createObjectURL(this.files[0]);
+            $('#logo-preview').attr('src', url);
+        }
+    });
     function carregarRegras() {
         return $.getJSON('/regras_produto/js/', function (data) {
             REGRAS = data;
@@ -19,17 +25,13 @@ $(document).ready(function() {
             console.log(texto);
         });
     }
-    function parseMoneyBR(valor){
-        if(!valor) return 0;
-        return Number(valor.replace(/\./g,'').replace(',','.').trim());
-    }
     function getTabelaPreco() {return $('#id_tabela_preco').val();}
     // Função otimizada Select2
     function rendOpt(d){return !d.id ? d.text : $(`<div style="display:flex;flex-direction:column;line-height:1.2"><span style="font-size:14px">${d.id}</span><br><strong style="font-size:14px">${d.text}</strong></div>`);}
     function renderRegra(d){return !d.id ? d.text : $(`<div style="display:flex;flex-direction:column;line-height:1.2"><small class="text-muted">${d.codigo}</small><strong>${d.text}</strong></div>`);}
     const lingSel = {inputTooShort: ()=>'Por favor, insira 1 ou mais caracteres', noResults: ()=>'Nenhum resultado encontrado', searching: ()=>'Procurando...'};
-    function ajSel2(url, key='fornecedores'){return {url, dataType:'json', delay:250, data:p=>({term:p.term}), processResults:d=>({results:d[key].map(r=>({ id:r.id, text:r.fantasia, ...r}))}),cache:true};}
-    function ajaxRegras(url){return {url, dataType: 'json', delay: 250, data: p => ({ term: p.term }), processResults: d => ({results: d.regras.map(r => ({id: r.id, text: r.descricao, codigo: r.codigo}))}), cache: true};}
+    function ajSel2(url){return {url, dataType:'json', delay:250, data:p=>({term:p.term}), processResults: d => {return {results: d.results};},cache:true};}
+    function ajaxRegras(url){return {url, dataType: 'json', delay: 250, data: p => ({ term: p.term }), processResults: d => {return {results: d.results};}, cache: true};}
     function focSel2() {
         setTimeout(function () {
             const campo = document.querySelector('.select2-container--open .select2-search__field');
@@ -113,59 +115,6 @@ $(document).ready(function() {
             </tr>
         `;
     }
-    async function buscarProdutoPorPeso({ porta, codigoRegra, textoFiltroDesc, regraOrigem }) {
-        const peso = parseFloat($(`.peso[data-porta="${porta}"]`).val()) || 0;
-        if (peso <= 0) return;
-        const regra = REGRAS[codigoRegra];
-        if (!regra) return;
-        const produtoId = selecionarProdutoPorPeso(peso, regra.expressao_json);
-        if (!produtoId) return;
-        $(`#tblProd_${porta} tbody tr`).filter(function () {return $(this).find('.td-desc').text().toUpperCase().includes(textoFiltroDesc.toUpperCase());}).remove();
-        if (prodManager.data?.[porta]) {
-            prodManager.data[porta] = prodManager.data[porta].filter(p => !(p.desc?.toUpperCase()?.includes(textoFiltroDesc.toUpperCase()) || p.regra_origem === regraOrigem));
-        }
-        return new Promise((resolve, reject) => {
-            $.get('/produtos/lista_ajax/', {s: produtoId, tp: 'cod', tp_prod: 'Principal', tabela_id: getTabelaPreco(), auto: 1}).done(resp => {
-                const p = resp.produtos?.[0];
-                if (!p) { resolve(); return; }
-                const item = {
-                    id: p.id, cod: p.id, desc: p.desc_prod, unid: p.unidProd, vl_compra: parseFloat(p.vl_compra) || 0, vl_unit: parseFloat(p.vl_prod) || 0,
-                    qtd_calc: 1, qtd_final: 1, qtd_manual: true, regra: { codigo: codigoRegra }, regra_origem: regraOrigem, ativo: true
-                };
-                prodManager.data[porta] ??= [];
-                prodManager.data[porta].push(item);
-                $(`#tblProd_${porta} tbody`).append(montarTrProduto({ porta, item, modalEditar: 'editItemModal', regraOrigem }));
-                atualizarJSONPortas();
-                resolve();
-            }).fail(err => reject(err));
-        });
-    }
-    function inserirProdutoPorDescricao({ porta, descricao, tpProd, manager, tabelaId, regraOrigem, modalEditar }) {
-        return new Promise(resolve => {
-            if (!descricao) { resolve(); return; }
-            $.get('/produtos/lista_ajax/', {tp: 'desc', tp_prod: tpProd, s: descricao, tabela_id: getTabelaPreco(), auto: 1}).done(resp => {
-                const p = resp.produtos?.[0];
-                if (!p) { resolve(); return; }
-                const item = {
-                    id: p.id, cod: p.id, desc: p.desc_prod, unid: p.unidProd, vl_compra: Number(p.vl_compra), vl_unit: Number(p.vl_prod),
-                    qtd_calc: 0, qtd_final: 0, qtd_manual: false, regra: p.regra, ativo: true, regra_origem: regraOrigem
-                };
-                if (p.regra?.tipo?.toUpperCase() === 'QTD') {
-                    try {
-                        const ctx = {
-                            largura: getFloat(`.larg[data-porta="${porta}"]`), altura: getFloat(`.alt[data-porta="${porta}"]`), larg_c: getFloat(`.larg-corte[data-porta="${porta}"]`),
-                            alt_c: getFloat(`.alt-corte[data-porta="${porta}"]`), m2: getFloat(`.m2[data-porta="${porta}"]`)
-                        };
-                        const qtd = Function(...Object.keys(ctx), `return ${p.regra.expressao};`)(...Object.values(ctx));
-                        item.qtd_calc = item.qtd_final = parseFloat(String(qtd).replace(',', '.')) || 0;
-                    } catch (e) { console.error('Erro na regra:', e); }
-                }
-                manager.data[porta] ??= [];
-                manager.data[porta].push(item);
-                $(`#${tabelaId}_${porta} tbody`).append(montarTrProduto({ porta, item, modalEditar, regraOrigem }));
-            }).always(resolve);
-        });
-    }
     function getPortasFromBackend() {
         const el = document.getElementById('json-portas');
         if (!el) return [];
@@ -187,9 +136,9 @@ $(document).ready(function() {
     }
     portasJSON = getPortasFromBackend();
     console.log('portasJSON:', portasJSON);
-    let motorCtrl = {};
     hidratarManagers(portasJSON.length ? portasJSON : [{ numero: 1, produtos: [], adicionais: [] }]);
     calcTotalEntrada();
+    calcTotalPedido();
     $('.table').addClass("table-sm");
     $('[name^="nome_"]').first().focus();
     $('[name^="descricao"]').first().focus();
@@ -288,27 +237,44 @@ $(document).ready(function() {
         });
     });
     $(function () {$('[data-bs-toggle="tooltip"]').each(function () {new bootstrap.Tooltip(this);});});
-
     // Novo Teste
-    const tiposRegras = {peso: [{ name: 'max', label: 'Máx', type: 'number' }], simples: [{ name: 'valor', label: 'Valor', type: 'text' }]};
+    const tiposRegras = {
+        qtd: [{ name: 'qtd_expr', label: 'Qtd (fórmula)', type: 'text' }],
+        peso: [{ name: 'max', label: 'Máx', type: 'number' }, { name: 'qtd_expr', label: 'Qtd (fórmula)', type: 'text' }],
+        simples: [{ name: 'campo', label: 'Campo', type: 'text' }, { name: 'valor', label: 'Valor', type: 'text' }, { name: 'qtd_expr', label: 'Qtd (fórmula)', type: 'text' }]
+    };
+    const CAMPOS_CONTEXTO = [
+        { value: 'tipo_lamina', label: 'Tipo da Lâmina' },{ value: 'tipo_pintura', label: 'Tipo de Pintura' },{ value: 'peso', label: 'Peso' },
+        { value: 'larg_c', label: 'Largura Corte' },{ value: 'alt_c', label: 'Altura Corte' }
+    ];
     function controlarVisibilidadeRegra() {
         const tipoSelecionado = $('#id_tipo').val();
-        if (tipoSelecionado === 'SELECAO') {
+        if (tipoSelecionado === 'SELECAO' || tipoSelecionado === 'QTD') {
             $('#bloco-regras-selecao').show();
+            $('#div_id_produto').hide();
             $('#id_expressao').closest('.form-group, .mb-3, .form-row, div').hide();
-        }
-        else {
+        } else {
             $('#bloco-regras-selecao').hide();
             $('#tabela-regras thead').empty();
             $('#tabela-regras tbody').empty();
+            $('#div_id_produto').show();
             $('#id_expressao_json').val('');
             $('#id_expressao').closest('.form-group, .mb-3, .form-row, div').show();
         }
     }
-    $('#id_tipo').on('change', function () {controlarVisibilidadeRegra();});
+    $('#id_tipo').on('change', function () {
+        const tipo = $(this).val();
+        if (tipo === 'QTD') {
+            $('#id_tipo_regra').val('qtd').trigger('change');
+            $('#id_tipo_regra').closest('.form-group').hide();
+        } else {
+            $('#id_tipo_regra').closest('.form-group').show();
+        }
+        controlarVisibilidadeRegra();
+    });
     controlarVisibilidadeRegra();
     const tipoSelecionado = $('#id_tipo').val();
-    if (tipoSelecionado === 'SELECAO') {carregarJSONReg();}
+    if (tipoSelecionado === 'SELECAO' || tipoSelecionado === 'QTD') {carregarJSONReg();}
     function montarTabela(tipo) {
         const colunas = tiposRegras[tipo] || [];
         let thead = '<tr>';
@@ -320,7 +286,21 @@ $(document).ready(function() {
     function novaLinha(tipo) {
         const colunas = tiposRegras[tipo] || [];
         let tds = '';
-        colunas.forEach(c => {tds += `<td><input type="${c.type}" class="${c.name} form-control"></td>`;});
+        colunas.forEach(c => {
+            if (c.name === 'campo') {
+                let options = CAMPOS_CONTEXTO.map(campo =>`<option value="${campo.value}">${campo.label}</option>`).join('');
+                tds += `
+                    <td>
+                        <select class="campo form-control">
+                            <option value="">Selecione</option>
+                            ${options}
+                        </select>
+                    </td>
+                `;
+            } else {
+                tds += `<td><input type="${c.type}" class="${c.name} form-control"></td>`;
+            }
+        });
         tds += `
             <td><select class="produto form-control" style="width:100%"></select></td>
             <td><button type="button" class="btn btn-danger btn-sm remover"><i class="fa-solid fa-trash-can text-white"></i></button></td>
@@ -329,27 +309,39 @@ $(document).ready(function() {
     }
     function iniciarSelect2(context = document) {
         $(context).find('.produto').select2({placeholder: 'Buscar produto...',minimumInputLength: 1,allowClear: true,language: lingSel,width: '100%',
-            ajax: {url: '/produtos/lista_ajax1/', dataType: 'json', delay: 250, data: function (params) {return {s: params.term};}, processResults: function (data) {return {results: data.produtos};}, cache: true}
+            ajax: {url: '/produtos/lista_ajax1/', dataType: 'json', delay: 250, data: function (params) { return { term: params.term }; }, processResults: function (data) {return {results: data.results};}, cache: true}
         }).on('select2:open', focSel2);
     }
     function gerarJSON() {
         const tipoSistema = $('#id_tipo').val();
-        if (tipoSistema !== 'SELECAO') return;
         const tipo = $('#id_tipo_regra').val();
-        const colunas = tiposRegras[tipo] || [];
         let dados = [];
         $('#tabela-regras tbody tr').each(function () {
-            let condicoes = {};
-            colunas.forEach(c => {
-                let val = $(this).find(`.${c.name}`).val();
-                if (val) {condicoes[c.name] = isNaN(val) ? val : parseFloat(val);}
-            });
             let produtoSelect = $(this).find('.produto');
-            if (produtoSelect) {
-                dados.push({condicoes, produto_id: produtoSelect.val(), desc_prod: produtoSelect.find('option:selected').text()});
+            let qtd_expr = $(this).find('.qtd_expr').val();
+            if (!produtoSelect.val()) return;
+            // 🔥 QTD
+            if (tipoSistema === 'QTD') {
+                dados.push({produto_id: produtoSelect.val(), desc_prod: produtoSelect.find('option:selected').text(), qtd_expr: qtd_expr});
+            }
+            // 🔥 SELECAO (mantém como já está)
+            else if (tipoSistema === 'SELECAO') {
+                let condicoes = {};
+                const colunas = tiposRegras[tipo] || [];
+                colunas.forEach(c => {
+                    let val = $(this).find(`.${c.name}`).val();
+                    if (!val || c.name === 'qtd_expr') return;
+                    if (c.name === 'campo') {
+                        condicoes['campo'] = val;
+                    } else if (c.name === 'valor') {
+                        condicoes['valor'] = isNaN(val) ? val : parseFloat(val);
+                    } else {
+                        condicoes[c.name] = isNaN(val) ? val : parseFloat(val);
+                    }
+                });
+                dados.push({condicoes, produto_id: produtoSelect.val(), desc_prod: produtoSelect.find('option:selected').text(), qtd_expr: qtd_expr});
             }
         });
-        if (tipo === 'peso') {dados.sort((a, b) => (a.condicoes.max || 0) - (b.condicoes.max || 0));}
         $('#id_expressao_json').val(JSON.stringify(dados, null, 2));
     }
     $('#id_tipo_regra').on('change', function () {
@@ -367,13 +359,18 @@ $(document).ready(function() {
         $('#tabela-regras tbody').append($linha);
         iniciarSelect2($linha);
     });
-    $(document).on('input change', '.max, .valor, .produto', function () {gerarJSON();});
+    $(document).on('input change', '.max, .valor, .campo, .produto, .qtd_expr', function () {gerarJSON();});
     $(document).on('click', '.remover', function () {
         $(this).closest('tr').remove();
         gerarJSON();
     });
+    const tipoSistema = $('#id_tipo').val();
+    if (tipoSistema === 'QTD') {
+        $('#id_tipo_regra').val('qtd');
+    }
     function carregarJSONReg() {
         let jsonText = $('#id_expressao_json').val();
+        console.log("JSON RAW:", jsonText); // 👈 DEBUG
         if (!jsonText || jsonText.trim() === '') return;
         let dados;
         try {
@@ -383,18 +380,28 @@ $(document).ready(function() {
             return;
         }
         if (!Array.isArray(dados)) return;
+        let tipoSistema = $('#id_tipo').val();
         let tipo = $('#id_tipo_regra').val();
-        if (!tipo && dados.length > 0) {
-            if (dados[0].condicoes?.max !== undefined) {tipo = 'peso';}
-            else {tipo = 'simples';}
-            $('#id_tipo_regra').val(tipo).trigger('change');
+        // 🔥 FORÇA QTD
+        if (tipoSistema === 'QTD') {
+            tipo = 'qtd';
+            $('#id_tipo_regra').val(tipo);
         }
         montarTabela(tipo);
         dados.forEach(item => {
             const $linha = $(novaLinha(tipo));
             $('#tabela-regras tbody').append($linha);
-            if (item.condicoes) {Object.keys(item.condicoes).forEach(key => {$linha.find(`.${key}`).val(item.condicoes[key]);});}
+            // 🔹 Preenche condições (SELECAO)
+            if (item.condicoes) {
+                Object.keys(item.condicoes).forEach(key => {$linha.find(`.${key}`).val(item.condicoes[key]).trigger('change');});
+            }
+            // 🔹 Preenche fórmula (QTD ou SELECAO)
+            if (item.qtd_expr) {
+                $linha.find('.qtd_expr').val(item.qtd_expr);
+            }
+            // 🔹 Inicializa select2
             iniciarSelect2($linha);
+            // 🔹 Define produto
             setProduto($linha.find('.produto'), item.produto_id, item.desc_prod || `Produto ${item.produto_id}`);
         });
     }
@@ -438,6 +445,53 @@ $(document).ready(function() {
             return;
         }
         $('#attTbPrecModal').modal('show');
+    });
+    // Adição e Remoção de quantidade de Produto (Pedidos)
+    $('.remQtdP').on('click', function () {
+        let qtd = parseFloat($('#id_quantidadeP').val()) || 0;
+        if (qtd > 0) $('#id_quantidadeP').val((qtd - 1).toFixed(2));
+    });
+    $('.addQtdP').on('click', function () {
+        let qtd = parseFloat($('#id_quantidadeP').val()) || 0;
+        $('#id_quantidadeP').val((qtd + 1).toFixed(2));
+    });
+    function gerarCorAleatoria() {
+        const letras = '0123456789ABCDEF';
+        let cor = '#';
+
+        for (let i = 0; i < 6; i++) {
+            cor += letras[Math.floor(Math.random() * 12)];
+        }
+
+        return cor;
+    }
+
+    function corTextoIdeal(hex) {
+        hex = hex.replace('#', '');
+
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+
+        const brilho = (r * 299 + g * 587 + b * 114) / 1000;
+
+        return brilho > 150 ? '#000' : '#FFF';
+    }
+    $('.badge-permissao').each(function () {
+
+        const cor = gerarCorAleatoria();
+        const corTexto = corTextoIdeal(cor);
+
+        $(this).css({
+            'background-color': cor,
+            'color': corTexto,
+            'border': 'none',
+            'margin': '2px',
+            'padding': '0px 6px',
+            'border-radius': '10px',
+            'display': 'inline-block'
+        });
+
     });
     // VISUALIZAR ENTRADAS DE PRODUTO
     $('.ver-entradas').on('click', function() {
@@ -511,13 +565,20 @@ $(document).ready(function() {
         });
     });
     $(document).on('shown.bs.modal', '[id^="faturarModal-"]', function () {
-        const dtEfetivacao = $(this).find('#dt_efet_ent');
         const dtFatura = $(this).find('.dt-fat-orcamento');
         // Valores default
-        if (!dtEfetivacao.val()) {dtEfetivacao.val(obterDataAtual2());}
         if (!dtFatura.val()) {dtFatura.val(obterDataAtual2());}
         $(document).on('click', '.btn-lib-dt-fat', function () {
             const dtFat = $('.dt-fat-orcamento');
+            dtFat.prop('readonly', !dtFat.prop('readonly'));
+        });
+    });
+    $(document).on('shown.bs.modal', '[id^="faturarModalP-"]', function () {
+        const dtFatura = $(this).find('.dt-fat-pedido');
+        // Valores default
+        if (!dtFatura.val()) {dtFatura.val(obterDataAtual2());}
+        $(document).on('click', '.btn-lib-dt-fat', function () {
+            const dtFat = $('.dt-fat-pedido');
             dtFat.prop('readonly', !dtFat.prop('readonly'));
         });
     });
@@ -592,15 +653,9 @@ $(document).ready(function() {
             }
             tbody.append(`
                 <tr>
-                    <td>
-                        ${formaTxt}<input type="hidden" name="forma_id[]" value="${formaId}">
-                    </td>
-                    <td class="text-end">
-                        ${moedaBR(valor)}<input type="hidden" class="vl-item-pgto" name="forma_valor[]" value="${valor.toFixed(2)}">
-                    </td>
-                    <td class="text-center">
-                        <button type="button" class="btn btn-danger btn-sm remover-forma"><i class="fa-solid fa-trash"></i></button>
-                    </td>
+                    <td>${formaTxt}<input type="hidden" name="forma_id[]" value="${formaId}"></td>
+                    <td class="text-end">${moedaBR(valor)}<input type="hidden" class="vl-item-pgto" name="forma_valor[]" value="${valor.toFixed(2)}"></td>
+                    <td class="text-center"><button type="button" class="btn btn-danger btn-sm remover-forma"><i class="fa-solid fa-trash"></i></button></td>
                 </tr>
             `);
             const novoRestante = atualizarRestante(modal);
@@ -613,7 +668,6 @@ $(document).ready(function() {
             modal.find('[id^="vl_pg_cr"]').val(moedaBR(restante > 0 ? restante : 0));
         });
         modal.find('.btn-baixar-cr').off('click.baixar').on('click.baixar', function () {
-            const restante = atualizarRestante(modal);
             const calc = recalcularBaixa(modal);
             const actionUrl = window.location.origin + '/contas_receber/pagar/' + modal.attr('id').split('-')[1] + '/';
             const csrfToken = $('[name=csrfmiddlewaretoken]').first().val();
@@ -720,6 +774,60 @@ $(document).ready(function() {
         $('#total-frete').text(frete.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
         $('#id_frete').val(Number(frete).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
         $('#valor-total').text('R$ ' + total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    }
+    // Pedidos
+    var produtosP = 0;
+    var descontoP = 0;
+    var freteP = 0;
+    var totalP = 0;
+    function calcTotalPedido() {
+        produtosP = 0;   // total bruto (sem desconto)
+        descontoP = 0;   // total de descontos (positivo)
+        freteP    = 0;
+        totalP    = 0;
+
+        $('#tabela-produtos tbody tr').each(function() {
+
+            // 🔹 DADOS BASE
+            let preco = $(this).find('input[name*="[preco_unitario]"]').val();
+            let qtd   = $(this).find('input[name*="[quantidade]"]').val();
+
+            let precoNum = parseFloat(String(preco).replace(',', '.')) || 0;
+            let qtdNum   = parseFloat(String(qtd).replace(',', '.')) || 0;
+
+            // 🔹 TOTAL BRUTO DO ITEM (sem desconto)
+            let totalBrutoItem = precoNum * qtdNum;
+            produtosP += totalBrutoItem;
+
+            // 🔹 DESCONTO / ACRÉSCIMO EM REAIS (já calculado antes)
+            let descReal = $(this).find('input[name*="[valor_desc_real]"]').val();
+            let operacao = ($(this).find('input[name*="[operacao]"]').val() || '').toLowerCase();
+
+            let descNum = parseFloat(String(descReal).replace(',', '.')) || 0;
+
+            if (operacao === "desconto") {
+                descontoP += descNum;   // soma desconto
+            } else {
+                descontoP -= descNum;   // acréscimo reduz o "desconto"
+            }
+        });
+
+        // 🔹 FRETE
+        let freteTxt = $('#total-frete').is('input') 
+            ? $('#total-frete').val() 
+            : $('#total-frete').text();
+
+        freteP = parseFloat(String(freteTxt).replace(',', '.')) || 0;
+
+        // 🔹 TOTAL FINAL
+        totalP = produtosP - descontoP + freteP;
+
+        // 🔹 FORMATAÇÃO (pode trocar para pt-BR se quiser)
+        $('#total-produtos').text('R$ ' + produtosP.toFixed(2));
+        $('#total-desconto').text('R$ ' + descontoP.toFixed(2));
+        $('#total-frete').text(freteP.toFixed(2));
+        $('#id_frete').val(freteP.toFixed(2));
+        $('#valor-total').text('R$ ' + totalP.toFixed(2));
     }
     // Entrada de Pedidos
     $('#id_tipo').on('change', function () {
@@ -973,29 +1081,11 @@ $(document).ready(function() {
     });
     // ENTRADAS DE PEDIDOS / NF
     let contador = 0;
-    let trEditando = null; // linha que está em edição
-    let unidadeTmp = "";
-    let marcaTmp = "";
-    let grupoTmp = "";
+    let trEditando = null;
     async function buscarDadosProduto(cod) {
         const resp = await $.ajax({url: "/produtos/lista_ajax_ent/", type: "GET", data: { s: cod, tp: "cod" }, dataType: "json"});
         if (!resp.produtos || !resp.produtos.length) {throw new Error("Produto não encontrado.");}
         return resp.produtos[0];
-    }
-    async function preencherDadosProdutoNoModal(cod) {
-        try {
-            const dados = await buscarDadosProduto(cod);
-            $("#id_desc_prod").val(dados.desc_prod || "");
-            $("#id_unidProduto").val(dados.unidProd || "");
-            $("#id_marcaProd").val(dados.marca || "");
-            $("#id_grupoProd").val(dados.grupo || "");
-            $("#id_subgrupoProd").val(dados.subgrupo || "");
-            $("#id_preco_unit").val(parseFloat(dados.vl_prod || 0).toFixed(2));
-        } catch (e) {
-            $("#id_desc_prod, #id_unidProduto, #id_marcaProd, #id_grupoProd, #id_subgrupoProd").val("");
-            $("#id_preco_unit").val("0.00");
-            toast(`${ic_vermelho} ${e.message}`, cor_vermelho);
-        }
     }
     let tabelasEntTmp = [];
     let trEditTabEnt = null;
@@ -1004,9 +1094,7 @@ $(document).ready(function() {
         $tbody.empty();
         if (tabelasEntTmp.length === 0) {
             $tbody.append(`
-                <tr class="vazio">
-                    <td colspan="4" class="text-center">Nenhuma tabela inserida.</td>
-                </tr>
+                <tr class="vazio"><td colspan="4" class="text-center">Nenhuma tabela inserida.</td></tr>
             `);
             return;
         }
@@ -1031,15 +1119,6 @@ $(document).ready(function() {
         $("#id_tabelaEnt").prop("disabled", false).val(null).trigger("change");
         $("#id_margem").val("0.00");
         $("#id_vl_tabEnt").val("0.00");
-    }
-    function modoEdicaoTabEnt(index) {
-        const item = tabelasEntTmp[index];
-        if (!item) return;
-        trEditTabEnt = index;
-        $("#id_tabelaEnt").val(item.tabela_id).trigger("change").prop("disabled", true);
-        $("#id_margem").val(item.margem);
-        $("#id_vl_tabEnt").val(item.valor);
-        $("#add-tabEnt").html('<i class="fa-solid fa-floppy-disk"></i> Salvar').removeClass("btn-dark").addClass("btn-secondary").css({"background-color": "gray", "margin-top": "0px"});
     }
     $("#add-tabEnt").click(function () {
         let tabId = $('#id_tabelaEnt').val();
@@ -1132,7 +1211,7 @@ $(document).ready(function() {
         });
         return tabelas.filter(Boolean);
     }
-    // Adicionando um produto na lista.
+    // Adicionando um produto na lista de Entrada.
     $("#add-produto-lista").click(async function () {
         let cod = $('#id_cod_produto').val();
         let prod = $("#id_desc_prod").val();
@@ -1149,6 +1228,10 @@ $(document).ready(function() {
         }
         if (precoNum <= 0) {
             toast(`${ic_amarelo} Preço Unitário deve ser informado!`, cor_amarelo);
+            return;
+        }
+        if (qtdNum <= 0) {
+            toast(`${ic_amarelo} Quantidade deve ser informada!`, cor_amarelo);
             return;
         }
         try {
@@ -1222,7 +1305,7 @@ $(document).ready(function() {
         trEditTabEnt = null;
         renderTabelasEntModal();
         $('#edProdModal').modal('hide');
-        toast(`${ic_verde} Tabelas salvas no produto com sucesso!`, cor_verde);
+        toast(`${ic_verde} Registro salvo com sucesso!`, cor_verde);
     });
     $("#cancelar-produto-lista").click(function () {
         trEditando = null;
@@ -1243,6 +1326,7 @@ $(document).ready(function() {
     $(document).on("click", ".remover", function () {
         $(this).closest("tr").remove();
         calcTotalEntrada();
+        calcTotalPedido();
     });
     // editar linha
     $(document).on("click", ".editar", async function () {
@@ -1281,6 +1365,358 @@ $(document).ready(function() {
         resetBtnTabEnt();
         setTimeout(() => $('#edProdModal').modal('show'), 200);
     });
+    // Pedidos
+    $("#add-produto-listaP").click(async function () {
+        let cod   = $('#id_cod_produtoP').val();
+        let prod  = $("#id_desc_prodP").val();
+        let qtd   = $("#id_quantidadeP").val();
+        let preco = $("#id_preco_unitP").val();
+        let dsct  = $("#id_desc_acres").val();
+        let qtdNum   = parseFloat(String(qtd).replace(",", ".")) || 0;
+        let precoNum = parseFloat(String(preco).replace(",", ".")) || 0;
+        let dsctNum  = parseFloat(String(dsct).replace(",", ".")) || 0;
+        let altValor = $('#id_alt_vlP').val();
+        let atb  = ($('#id_atribuir').val() || '').trim().toLowerCase();        // desconto/acréscimo
+        let tipo = ($('#id_tipo_desc_acres').val() || '').trim().toLowerCase(); // valor/percentual
+        // 🔥 CÁLCULO CORRETO
+        let totalBase = precoNum * qtdNum;
+        let total = totalBase;
+        let valorDescReais = 0;
+        if (atb === "desconto") {
+            if (tipo === "valor") {
+                total -= dsctNum;
+                valorDescReais = dsctNum;
+            } else if (tipo === "percentual") {
+                total -= totalBase * (dsctNum / 100);
+                valorDescReais = totalBase * (dsctNum / 100);
+            }
+        } 
+        else if (atb === "acréscimo" || atb === "acrescimo") {
+            if (tipo === "valor") {
+                total += dsctNum;
+                valorDescReais = dsctNum;
+            } else if (tipo === "percentual") {
+                total += totalBase * (dsctNum / 100);
+                valorDescReais = totalBase * (dsctNum / 100);
+            }
+        }
+        if (total < 0) total = 0;
+        total = total.toFixed(2);
+        // 🔥 TEXTO FORMATADO
+        let sinal = atb === "desconto" ? "-" : "+";
+        let cor   = atb === "desconto" ? "#dc3545" : "#198754";
+        let textoDesc = "";
+        // 🔥 Só mostra se for maior que ZERO
+        if (dsctNum > 0) {
+            if (tipo === "valor") {
+                textoDesc = `<span style="color:${cor}; font-weight:bold;">${sinal} R$ ${dsct}</span>`;
+            } 
+            else if (tipo === "percentual") {
+                textoDesc = `<span style="color:${cor}; font-weight:bold;">${sinal} ${dsct}%</span>`;
+            }
+        } else {
+            textoDesc = `<span class="text-muted fw-bold">0.00</span>`;
+        }
+
+        // 🔴 VALIDAÇÕES
+        if (!cod) {
+            toast(`${ic_amarelo} Informe o código do produto!`, cor_amarelo);
+            return;
+        }
+        if (precoNum <= 0) {
+            toast(`${ic_amarelo} Preço Unitário deve ser informado!`, cor_amarelo);
+            return;
+        }
+        if (qtdNum <= 0) {
+            toast(`${ic_amarelo} Quantidade deve ser informada!`, cor_amarelo);
+            return;
+        }
+
+        // ✏️ EDITAR
+        if (trEditando) {
+
+            let idx = trEditando.data("id");
+
+            trEditando.find("td:eq(0)").html(`${cod}<input type="hidden" name="produtos[${idx}][codigo]" value="${cod}">`);
+
+            trEditando.find("td:eq(1)").html(`${prod}<input type="hidden" name="produtos[${idx}][produto]" value="${prod}">`);
+
+            trEditando.find("td:eq(2)").html(`${qtd}<input type="hidden" name="produtos[${idx}][quantidade]" value="${qtd}">`);
+
+            trEditando.find("td:eq(3)").html(`
+                ${preco}
+                <input type="hidden" name="produtos[${idx}][preco_unitario]" value="${preco}">
+                <input type="hidden" name="produtos[${idx}][alt_valor]" value="${altValor}">
+            `);
+
+            trEditando.find("td:eq(4)").html(`
+                ${textoDesc}
+                <input type="hidden" name="produtos[${idx}][desconto]" value="${dsct}">
+                <input type="hidden" name="produtos[${idx}][tipo_desc]" value="${tipo}">
+                <input type="hidden" name="produtos[${idx}][operacao]" value="${atb}">
+                <input type="hidden" name="produtos[${idx}][valor_desc_real]" value="${valorDescReais}">
+            `);
+
+            trEditando.find("td:eq(5)").html(`<span style="font-weight:bold; color:#2E8B57;">${total}</span>`);
+
+            trEditando = null;
+
+            $('#edProdModalP').modal('hide');
+
+        } 
+        // ➕ ADICIONAR
+        else {
+
+            let idx = contador++;
+
+            $("#tabela-produtos tbody tr.vazio").remove();
+
+            let codigoJaExiste = false;
+
+            $("#tabela-produtos tbody input[name*='[codigo]']").each(function () {
+                if ($(this).val() === cod) {
+                    codigoJaExiste = true;
+                    return false;
+                }
+            });
+
+            if (codigoJaExiste) {
+                toast(`${ic_amarelo} O código "${cod}" já está incluso na listagem!`, cor_amarelo);
+                return;
+            }
+
+            $("#tabela-produtos tbody").append(`
+                <tr data-id="${idx}">
+                    <td>${cod}<input type="hidden" name="produtos[${idx}][codigo]" value="${cod}"></td>
+
+                    <td>${prod}<input type="hidden" name="produtos[${idx}][produto]" value="${prod}"></td>
+
+                    <td>${qtd}<input type="hidden" name="produtos[${idx}][quantidade]" value="${qtd}"></td>
+
+                    <td style="font-weight:bold; color:#2E8B57;">
+                        ${preco}
+                        <input type="hidden" name="produtos[${idx}][preco_unitario]" value="${preco}">
+                        <input type="hidden" name="produtos[${idx}][alt_valor]" value="${altValor}">
+                    </td>
+
+                    <td>
+                        ${textoDesc}
+                        <input type="hidden" name="produtos[${idx}][desconto]" value="${dsct}">
+                        <input type="hidden" name="produtos[${idx}][tipo_desc]" value="${tipo}">
+                        <input type="hidden" name="produtos[${idx}][operacao]" value="${atb}">
+                        <input type="hidden" name="produtos[${idx}][valor_desc_real]" value="${valorDescReais}">
+                    </td>
+
+                    <td style="font-weight:bold; color:#2E8B57;">${total}</td>
+
+                    <td>
+                        <button type="button" class="editarP btn btn-success btn-sm mt-1 mb-1">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <button type="button" class="remover btn btn-danger btn-sm mt-1 mb-1">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `);
+
+            toast(`${ic_verde} Produto inserido com sucesso!`, cor_verde);
+        }
+
+        // 🔄 RESET
+        calcTotalPedido();
+
+        $("#id_desc_prodP, #id_unidProdutoP, #id_grupoProdP, #id_marcaProdP, #id_cod_produtoP").val("");
+
+        $("#id_quantidadeP").val("1.00");
+        $("#id_preco_unitP, #id_vl_total_preco").val("0.00");
+        $("#id_desc_acres").val("0.00");
+
+        $("#id_cod_produtoP").focus();
+    });
+    // Cancelar edição/adição de produto na lista de Pedidos
+    $("#cancelar-produto-listaP").click(function () {
+        trEditando = null;
+        $("#id_desc_prodP, #id_unidProdutoP, #id_grupoProdP, #id_marcaProdP, #id_cod_produtoP").val("");
+        $("#id_quantidadeP").val("1.00");
+        $("#id_preco_unitP").val("0.00");
+        $("#id_desc_acres").val("0.00");
+        $('#id_cod_produtoP').prop('disabled', false);
+        $('#add-prodP').prop('readonly', false);
+    });
+    // editar linha de Pedidos
+    $(document).on("click", ".editarP", async function () {
+        trEditando = $(this).closest("tr");
+        let idx = trEditando.data("id");
+        let cod   = trEditando.find(`input[name="produtos[${idx}][codigo]"]`).val();
+        let prod  = trEditando.find(`input[name="produtos[${idx}][produto]"]`).val();
+        let qtd   = trEditando.find(`input[name="produtos[${idx}][quantidade]"]`).val().replace(',', '.');
+        let preco = trEditando.find(`input[name="produtos[${idx}][preco_unitario]"]`).val().replace(',', '.');
+        let dsct  = trEditando.find(`input[name="produtos[${idx}][desconto]"]`).val().replace(',', '.');
+        // 🔥 NOVOS CAMPOS
+        let tipo = trEditando.find(`input[name="produtos[${idx}][tipo_desc]"]`).val();
+        let operacao = trEditando.find(`input[name="produtos[${idx}][operacao]"]`).val();
+        // 🔧 PREENCHER CAMPOS
+        $("#id_cod_produtoP").val(cod).prop("disabled", true);
+        $("#add-prodP").prop("readonly", true);
+        $("#id_desc_prodP").val(prod);
+        $("#id_quantidadeP").val(qtd);
+        $("#id_preco_unitP").val(preco);
+        $("#id_desc_acres").val(dsct);
+        // 🔥 RESTAURAR SELECTS
+        $("#id_tipo_desc_acres").val(
+            tipo === "percentual" ? "Percentual" : "Valor"
+        );
+        $("#id_atribuir").val(
+            operacao === "desconto" ? "Desconto" : "Acréscimo"
+        );
+        // 🔄 ATUALIZA VISUAL
+        atualizarLabel();
+        calcularTotal();
+        try {
+            const dados = await buscarDadosProduto(cod);
+            $("#id_unidProdutoP").val(dados.unidProd || "");
+            $("#id_marcaProdP").val(dados.marca || "");
+            $("#id_grupoProdP").val(dados.grupo || "");
+        } catch (e) {
+            $("#id_unidProdutoP").val("");
+            $("#id_marcaProdP").val("");
+            $("#id_grupoProdP").val("");
+            toast(`${ic_vermelho} ${e.message}`, cor_vermelho);
+        }
+        setTimeout(() => $('#edProdModalP').modal('show'), 200);
+    });
+    // Função para calcular desconto/acréscimo em Pedido
+    function calcularPreviewDesconto() {
+        let totalBase = 0;
+        $('#tabela-produtos tbody tr').each(function () {
+            let preco = $(this).find('input[name*="[preco_unitario]"]').val();
+            let qtd   = $(this).find('input[name*="[quantidade]"]').val();
+            let precoNum = parseFloat(String(preco).replace(',', '.')) || 0;
+            let qtdNum   = parseFloat(String(qtd).replace(',', '.')) || 0;
+            totalBase += precoNum * qtdNum;
+        });
+        $('#valor-base').text('R$ ' + totalBase.toFixed(2));
+        let tipo = $('#tipo_desconto').val();
+        let operacao = $('#operacao').val();
+        let valor = parseFloat($('#campo_desconto').val().replace(',', '.')) || 0;
+        let ajuste = 0;
+        if (tipo === 'valor') {
+            ajuste = valor;
+        } else {
+            ajuste = totalBase * (valor / 100);
+        }
+        let totalFinal = totalBase;
+        if (operacao === 'desconto') {
+            totalFinal -= ajuste;
+        } else {
+            totalFinal += ajuste;
+        }
+        if (totalFinal < 0) totalFinal = 0;
+        $('#valor-final').text('R$ ' + totalFinal.toFixed(2));
+    }
+    $('#modalDesconto').on('shown.bs.modal', function () {
+        $('#campo_desconto').val('0.00');
+        calcularPreviewDesconto();
+    });
+    $('#campo_desconto, #tipo_desconto, #operacao').on('input change keyup', function () {
+        calcularPreviewDesconto();
+    });
+    $('#btn-ajuste').click(function() {
+        let tipo = $('#operacao').val(); // desconto ou acrescimo
+        if (tipo === 'desconto') {
+            $(this).data('permissao', 'pedidos.atribuir_desconto_ped');
+            $(this).data('acao', 'atribuir_desconto');
+        } else {
+            $(this).data('permissao', 'pedidos.atribuir_acrescimo_ped');
+            $(this).data('acao', 'atribuir_acrescimo');
+        }
+    });
+    $('#add-produtosP').click(function () {
+        setTimeout(() => {
+            $('#id_cod_produtoP').focus();
+        }, 100); // 100ms é suficiente
+    });
+    $('#confirmarDesconto').click(function () {
+        let tipo = $('#tipo_desconto').val(); // valor | percentual
+        let operacao = $('#operacao').val(); // desconto | acrescimo
+        let valor = parseFloat($('#campo_desconto').val().replace(',', '.')) || 0;
+        if (valor < 0) {
+            toast(`${ic_amarelo} Informe um valor válido!`, cor_amarelo);
+            return;
+        }
+        let totalBase = 0;
+        let itens = [];
+        $('#tabela-produtos tbody tr').each(function () {
+            let tr = $(this);
+            let preco = tr.find('input[name*="[preco_unitario]"]').val();
+            let qtd   = tr.find('input[name*="[quantidade]"]').val();
+            let precoNum = parseFloat(String(preco).replace(',', '.')) || 0;
+            let qtdNum   = parseFloat(String(qtd).replace(',', '.')) || 0;
+            let totalItem = precoNum * qtdNum;
+            itens.push({
+                tr: tr,
+                total: totalItem
+            });
+            totalBase += totalItem;
+        });
+        if (totalBase <= 0) return;
+        let valorTotalAjuste = 0;
+        if (tipo === 'valor') {
+            valorTotalAjuste = valor;
+        } else {
+            valorTotalAjuste = totalBase * (valor / 100);
+        }
+        let acumulado = 0;
+        itens.forEach((item, index) => {
+            let proporcao = item.total / totalBase;
+            let valorRateado;
+            if (index === itens.length - 1) {
+                valorRateado = valorTotalAjuste - acumulado;
+            } else {
+                valorRateado = parseFloat((valorTotalAjuste * proporcao).toFixed(2));
+                acumulado += valorRateado;
+            }
+            let totalFinal = item.total;
+            if (operacao === "desconto") {
+                totalFinal -= valorRateado;
+            } else {
+                totalFinal += valorRateado;
+            }
+            if (totalFinal < 0) totalFinal = 0;
+            let idx = item.tr.data("id");
+            let sinal = operacao === "desconto" ? "-" : "+";
+            let cor;
+            let texto = "";
+
+            if (Math.abs(valorRateado) < 0.001) {
+                texto = `0.00`;
+                cor = "#000"; // 🔴 preto
+            } else {
+                cor = operacao === "desconto" ? "#dc3545" : "#198754";
+
+                texto = tipo === "valor"
+                    ? `${sinal} R$ ${valorRateado.toFixed(2)}`
+                    : `${sinal} ${((valorRateado / item.total) * 100).toFixed(2)}%`;
+            }
+            item.tr.find("td:eq(4)").html(`
+                <span style="color:${cor}; font-weight:bold;">${texto}</span>
+                <input type="hidden" name="produtos[${idx}][desconto]" value="${valorRateado.toFixed(2)}">
+                <input type="hidden" name="produtos[${idx}][tipo_desc]" value="valor">
+                <input type="hidden" name="produtos[${idx}][operacao]" value="${operacao}">
+                <input type="hidden" name="produtos[${idx}][valor_desc_real]" value="${valorRateado.toFixed(2)}">
+            `);
+            item.tr.find("td:eq(5)").html(`
+                <span style="font-weight:bold; color:#2E8B57;">
+                    ${totalFinal.toFixed(2)}
+                </span>
+            `);
+        });
+        // 🔄 RECALCULA TOTAL
+        calcTotalPedido();
+        $('#modalDesconto').modal('hide');
+        toast(`${ic_verde} ${operacao === "desconto" ? "Desconto" : "Acréscimo"} aplicado com sucesso!`, cor_verde);
+    });
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== "") {
@@ -1302,45 +1738,73 @@ $(document).ready(function() {
         return $.ajax({url: "/produtos/ajax/buscar-tabelas/", type: "GET", data: { produto_id: produtoId }});
     }
     // Entrada de Produtos
-    $('#id_cod_produto').on('blur keydown', function(event) {
-        if (event.type === 'blur' || event.key === 'Enter') {
-            if (event.key === 'Enter') {event.preventDefault();}
-            const productId = $(this).val();
-            if (productId.trim() === '') {
-                $('#id_desc_prod, #id_marcaProd, #id_unidProduto, #id_grupoProd, #id_preco_unit').val('');
-                return;
-            }
-            $.ajax({
-                url: '/produtos/lista_ajax_ent/', method: 'GET', data: {s: productId, tp: 'cod'},
-                success: async function(response) {
-                    if (response.produtos.length > 0) {
-                        const p = response.produtos[0];
-                        $('#id_desc_prod').val(p.desc_prod || '');
-                        $('#id_marcaProd').val(p.marca || '');
-                        $('#id_unidProduto').val(p.unidProd || '');
-                        $('#id_grupoProd').val(p.grupo || '');
-                        $('#id_preco_unit').val(p.vl_compra.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00');
-                        $("#id_quantidade, #id_desconto, #id_margem, #id_vl_tabEnt").val("0.00");
-                        try {
-                            const respTabs = await carregarTabelasProdutoAjax(p.id);
-                            tabelasEntTmp = respTabs.tabelas || [];
-                            trEditTabEnt = null;
-                            renderTabelasEntModal();
-                        } catch (e) {
-                            tabelasEntTmp = [];
-                            renderTabelasEntModal();
-                        }
-                        $('#id_quantidade').focus();
-                    }
-                    else {
-                        toast(`${ic_amarelo} Código de produto não encontrado!`, cor_amarelo);
-                        $('#id_desc_prod, #id_marcaProd, #id_unidProduto, #id_grupoProd, #id_preco_unit').val('');
-                    }
-                }, error: function() {
-                    toast(`${ic_vermelho} Erro ao buscar o produto. Tente novamente!`, cor_vermelho);
-                    $('#id_desc_prod, #id_marcaProd, #id_unidProduto, #id_grupoProd, #id_preco_unit').val('');
+    function buscarProduto(config) {
+        const {inputCod, desc, marca, unid, grupo, preco, extrasReset = [], focoFinal, aposCarregar} = config;
+        $(inputCod).on('blur keydown', function (event) {
+            if (event.type === 'blur' || event.key === 'Enter') {
+                if (event.key === 'Enter') event.preventDefault();
+                const productId = $(this).val();
+                if (productId.trim() === '') {
+                    $(desc + ',' + marca + ',' + unid + ',' + grupo + ',' + preco).val('');
+                    return;
                 }
-            });
+                $.ajax({
+                    url: '/produtos/lista_ajax_ent/',
+                    method: 'GET',
+                    data: { s: productId, tp: 'cod' },
+                    success: async function (response) {
+                        if (response.produtos.length > 0) {
+                            const p = response.produtos[0];
+                            $(desc).val(p.desc_prod || '');
+                            $(marca).val(p.marca || '');
+                            $(unid).val(p.unidProd || '');
+                            $(grupo).val(p.grupo || '');
+                            $(preco).val((p.vl_compra || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+                            // Reset campos extras
+                            extrasReset.forEach(campo => {
+                                $(campo.selector).val(campo.valor);
+                            });
+                            if (typeof aposCarregar === 'function') {
+                                aposCarregar();
+                            }
+                            try {
+                                const respTabs = await carregarTabelasProdutoAjax(p.id);
+                                tabelasEntTmp = respTabs.tabelas || [];
+                                trEditTabEnt = null;
+                                renderTabelasEntModal();
+                            } catch (e) {
+                                tabelasEntTmp = [];
+                                renderTabelasEntModal();
+                            }
+                            if (focoFinal) $(focoFinal).focus();
+                        } else {
+                            toast(`${ic_amarelo} Código de produto não encontrado!`, cor_amarelo);
+                            $(desc + ',' + marca + ',' + unid + ',' + grupo + ',' + preco).val('');
+                        }
+                    },
+                    error: function () {
+                        toast(`${ic_vermelho} Erro ao buscar o produto. Tente novamente!`, cor_vermelho);
+                        $(desc + ',' + marca + ',' + unid + ',' + grupo + ',' + preco).val('');
+                    }
+                });
+            }
+        });
+    }
+    // Entrada:
+    buscarProduto({
+    inputCod: '#id_cod_produto', desc: '#id_desc_prod', marca: '#id_marcaProd', unid: '#id_unidProduto', grupo: '#id_grupoProd', preco: '#id_preco_unit', focoFinal: '#id_quantidade',
+        extrasReset: [
+            { selector: '#id_quantidade', valor: '0.00' },{ selector: '#id_desconto', valor: '0.00' },{ selector: '#id_margem', valor: '0.00' },{ selector: '#id_vl_tabEnt', valor: '0.00' }
+        ]
+    });
+    // Pedido:
+    buscarProduto({
+    inputCod: '#id_cod_produtoP',desc: '#id_desc_prodP',marca: '#id_marcaProdP',unid: '#id_unidProdutoP',grupo: '#id_grupoProdP',preco: '#id_preco_unitP',focoFinal: '#id_quantidadeP',
+        extrasReset: [
+            { selector: '#id_desc_acresP', valor: '0.00' },{ selector: '#id_quantidadeP', valor: '1.00' },
+        ],
+        aposCarregar: function () {
+            calcularTotal(); // ✅ agora funciona certo
         }
     });
     $(document).on('click', '.prod-selec', function() {
@@ -1352,14 +1816,15 @@ $(document).ready(function() {
         const vl = $(this).data('vl');
         const vl_compra = $(this).data('vl-compra');
         $('#id_desc_prod, #id_marcaProd, #id_unidProduto, #id_grupoProd, #id_preco_unit').val('');
-        $('#id_cod_produto').val(id);
-        $('#id_desc_prod').val(desc);
-        $('#id_marcaProd').val(marc);
-        $('#id_grupoProd').val(gp);
-        $('#id_unidProduto').val(unid);
-        $('#id_preco_unit').val(vl_compra.toFixed(2));
+        $('#id_desc_prodP, #id_marcaProdP, #id_unidProdutoP, #id_grupoProdP, #id_preco_unitP').val('');
+        $('#id_cod_produto').val(id) || $('#id_cod_produtoP').val(id);
+        $('#id_desc_prod').val(desc) || $('#id_desc_prodP').val(desc);
+        $('#id_marcaProd').val(marc) || $('#id_marcaProdP').val(marc);
+        $('#id_grupoProd').val(gp) || $('#id_grupoProdP').val(gp);
+        $('#id_unidProduto').val(unid) || $('#id_unidProdutoP').val(unid);
+        $('#id_preco_unit').val(vl_compra.toFixed(2)) || $('#id_preco_unitP').val(vl_compra.toFixed(2));
         $('#produtoModal').modal('hide'); // Fecha o modal após a seleção
-        $('#id_quantidade').focus();
+        $('#id_quantidade').focus() || $('#id_quantidadeP').focus();
     });
     function carregarProdutos(page = 1) {
         const termo = $('#campo-pesquisa-produto').val();
@@ -1535,12 +2000,10 @@ $(document).ready(function() {
             const produtoVinculadoDesc = item.produto_vinculado?.descricao || '';
             const statusVinculo = produtoVinculadoId
                 ? `<div class="small text-success fw-semibold produto-vinculado-box">
-                        <i class="fa-solid fa-link me-1" title="Produto Vinculado"></i>
-                        <span class="produto-vinculado-texto">${produtoVinculadoId} - ${produtoVinculadoDesc}</span>
+                        <i class="fa-solid fa-link me-1" title="Produto Vinculado"></i> <span class="produto-vinculado-texto">${produtoVinculadoId} - ${produtoVinculadoDesc}</span>
                     </div>`
                 : `<div class="small text-secondary produto-vinculado-box">
-                        <i class="fa-solid fa-circle-info me-1"></i>
-                        <span class="produto-vinculado-texto">Sem vínculo</span>
+                        <i class="fa-solid fa-circle-info me-1"></i> <span class="produto-vinculado-texto">Sem vínculo</span>
                     </div>`;
             return `
                 <tr data-idx="${i}">
@@ -1668,11 +2131,13 @@ $(document).ready(function() {
             updateMassChangesButton();
             toast("Tabela aplicada com sucesso!", cor_verde);
             bootstrap.Modal.getInstance(document.getElementById('attTbPrecModal'))?.hide();
+            finalizarLoading();
         } catch (e) {
             console.error(e);
             toast("Erro na requisição", cor_vermelho);
         } finally {
             fecharLoadingCompleto();
+            finalizarLoading();
         }
     });
     let bloqueioCalcTbPreco = false;
@@ -1818,11 +2283,13 @@ $(document).ready(function() {
             });
             toast("Tabela aplicada com sucesso!", cor_verde);
             bootstrap.Modal.getInstance(document.getElementById('attTbPrecModalEnt')).hide();
+            finalizarLoading();
         } catch (e) {
             console.error(e);
             toast("Erro na requisição", cor_vermelho);
         } finally {
             fecharLoadingCompleto();
+            finalizarLoading();
         }
     });
     function atualizarTabelaProdutoEnt($tr, tabelaNome, dadosTabela) {
@@ -1869,30 +2336,41 @@ $(document).ready(function() {
         const itens = getItensSelecionados();
         if (!itens.length) return;
         const payloadBase = {
-            fornecedor_id: xmlImportado.fornecedor.id || null, unidade_id: $('#massa-unidade').val() || null, grupo_id: $('#massa-grupo').val() || null, marca_id: $('#massa-marca').val() || null, tp_prod: $('#massa-tipo').val() || 'Principal'
-        };
-        iniciarLoading();
-        await Promise.all(itens.map(async (obj) => {
+            fornecedor_id: xmlImportado.fornecedor.id || null, unidade_id: $('#massa-unidade').val() || null, grupo_id: $('#massa-grupo').val() || null,
+            marca_id: $('#massa-marca').val() || null, tp_prod: $('#massa-tipo').val() || 'Principal'};
+        // 🔥 monta lista de produtos
+        const produtos = itens.map(obj => {
             const item = obj.item;
-            const payload = {...payloadBase, descricao: item.descricao, codigo_fornecedor: item.codigo_fornecedor || '', descricao_fornecedor: item.descricao || '', ean: item.ean || '', ncm: item.ncm || ''};
-            try {
-                const resp = await fetch('/entradas/criar_produto_xml/', {
-                    method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()}, body: JSON.stringify(payload)
-                });
-                const data = await resp.json();
-                if (data.ok) {
-                    const produto = data.produto;
-                    xmlImportado.itens[obj.idx].produto_vinculado = {id: produto.id, descricao: produto.descricao};
-                    const $tr = $(`#xml-itens-body tr[data-idx="${obj.idx}"]`);
-                    atualizarStatusProdutoVinculado($tr, produto.id, produto.descricao);
-                }
-            } catch (e) {console.error(e);}
-        }));
-        finalizarLoading();
-        bootstrap.Modal.getInstance(document.getElementById('modalCriarProdutoMassa')).hide();
-        toast(`${ic_verde} Produtos criados com sucesso!`, cor_verde);
-        $('.task-checkbox-xml').prop('checked', false);
-        $('#select-all-xml').prop('checked', false);
+            return {
+                idx: obj.idx, ...payloadBase, descricao: item.descricao, codigo_fornecedor: item.codigo_fornecedor || '', descricao_fornecedor: item.descricao || '',
+                ean: item.ean || '', ncm: item.ncm || ''};
+        });
+        iniciarLoading();
+        try {
+            const resp = await fetch('/entradas/criar_produtos_em_massa/', {
+                method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()}, body: JSON.stringify({ produtos })});
+            const data = await resp.json();
+            if (!data.ok) {
+                toast(data.erro || 'Erro ao criar produtos.', cor_vermelho);
+                return;
+            }
+            // 🔄 atualiza tela com retorno
+            data.resultados.forEach(r => {
+                const produto = r.produto;
+                xmlImportado.itens[r.idx].produto_vinculado = {id: produto.id, descricao: produto.descricao};
+                const $tr = $(`#xml-itens-body tr[data-idx="${r.idx}"]`);
+                atualizarStatusProdutoVinculado($tr, produto.id, produto.descricao);
+            });
+            toast(`${ic_verde} Produtos processados com sucesso!`, cor_verde);
+        } catch (e) {
+            console.error(e);
+            toast('Erro na requisição', cor_vermelho);
+        } finally {
+            finalizarLoading();
+            bootstrap.Modal.getInstance(document.getElementById('modalCriarProdutoMassa')).hide();
+            $('.task-checkbox-xml').prop('checked', false);
+            $('#select-all-xml').prop('checked', false);
+        }
     });
     $(document).on('click', '#btn-criar-fornecedor-xml', function () {
         if (!xmlArquivoSelecionado) {
@@ -2003,9 +2481,7 @@ $(document).ready(function() {
             `);
         } else {
             $cell.html(`
-                <div class="small text-secondary produto-vinculado-box">
-                    <i class="fa-solid fa-circle-info me-1"></i> <span class="produto-vinculado-texto">Sem vínculo</span>
-                </div>
+                <div class="small text-secondary produto-vinculado-box"><i class="fa-solid fa-circle-info me-1"></i> <span class="produto-vinculado-texto">Sem vínculo</span></div>
             `);
         }
     }
@@ -2102,12 +2578,14 @@ $(document).ready(function() {
             $(previewEl).one('hidden.bs.modal', function () {
                 fecharLoadingCompleto(function () {
                     toast('Dados do XML carregados no formulário.', cor_verde);
+                    finalizarLoading();
                 });
             });
             previewModal.hide();
         } else {
             fecharLoadingCompleto(function () {
                 toast('Dados do XML carregados no formulário.', cor_verde);
+                finalizarLoading();
             });
         }
     });
@@ -2333,6 +2811,16 @@ $(document).ready(function() {
         verificarPermissaoAntesDeExecutar(
             permissao,
             function () {
+                if ($('#createForm').length) {
+
+                    if ($('#tabela-produtos tbody tr').length === 0 || 
+                        $('#tabela-produtos tbody tr.vazio').length) {
+
+                        toast(`${ic_amarelo} Insira ao menos um produto antes de continuar!`, cor_amarelo);
+                        return;
+                    }
+
+                }
                 const collapseTarget = $btn.data('collapse');
                 if (collapseTarget) {
                     const el = document.querySelector(collapseTarget);
@@ -2343,8 +2831,22 @@ $(document).ready(function() {
                     $.post(url, function () {location.reload();}).fail(function () {alert('Erro ao tentar executar a ação.');});
                 }
                 else if (href) {window.location.href = href;}
-                else if (acaoSelecionada === "atribuir_desconto") {$('#modalDesconto').modal('show');}
-                else if (acaoSelecionada === "atribuir_acrescimo") {$('#modalAcrescimo').modal('show');}
+                else if (acaoSelecionada === "atribuir_desconto") {
+                    $('#modalDesconto').modal('show');
+                }
+                else if (acaoSelecionada === "atribuir_acrescimo") {
+                    $('#modalAcrescimo').modal('show');
+                }
+                else if (acaoSelecionada === "atribuir_desconto_ped") {
+                    $('#operacao').val('desconto');
+                    $('#tituloModal').html('<i class="fa-solid fa-circle-minus"></i> Aplicar Desconto');
+                    $('#modalDesconto').modal('show');
+                }
+                else if (acaoSelecionada === "atribuir_acrescimo_ped") {
+                    $('#operacao').val('acrescimo');
+                    $('#tituloModal').html('<i class="fa-solid fa-circle-plus"></i> Aplicar Acréscimo');
+                    $('#modalDesconto').modal('show');
+                }
                 else if (modalTarget) {
                     const modalEl = document.querySelector(modalTarget);
                     if (modalEl) {
@@ -2353,15 +2855,28 @@ $(document).ready(function() {
                     }
                 } else if ($btn.hasClass('btn-faturar')) {
                     const id = $btn.data('id');
-                    const modalEl = document.getElementById('faturarModal-' + id);
+
+                    // 🔥 tenta Pedido primeiro
+                    let modalEl = document.getElementById('faturarModalP-' + id);
+
+                    // 🔥 fallback para Orçamento
+                    if (!modalEl) {
+                        modalEl = document.getElementById('faturarModal-' + id);
+                    }
+
                     const modalMenuEl = document.getElementById('menuModal' + id);
+
                     if (modalMenuEl) {
                         const menuInstance = bootstrap.Modal.getInstance(modalMenuEl);
                         if (menuInstance) {menuInstance.hide();}
                     }
+
                     if (modalEl) {
-                        const faturarModal = new bootstrap.Modal(modalEl, {backdrop: 'static', keyboard: false});
-                        faturarModal.show();
+                        const modal = new bootstrap.Modal(modalEl, {
+                            backdrop: 'static',
+                            keyboard: false
+                        });
+                        modal.show();
                     }
                 }
             },
@@ -2371,6 +2886,11 @@ $(document).ready(function() {
                 $('#confirmModal').modal('show');
             }
         );
+    });
+    $('#tipo_desconto').change(function () {
+        let tipo = $(this).val();
+
+        $('#simbolo').text(tipo === 'valor' ? 'R$' : '%');
     });
     $(function () {
         function parseBrDate(s) {
@@ -2634,6 +3154,671 @@ $(document).ready(function() {
             $(this).closest('form')[0].submit();
         });
     });
+    // Teste para Faturamento de Pedidos
+    $(function () {
+        function initDatepickerCampo($campo) {
+            if (!$campo.length || $campo.hasClass('hasDatepicker')) return;
+            $campo.datepicker({
+                changeMonth: true, changeYear: true, dateFormat: "dd/mm/yy",
+                monthNamesShort: ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"], dayNamesMin: ["Do","2ª","3ª","4ª","5ª","6ª","Sá"],
+                beforeShow: function (input) {
+                    const $modal = $(input).closest('.modal-faturar-pedido');
+                    const editando = $modal.find('.btn-lib-dt-fat-ped').attr('data-editando') === '1';
+                    if (!editando) return false;
+                    setTimeout(function () {$('.ui-datepicker').css('z-index', 2000);}, 0);
+                }
+            });
+        }
+        function parseDataBR(dataStr) {
+            if (!dataStr) return new Date();
+
+            const partes = dataStr.split('/');
+            if (partes.length !== 3) return new Date();
+
+            return new Date(
+                parseInt(partes[2]), // ano
+                parseInt(partes[1]) - 1, // mês (0-11)
+                parseInt(partes[0]) // dia
+            );
+        }
+        function splitValue(total, parcelas) {
+            const base = Math.floor((total / parcelas) * 100) / 100;
+            let soma = 0, arr = [];
+
+            for (let i = 0; i < parcelas - 1; i++) {
+                arr.push(base.toFixed(2));
+                soma += base;
+            }
+
+            arr.push((total - soma).toFixed(2));
+            return arr;
+        }
+
+        function formatDate(dt) {
+            return dt.toLocaleDateString('pt-BR');
+        }
+
+        function gerarParcelas($modal) {
+            const $tbody = $modal.find('.preview-table tbody');
+            const pedidoId = $modal.data('pedidoId');
+
+            $tbody.empty();
+
+            let temParcelas = false;
+
+            // 🔥 NOVO: pega data do campo
+            const dataBaseStr = $modal.find('.dt-fat-pedido').val();
+            const dataBase = parseDataBR(dataBaseStr);
+
+            $modal.find('#tableFormas-' + pedidoId + ' tbody tr').each(function () {
+
+                const parcelas = parseInt($(this).data('parcelas'));
+                const dias = parseInt($(this).data('dias'));
+                const valor = parseValor($(this).data('valor'));
+
+                // 🔥 só entra se realmente tiver parcelamento
+                if (parcelas <= 1 || $(this).data('gera') != 1) return;
+
+                temParcelas = true;
+
+                const valores = splitValue(valor, parcelas);
+
+                for (let i = 1; i <= parcelas; i++) {
+
+                    // 🔥 CLONA a data base (IMPORTANTE)
+                    let dt = new Date(dataBase);
+
+                    dt.setDate(dt.getDate() + (dias * i));
+
+                    $tbody.append(`
+                        <tr>
+                            <td>${pedidoId}/${parcelas}-${i}</td>
+                            <td><input class="form-control form-control-sm inp-valor" value="${valores[i-1]}" readonly></td>
+                            <td><input class="form-control form-control-sm inp-vencimento" value="${formatDate(dt)}" readonly></td>
+                            <td>
+                                <button class="btn btn-warning btn-sm btn-edit-parcela" data-editando="0">
+                                    <i class="fa fa-pen"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `);
+                }
+            });
+
+            if (temParcelas) {
+                $modal.find('.preview-table, .preview-title').removeClass('d-none');
+            } else {
+                $modal.find('.preview-table, .preview-title').addClass('d-none');
+            }
+        }
+        $(document).on('shown.bs.modal', '.modal-faturar-pedido', function () {
+            atualizarSaldo($(this));
+        });
+        $(document).on('change', '.dt-fat-pedido', function () {
+            const $modal = $(this).closest('.modal');
+            gerarParcelas($modal);
+        });
+        // MOSTRA CAMPOS PARCELA
+        $(document).on('change', '[id^=formaPgtoSelect-]', function () {
+
+            const $select = $(this);
+            const id = $select.val();
+            const $modal = $select.closest('.modal');
+
+            if (!id) return;
+
+            $.get('/formas_pgto/forma-pgto-info/' + id + '/', function (data) {
+
+                // UI parcelas
+                $modal.find('.campos-parcela')
+                    .toggleClass('d-none', !data.gera_parcelas);
+
+                if (!data.gera_parcelas) {
+                    $modal.find('[id^=parcelasPgto-]').val(1);
+                    $modal.find('[id^=diasPgto-]').val(30);
+                }
+
+                // 🔥 salva no SELECT (padrão correto)
+                $select.data('gateway', data.gateway || 'nenhum');
+                $select.data('credencial', data.credenciais || null);
+                $select.data('troco', data.troco ? 1 : 0);
+                $select.data('gera', data.gera_parcelas ? 1 : 0);
+
+            });
+
+        });
+
+        // ADD FORMA
+        $(document).on('click', '.btn-add-forma', function () {
+
+            const $modal = $(this).closest('.modal');
+            const pedidoId = $modal.data('pedidoId');
+
+            const select = $modal.find('#formaPgtoSelect-' + pedidoId);
+            const formaId = select.val();
+            const formaDesc = select.find('option:selected').text();
+
+            const valor = $modal.find('#valorPgto-' + pedidoId).val();
+            let valorNum = parseValor(valor);
+
+            const parcelas = $modal.find('#parcelasPgto-' + pedidoId).val() || 1;
+            const dias = $modal.find('#diasPgto-' + pedidoId).val() || 0;
+
+            const geraParcelas = select.data('gera') == 1;
+            const permiteTroco = select.data('troco') == 1;
+
+            const parcelasTxt = geraParcelas ? parcelas : '-';
+            const diasTxt     = geraParcelas ? dias : '-';
+            const gateway = select.data('gateway') || 'nenhum';
+            const credencial = select.data('credencial') || null;
+
+            if (!formaId || !valor) {
+                alert('Informe forma e valor');
+                return;
+            }
+
+            if (select.data('troco') === undefined) {
+                toast(`${ic_amarelo} Aguarde carregar dados da forma`, cor_amarelo);
+                return;
+            }
+            if (select.data('gateway') === undefined) {
+                toast('Aguarde carregar os dados da forma...', 'warning');
+                return;
+            }
+
+            if (valorNum <= 0) {
+                alert('Valor inválido');
+                return;
+            }
+
+            const $tbody = $modal.find('#tableFormas-' + pedidoId + ' tbody');
+
+            // 🔥 IMPEDIR DUPLICIDADE
+            const jaExiste = $tbody.find('tr').filter(function () {
+                return $(this).data('forma') == formaId;
+            }).length > 0;
+
+            if (jaExiste) {
+                toast(`${ic_amarelo} Forma de pagamento já adicionada!`, cor_amarelo);
+                return;
+            }
+
+            const index = $tbody.children().length + 1;
+
+            $tbody.append(`
+                <tr data-forma="${formaId}" data-valor="${valorNum}" data-parcelas="${geraParcelas ? parcelas : 1}" data-dias="${geraParcelas ? dias : 0}" data-gera="${geraParcelas ? 1 : 0}" data-troco="${permiteTroco ? 1 : 0}" data-gateway="${gateway}" data-credencial="${JSON.stringify(credencial)}">
+                    <td>${index}</td>
+                    <td>${formaDesc}</td>
+                    <td>${valorNum.toFixed(2)}</td>
+                    <td>${parcelasTxt}</td>
+                    <td>${diasTxt}</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm btn-remove-forma">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `);
+
+            gerarParcelas($modal);
+            atualizarSaldo($modal);
+            calcularTroco($modal);
+
+            // 🔥 limpa select2 e já abre novamente
+            select.val(null).trigger('change');
+            select.select2('open');
+
+            // 🔥 recalcula valor automaticamente
+            const saldo = getTotalPedido($modal) - getTotalFormas($modal);
+
+            $modal.find('#valorPgto-' + pedidoId).val(
+                saldo > 0 ? saldo.toFixed(2) : '0.00'
+            );
+
+            $modal.find('#parcelasPgto-' + pedidoId).val(1);
+            $modal.find('#diasPgto-' + pedidoId).val(30);
+            $modal.find('.campos-parcela').addClass('d-none');
+        });
+
+        // SUBMIT
+        $(document).on('click', '.btn-confirmar-pedido', function () {
+
+            const $modal = $(this).closest('.modal');
+            const pedidoId = $modal.data('pedidoId');
+
+            let formas = [];
+            let parcelas = [];
+
+            $modal.find('#tableFormas-' + pedidoId + ' tbody tr').each(function () {
+                formas.push({
+                    forma: $(this).data('forma'),
+                    valor: $(this).data('valor'),
+                    parcelas: $(this).data('parcelas'),
+                    dias: $(this).data('dias')
+                });
+            });
+
+            $modal.find('#previewPedido-' + pedidoId + ' tbody tr').each(function () {
+                parcelas.push({
+                    numero: $(this).find('td:eq(0)').text(),
+                    valor: $(this).find('td:eq(1)').text(),
+                    vencimento: $(this).find('td:eq(2)').text()
+                });
+            });
+
+            $modal.find('#dadosPagamento-' + pedidoId).val(JSON.stringify(formas));
+            $modal.find('#parcelasJson-' + pedidoId).val(JSON.stringify(parcelas));
+        });
+        $(document).on('click', '.btn-remove-forma', function () {
+            const $modal = $(this).closest('.modal');
+            const pedidoId = $modal.data('pedidoId');
+
+            $(this).closest('tr').remove();
+
+            // reordena
+            $modal.find('#tableFormas-' + pedidoId + ' tbody tr').each(function (i) {
+                $(this).find('td:first').text(i + 1);
+            });
+
+            gerarParcelas($modal);
+            atualizarSaldo($modal);
+            calcularTroco($modal);
+
+            // 🔥 NOVO: joga o saldo restante no campo valor
+            const saldo = getTotalPedido($modal) - getTotalFormas($modal);
+
+            $modal.find('#valorPgto-' + pedidoId).val(
+                saldo > 0 ? saldo.toFixed(2) : '0.00'
+            );
+        });
+        $(document).on('input', '[id^=valorPgto-]', function () {
+            atualizarSaldo($(this).closest('.modal'));
+        });
+        
+        $(document).on('click', '.btn-edit-parcela', function () {
+
+            const $btn = $(this);
+            const $tr = $btn.closest('tr');
+
+            const editando = $btn.attr('data-editando') === '1';
+
+            const $valor = $tr.find('.inp-valor');
+            const $venc = $tr.find('.inp-vencimento');
+
+            if (!editando) {
+                $valor.removeAttr('readonly');
+                $venc.removeAttr('readonly');
+
+                $btn.removeClass('btn-warning').addClass('btn-success')
+                    .html('<i class="fa fa-check"></i>')
+                    .attr('data-editando', '1');
+            } else {
+                $valor.attr('readonly', true);
+                $venc.attr('readonly', true);
+
+                $btn.removeClass('btn-success').addClass('btn-warning')
+                    .html('<i class="fa fa-pen"></i>')
+                    .attr('data-editando', '0');
+            }
+
+        });
+        function calcularTroco($modal) {
+            const pedidoId = $modal.data('pedidoId');
+
+            let totalFormas = 0;
+            let permiteTroco = false;
+
+            $modal.find('#tableFormas-' + pedidoId + ' tbody tr').each(function () {
+                totalFormas += parseFloat($(this).data('valor') || 0);
+
+                if ($(this).data('troco') == 1) {
+                    permiteTroco = true;
+                }
+            });
+
+            const totalPedido = getTotalPedido($modal);
+
+            let troco = 0;
+
+            if (permiteTroco && totalFormas > totalPedido) {
+                troco = totalFormas - totalPedido;
+            }
+
+            const $campoTroco = $modal.find('#troco-' + pedidoId);
+            const $container = $campoTroco.closest('.col-md-2');
+
+            if (troco > 0) {
+                $campoTroco.val(troco.toFixed(2));
+                $container.removeClass('d-none'); // mostra
+            } else {
+                $campoTroco.val('0.00');
+                $container.addClass('d-none'); // esconde
+            }
+        }
+        function setEstadoBotaoDataFatPedido($modal, editando) {
+
+            const $input = $modal.find('.dt-fat-pedido');
+            const $btn = $modal.find('.btn-lib-dt-fat-ped');
+
+            if (editando) {
+                $input.prop('readonly', false);
+                $btn
+                    .removeClass('btn-outline-secondary')
+                    .addClass('btn-success')
+                    .html('<i class="fa fa-check"></i>')
+                    .attr('data-editando', '1');
+            } else {
+                $input.prop('readonly', true);
+                $btn
+                    .removeClass('btn-success')
+                    .addClass('btn-outline-secondary')
+                    .html('<i class="fa fa-pen"></i>')
+                    .attr('data-editando', '0');
+            }
+        }
+        $(document)
+        .off('click.pedidos', '.btn-lib-dt-fat-ped')
+        .on('click.pedidos', '.btn-lib-dt-fat-ped', function (e) {
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const $btn = $(this);
+            const $modal = $btn.closest('.modal-faturar-pedido');
+
+            const permissao = $btn.data('permissao');
+            const msgNegado = $btn.data('msg-negado');
+
+            const editando = $btn.attr('data-editando') === '1';
+
+            verificarPermissaoAntesDeExecutar(
+                permissao,
+                function () {
+
+                    setEstadoBotaoDataFatPedido($modal, !editando);
+
+                    if (!editando) {
+                        $modal.find('.dt-fat-pedido').focus();
+                    } else {
+                        // 🔥 quando terminar edição, recalcula parcelas
+                        gerarParcelas($modal);
+                    }
+                },
+                function () {
+                    toast(`${ic_amarelo} ${msgNegado}`, cor_amarelo);
+                }
+            );
+        });
+        
+        $('.modal-faturar-pedido')
+        .off('shown.bs.modal.pedidos')
+        .on('shown.bs.modal.pedidos', function () {
+
+            const $modal = $(this);
+            const $campo = $modal.find('.dt-fat-pedido');
+
+            // inicializa datepicker
+            initDatepickerCampo($campo);
+
+            // 🔥 sempre inicia bloqueado
+            setEstadoBotaoDataFatPedido($modal, false);
+
+            // 🔥 garante valor padrão se estiver vazio
+            if (!$campo.val()) {
+                const hoje = new Date();
+                $campo.val(hoje.toLocaleDateString('pt-BR'));
+            }
+
+            // 🔥 recalcula parcelas ao abrir
+            gerarParcelas($modal);
+        });
+        function getTotalPedido($modal) {
+            const pedidoId = $modal.data('pedidoId');
+            let total = $modal.find('#valorPgto-' + pedidoId).data('total');
+
+            if (!total) {
+                total = parseValor($modal.find('#valorPgto-' + pedidoId).val());
+                $modal.find('#valorPgto-' + pedidoId).data('total', total);
+            }
+
+            return total;
+        }
+
+        function getTotalFormas($modal) {
+            let soma = 0;
+
+            $modal.find('#tableFormas-' + $modal.data('pedidoId') + ' tbody tr').each(function () {
+                soma += parseFloat($(this).data('valor') || 0);
+            });
+
+            return soma;
+        }
+
+        function atualizarSaldo($modal) {
+            const pedidoId = $modal.data('pedidoId');
+
+            const totalPedido = getTotalPedido($modal);
+            const totalFormas = getTotalFormas($modal);
+
+            const saldo = totalPedido - totalFormas;
+
+            const $input = $modal.find('#valorPgto-' + pedidoId);
+
+            // 🔥 NÃO SOBRESCREVE MAIS O VALOR
+            // apenas feedback visual
+
+            if (saldo === 0) {
+                $input.removeClass('border-danger').addClass('border-success');
+            } else if (saldo < 0) {
+                $input.removeClass('border-success').addClass('border-danger');
+            } else {
+                $input.removeClass('border-success border-danger');
+            }
+
+            // 🔥 (OPCIONAL) mostrar saldo em label
+            $modal.find('.saldo-restante').text('Saldo Restante: R$ ' + saldo.toFixed(2));
+        }
+        $(document).on('focus', '[id^=valorPgto-]', function () {
+            const $modal = $(this).closest('.modal');
+
+            const saldo = getTotalPedido($modal) - getTotalFormas($modal);
+
+            if (parseFloat($(this).val()) === 0 || !$(this).val()) {
+                $(this).val(saldo.toFixed(2));
+            }
+        });
+    });
+    $(document).on('click', '.btn-confirmar-pedido', function (e) {
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const $modal = $(this).closest('.modal');
+        const pedidoId = $modal.data('pedidoId');
+
+        let formas = [];
+        let temGateway = false;
+
+        $modal.find('#tableFormas-' + pedidoId + ' tbody tr').each(function () {
+
+            const gateway = $(this).data('gateway');
+            const credencial = $(this).data('credencial');
+
+            const valor = parseFloat($(this).data('valor') || 0);
+
+            if (valor <= 0) return;
+
+            formas.push({
+                forma: $(this).data('forma'),
+                valor: valor
+            });
+
+            // 🔥 REGRA PRINCIPAL
+            if (gateway && gateway !== 'nenhum' && credencial) {
+                temGateway = true;
+            }
+
+        });
+
+        // 🔥 DECISÃO FINAL
+        if (temGateway) {
+
+            iniciarLoading();
+
+            $.post(`/pedidos/${pedidoId}/gerar-pix/`, {
+                csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+                dados_pagamento: JSON.stringify(formas)
+            }, function (resp) {
+
+                fecharLoading();
+
+                if (resp.pagamentos && resp.pagamentos.length > 0) {
+                    abrirModalPix(resp.pagamentos, pedidoId);
+                } else {
+                    alert('Erro ao gerar pagamento');
+                }
+
+            });
+
+        } else {
+            // 🔥 SEM GATEWAY → FATURA DIRETO
+            finalizarPedido(pedidoId);
+        }
+
+    });
+    function abrirModalPix(pagamentos, pedidoId) {
+
+        let html = '';
+
+        pagamentos.forEach(p => {
+            html += `
+                <div class="mb-3">
+                    <img src="data:image/png;base64,${p.qr_base64}" width="220" class="mb-2">
+
+                    <div class="input-group">
+                        <input type="text" class="form-control text-center" value="${p.qr_code}" readonly>
+                        <button class="btn btn-outline-secondary btn-copiar" data-code="${p.qr_code}">
+                            Copiar
+                        </button>
+                    </div>
+
+                    <strong class="d-block mt-2">R$ ${p.valor}</strong>
+                </div>
+            `;
+        });
+
+        $('#pixQrContainer').html(html);
+
+        $('#statusPix').removeClass('d-none');
+        $('#statusSucesso').addClass('d-none');
+
+        const modalPix = new bootstrap.Modal(document.getElementById('modalPixPagamento'));
+        modalPix.show();
+
+        monitorarPagamento(pedidoId, modalPix);
+    }
+    $(document).on('click', '.btn-copiar', function () {
+        const code = $(this).data('code');
+
+        navigator.clipboard.writeText(code);
+
+        $(this).text('Copiado!');
+
+        setTimeout(() => {
+            $(this).text('Copiar');
+        }, 2000);
+    });
+    function monitorarPagamento(pedidoId, modalPix) {
+
+        const interval = setInterval(() => {
+
+            $.get(`/pedidos/${pedidoId}/status-pagamento/`, function (resp) {
+
+                if (resp.status === 'pago') {
+
+                    clearInterval(interval);
+
+                    // 🔥 troca visual
+                    $('#statusPix').addClass('d-none');
+                    $('#statusSucesso').removeClass('d-none');
+
+                    setTimeout(() => {
+
+                        modalPix.hide();
+                        $('.modal-faturar-pedido').modal('hide');
+
+                        finalizarPedido(pedidoId);
+
+                    }, 1500);
+                }
+
+            });
+
+        }, 3000);
+    }
+
+    function fecharLoading() {
+        $('#loadingOverlay').remove();
+    }
+    function finalizarPedido(pedidoId) {
+
+        const $modal = $(`.modal-faturar-pedido[data-pedido-id="${pedidoId}"]`);
+
+        let formas = [];
+        let parcelas = [];
+
+        $modal.find('#tableFormas-' + pedidoId + ' tbody tr').each(function () {
+            formas.push({
+                forma: $(this).data('forma'),
+                valor: parseFloat($(this).data('valor') || 0),   
+                parcelas: $(this).data('parcelas'),
+                dias: $(this).data('dias')
+            });
+        });
+
+        $modal.find('#previewPedido-' + pedidoId + ' tbody tr').each(function () {
+            parcelas.push({
+                numero: $(this).find('td:eq(0)').text(),
+                valor: parseFloat($(this).find('td:eq(1)').text().replace(',', '.') || 0), // converte para número
+                vencimento: $(this).find('td:eq(2)').text()
+            });
+        });
+
+        $.post(`/pedidos/faturar/${pedidoId}/`, {
+            csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+            dados_pagamento: JSON.stringify(formas),
+            parcelas_json: JSON.stringify(parcelas)
+        }, function (resp) {
+
+            if (resp.ok) {
+
+                iniciarLoading();
+
+                toast(`${ic_verde} ${resp.msg}`, cor_verde);
+
+                // fecha modais
+                $('.modal-faturar-pedido').modal('hide');
+                $('#modalPixPagamento').modal('hide');
+
+                setTimeout(function () {
+                    window.location.href = `/pedidos/lista/?s=${pedidoId}&sit=Faturado`;
+                }, 1500);
+            }
+
+        });
+    }
+    const msg = sessionStorage.getItem('msg_sucesso');
+
+    if (msg) {
+
+        // 👉 pode usar toast, alert, ou bootstrap
+        toast(`${ic_verde} ${msg}`, cor_verde);
+
+        // ou:
+        // alert(msg);
+
+        sessionStorage.removeItem('msg_sucesso');
+    }
     $(document).on('click', '.btn-abrir-modal-cancelamento', function () {
         const id = $(this).data('orcamento-id');
         const motivo = $(`#motivoCancelamento${id}`).val().trim();
@@ -2718,6 +3903,25 @@ $(document).ready(function() {
             error: function(){verificando = false;}
         });
     });
+    $("#id_dias").on("blur", function(){
+        if(verificando) return;
+        let dias = $(this).val();
+        if(dias == "" || dias <= 0)
+            return;
+        verificando = true;
+        $.ajax({
+            url: "/ajax/verificar-parcelas/", type: "GET", data: {dias: dias},
+            success: function(data){
+                if(!data.permitido){
+                    toast(`${ic_info} Quantidade de dias superior ao Permitido na Filial! Máximo: ${data.maximo} dias.`, cor_info);
+                    $("#id_dias").val(data.maximo);
+                    $("#id_dias").focus();
+                }
+                verificando = false;
+            },
+            error: function(){verificando = false;}
+        });
+    });
     // GET em Formas PGTO
     $('#id_formas_pgto').change(function(){
         let id = $(this).val();
@@ -2730,7 +3934,68 @@ $(document).ready(function() {
                 $('#div_id_parcelas').hide();
                 $('#div_id_dias').hide();
                 $('#id_parcelas').val(1);
-                $('#id_dias').val(0);
+                $('#id_dias').val(30);
+            }
+        });
+    });
+    // Para Pedidos
+    let verificandoPedido = false;
+
+    // PARCELAS
+    $(document).on('blur', '[id^=parcelasPgto-]', function () {
+        if (verificandoPedido) return;
+
+        const $input = $(this);
+        const parcelas = parseInt($input.val());
+
+        if (!parcelas || parcelas <= 0) return;
+
+        verificandoPedido = true;
+
+        $.ajax({
+            url: "/ajax/verificar-parcelas/",
+            type: "GET",
+            data: { parcelas: parcelas },
+
+            success: function (data) {
+                if (!data.permitido) {
+                    toast(`${ic_info} Máximo permitido: ${data.maximo} parcelas.`, cor_info);
+                    $input.val(data.maximo);
+                    $input.focus();
+                }
+                verificandoPedido = false;
+            },
+            error: function () {
+                verificandoPedido = false;
+            }
+        });
+    });
+    // DIAS
+    $(document).on('blur', '[id^=diasPgto-]', function () {
+        if (verificandoPedido) return;
+
+        const $input = $(this);
+        const dias = parseInt($input.val());
+
+        if (!dias || dias <= 0) return;
+
+        verificandoPedido = true;
+
+        $.ajax({
+            url: "/ajax/verificar-parcelas/",
+            type: "GET",
+            data: { dias: dias },
+
+            success: function (data) {
+                if (!data.permitido) {
+                    toast(`${ic_info} Máximo permitido: ${data.maximo} dias.`, cor_info);
+                    $input.val(data.maximo);
+                    $input.focus();
+                }
+                verificandoPedido = false;
+            },
+            error: function () {
+                verificandoPedido = false;
             }
         });
     });
@@ -2796,7 +4061,7 @@ $(document).ready(function() {
     }
     function calcFtPeso(porta) {
         let alt_corte = parseFloat($(`.alt-corte[data-porta="${porta}"]`).val().replace(',', '.'));
-        let m2 = $(`.m2[data-porta="${porta}"]`).val();
+        let m2 = parseFloat($(`.m2[data-porta="${porta}"]`).val()) || 0;
         if (isNaN(alt_corte)) {
             $(`.ft-peso[data-porta="${porta}"]`).val('');
             return;
@@ -2851,85 +4116,31 @@ $(document).ready(function() {
         let aux = arredondarInteiro(calc);
         $(`.qtd-laminas[data-porta="${porta}"]`).val(aux);
     }
-    function selecionarProdutoPorPeso(peso, regraJSON) {
-        return regraJSON.sort((a, b) => (a.condicoes?.max || 0) - (b.condicoes?.max || 0)).find(r => peso <= (r.condicoes?.max || Infinity)) ?.produto_id || null;
-    }
     function resetarControleRegras() {motorCtrl = {};}
     toastErrorShown = false;
-    function removerLaminaTipo(porta) {
-        prodManager.data[porta] = (prodManager.data[porta] || []).filter(item => {return item.regra_origem !== 'LAMINA_TIPO';});
-        $(`#tblProd_${porta} tbody tr[data-regra-origem="LAMINA_TIPO"]`).remove();
-    }
-    function atualizarLaminarPorta(porta) {
-        return new Promise(async resolve => {
-            const regraSelecao = REGRAS.LAMINA_TIPO;
-            if (!regraSelecao || regraSelecao.tipo !== 'SELECAO') { resolve(); return; }
-            const descAtiva = getDescricaoLaminaAtiva(porta);
-            if (!descAtiva) { resolve(); return; }
-            removerLaminaTipo(porta);
-            await inserirLaminaSelecionada(porta);
-            resolve();
-        });
-    }
-    function inserirLaminaSelecionada(porta) {
-        return inserirProdutoPorDescricao({porta, descricao: getDescricaoLaminaAtiva(porta), tpProd: 'Principal', manager: prodManager, tabelaId: 'tblProd', regraOrigem: 'LAMINA_TIPO', modalEditar: 'editItemModal'});
-    }
-    const pinturaRequests = {};
-    function atualizarPinturaPorta(porta) {
-        return new Promise(async resolve => {
-            const temPintura = $('#id_pintura').val();
-            prodAdcManager.data[porta] = (prodAdcManager.data[porta] || []).filter(i => i.regra_origem !== 'PINTURA_TIPO');
-            $(`#tblAdc_${porta} tbody tr[data-regra-origem="PINTURA_TIPO"]`).remove();
-            if (temPintura === 'Não') {
-                resolve();
-                return;
-            }
-            await inserirPinturaSelecionada(porta);
-            resolve();
-        });
-    }
-    // Substitui inserirPinturaSelecionada:
-    function inserirPinturaSelecionada(porta) {
-        return inserirProdutoPorDescricao({porta, descricao: getDescricaoPinturaAtiva(porta), tpProd: 'Adicional', manager: prodAdcManager, tabelaId: 'tblAdc', regraOrigem: 'PINTURA_TIPO', modalEditar: 'editItemAdcModal'});
-    }
-    $(document).on("change", ".tipo-lamina", function () {
+    $(document).on("change", ".tipo-lamina", async function () {
         iniciarLoading();
-        atualizarLaminarPorta($(this).data("porta"));
+        const porta = $(this).data("porta");
+        await carregarProdutosIniciais(porta);
+        await atualizarSubtotal();
         finalizarLoading();
     });
     $(document).on('keyup change', '.larg', function () {
         let porta = $(this).data('porta');
         calcLgCorte(porta);
     });
-    function forcarRecalculoPorLargCorte(porta, larg_c) {
-        larg_c = Number(larg_c) || 0;
-        (prodManager.data[porta] || []).forEach(item => {
-            if (!item.regra || item.regra.tipo !== 'QTD') return;
-            if (item.regra.codigo === 'EIXO_LARGURA' || item.regra.codigo === 'SOLEIRA_LARGURA') {
-                item.qtd_manual = false;
-                item.qtd_calc = larg_c;
-                item.qtd_final = larg_c;
-                item.ativo = larg_c > 0;
-                console.log('RECALC LARG_C OK:', item.cod, larg_c);
-            }
-        });
-    }
     $(document).on('change', '.tipo-vao', async function () {
         iniciarLoading();
         const tabelas = $('[id^="tblProd_"]');
         for (const el of tabelas) {
             const porta = el.id.split('_')[1];
             calcLgCorte(porta);
-            const larg_c = Number(medidasCtrl[porta]?.larg_c) || parseFloat($(`.larg-corte[data-porta="${porta}"]`).val()) || 0;
-            forcarRecalculoPorLargCorte(porta, larg_c);
-            calcFtPeso(porta);
             calcM2(porta);
-            calcQtdLam(porta);
-            calcularEixoMotor(porta);
+            calcFtPeso(porta);
             calcPeso(porta);
-            await atualizarLaminarPorta(porta);
-            await atualizarPinturaPorta(porta);
-            await atualizarTabelaPorta(porta);
+            calcularEixoMotor(porta);
+            calcQtdLam(porta);
+            await carregarProdutosIniciais(porta);
             await new Promise(resolve => setTimeout(resolve, 100));
             recalcularTotaisPorta(porta);
         }
@@ -2938,42 +4149,21 @@ $(document).ready(function() {
         finalizarLoading();
         atualizarSubtotal();
     });
-    $("#prod_servBtn, #adicionaisBtn, #form_pgtoBtn").on("click", function () {
-        atualizarSubtotal();
+    $("#prod_servBtn, #adicionaisBtn, #form_pgtoBtn").on("click", async function () {
+        await atualizarSubtotal();
         calcularValorForma();
         somaFormas();
         atualizarJSONPortas();
         gerarJSONFormas();
     });
-    function limparPinturas(porta) {
-        const regra = REGRAS.PINTURA_TIPO;
-        const descsPintura = (regra?.expressao_json || []).map(r => {
-            const desc = r.desc_prod || '';
-            const partes = desc.split(' - ');
-            return (partes.length > 1 ? partes.slice(1).join(' - ') : desc).toUpperCase().trim();
-        });
-        prodAdcManager.data[porta] = (prodAdcManager.data[porta] || []).filter(i => i.regra_origem !== 'PINTURA_TIPO');
-        $(`#tblAdc_${porta} tbody tr`).each(function () {
-            const desc = $(this).find('.td-desc').text().toUpperCase().trim();
-            if (descsPintura.includes(desc)) $(this).remove();
-        });
-        atualizarSubtotal();
-        atualizarJSONPortas();
-    }
     $(document).on('change', '#id_pintura, #id_tp_pintura', async function () {
         iniciarLoading();
-        const campo = this.id;
-        const valor = $(this).val();
-        $('[id^="tblAdc_"]').each(function () {
-            const porta = $(this).attr('id').split('_')[1];
-            if (campo === 'id_tp_pintura') {limparPinturas(porta);}
-            if (campo === 'id_pintura' && valor === 'Não') {limparPinturas(porta);}
-            else if (campo === 'id_tp_pintura' || campo === 'id_pintura') {atualizarPinturaPorta(porta);}
-        });
-        atualizarSubtotal();
-        atualizarJSONPortas();
-        gerarJSONFormas();
-        reindexarPortas();
+        const tabelas = $('[id^="tblAdc_"]');
+        for (const el of tabelas) {
+            const porta = el.id.split('_')[1];
+            await carregarProdutosIniciais(porta);
+        }
+        await atualizarSubtotal();
         finalizarLoading();
     });
     gerarJSONFormas();
@@ -3162,20 +4352,22 @@ $(document).ready(function() {
         else {$(this).data('raw', val.replace('.', ''));}
         this.select();
     });
-    $(document).off('input.decimal').on('input.decimal', CAMPOS_DECIMAIS, function (e) {
-        let raw = $(this).data('raw') || '';
-        let key = e.originalEvent ? e.originalEvent.data : null;
-        if (key === null) {raw = raw.slice(0, -1);}
-        else if (/\d/.test(key)) {raw += key;}
+    $(document).off('input.decimal').on('input.decimal', CAMPOS_DECIMAIS, function () {
+        let valor = $(this).val();
+        let raw = valor.replace(/\D/g, '');
         $(this).data('raw', raw);
         if (!raw) {
             $(this).val('0.00');
-            if ($(this).hasClass('alt')) {atualizarAltCorte($(this));}
+            if ($(this).hasClass('alt')) {
+                atualizarAltCorte($(this));
+            }
             return;
         }
         let num = (parseInt(raw, 10) / 100).toFixed(2);
         $(this).val(num);
-        if ($(this).hasClass('alt')) {atualizarAltCorte($(this));}
+        if ($(this).hasClass('alt')) {
+            atualizarAltCorte($(this));
+        }
     });
     $(document).off('blur.decimal').on('blur.decimal', CAMPOS_DECIMAIS, function () {
         let val = $(this).val();
@@ -3450,10 +4642,6 @@ $(document).ready(function() {
         const porta = this.id.split('_')[1];
         observarTotaisPorta(porta);
     });
-    function toNumber(text) {
-        if (!text) return 0;
-        return parseFloat(text.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.')) || 0;
-    }
     function recalcularTotaisPorta(porta) {
         let totalCompra = 0;
         let totalVenda = 0;
@@ -3480,16 +4668,6 @@ $(document).ready(function() {
         const porta = $(this).data("porta");
         recalcularTotaisPorta(porta);
     });
-    function reposicionarMotor(porta) {
-        const $tbody = $(`#tblProd_${porta} tbody`);
-        const $motorRow = $tbody.find("tr").filter(function () {return $(this).find(".td-desc").text().toUpperCase().includes("MOTOR");});
-        if ($motorRow.length) {$motorRow.detach().appendTo($tbody);}
-    }
-    function reposicionarLaminaPrimeiro(porta) {
-        const $tbody = $(`#tblProd_${porta} tbody`);
-        const $laminaRow = $tbody.find("tr").filter(function () {return $(this).find(".td-desc").text().toUpperCase().includes("LÂMINAS");});
-        if ($laminaRow.length) {$laminaRow.detach().prependTo($tbody);}
-    }
     $(document).on("blur", ".alt", async function () {
         const idTabela = $('#id_tabela_preco').val();
         if (!idTabela) {
@@ -3498,11 +4676,12 @@ $(document).ready(function() {
             return;
         }
         const porta = $(this).data("porta");
-        const lg = parseFloat($(`.larg[data-porta="${porta}"]`).val().replace(",", ".")) || 0;
-        const at = parseFloat($(`.alt[data-porta="${porta}"]`).val().replace(",", ".")) || 0;
+        const lg = parseFloat($(`.larg[data-porta="${porta}"]`).val()) || 0;
+        const at = parseFloat($(`.alt[data-porta="${porta}"]`).val()) || 0;
         if (lg <= 0 || at <= 0) return;
         medidasCtrl[porta] ??= {};
         const ctrl = medidasCtrl[porta];
+        const primeiraVez = !ctrl.larg && !ctrl.alt;
         const mudouMedida = ctrl.larg !== lg || ctrl.alt !== at;
         if (!mudouMedida) {
             atualizarSubtotal();
@@ -3511,21 +4690,13 @@ $(document).ready(function() {
         ctrl.larg = lg;
         ctrl.alt  = at;
         iniciarLoading();
+        calcLgCorte(porta);  // PRIMEIRO
         calcM2(porta);
         calcFtPeso(porta);
-        calcLgCorte(porta);
         calcPeso(porta);
         calcularEixoMotor(porta);
         calcQtdLam(porta);
-        await buscarProdutosPorTipo(porta, 'Principal');
-        await buscarProdutosPorTipo(porta, 'Adicional');
-        await buscarProdutoPorPeso({ porta, codigoRegra: 'MOTOR_PESO', textoFiltroDesc: 'MOTOR', regraOrigem: 'MOTOR_PESO' });
-        await buscarProdutoPorPeso({ porta, codigoRegra: 'EIXO_PESO',  textoFiltroDesc: 'EIXO',  regraOrigem: 'EIXO_PESO'  });
-        await buscarProdutoPorPeso({ porta, codigoRegra: 'TUBO_PESO',  textoFiltroDesc: 'TUBO',  regraOrigem: 'TUBO_PESO'  });
-        await atualizarTabelaPorta(porta);
-        await atualizarLaminarPorta(porta);
-        reposicionarMotor(porta);
-        reposicionarLaminaPrimeiro(porta);
+        await carregarProdutosIniciais(porta);
         atualizarSubtotal();
         calcularValorForma();
         somaFormas();
@@ -3592,6 +4763,51 @@ $(document).ready(function() {
         if (typeof atualizarJSONPortas === "function") {atualizarJSONPortas();}
     }
     function getCSRFToken() {return document.querySelector('[name=csrfmiddlewaretoken]').value;}
+        // 1️⃣ NOVA FUNÇÃO: Carregar produtos pela primeira vez (baseado em regras)
+    async function carregarProdutosIniciais(porta) {
+        const contexto = {
+            largura: getFloat(`.larg[data-porta="${porta}"]`), altura: getFloat(`.alt[data-porta="${porta}"]`), larg_c: getFloat(`.larg-corte[data-porta="${porta}"]`),
+            alt_c: getFloat(`.alt-corte[data-porta="${porta}"]`), m2: getFloat(`.m2[data-porta="${porta}"]`), peso: getFloat(`.peso[data-porta="${porta}"]`),
+            qtd_lam: getFloat(`.qtd-laminas[data-porta="${porta}"]`), ft_peso: getFloat(`.ft-peso[data-porta="${porta}"]`), eix_mot: getFloat(`.eix-mot[data-porta="${porta}"]`),
+            rolo: getFloat(`.rolo[data-porta="${porta}"]`), tipo_lamina: $(`.tipo-lamina[data-porta="${porta}"]`).val(), tipo_pintura: $('#id_tp_pintura').val(),
+            tem_pintura: $('#id_pintura').val() === 'Sim'
+        };
+        const resp = await fetch('/regras_produto/aplicar_regras_porta/', {
+            method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken()}, body: JSON.stringify({tabela_id: getTabelaPreco(), contexto: contexto})
+        });
+        const data = await resp.json();
+        if (!data.success) {
+            console.error('Erro ao aplicar regras:', data.error);
+            return;
+        }
+        // Remove apenas produtos de regras antigas (mantém produtos manuais)
+        prodManager.data[porta] = (prodManager.data[porta] || []).filter(
+            item => !item.regra_origem || item.qtd_manual
+        );
+        prodAdcManager.data[porta] = (prodAdcManager.data[porta] || []).filter(
+            item => !item.regra_origem || item.qtd_manual
+        );
+        // Remove linhas antigas de regras no DOM (mantém manuais)
+        $(`#tblProd_${porta} tbody tr[data-regra-origem]`).not('[data-manual="true"]').remove();
+        $(`#tblAdc_${porta} tbody tr[data-regra-origem]`).not('[data-manual="true"]').remove();
+        // Adiciona novos produtos vindos do backend
+        data.produtos.forEach(item => {
+            // ✅ Determina tabela baseado no tp_prod retornado do backend
+            const ehAdicional = item.tp_prod === 'Adicional';
+            const manager = ehAdicional ? prodAdcManager : prodManager;
+            const tabelaId = ehAdicional ? 'tblAdc' : 'tblProd';
+            const modalId = ehAdicional ? 'editItemAdcModal' : 'editItemModal';
+            // Cria objeto do produto
+            const novoProduto = {id: item.id, cod: item.codigo, desc: item.desc_prod, unid: item.unidProd, vl_compra: item.vl_compra, vl_unit: item.vl_unit,
+                qtd_final: item.qtd, qtd_manual: false, regra_origem: item.regra_origem || null, tp_prod: item.tp_prod, ativo: true};
+            // Adiciona ao manager correto
+            manager.data[porta].push(novoProduto);
+            // Adiciona linha na tabela correta
+            $(`#${tabelaId}_${porta} tbody`).append(montarTrProduto({porta, item: novoProduto, modalEditar: modalId, regraOrigem: item.regra_origem || ''}));
+        });
+        recalcularTotaisPorta(porta);
+    }
+    // 2️⃣ FUNÇÃO ATUAL: Recalcular qtd de produtos JÁ EXISTENTES
     async function atualizarTabelaPorta(porta) {
         const ctrl = medidasCtrl[porta] || {};
         const larg   = Number(ctrl.larg)   || 0;
@@ -3622,7 +4838,10 @@ $(document).ready(function() {
         $(`#tblProd_${porta} tbody tr`).each(function () {adicionarProduto($(this).data('item-id'));});
         $(`#tblAdc_${porta} tbody tr`).each(function () {adicionarProduto($(this).data('item-id'));});
         if (produtos.length === 0) return;
-        const resp = await fetch('/regras_produto/calcular_orcamento/', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken()}, body: JSON.stringify({tabela_id: getTabelaPreco(), contexto: contexto, produtos: produtos})});
+        const resp = await fetch('/regras_produto/calcular_orcamento/', {
+            method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken()}, 
+            body: JSON.stringify({tabela_id: getTabelaPreco(), contexto: contexto, produtos: produtos})
+        });
         const data = await resp.json();
         console.log('Resultado backend:', data);
         aplicarResultadoCalculo(porta, data);
@@ -3699,112 +4918,16 @@ $(document).ready(function() {
         $(`#totCompraAdc_porta_${porta}`).text("R$ " + totalCompraAdc.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
         $(`#totVendaAdc_porta_${porta}`).text("R$ " + totalVendaAdc.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
     }
-    function extrairDescProduto(descProd) {
-        const partes = (descProd || '').split(' - ');
-        return (partes.length > 1 ? partes.slice(1).join(' - ') : descProd || '').toUpperCase().trim();
-    }
-    function getDescricaoLaminaAtiva(porta) {
-        const regra = REGRAS.LAMINA_TIPO;
-        if (!regra || regra.tipo !== 'SELECAO') return null;
-        const valor = $(`.tipo-lamina[data-porta="${porta}"]`).val();
-        const entrada = regra.expressao_json?.find(r => r.condicoes?.valor === valor);
-        return entrada ? extrairDescProduto(entrada.desc_prod) : null;
-        if (!entrada) return null;
-        const desc = entrada.desc_prod || '';
-        const partes = desc.split(' - ');
-        return (partes.length > 1 ? partes.slice(1).join(' - ') : desc).toUpperCase().trim() || null;
-    }
-    function getDescricaoPinturaAtiva(porta) {
-        const regra = REGRAS.PINTURA_TIPO;
-        if (!regra || regra.tipo !== 'SELECAO') return null;
-        const valor = $('#id_tp_pintura').val();
-        const entrada = regra.expressao_json?.find(r => r.condicoes?.valor === valor);
-        return entrada ? extrairDescProduto(entrada.desc_prod) : null;
-        if (!entrada) return null;
-        const desc = entrada.desc_prod || '';
-        const partes = desc.split(' - ');
-        return (partes.length > 1 ? partes.slice(1).join(' - ') : desc).toUpperCase().trim() || null;
-    }
     medidasCtrl = [];
-    async function buscarProdutosPorTipo(porta, tpProd) {
-        const isPrincipal = tpProd === 'Principal';
-        const manager     = isPrincipal ? prodManager : prodAdcManager;
-        const tabelaId    = isPrincipal ? `tblProd_${porta}` : `tblAdc_${porta}`;
-        const modalEditar = isPrincipal ? 'editItemModal' : 'editItemAdcModal';
-        const p           = Number(porta);
-        if (isPrincipal) {
-            manager.data[p] = (manager.data[p] || []).filter(i => i.desc?.toUpperCase().includes('MOTOR') || i.regra_origem === 'LAMINA_TIPO');
-            $(`#${tabelaId} tbody tr`).each(function () {
-                const desc   = $(this).find('.td-desc').text().toUpperCase();
-                const origem = $(this).data('regra-origem');
-                if (!desc.includes('MOTOR') && origem !== 'LAMINA_TIPO') {$(this).remove();}
-            });
-        } else {
-            manager.data[p] ??= [];
-            $(`#${tabelaId} tbody`).empty();
-        }
-        return new Promise((resolve, reject) => {
-            $.get('/produtos/lista_ajax/', {tp: 'desc', tp_prod: tpProd, tabela_id: getTabelaPreco(), auto: 1}).done(resp => {
-                const temPintura   = $('#id_pintura').val();
-                const pinturaAtiva = getDescricaoPinturaAtiva(porta);
-                const mapaPinturas = (REGRAS.PINTURA_TIPO?.expressao_json || []).map(r => extrairDescProduto(r.desc_prod));
-                resp.produtos.forEach(pdt => {
-                    const desc      = pdt.desc_prod.toUpperCase().trim();
-                    const isPintura = !isPrincipal && mapaPinturas.includes(desc);
-                    if (isPrincipal) {
-                        if (desc.includes('MOTOR')) return;
-                        if (desc.includes('LÂMINA')) return;
-                        if ($(`#${tabelaId} tbody tr[data-item-id="${pdt.id}"]`).length) return;
-                    }
-                    if (isPintura) {
-                        if (temPintura === 'Não') return;
-                        if (!pinturaAtiva || desc !== pinturaAtiva) return;
-                    }
-                    const existente = manager.data[p]?.find(x => Number(x.cod) === Number(pdt.id));
-                    const qtdInicial = existente?.qtd_manual ? Number(existente.qtd_final) || 0 : 0;
-                    if (!existente) {
-                        manager.data[p].push({id: pdt.id, cod: pdt.id, desc: pdt.desc_prod, unid: pdt.unidProd, vl_compra: Number(pdt.vl_compra), vl_unit: Number(pdt.vl_prod) || 0, qtd_calc: qtdInicial, qtd_final: qtdInicial,
-                            qtd_manual: false, regra: pdt.regra, ativo: true, regra_origem: isPintura ? 'PINTURA_TIPO' : null
-                        });
-                    } else {
-                        existente.desc      = pdt.desc_prod;
-                        existente.unid      = pdt.unidProd;
-                        existente.vl_compra = Number(pdt.vl_compra) || 0;
-                        existente.vl_unit   = Number(pdt.vl_prod)   || 0;
-                        existente.regra     = pdt.regra;
-                        existente.ativo     = true;
-                        if (existente.regra?.codigo !== 'PINTURA_M2') {
-                            existente.qtd_calc  = qtdInicial;
-                            existente.qtd_final = qtdInicial;
-                        }
-                    }
-                    const item = manager.data[p].find(x => Number(x.cod) === Number(pdt.id));
-                    $(`#${tabelaId} tbody`).append(montarTrProduto({porta, item, modalEditar, regraOrigem: isPintura ? 'PINTURA_TIPO' : ''}));
-                });
-                if (!isPrincipal) {
-                    atualizarSubtotal();
-                    atualizarJSONPortas();
-                }
-                resolve();
-            }).fail(err => reject(err));
-        });
-    }
     $(".linha-porta").each(function () {
-        const porta = $(this).data("porta");
         atualizarJSONPortas();
     });
     function obterRegraProduto(codProd) {
-        switch (codProd) {
-            case 14: return { tipo: 'QTD', codigo: 'EIXO_LARGURA' };
-            case 15: return { tipo: 'QTD', codigo: 'SOLEIRA_LARGURA' };
-            case 12: return { tipo: 'QTD', codigo: 'GUIAS_ALTURA' };
-            case 13: return { tipo: 'QTD', codigo: 'TUBO_AFASTAMENTO' };
-            case 16: return { tipo: 'QTD', codigo: 'PERFIL_DESLIZANTE' };
-            case 17: return { tipo: 'QTD', codigo: 'TRAVA_LAMINA' };
-            case 1: return { tipo: 'QTD', codigo: 'LAMINAS_M2' };
-            case 3: return { tipo: 'QTD', codigo: 'MOTOR_UNIDADE' };
-            default: return null;
+        if (!REGRAS) {
+            console.warn('REGRAS ainda não carregadas');
+            return null;
         }
+        return REGRAS[codProd] || null;
     }
     function hidratarManagers(portas) {
         prodManager.data    = {};
@@ -3820,16 +4943,9 @@ $(document).ready(function() {
                 id: Number(item.codProd), cod: Number(item.codProd), regra: obterRegraProduto(item.codProd), regra_origem: item.regra_origem || null, qtd_calc: Number(item.qtdProd), qtd_final: Number(item.qtdProd),
                 vl_unit: Number(item.vl_unit || 0), vl_compra: Number(item.vl_compra || 0), qtd_manual: true, ativo: Number(item.qtdProd) > 0
             }));
-            const temPintura = $('#id_pintura').val();
-            prodAdcManager.data[p] = (porta.adicionais || []).map(item => {
-                const origem    = item.regra_origem || null;
-                const isPintura = origem === 'PINTURA_TIPO';
-                const ativo      = !(isPintura && temPintura === 'Não');
-                return {
-                    id: Number(item.codProd), cod: Number(item.codProd), regra: null, regra_origem: origem, qtd_calc: Number(item.qtdProd), qtd_final: ativo ? Number(item.qtdProd) : 0, vl_unit: Number(item.vl_unit  || 0),
-                    vl_compra: Number(item.vl_compra || 0), qtd_manual: false, ativo
-                };
-            });
+            prodAdcManager.data[p] = (porta.adicionais || []).map(item => ({id: Number(item.codProd), cod: Number(item.codProd), regra: null, regra_origem: item.regra_origem || null,
+                qtd_calc: Number(item.qtdProd), qtd_final: Number(item.qtdProd), vl_unit: Number(item.vl_unit  || 0), vl_compra: Number(item.vl_compra || 0), qtd_manual: false,
+                ativo: Number(item.qtdProd) > 0}));
         });
     }
     function atualizarJSONPortas() {
@@ -3838,7 +4954,7 @@ $(document).ready(function() {
             const p = this.id.split('_')[1];
             const produtos = (prodManager.data[p] || []).filter(i => i.ativo && i.qtd_final > 0).map(i => ({
                 codProd: i.cod, qtdProd: i.qtd_final, vl_unit: i.vl_unit, vl_total: i.qtd_final * i.vl_unit, ativo: true, regra_origem: i.regra_origem || ''}));
-            const adicionais = (prodAdcManager.data[p] || []).filter(i => i.ativo && i.qtd_final > 0).filter(i => !(i.regra_origem === 'PINTURA_TIPO' && $('#id_pintura').val() === 'Não')).map(i => ({
+            const adicionais = (prodAdcManager.data[p] || []).filter(i => i.ativo && i.qtd_final > 0).map(i => ({
                 codProd: i.cod, qtdProd: i.qtd_final, vl_unit: i.vl_unit, vl_total: i.qtd_final * i.vl_unit, ativo: true, lado: i.lado || '', regra_origem: i.regra_origem || ''}));
             portas.push({
                 numero: Number(p), produtos, adicionais, largura: getFloat(`.larg[data-porta="${p}"]`), altura: getFloat(`.alt[data-porta="${p}"]`), qtd_lam: getFloat(`.qtd-laminas[data-porta="${p}"]`),
@@ -3983,8 +5099,6 @@ $(document).ready(function() {
         hidratarManagers(PORTAS_BACKEND);
         PORTAS_BACKEND.forEach(p => {
             atualizarTabelaPorta(p.numero);
-            reposicionarLaminaPrimeiro(p.numero);
-            reposicionarMotor(p.numero);
         });
         atualizarSubtotal();
     }
@@ -4168,7 +5282,7 @@ $(document).ready(function() {
         const valorStr = $('#id_vl_form_pgto').val();
         const valor    = parseValor(valorStr);
         const parcelas = parseInt($('#id_parcelas').val()) || 1;
-        const dias     = parseInt($('#id_dias').val()) || 0;
+        const dias     = parseInt($('#id_dias').val()) || 30;
         if (!formaPgto) {
             toast(`${ic_amarelo} Forma de Pagamento deve ser informada!`, cor_amarelo);
             $("#form_pgtoBtn").click();
@@ -4334,8 +5448,8 @@ $(document).ready(function() {
             $.ajax({
                 url: '/clientes/lista_ajax/',  method: 'GET',  data: { term: clienteId },
                 success: function(response) {
-                    if (response.clientes.length > 0) {
-                        const cliente = response.clientes[0];
+                    if (response.results && response.results.length > 0) {
+                        const cliente = response.results[0];
                         $('#id_cpfCnpj').val(cliente.cpfCnpj);
                         $('#id_email').val(cliente.email);
                         $('#id_tel').val(cliente.tel);
@@ -4354,8 +5468,114 @@ $(document).ready(function() {
     carregarDadosCliente($('#id_cli').val());
     $('#button-addon2').on('click', function() {$('#produtoModal').modal('show');});
     $('#add-produtos').on('click', function() {$('#edProdModal').modal('show');});
+    $('#add-produtosP').on('click', function() {$('#edProdModalP').modal('show');});
     $('#edProdModal').on('shown.bs.modal', function () {$('#id_cod_produto').trigger('focus');});
-    $('#add-prod').on('click', function() {$('#produtoModal').modal('show');});
+    function controlarPreco() {
+        const alt_vl = $("#id_alt_vlP").val();
+        $('#id_preco_unitP').prop('disabled', alt_vl !== "Sim");
+    }
+    function atualizarLabel() {
+        const tipo = ($("#id_tipo_desc_acres").val() || '').trim().toLowerCase();
+        const operacao = ($("#id_atribuir").val() || '').trim().toLowerCase();
+        const vl = parseValor($('#id_preco_unitP').val());
+        const qtd = parseFloat($('#id_quantidadeP').val()) || 0;
+        const base = vl * qtd;
+        const valor = parseValor($('#id_desc_acres').val());
+        const $label = $("label[for='id_desc_acres']");
+        let prefixo = operacao === "acréscimo" || operacao === "acrescimo"
+            ? "Acrésc.:"
+            : "Dsct.:";
+        if (tipo === "percentual") {
+            const convertido = base * (valor / 100);
+            $label.text(`${prefixo} R$ ${convertido.toFixed(2)}`);
+        } 
+        else if (tipo === "valor") {
+            const convertido = base ? (valor / base) * 100 : 0;
+            $label.text(`${prefixo} ${convertido.toFixed(2)}%`);
+        }
+    }
+    function calcularTotal() {
+        const vl = parseValor($('#id_preco_unitP').val());
+        const qtd = parseFloat($('#id_quantidadeP').val()) || 0;
+        const at = ($("#id_atribuir").val() || '').trim().toLowerCase();
+        const tipo = ($("#id_tipo_desc_acres").val() || '').trim().toLowerCase();
+        const valorExtra = parseValor($('#id_desc_acres').val());
+        let total = vl * qtd;
+        if (at === "desconto") {
+            if (tipo === "valor") {
+                total -= valorExtra;
+            } else if (tipo === "percentual") {
+                total -= total * (valorExtra / 100);
+            }
+        } 
+        else if (at === "acréscimo") {
+            if (tipo === "valor") {
+                total += valorExtra;
+            } else if (tipo === "percentual") {
+                total += total * (valorExtra / 100);
+            }
+        }
+        if (total < 0) total = 0;
+        $('#id_vl_total_preco').val(total.toFixed(2));
+    }
+    $('#edProdModalP').on('shown.bs.modal', function () {
+        atualizarLabel();
+        if (!trEditando) {
+            $('#id_cod_produtoP').prop('disabled', false);
+        }
+
+        setTimeout(() => {
+            $('#id_cod_produtoP').trigger('focus');
+        }, 50);
+        // 🔥 SÓ LIMPA SE NÃO ESTIVER EDITANDO
+        if (!trEditando) {
+            $('#id_quantidadeP').val('1.00');
+            $('#id_preco_unitP').val('0.00');
+            $('#id_vl_total_preco').val('0.00');
+            $('#id_desc_acres').val('0.00');
+        }
+
+        controlarPreco();
+    });
+    $('#edProdModalP').on('hidden.bs.modal', function () {
+        trEditando = null;
+        $('#id_cod_produtoP').prop('disabled', false);
+    });
+    $('#id_quantidadeP, #id_preco_unitP, #id_desc_acres, #id_atribuir, #id_tipo_desc_acres')
+    .on('input change keyup', function () {
+        calcularTotal();
+        atualizarLabel();
+    });
+    $("#id_tipo_desc_acres").on('change', function () {
+        atualizarLabel();
+        calcularTotal();
+    });
+    $('.addQtdP, .remQtdP').on('click', function () {
+        setTimeout(calcularTotal, 50);
+    });
+    $('#id_alt_vlP').on('change', function () {
+        const valor = $(this).val();
+        if (valor === "Sim") {
+            verificarPermissaoAntesDeExecutar(
+                'pedidos.alt_vl_ped',
+                function () {
+                    // ✅ Permitido
+                    $('#id_preco_unitP').prop('disabled', false);
+                },
+                function () {
+                    // ❌ Negado
+                    $('#id_alt_vlP').val('Não'); // volta pro padrão
+                    $('#id_preco_unitP').prop('disabled', true);
+                    toast(`${ic_amarelo} Seu usuário não pode alterar valor de produtos em pedidos!`, cor_amarelo);
+                }
+            );
+        } else {
+            // Se for "Não", só bloqueia
+            $('#id_preco_unitP').prop('disabled', true);
+        }
+    });
+
+    $('#add-prod, #add-prodP').on('click', function() {$('#produtoModal').modal('show');});
     $('#button-addon3').on('click', function() {$('#produtoAdcModal').modal('show');});
     $('#pesquisar-produtos').on('click', function() {
         const termo = $('#campo-pesquisa-produto').val();
@@ -4825,7 +6045,7 @@ $(document).ready(function() {
         selectAllCheckbox.prop("indeterminate", false);
         selectAllCheckbox.prop("checked", isChecked);
         taskCheckboxes.prop("checked", isChecked);
-        updateMassChangesButton();
+        updateMassChangesButtonXML();
     }
     // Clicar em qualquer parte do <th> alterna o checkbox principal
     $("th:has(#select-all)").on("click", function (e) {
@@ -5001,6 +6221,7 @@ $(document).ready(function() {
             simboloInputCampoAuxiliar.text("R$");
             let valorCalculado = (subtotal_orcamento * campo_desconto) / 100;
             $('#auxiliar_desconto').val(isNaN(valorCalculado) ? '0.00' : valorCalculado.toFixed(2));
+            return valorCalculado;
         }
     }
     $("#campo_desconto, #tipo_desconto").on("input keyup change", function () {calcularDescontoAtualizarAuxiliar();});
@@ -5368,213 +6589,156 @@ $(document).ready(function() {
     // Chamadas AJAX SELECT2
     // Fornecedores
     $('#fornecedor, #id_forn, #id_fornecedor').select2({
-        placeholder:opSel, allowClear:true, minimumInputLength:1, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/fornecedores/lista_ajax/', 'fornecedores')}).on('select2:open', focSel2);
+        placeholder:opSel, allowClear:true, minimumInputLength:1, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/fornecedores/lista_ajax/')}).on('select2:open', focSel2);
     // Clientes
     $('#cliente, #id_cli, #id_cliente').select2({
-        placeholder:opSel, allowClear:true, minimumInputLength:1, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/clientes/lista_ajax/', 'clientes')}).on('select2:open', focSel2);
-    // Bairros
-    $('#id_bairro_fil, #id_bairro').select2({
-        placeholder:opSel, allowClear:true, minimumInputLength:1, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/bairros/lista_ajax/', 'bairros')}).on('select2:open', focSel2);
+        placeholder:opSel, allowClear:true, minimumInputLength:1, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/clientes/lista_ajax/')}).on('select2:open', focSel2);
     // Cidades
     $('#id_cidade_fil, #id_cidade').select2({
-        placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/cidades/lista_ajax/', 'cidades')}).on('select2:open', focSel2);
+        placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/cidades/lista_ajax/')}).on('select2:open', focSel2);
     // Estados
     $('#id_uf').select2({
-        placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/estados/lista_ajax/', 'estados')}).on('select2:open', focSel2);
+        placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/estados/lista_ajax/')}).on('select2:open', focSel2);
+    // Produtos
+    $('#id_produto').select2({
+        placeholder:opSel, allowClear:true, minimumInputLength:1, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/produtos/lista_ajax1/')}).on('select2:open', focSel2);
     // Técnicos
     $('#id_solicitante, #tecnico, #id_tec').select2({
-        placeholder:opSel, allowClear:true, minimumInputLength:1, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/tecnicos/lista_ajax/', 'tecnicos')}).on('select2:open', focSel2);
+        placeholder:opSel, allowClear:true, minimumInputLength:1, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/tecnicos/lista_ajax/')}).on('select2:open', focSel2);
     // Filiais
     $('#id_filial, #vinc_emp, #id_vinc_emp, [id^=filial_cr], #id_filial_user, #id_vinc_fil').select2({
-        placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/filiais/lista_ajax/', 'filiais')}).on('select2:open', focSel2);
+        placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/filiais/lista_ajax/')}).on('select2:open', focSel2);
     // Empresas
     $('#emp, #id_empresa').select2({
-        placeholder:opSel, allowClear:true, minimumInputLength:1, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/empresas/lista_ajax/', 'empresas')}).on('select2:open', focSel2);
+        placeholder:opSel, allowClear:true, minimumInputLength:1, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/empresas/lista_ajax/')}).on('select2:open', focSel2);
     // Regras de Produto
     $('#id_regra').select2({
         placeholder: opSel, allowClear: true, templateResult: renderRegra, templateSelection: d => d.text, language: lingSel, ajax: ajaxRegras('/regras_produto/lista_ajax/')}).on('select2:open', focSel2);~
     // Tabelas de Preço
     $('#tb-prec, #id_tabela_preco, #id_tb_preco').select2({
-        placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/tabelas_preco/lista_ajax/', 'tabelas_preco')}).on('select2:open', focSel2);
+        placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/tabelas_preco/lista_ajax/')}).on('select2:open', focSel2);
     // Só para o seletor da tabela ao realizar Entrada
     $('#id_tabela, #id_tabelaEnt').select2({
-        dropdownParent: $('#edProdModal'), placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/tabelas_preco/lista_ajax/', 'tabelas_preco')}).on('select2:open', focSel2);
+        dropdownParent: $('#edProdModal'), placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/tabelas_preco/lista_ajax/')}).on('select2:open', focSel2);
     // Unidades
     $('#unidade, #unidade1, #campo-unidade-produto, #id_unidProd').select2({
-        placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/unidades/lista_ajax/', 'unidades')}).on('select2:open', focSel2);
+        placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/unidades/lista_ajax/')}).on('select2:open', focSel2);
     // Para o modal Criação individual
     $('#xml-produto-unidade').select2({
-        width:'100%',dropdownParent:$('#modalCriarProdutoXml'),placeholder:opSel,allowClear:true,templateResult:rendOpt,templateSelection:d=>d.text,language:lingSel,ajax:ajSel2('/unidades/lista_ajax/','unidades')}).on('select2:open', focSel2);
+        width:'100%',dropdownParent:$('#modalCriarProdutoXml'),placeholder:opSel,allowClear:true,templateResult:rendOpt,templateSelection:d=>d.text,language:lingSel,ajax:ajSel2('/unidades/lista_ajax/')}).on('select2:open', focSel2);
     $('#xml-produto-marca').select2({
-        width: '100%', dropdownParent: $('#modalCriarProdutoXml'), placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel,ajax:ajSel2('/marcas/lista_ajax/','marcas')}).on('select2:open', focSel2);
+        width: '100%', dropdownParent: $('#modalCriarProdutoXml'), placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel,ajax:ajSel2('/marcas/lista_ajax/')}).on('select2:open', focSel2);
     $('#xml-produto-grupo').select2({
-        width: '100%', dropdownParent: $('#modalCriarProdutoXml'), placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel,ajax:ajSel2('/grupos/lista_ajax/', 'grupos')}).on('select2:open', focSel2);
+        width: '100%', dropdownParent: $('#modalCriarProdutoXml'), placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel,ajax:ajSel2('/grupos/lista_ajax/')}).on('select2:open', focSel2);
     // Para o modal de criação em massa
     $('#massa-unidade').select2({
-        width: '100%', dropdownParent: $('#modalCriarProdutoMassa'), placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel,ajax:ajSel2('/unidades/lista_ajax/', 'unidades')}).on('select2:open', focSel2);
+        width: '100%', dropdownParent: $('#modalCriarProdutoMassa'), placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel,ajax:ajSel2('/unidades/lista_ajax/')}).on('select2:open', focSel2);
     $('#massa-marca').select2({
-        width: '100%', dropdownParent: $('#modalCriarProdutoMassa'), placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel,ajax:ajSel2('/marcas/lista_ajax/', 'marcas')}).on('select2:open', focSel2);
+        width: '100%', dropdownParent: $('#modalCriarProdutoMassa'), placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel,ajax:ajSel2('/marcas/lista_ajax/')}).on('select2:open', focSel2);
     $('#massa-grupo').select2({
-        width: '100%', dropdownParent: $('#modalCriarProdutoMassa'), placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel,ajax:ajSel2('/grupos/lista_ajax/', 'grupos')}).on('select2:open', focSel2);
+        width: '100%', dropdownParent: $('#modalCriarProdutoMassa'), placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel,ajax:ajSel2('/grupos/lista_ajax/')}).on('select2:open', focSel2);
     // Bancos
     $('#id_banco_fil').select2({
-        placeholder:'Selecione um banco', allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/bancos/lista_ajax/', 'bancos')}).on('select2:open', focSel2);
-    // Formas de Pagamento
-    $('#id_formas_pgto, #id_form_pgto, [id^="formas_pgto_cr"]').select2({
-        placeholder:'Selecione uma forma', allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/formas_pgto/lista_ajax/', 'formas_pgto')}).on('select2:open', focSel2);
+        placeholder:'Selecione um banco', allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/bancos/lista_ajax/')}).on('select2:open', focSel2);
+    // Formas de Pagamento 
+    $('#id_formas_pgto, #id_form_pgto, [id^="formas_pgto_cr"], [id^="formaPgtoSelect-"]').select2({
+        placeholder:'Selecione uma forma', allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/formas_pgto/lista_ajax/')}).on('select2:open', focSel2);
     // Tipos de Cobrança
     $('#selTpCob').select2({
-        placeholder:'Selecione um tipo', allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/tp_cobrancas/lista_ajax/', 'tp_cobrancas')}).on('select2:open', focSel2);
-    // Grupos e Criação de Grupo ao cadastrar produto
-    const $selectAreaGp = $('#grupo-select-area');
-    const $inputAreaGp  = $('#grupo-input-area');
-    const $btnNovaGp    = $('#btn-novo-grupo');
-    const $btnOkGp      = $('#btn-confirmar-grupo');
-    const $btnCancelGp  = $('#btn-cancelar-grupo');
-    const $selectGp     = $('#id_grupo');
-    const $inputGp      = $('#novo-grupo');
-    $(document).on('input', '#novo-grupo', function() {
-        let cursor = this.selectionStart;   // mantém posição do cursor
-        this.value = this.value.toUpperCase();
-        this.setSelectionRange(cursor, cursor);
-    });
-    $selectGp.select2({width:'100%', placeholder:'Selecione um grupo'});
-    $btnNovaGp.on('click', function(){
-        if ($selectGp.hasClass("select2-hidden-accessible")){$selectGp.select2('destroy');}
-        $selectAreaGp.hide();
-        $inputAreaGp.show();
-        $btnNovaGp.hide();
-        $btnOkGp.show();
-        $btnCancelGp.show();
-        setTimeout(function(){$inputGp.focus();},100);
-    });
-    function cancelarNovoGrupo(){
-        $('#novo-grupo').val('');
-        $('#grupo-input-area').hide();
-        $('#grupo-select-area').show();
-        $('#btn-novo-grupo').show();
-        $('#btn-confirmar-grupo').hide();
-        $('#btn-cancelar-grupo').hide();
-        initGrupoSelect();
-    }
-    $btnCancelGp.on('click', cancelarNovoGrupo);
-    function criarGrupo(){
-        let nome = $.trim($inputGp.val());
-        if(!nome){
-            toast(`${ic_amarelo} Digite o nome do grupo!`, cor_amarelo);
-            $inputGp.focus();
-            return;
-        }
-        $btnOkGp.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
-        $.ajax({
-            url: '/grupos/add-ajax/',  type: 'POST', data: {nome: nome, csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()},
-            success: function(data){
-                cancelarNovoGrupo();
-                let $selectGp = $('#id_grupo');
-                let option = new Option(data.nome, data.id, true, true);
-                $selectGp.append(option).trigger('change');
-                setTimeout(function(){$selectGp.trigger('change.select2');},150);
-                toast(`${ic_verde} Grupo criado com sucesso!`, cor_verde);
-            }, error: function(){
-                toast(`${ic_vermelho} Erro ao criar o grupo!`, cor_vermelho);
-                $btnOkGp.prop('disabled', false).html('<i class="fa fa-check"></i>');
-            }
-        });
-    }
-    $btnOkGp.on('click', criarGrupo);
-    $inputGp.on('keydown', function(e){
-        if(e.key === 'Enter'){
-            e.preventDefault();
-            criarGrupo();
-        }
-        if(e.key === 'Escape'){cancelarNovoGrupo();}
-    });
-    function initGrupoSelect() {
-        let $grupo = $('#id_grupo, #grupo, #grupo1, #campo-grupo-produto');
-        $grupo.each(function () {
-            let $el = $(this);
+        placeholder:'Selecione um tipo', allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/tp_cobrancas/lista_ajax/')}).on('select2:open', focSel2);
+    function createSelectWithAdd(config) {
+        const {select,input,btnNew,btnOk,btnCancel,selectArea,inputArea,urlCreate,urlList,placeholder = 'Selecione...',entityName = 'Item'} = config;
+        const $select      = $(select);
+        const $input       = $(input);
+        const $btnNew      = $(btnNew);
+        const $btnOk       = $(btnOk);
+        const $btnCancel   = $(btnCancel);
+        const $selectArea  = $(selectArea);
+        const $inputArea   = $(inputArea);
+        const csrfToken    = $('input[name=csrfmiddlewaretoken]').val();
+        // ===== SELECT2 =====
+        function applySelect2($el) {
             if ($el.hasClass("select2-hidden-accessible")) {$el.select2('destroy');}
-            $el.select2({width: '100%',placeholder: 'Selecione um grupo',allowClear: true,templateResult: rendOpt,templateSelection: d => d.text,language: lingSel,ajax: ajSel2('/grupos/lista_ajax/', 'grupos')});
-            $el.on('select2:open', focSel2);
-        });
-    }
-    initGrupoSelect();
-    // Marcas e Criação de marca ao cadastrar produto
-    // Criação de Marca
-    const $selectArea = $('#marca-select-area');
-    const $inputArea  = $('#marca-input-area');
-    const $btnNova    = $('#btn-nova-marca');
-    const $btnOk      = $('#btn-confirmar-marca');
-    const $btnCancel  = $('#btn-cancelar-marca');
-    const $select     = $('#id_marca');
-    const $input      = $('#nova-marca');
-    $(document).on('input', '#nova-marca', function() {
-        let cursor = this.selectionStart;   // mantém posição do cursor
-        this.value = this.value.toUpperCase();
-        this.setSelectionRange(cursor, cursor);
-    });
-    $select.select2({width:'100%', placeholder:'Selecione uma marca'});
-    $btnNova.on('click', function(){
-        if ($select.hasClass("select2-hidden-accessible")){$select.select2('destroy');}
-        $selectArea.hide();
-        $inputArea.show();
-        $btnNova.hide();
-        $btnOk.show();
-        $btnCancel.show();
-        setTimeout(function(){$input.focus();},100);
-    });
-    function cancelarNovaMarca(){
-        $('#nova-marca').val('');
-        $('#marca-input-area').hide();
-        $('#marca-select-area').show();
-        $('#btn-nova-marca').show();
-        $('#btn-confirmar-marca').hide();
-        $('#btn-cancelar-marca').hide();
-        initMarcaSelect();
-    }
-    $btnCancel.on('click', cancelarNovaMarca);
-    function criarMarca(){
-        let nome = $.trim($input.val());
-        if(!nome){
-            toast(`${ic_amarelo} Digite o nome da marca!`, cor_amarelo);
-            $input.focus();
-            return;
+            $el.select2({width: '100%',placeholder,allowClear: true,templateResult: rendOpt,templateSelection: d => d.text,language: lingSel,ajax: ajSel2(urlList, entityName.toLowerCase() + 's')}).on('select2:open', focSel2);
         }
-        $btnOk.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
-        $.ajax({
-            url: '/marcas/add-ajax/', type: 'POST', data: {nome: nome, csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()},
-            success: function(data){
-                cancelarNovaMarca();
-                let $select = $('#id_marca');
-                let option = new Option(data.nome, data.id, true, true);
-                $select.append(option).trigger('change');
-                setTimeout(function(){$select.trigger('change.select2');},150);
-                toast(`${ic_verde} Marca criada com sucesso!`, cor_verde);
-            }, error: function(){
-                toast(`${ic_vermelho} Erro ao criar a marca!`, cor_vermelho);
-                $btnOk.prop('disabled', false).html('<i class="fa fa-check"></i>');
+        // ===== UI =====
+        function toggleUI(createMode) {
+            $selectArea.toggle(!createMode);
+            $inputArea.toggle(createMode);
+            $btnNew.toggle(!createMode);
+            $btnOk.toggle(createMode);
+            $btnCancel.toggle(createMode);
+            if (createMode) {setTimeout(() => $input.focus(), 100);}
+        }
+        // ===== CANCELAR =====
+        function cancel() {
+            $input.val('');
+            toggleUI(false);
+            applySelect2($select);
+        }
+        // ===== CRIAR =====
+        function create() {
+            const nome = $.trim($input.val());
+            if (!nome) {
+                toast(`${ic_amarelo} Digite o nome do ${entityName.toLowerCase()}!`, cor_amarelo);
+                return $input.focus();
             }
-        });
-    }
-    $btnOk.on('click', criarMarca);
-    $input.on('keydown', function(e){
-        if(e.key === 'Enter'){
-            e.preventDefault();
-            criarMarca();
+            $btnOk.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+            $.ajax({url: urlCreate,type: 'POST',data: {nome,csrfmiddlewaretoken: csrfToken},
+                success: function (data) {
+                    cancel();
+                    const option = new Option(data.nome, data.id, true, true);
+                    $select.append(option).trigger('change');
+                    setTimeout(() => {$select.trigger('change.select2');}, 150);
+                    toast(`${ic_verde} ${entityName} criado com sucesso!`, cor_verde);
+                },
+                error: function () {
+                    toast(`${ic_vermelho} Erro ao criar ${entityName.toLowerCase()}!`, cor_vermelho);
+                    $btnOk.prop('disabled', false).html('<i class="fa fa-check"></i>');
+                }
+            });
         }
-        if(e.key === 'Escape'){cancelarNovaMarca();}
-    });
-    // Consulta de Marcas
-    function initMarcaSelect() {
-        let $marca = $('#id_marca, #marca, #marca1, #campo-marca-produto');
-        $marca.each(function () {
-            let $el = $(this);
-            if ($el.hasClass("select2-hidden-accessible")) {$el.select2('destroy');}
-            $el.select2({width: '100%',placeholder: 'Selecione uma marca',allowClear: true,templateResult: rendOpt,templateSelection: d => d.text,language: lingSel,ajax: ajSel2('/marcas/lista_ajax/', 'marcas')});
-            $el.on('select2:open', focSel2);
+        // ===== UPPERCASE AUTOMÁTICO =====
+        $input.on('input', function () {
+            const pos = this.selectionStart;
+            this.value = this.value.toUpperCase();
+            this.setSelectionRange(pos, pos);
         });
+        // ===== EVENTOS =====
+        $btnNew.on('click', () => toggleUI(true));
+        $btnCancel.on('click', cancel);
+        $btnOk.on('click', create);
+        $input.on('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                create();
+            }
+            if (e.key === 'Escape') {cancel();}
+        });
+        // ===== INIT =====
+        applySelect2($select);
+        // Retorna API (opcional, mas poderoso)
+        return {refresh: () => applySelect2($select),openCreate: () => toggleUI(true),cancel};
     }
-    initMarcaSelect();
+    // Grupos
+    $('#grupo, #grupo1, #campo-grupo-produto').select2({
+        placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/grupos/lista_ajax/')}).on('select2:open', focSel2);
+    const grupoComponent = createSelectWithAdd({
+        select: '#id_grupo',input: '#novo-grupo',btnNew: '#btn-novo-grupo',btnOk: '#btn-confirmar-grupo',btnCancel: '#btn-cancelar-grupo',selectArea: '#grupo-select-area',inputArea: '#grupo-input-area',
+        urlCreate: '/grupos/add-ajax/',urlList: '/grupos/lista_ajax/',placeholder: 'Selecione um grupo',entityName: 'Grupo'
+    });
+    // Marcas
+    $('#marca, #marca1, #campo-marca-produto').select2({
+        placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/marcas/lista_ajax/')}).on('select2:open', focSel2);
+    const marcaComponent = createSelectWithAdd({
+        select: '#id_marca',input: '#nova-marca',btnNew: '#btn-nova-marca',btnOk: '#btn-confirmar-marca',btnCancel: '#btn-cancelar-marca',selectArea: '#marca-select-area',inputArea: '#marca-input-area',
+        urlCreate: '/marcas/add-ajax/',urlList: '/marcas/lista_ajax/',placeholder: 'Selecione uma marca',entityName: 'Marca'
+    });
+    // Bairros
+    const bairroComponent = createSelectWithAdd({
+        select: '#id_bairro, #id_bairro_fil',input: '#novo-bairro',btnNew: '#btn-novo-bairro',btnOk: '#btn-confirmar-bairro',btnCancel: '#btn-cancelar-bairro',selectArea: '#bairro-select-area',inputArea: '#bairro-input-area',
+        urlCreate: '/bairros/add-ajax/',urlList: '/bairros/lista_ajax/',placeholder: 'Selecione um bairro',entityName: 'Bairro'
+    });
     // Selects unificados
     $('#id_unid_prod, #unid, #id_unidadeProduto, #id_form_pgto, #userSelect, #id_tp_chave, [id^="sel-status"]').select2({placeholder: 'Selecione uma opção', allowClear: true});
     // Funções referentes aos formulários de cadastro e edição
@@ -5592,7 +6756,7 @@ $(document).ready(function() {
         let mes = (dataAtual.getMonth() + 1).toString().padStart(2, '0'); // Adiciona zero à esquerda, se necessário
         let dia = dataAtual.getDate().toString().padStart(2, '0'); // Adiciona zero à esquerda, se necessário
         return `${dia}/${mes}/${ano}`;}
-    const seletorAutoData = '[id^="dt_pag_cr-"], #id_data_vencimento, .dt-fat-orcamento, #id_dt_inicio, #id_dt_venc, #data, #id_dt_emi, #dt_efet_ent, #inpDtPriParc, #id_dt_ent, #id_data_aniversario, #id_data_emissao, #data_inicio1, #data_fim1, #id_data_doc, #id_data_prop, #id_dt_visita, #dtVisita, #id_dt_criacao';
+    const seletorAutoData = '[id^="dt_pag_cr-"], #id_data_vencimento, .dt-fat-orcamento, .dt-fat-pedido, #id_dt_inicio, #id_dt_venc, #data, #id_dt_emi, #dt_efet_ent, #inpDtPriParc, #id_dt_ent, #id_data_aniversario, #id_data_emissao, #data_inicio1, #data_fim1, #id_data_doc, #id_data_prop, #id_dt_visita, #dtVisita, #id_dt_criacao';
     $(seletorAutoData).each(function () {if (!$(this).val()) {$(this).val(obterDataAtual2());}});
     if ($('#id_qtd, #id_quantidade').val() === '') {$('#id_qtd, #id_quantidade').val('1.00');}
     if ($('#id_rolo').val() === '') {$('#id_rolo').val('0.60');}
@@ -5620,7 +6784,7 @@ $(document).ready(function() {
         value = value.replace(/(\d{2})(\d)/, '$1/$2');
         return value.substring(0, 10);
     };
-    const seletorMascaraData = '[id^="dt_pag_cr-"], #id_data_vencimento, #id_dt_inicio, #data, .dt-fat-orcamento, #id_dt_emi, #dt_efet_ent, #inpDtPriParc, #id_dt_ent, #id_dt_venc, #id_data_aniversario, #id_data_prop, #id_data_certificado, #id_data_nascimento, #id_data_nascimento_administrador, #data_inicio1, #data_fim1, #id_data_emissao, #id_data_entrega, #id_dt_criacao';
+    const seletorMascaraData = '[id^="dt_pag_cr-"], #id_data_vencimento, #id_dt_inicio, #data, .dt-fat-orcamento, .dt-fat-pedido, #id_dt_emi, #dt_efet_ent, #inpDtPriParc, #id_dt_ent, #id_dt_venc, #id_data_aniversario, #id_data_prop, #id_data_certificado, #id_data_nascimento, #id_data_nascimento_administrador, #data_inicio1, #data_fim1, #id_data_emissao, #id_data_entrega, #id_dt_criacao';
     $(document).on('input', seletorMascaraData, function (event) {dataFormatada(event);});
     const dataFormatada1 = (event) => {
         let input = event.target;
@@ -5640,7 +6804,7 @@ $(document).ready(function() {
         if (isNaN(num)) {num = 0;}
         return num.toFixed(2);
     }
-    let selectors = '[id^=desc_m_cr], [id^=desc_j_cr], [id^=juros_cr], [id^=multa_cr], [id^=vl_pg_cr], .inp-valor, #id_valor, #id_juros, #id_multa, #id_vl_juros, #id_vl_multa, #id_ft_juros, #id_ft_multa, .valor-prod, .valor-prod-adc, .qtd-prod-adc, .qtd-prod, #campo_1, #campo_2, #id_margem, #id_vl_prod, #id_vl_tab, #id_vl_tabEnt, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
+    let selectors = '.inp-valor-pgto, #id_desc_acres, #id_preco_unitP, [id^=desc_m_cr], [id^=desc_j_cr], [id^=juros_cr], [id^=multa_cr], [id^=vl_pg_cr], .inp-valor, #id_valor, #id_juros, #id_multa, #id_vl_juros, #id_vl_multa, #id_ft_juros, #id_ft_multa, .valor-prod, .valor-prod-adc, .qtd-prod-adc, .qtd-prod, #campo_1, #campo_2, #id_margem, #id_vl_prod, #id_vl_tab, #id_vl_tabEnt, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
     $(selectors).each(function () {$(this).val(normalizarNumero($(this).val()));});
     $(document).on('input', selectors, function () {
         let valor = $(this).val();
@@ -5717,9 +6881,7 @@ $(document).ready(function() {
                         </button>
                     </h2>
                     <div id="${collapseId}" class="accordion-collapse collapse ${aberto}" aria-labelledby="${headingId}" data-bs-parent="#accordion_${tipo}_${responseId}">
-                        <div class="accordion-body">
-                            ${montarTabelaItens(itens)}
-                        </div>
+                        <div class="accordion-body">${montarTabelaItens(itens)}</div>
                     </div>
                 </div>
             `;
@@ -5802,21 +6964,13 @@ $(document).ready(function() {
                     <div class="col-12 mt-3">
                         <div class="card" style="margin: 0;">
                             <div class="card-header bg-secondary-subtle d-flex align-items-center gap-2 flex-wrap">
-                                <button type="button" class="btn btn-dark btn-sm" id="medidasBtn${response.id}">
-                                    Produtos
-                                </button>
-                                <button type="button" class="btn btn-dark btn-sm" id="clienteBtn${response.id}">
-                                    Adicionais
-                                </button>
+                                <button type="button" class="btn btn-dark btn-sm" id="medidasBtn${response.id}">Produtos</button>
+                                <button type="button" class="btn btn-dark btn-sm" id="clienteBtn${response.id}">Adicionais</button>
                                 ${statusHTML}
                             </div>
                             <div class="card-body">
-                                <div class="form-section" id="medidas${response.id}">
-                                    ${produtosAccordion}
-                                </div>
-                                <div class="form-section" id="clientes${response.id}" style="display:none;">
-                                    ${adicionaisAccordion}
-                                </div>
+                                <div class="form-section" id="medidas${response.id}">${produtosAccordion}</div>
+                                <div class="form-section" id="clientes${response.id}" style="display:none;">${adicionaisAccordion}</div>
                             </div>
                         </div>
                     </div>
@@ -5829,9 +6983,7 @@ $(document).ready(function() {
                 `);
                 document.querySelectorAll('#infoEntModal [data-bs-toggle="tooltip"]').forEach(function(el) {
                     const existingTooltip = bootstrap.Tooltip.getInstance(el);
-                    if (existingTooltip) {
-                        existingTooltip.dispose();
-                    }
+                    if (existingTooltip) {existingTooltip.dispose();}
                     new bootstrap.Tooltip(el);
                 });
                 fecharLoading();

@@ -6,8 +6,43 @@ body, html {
   background: radial-gradient(circle at top right, rgba(70, 140, 255, 0.18), transparent 25%), linear-gradient(135deg, #071a2f 0%, #0c2340 45%, #10395c 100%);
   font-size: 15px;
   font-family: Times;
-  overflow-x: hidden;   /* permite scroll vertical */
-  overflow-y: auto;     /* permite scroll vertical */
+  overflow-x: hidden;
+  overflow-y: auto;    /* permite scroll vertical */
+}
+
+#pixQrContainer img {
+    border-radius: 12px;
+    transition: transform 0.3s ease;
+}
+
+#pixQrContainer img:hover {
+    transform: scale(1.05);
+}
+
+.check-anim {
+    font-size: 50px;
+    color: #28a745;
+    animation: pop 0.4s ease;
+}
+
+@keyframes pop {
+    0% { transform: scale(0); opacity: 0; }
+    80% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+}
+#loadingOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.loading-box {
+    color: white;
+    text-align: center;
 }
 /* Botões do menu de opções */
 .menu-opcao {
@@ -338,9 +373,12 @@ body, html {
 /*    border-right:0 !important;*/
 /*}*/
 .card {
-    margin-left: 10px; margin-right: 10px; margin-bottom: 130px;
+    margin-left: 10px; margin-right: 10px; margin-bottom: 20px;
 }
-.container-fluid.bg-white {margin-top: 60px;}
+.container-fluid.bg-white {
+    margin-top: 60px;
+    overflow-y: hidden;
+}
 .card-footer.text-body-secondary {max-height: 50px;}
 /* Diminui o calendário inteiro */
 .flatpickr-calendar {
@@ -449,7 +487,7 @@ label {
         width: 55%;
     }
     .container-fluid.bg-white{
-        overflow-y: auto;
+        overflow-y: hidden;
     }
 }
 @media (min-width: 769px) {
@@ -457,7 +495,7 @@ label {
         width: 20%;
     }
     .container-fluid.bg-white{
-        overflow-y: auto;
+        overflow-y: hidden;
     }
 }
 .titulo-modal {

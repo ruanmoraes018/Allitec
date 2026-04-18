@@ -1,37 +1,30 @@
-from datetime import datetime, timedelta
+from datetime import datetime, time
 from django.utils import timezone
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponseForbidden
+from formas_pgto.models import FormaPgto
 from util.permissoes import verifica_permissao, verifica_alguma_permissao
 import json
-from reportlab.pdfgen import canvas
-from io import BytesIO
-from django.http import HttpResponse
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Paragraph
-from reportlab.lib.enums import TA_JUSTIFY
-from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.pagesizes import A4
-import os
 from django.conf import settings
 from PIL import Image
-import ast
-from django.db.models.functions import Concat, Substr
 from decimal import Decimal
 from django.views.decorators.http import require_POST
-from reportlab.lib import colors
 from django.contrib.auth.decorators import permission_required
-from notifications.signals import notify
 from filiais.models import Filial, Usuario
-from .models import Pedido, PedidoProduto
+from .models import Pedido, PedidoFormaPgto, PedidoProduto, Pagamento
 from clientes.models import Cliente
 from produtos.models import Produto
-from .forms import PedidoForm, PedidoProdutoFormSet
-from decimal import Decimal, InvalidOperation
+from .forms import PedidoForm
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from core.pagamentos.fluxo import gerar_pagamentos_pedido
+from core.pagamentos.services import PagamentoService
+from pedidos.models import Pedido
+from django.views.decorators.csrf import csrf_exempt
+from django.db import transaction
+from contas_receber.models import ContaReceber
 
 def parse_decimal(value):
     if value is None or value == "":
@@ -55,6 +48,8 @@ def lista_pedidos(request):
     fil = request.GET.get('fil')
     reg = request.GET.get('reg', '10')
     hoje = datetime.today()
+    inicio_dia = datetime.combine(hoje, time.min)
+    fim_dia = datetime.combine(hoje, time.max)
     empresa = request.user.empresa
     pedidos = Pedido.objects.filter(vinc_emp=empresa).prefetch_related("itens__produto")
     if s:
@@ -63,55 +58,23 @@ def lista_pedidos(request):
     if por_dt == 'Sim' and dt_ini and dt_fim:
         try:
             # Converter as datas de pedido de string para date
-            dt_ini_dt = datetime.strptime(dt_ini, '%d/%m/%Y').date()
-            dt_fim_dt = datetime.strptime(dt_fim, '%d/%m/%Y').date()
-
-            if tp_dt == 'Emissão':
-                pedidos = pedidos.filter(
-                    dt_emi__range=(dt_ini_dt, dt_fim_dt)
-                )
-            elif tp_dt == 'Fatura':
-                pedidos = pedidos.filter(
-                    dt_fat__range=(dt_ini_dt, dt_fim_dt)
-                )
-
+            dt_ini_dt = datetime.combine(datetime.strptime(dt_ini, '%d/%m/%Y').date(), time.min)
+            dt_fim_dt = datetime.combine(datetime.strptime(dt_fim, '%d/%m/%Y').date(), time.max)
+            if tp_dt == 'Emissão': pedidos = pedidos.filter(dt_emi__range=(dt_ini_dt, dt_fim_dt))
+            elif tp_dt == 'Fatura': pedidos = pedidos.filter(dt_fat__range=(dt_ini_dt, dt_fim_dt))
         except ValueError:
             pedidos = Pedido.objects.none()
     # Apenas aplica o filtro do dia atual se nenhum filtro estiver ativo
-    filtros_ativos = any([
-        s, f_s, por_dt == 'Sim', cli, tp_dt and tp_dt != 'Todos'
-    ])
+    filtros_ativos = any([s, f_s, por_dt == 'Sim', cli, tp_dt and tp_dt != 'Todos'])
     if not filtros_ativos:
-        pedidos = pedidos.filter(
-            dt_emi=hoje,
-            situacao='Aberto'
-        )
-
+        pedidos = pedidos.filter(dt_emi__range=(inicio_dia, fim_dia), situacao='Aberto')
     # Filtro por situação
     if f_s and f_s != 'Todos':
         pedidos = pedidos.filter(situacao=f_s)
     # Filtro por cliente
-    cliente_selecionado = None
-    if cli:
-        cliente_selecionado = Cliente.objects.filter(id=cli, vinc_emp=request.user.empresa).first()
-        if cliente_selecionado:
-            pedidos = pedidos.filter(cli=cliente_selecionado)
-    clientes = Cliente.objects.filter(vinc_emp=request.user.empresa)
-
+    if cli: pedidos = pedidos.filter(cli_id=cli)
    # Filtro por Filial
-    filial_selecionada = None
-    if fil:
-        filial_selecionada = Filial.objects.filter(
-            id=fil,
-            vinc_emp=request.user.empresa
-        ).first()
-        if filial_selecionada:
-            pedidos = pedidos.filter(vinc_emp=filial_selecionada)
-
-    filiais = Filial.objects.filter(
-        vinc_emp=request.user.empresa
-    )
-
+    if fil: pedidos = pedidos.filter(vinc_fil_id=fil)
     # Paginação
     if reg == 'todos':
         num_pagina = pedidos.count() or 1
@@ -125,18 +88,10 @@ def lista_pedidos(request):
     pedidos = paginator.get_page(page)
 
     return render(request, 'pedidos/lista.html', {
-        'pedidos': pedidos,
-        's': s,
-        'cliente_selecionado': cliente_selecionado,
-        'filial_selecionada': filial_selecionada,
-        'cli': cli,
-        'clientes': clientes,
-        'filiais': filiais,
-        'dt_ini': dt_ini,
-        'dt_fim': dt_fim,
-        'p_dt': por_dt,
-        'tp_dt': tp_dt,
-        'reg': reg,
+        'pedidos': pedidos, 's': s, 'fil': fil, 'cli': cli, 'sit': f_s,
+        'filiais': Filial.objects.filter(vinc_emp=request.user.empresa),
+        'clientes': Cliente.objects.filter(vinc_emp=request.user.empresa),
+        'dt_ini': dt_ini, 'dt_fim': dt_fim, 'p_dt': por_dt, 'tp_dt': tp_dt, 'reg': reg,
     })
 
 def pedidos_por_produto(request, produto_id):
@@ -206,8 +161,10 @@ def add_pedido(request):
                     pedido=pedido,
                     produto=produto,
                     defaults={
+                        "vl_unit": parse_decimal(dados.get("preco_unitario")),
                         "quantidade": parse_decimal(dados.get("quantidade")),
                         "desc_acres": parse_decimal(dados.get("desc_acres")),
+                        "tp_desc_acres": "Desconto" if dados.get("operacao") == "desconto" else "Acréscimo",
                     },
                 )
 
@@ -256,7 +213,7 @@ def att_pedido(request, id):
         messages.info(request, 'Você não tem permissão para editar pedidos.')
         return redirect('/pedidos/lista/')
 
-    if pedido.situacao == "Faturado" and pedido.situacao == "Cancelado":
+    if pedido.situacao in ["Faturado", "Cancelado"]:
         messages.warning(request, f'Pedidos só podem ser editados com Situação em Aberto!')
         return redirect(f'/pedidos/lista/?s={pedido.id}')
     if request.method == "POST":
@@ -292,8 +249,10 @@ def att_pedido(request, id):
                     pedido=pedido,
                     produto=produto,
                     defaults={
+                        "vl_unit": parse_decimal(dados.get("preco_unitario")),
                         "quantidade": parse_decimal(dados.get("quantidade")),
                         "desc_acres": parse_decimal(dados.get("desc_acres")),
+                        "tp_desc_acres": "Desconto" if dados.get("operacao") == "desconto" else "Acréscimo",
                     },
                 )
                 produtos_ids.append(ep.id)
@@ -327,6 +286,69 @@ def att_pedido(request, id):
         "produtos": pedido.itens.all(),
     })
 
+@login_required
+def clonar_pedido(request, id):
+    # 🔒 Permissão
+    if not request.user.has_perm('pedidos.clonar_pedido'):
+        messages.warning(request, "Você não tem permissão para clonar pedidos.")
+        return redirect('/pedidos/lista/')
+    # 🔍 Pedido original
+    pedido_origem = get_object_or_404(
+        Pedido,
+        pk=id,
+        vinc_emp=request.user.empresa
+    )
+    if request.method == "POST":
+        # 👉 igual ao add_pedido
+        form = PedidoForm(request.POST, empresa=request.user.empresa, user=request.user)
+        if form.is_valid():
+            pedido = form.save(commit=False)
+            pedido.vinc_emp = request.user.empresa
+            pedido.situacao = "Aberto"
+            pedido.status_pagamento = "pendente"
+            pedido.save()
+            # 🔁 produtos
+            produtos_dict = {}
+            import re
+            for key, value in request.POST.items():
+                if key.startswith("produtos["):
+                    m = re.match(r"produtos\[(\d+)\]\[(\w+)\]", key)
+                    if m:
+                        idx, campo = m.groups()
+                        if idx not in produtos_dict:
+                            produtos_dict[idx] = {}
+                        produtos_dict[idx][campo] = value
+            for dados in produtos_dict.values():
+                try:
+                    produto = Produto.objects.get(
+                        pk=dados.get("codigo"),
+                        vinc_emp=request.user.empresa
+                    )
+                except Produto.DoesNotExist:
+                    continue
+                PedidoProduto.objects.create(
+                    pedido=pedido,
+                    produto=produto,
+                    vl_unit=parse_decimal(dados.get("preco_unitario")),
+                    quantidade=parse_decimal(dados.get("quantidade")),
+                    desc_acres=parse_decimal(dados.get("desconto")),
+                    tp_desc_acres="Desconto" if dados.get("operacao") == "desconto" else "Acréscimo",
+                )
+            pedido.total = pedido.atualizar_total()
+            pedido.save(update_fields=["total"])
+            messages.success(request, "Pedido clonado com sucesso!")
+            return redirect(f'/pedidos/lista/?s={pedido.id}')
+    else:
+        # 👉 pré-preenche com dados do pedido original
+        form = PedidoForm(
+            instance=pedido_origem,
+            empresa=request.user.empresa,
+            user=request.user
+        )
+    return render(request, "pedidos/clonar.html", {
+        "form": form,
+        "produtos": pedido_origem.itens.all(),  # 🔥 isso já resolve tudo
+    })
 
 @login_required
 def del_pedido(request, id):
@@ -344,66 +366,366 @@ def del_pedido(request, id):
     messages.success(request, f'Pedido deletado com sucesso!')
     return redirect('/pedidos/lista/')
 
-@require_POST
 @login_required
+@transaction.atomic
 def faturar_pedido(request, id):
-    pedido = get_object_or_404(Pedido, pk=id, vinc_emp=request.user.empresa)
+    empresa = request.user.empresa
 
+    pedido = get_object_or_404(
+        Pedido.objects.select_related('cli', 'vinc_fil', 'vinc_emp')
+        .prefetch_related('itens__produto'),
+        pk=id,
+        vinc_emp=empresa
+    )
+
+    # 🔐 Permissão
     if not request.user.has_perm('pedidos.faturar_pedido'):
-        messages.info(request, 'Você não tem permissão para faturar pedidos.')
+        messages.error(request, 'Você não tem permissão para faturar pedidos.')
         return redirect('/pedidos/lista/')
 
-    if request.method == 'POST':  # segurança extra
-        if pedido.situacao == 'Aberto':
-            pedido.situacao = "Faturado"
-            pedido.save()
+    if request.method != 'POST':
+        return redirect('/pedidos/lista/')
 
-            # Atualiza estoque e preço dos produtos da pedido
-            for item in pedido.itens.all():
-                produto = item.produto
-
-                # Atualiza estoque
-                produto.estoque_prod = (produto.estoque_prod or 0) - (item.quantidade or 0)
-
-                produto.save(update_fields=["estoque_prod"])
-
-            messages.success(
-                request,
-                f'Pedido faturado com sucesso!'
-            )
-        else:
-            messages.warning(request, f'Pedido já foi faturado antes.')
-
+    # ⚠️ Situação
+    if pedido.situacao != 'Aberto':
+        messages.warning(request, 'Pedido não pode ser faturado.')
         return redirect(f'/pedidos/lista/?s={pedido.id}')
+
+    # 📥 Dados do POST
+    dados = json.loads(request.POST.get('dados_pagamento', '[]'))
+    parcelas_json = request.POST.get('parcelas_json', '').strip()
+
+    if not dados:
+        messages.error(request, "Informe formas de pagamento.")
+        return redirect(f'/pedidos/lista/?s={pedido.id}')
+
+    total = Decimal('0.00')
+    formas_list = []
+    tem_forma_com_parcela = False
+    tem_gateway = False
+
+    # 🔍 Validação das formas
+    for d in dados:
+        forma_id = d.get('forma')
+
+        try:
+            valor = Decimal(str(d.get('valor', 0))).quantize(Decimal('0.01'))
+        except:
+            messages.error(request, "Valor inválido.")
+            return redirect(f'/pedidos/lista/?s={pedido.id}')
+
+        if valor <= 0:
+            continue
+
+        forma = FormaPgto.objects.filter(
+            id=forma_id,
+            vinc_emp=empresa
+        ).first()
+
+        if not forma:
+            messages.error(request, "Forma inválida.")
+            return redirect(f'/pedidos/lista/?s={pedido.id}')
+
+        # 🔥 verifica gateway
+        if forma.gateway and forma.gateway != "nenhum":
+            tem_gateway = True
+
+        if forma.gera_parcelas:
+            tem_forma_com_parcela = True
+
+        formas_list.append({
+            "forma": forma.id,
+            "valor": valor
+        })
+
+        total += valor
+
+    # 💰 valida total
+    if total != pedido.total:
+        messages.error(request, "Total das formas difere do pedido.")
+        return redirect(f'/pedidos/lista/?s={pedido.id}')
+
+    # 🔥 REGRA PRINCIPAL
+    if tem_gateway and pedido.status_pagamento != "pago":
+        messages.warning(request, 'Pedido ainda não foi pago!')
+        return redirect(f'/pedidos/lista/?s={pedido.id}')
+
+    # 📄 PARCELAS
+    parcelas = []
+    if tem_forma_com_parcela:
+
+        if not parcelas_json:
+            messages.error(request, "Parcelas não informadas.")
+            return redirect(f'/pedidos/lista/?s={pedido.id}')
+
+        try:
+            parcelas_data = json.loads(parcelas_json)
+        except:
+            messages.error(request, "Erro nas parcelas.")
+            return redirect(f'/pedidos/lista/?s={pedido.id}')
+
+        for item in parcelas_data:
+            parcelas.append({
+                "forma": item.get('forma'),
+                "numero": (item.get('numero') or '').upper(),
+                "valor": Decimal(str(item.get('valor'))),
+                "vencimento": datetime.strptime(item.get('vencimento'), '%d/%m/%Y')
+            })
+
+    # 🚀 FINALIZA USANDO FUNÇÃO CENTRAL
+    finalizar_pedido(
+        pedido,
+        formas=formas_list,
+        parcelas=parcelas if tem_forma_com_parcela else None
+    )
+
+    return JsonResponse({
+        "ok": True,
+        "msg": f"Pedido {pedido.id} faturado com sucesso!"
+        })
 
 @require_POST
 @login_required
+@transaction.atomic
 def cancelar_pedido(request, id):
-    pedido = get_object_or_404(Pedido, pk=id, vinc_emp=request.user.empresa)
+    pedido = get_object_or_404(
+        Pedido.objects.select_related('vinc_emp', 'vinc_fil', 'cli')
+        .prefetch_related('itens__produto'),
+        pk=id,
+        vinc_emp=request.user.empresa
+    )
 
+    # 🔐 Permissão
     if not request.user.has_perm('pedidos.cancelar_pedido'):
         messages.info(request, 'Você não tem permissão para cancelar pedidos.')
         return redirect('/pedidos/lista/')
 
-    if request.method == 'POST':  # segurança extra
-        if pedido.situacao == 'Faturado':
-            pedido.situacao = "Cancelado"
-            pedido.save()
-
-            # Atualiza estoque e preço dos produtos da pedido
-            for item in pedido.itens.all():
-                produto = item.produto
-
-                # Atualiza estoque
-                produto.estoque_prod = (produto.estoque_prod or 0) + (item.quantidade or 0)
-
-                produto.save(update_fields=["estoque_prod"])
-
-            messages.success(
-                request,
-                f'Pedido cancelado com sucesso!'
-            )
-        else:
-            messages.warning(request, f'Pedido já foi cancelado antes.')
-
+    # 📝 Motivo obrigatório
+    motivo = request.POST.get('motivo', '').strip()
+    if not motivo:
+        messages.info(request, 'Motivo do cancelamento é obrigatório!')
         return redirect(f'/pedidos/lista/?s={pedido.id}')
+
+    # 🔥 Só pode cancelar se estiver faturado
+    if pedido.situacao != 'Faturado':
+        messages.warning(request, 'Pedido não está faturado ou já foi cancelado.')
+        return redirect(f'/pedidos/lista/?s={pedido.id}')
+
+    # =========================
+    # 💰 VALIDA CONTAS
+    # =========================
+
+    contas_pagas = ContaReceber.objects.filter(
+        pedido=pedido,
+        vinc_emp=pedido.vinc_emp,
+        vinc_fil=pedido.vinc_fil,
+        situacao='Paga'
+    ).exists()
+
+    if contas_pagas:
+        messages.error(request, 'Não é possível cancelar: existem contas já recebidas.')
+        return redirect(f'/pedidos/lista/?s={pedido.id}')
+
+    # 🔥 remove contas abertas
+    ContaReceber.objects.filter(
+        pedido=pedido,
+        vinc_emp=pedido.vinc_emp,
+        vinc_fil=pedido.vinc_fil,
+        situacao='Aberta'
+    ).delete()
+
+    # =========================
+    # 📦 DEVOLVE ESTOQUE
+    # =========================
+
+    for item in pedido.itens.all():
+        produto = item.produto
+        produto.estoque_prod = (produto.estoque_prod or 0) + (item.quantidade or 0)
+        produto.save(update_fields=["estoque_prod"])
+
+    # =========================
+    # 🧾 LIMPA FORMAS (opcional mas recomendado)
+    # =========================
+
+    PedidoFormaPgto.objects.filter(pedido=pedido).delete()
+
+    # =========================
+    # ✅ FINALIZA
+    # =========================
+
+    pedido.situacao = "Cancelado"
+    pedido.dt_fat = datetime.now()  # opcional (log de cancelamento)
+    pedido.save(update_fields=["situacao", "dt_fat"])
+
+    messages.success(request, f'Pedido {pedido.id} cancelado com sucesso!')
+    return redirect(f'/pedidos/lista/?s={pedido.id}')
+
+@login_required
+@require_POST
+def gerar_pagamento_pedido(request, pedido_id):
+    pedido = get_object_or_404(
+        Pedido,
+        id=pedido_id,
+        vinc_emp=request.user.empresa
+    )
+    if pedido.situacao != "Aberto":
+        return JsonResponse({"erro": "Pedido não pode gerar pagamento"})
+    if pedido.pagamentos.filter(status="pendente").exists():
+        return JsonResponse({"erro": "Já existe pagamento pendente"})
+    pagamentos = gerar_pagamentos_pedido(pedido)
+    data = [{
+        "txid": p.txid,
+        "qr_code": p.qr_code,
+        "valor": str(p.valor)
+    } for p in pagamentos]
+
+    return JsonResponse({"pagamentos": data})
+
+@login_required
+def status_pagamento_pedido(request, pedido_id):
+    pedido = get_object_or_404(
+        Pedido,
+        id=pedido_id,
+        vinc_emp=request.user.empresa
+    )
+
+    return JsonResponse({
+        "status": pedido.status_pagamento
+    })
+
+@login_required
+@require_POST
+def gerar_pix_pedido(request, id):
+    empresa = request.user.empresa
+
+    pedido = get_object_or_404(
+        Pedido,
+        pk=id,
+        vinc_emp=empresa
+    )
+
+    dados = json.loads(request.POST.get('dados_pagamento', '[]'))
+
+    if not dados:
+        return JsonResponse({"erro": "Sem formas"}, status=400)
+
+    pagamentos = []
+
+    for d in dados:
+        forma_id = d.get('forma')
+        valor = Decimal(str(d.get('valor', 0)))
+
+        forma = FormaPgto.objects.filter(
+            id=forma_id,
+            vinc_emp=empresa
+        ).first()
+
+        if not forma or forma.gateway == "nenhum":
+            continue
+
+        service = PagamentoService(forma)
+
+        result = service.gerar_pagamento(
+            valor=valor,
+            descricao=f"Pedido {pedido.id}",
+            email=pedido.cli.email or "teste@email.com"
+        )
+
+        pagamento = Pagamento.objects.create(
+            pedido=pedido,
+            forma_pgto=forma,
+            valor=valor,
+            txid=result.get("id"),
+            qr_code=result.get("qr_code"),
+            gateway=forma.gateway,
+            status="pendente"
+        )
+
+        pagamentos.append({
+            "txid": pagamento.txid,
+            "qr_code": pagamento.qr_code,
+            "qr_base64": result.get("qr_base64"),
+            "valor": str(valor)
+        })
+
+    return JsonResponse({"pagamentos": pagamentos})
+
+@csrf_exempt
+def webhook(request):
+    from core.pagamentos.webhooks import processar_webhook
+
+    if request.method != "POST":
+        return JsonResponse({"ok": False})
+
+    result = processar_webhook(request)
+
+    if not result:
+        return JsonResponse({"ok": False})
+
+    pagamento = Pagamento.objects.filter(
+        txid__icontains=str(result["txid"])
+    ).first()
+
+    if pagamento and pagamento.status != "pago":
+
+        if result["status"] != "pago":
+            return JsonResponse({"ok": True})
+
+        pagamento.status = "pago"
+        pagamento.dt_pagamento = timezone.now()
+        pagamento.payload = result
+        pagamento.save()
+
+        pedido = pagamento.pedido
+
+        pedido.atualizar_status_pagamento()
+        pedido.save(update_fields=["status_pagamento"])
+
+        if pedido.status_pagamento == "pago":
+            finalizar_pedido(pedido)
+
+    return JsonResponse({"ok": True})
+
+@transaction.atomic
+def finalizar_pedido(pedido, formas=None, parcelas=None):
+
+    # 🔒 evita duplicidade
+    if pedido.situacao == "Faturado":
+        return
+
+    # 📦 ESTOQUE
+    for item in pedido.itens.select_related('produto'):
+        produto = item.produto
+        produto.estoque_prod = (produto.estoque_prod or 0) - (item.quantidade or 0)
+        produto.save(update_fields=["estoque_prod"])
+
+    # 💳 FORMAS (se vier do faturamento manual)
+    if formas:
+        PedidoFormaPgto.objects.filter(pedido=pedido).delete()
+
+        for f in formas:
+            PedidoFormaPgto.objects.create(
+                pedido=pedido,
+                forma_pgto_id=f['forma'],
+                valor=f['valor']
+            )
+
+    # 📄 PARCELAS
+    if parcelas:
+        for p in parcelas:
+            ContaReceber.objects.create(
+                vinc_emp=pedido.vinc_emp,
+                vinc_fil=pedido.vinc_fil,
+                cliente=pedido.cli,
+                pedido=pedido,
+                forma_pgto_id=p.get('forma'),
+                num_conta=(p.get('numero') or '').upper(),
+                valor=p.get('valor'),
+                data_vencimento=p.get('vencimento'),
+                situacao='Aberta'
+            )
+
+    # ✅ FINALIZA
+    pedido.situacao = "Faturado"
+    pedido.dt_fat = timezone.now()
+    pedido.save(update_fields=["situacao", "dt_fat"])

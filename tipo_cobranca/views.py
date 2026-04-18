@@ -8,6 +8,7 @@ import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
 from filiais.models import Usuario
+from django.db.models import Q
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -48,10 +49,19 @@ def lista_tp_cobrancas(request):
 
 @login_required
 def lista_tp_cobrancas_ajax(request):
-    term = request.GET.get('term', '')
-    tp_cobrancas = TipoCobranca.objects.filter(descricao__icontains=term, vinc_emp=request.user.empresa)[:20]
-    data = {'tp_cobrancas': [{'id': tp_cobranca.id, 'text': tp_cobranca.descricao} for tp_cobranca in tp_cobrancas]}
-    return JsonResponse(data)
+    termo_busca = request.GET.get('term') or request.GET.get('q') or ''
+    empresa = request.user.empresa
+    try:
+        if termo_busca.isdigit():
+            condicao_busca = Q(descricao__icontains=termo_busca) | Q(id=termo_busca)
+        else:
+            condicao_busca = Q(descricao__icontains=termo_busca)
+        tp_cobrancas = TipoCobranca.objects.filter(condicao_busca & Q(vinc_emp=empresa))[:20]
+        results = [{'id': tp_cobranca.id, 'text': f"{tp_cobranca.descricao.upper()}"} for tp_cobranca in tp_cobrancas]
+        return JsonResponse({'results': results})
+    except Exception as e:
+        print(f"Erro na busca AJAX: {e}")
+        return JsonResponse({'results': [], 'error': str(e)})
 
 @login_required
 def add_tp_cobranca(request):

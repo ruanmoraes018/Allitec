@@ -17,6 +17,7 @@ from estados.models import Estado
 from cidades.models import Cidade
 from bairros.models import Bairro
 from collections import defaultdict
+from django.db.models import Q
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -89,10 +90,17 @@ def verificar_ou_criar_localizacao(request):
 
 @login_required
 def verificar_parcelas(request):
-    parcelas = int(request.GET.get('parcelas', 0))
     filial = request.user.filial_user
-    if parcelas > filial.max_parcelas:
-        return JsonResponse({'permitido': False, 'maximo': filial.max_parcelas})
+    parcelas = request.GET.get('parcelas')
+    dias = request.GET.get('dias')
+    if parcelas is not None:
+        parcelas = int(parcelas)
+        if parcelas > filial.max_parcelas:
+            return JsonResponse({'permitido': False, 'maximo': filial.max_parcelas})
+    if dias is not None:
+        dias = int(dias)
+        if dias > filial.max_dias_intervalo:
+            return JsonResponse({'permitido': False, 'maximo': filial.max_dias_intervalo})
     return JsonResponse({'permitido': True})
 
 @login_required
@@ -173,11 +181,19 @@ def filiais_vinculadas_ajax(request):
 
 @login_required
 def lista_filiais_ajax(request):
-    term = request.GET.get('term', '')
+    termo_busca = request.GET.get('term') or request.GET.get('q') or ''
     empresa = request.user.empresa
-    filiais = Filial.objects.filter(vinc_emp=empresa, situacao='Ativa', fantasia__icontains=term)
-    data = {'filiais': [{'id': filial.id, 'fantasia': filial.fantasia.upper()} for filial in filiais]}
-    return JsonResponse(data)
+    try:
+        if termo_busca.isdigit():
+            condicao_busca = Q(fantasia__icontains=termo_busca) | Q(id=termo_busca)
+        else:
+            condicao_busca = Q(fantasia__icontains=termo_busca)
+        filiais = Filial.objects.filter(condicao_busca & Q(vinc_emp=empresa))[:20]
+        results = [{'id': filial.id, 'text': f"{filial.fantasia.upper()}"} for filial in filiais]
+        return JsonResponse({'results': results})
+    except Exception as e:
+        print(f"Erro na busca AJAX: {e}")
+        return JsonResponse({'results': [], 'error': str(e)})
 
 @login_required
 def dados_filiais_js(request):

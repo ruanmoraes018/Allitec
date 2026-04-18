@@ -32,25 +32,25 @@
                             <div class="col-md-1">
                                 {{ form.ativo|as_crispy_field }}
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 {{ form.codigo|as_crispy_field }}
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 {{ form.descricao|as_crispy_field }}
                             </div>
                             <div class="col-md-2">
                                 {{ form.tipo|as_crispy_field }}
                             </div>
+                            <div class="col-md-2">
+                                {{ form.tipo_regra|as_crispy_field }}
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" id="add-linha" class="btn btn-dark btn-sm" style="margin-top: 30px;">
+                                    <i class="fas fa-plus"></i> Adicionar
+                                </button>
+                            </div>
                             <div id="bloco-regras-selecao">
                                 <div class="row">
-                                    <div class="col-md-2">
-                                        {{ form.tipo_regra|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-2">
-                                        <button type="button" id="add-linha" class="btn btn-dark btn-sm" style="margin-top: 30px;">
-                                            <i class="fas fa-plus"></i> Adicionar linha
-                                        </button>
-                                    </div>
                                     <div class="table-responsive mt-2">
                                         <table class="table table-sm table-bordered table-responsive-md table-rounded table-striped" id="tabela-regras">
                                             <thead class="table-dark"></thead>
@@ -65,8 +65,12 @@
                                 </div>
                             </div>
                             <div class="col-md-12">
-                                {{ form.expressao|as_crispy_field }}
+                                {{ form.produto|as_crispy_field }}
                             </div>
+                            <small class="text-muted">
+                                * Fórmula ou regra (ex: m2 = M², larg = Largura, alt = Altura, larg_c = Largura de Corte, alt_c = Altura de Corte, ft_peso = Fator de Peso, 
+                                qtd_lam = Quantidade de Lâminas, eix_mot = Eixo do Motor, alt_c * 4, JSON para seleção com a descrição do produto)
+                            </small>
                         </div>
                     </div>
                     <div class="card-footer">

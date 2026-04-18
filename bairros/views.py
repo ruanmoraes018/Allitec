@@ -8,6 +8,8 @@ import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
 from filiais.models import Usuario
+from django.db.models import Q
+from django.views.decorators.http import require_POST
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -21,7 +23,6 @@ def lista_bairros(request):
     reg = request.GET.get('reg', '10')
     empresa = request.user.empresa
     bairros = Bairro.objects.filter(vinc_emp=empresa)
-
     if tp == 'desc' and s:
         norm_s = remove_accents(s).lower()
         bairros = bairros.filter(nome_bairro__icontains=norm_s).order_by('nome_bairro')
@@ -30,7 +31,6 @@ def lista_bairros(request):
             bairros = bairros.filter(id__iexact=s).order_by('nome_bairro')
         except ValueError:
             bairros = Bairro.objects.none()
-
     if reg == 'todos':
         num_pagina = bairros.count() or 1
     else:
@@ -38,24 +38,28 @@ def lista_bairros(request):
             num_pagina = int(reg) if int(reg) > 0 else 1
         except ValueError:
             num_pagina = 10  # Valor padrão
-
     paginator = Paginator(bairros, num_pagina)
     page = request.GET.get('page')
     bairros = paginator.get_page(page)
-
     return render(request, 'bairros/lista.html', {
-        'bairros': bairros,
-        's': s,
-        'tp': tp,
-        'reg': reg,
+        'bairros': bairros, 's': s, 'tp': tp, 'reg': reg,
     })
 
 @login_required
 def lista_bairros_ajax(request):
-    term = request.GET.get('term', '')
-    bairros = Bairro.objects.filter(nome_bairro__icontains=term)[:10]
-    data = {'bairros': [{'id': bairro.id, 'text': bairro.nome_bairro} for bairro in bairros]}
-    return JsonResponse(data)
+    termo_busca = request.GET.get('term') or request.GET.get('q') or ''
+    empresa = request.user.empresa
+    try:
+        if termo_busca.isdigit():
+            condicao_busca = Q(nome_bairro__icontains=termo_busca) | Q(id=termo_busca)
+        else:
+            condicao_busca = Q(nome_bairro__icontains=termo_busca)
+        bairros = Bairro.objects.filter(condicao_busca & Q(vinc_emp=empresa))[:20]
+        results = [{'id': bairro.id, 'text': f"{bairro.nome_bairro.upper()}"} for bairro in bairros]
+        return JsonResponse({'results': results})
+    except Exception as e:
+        print(f"Erro na busca AJAX: {e}")
+        return JsonResponse({'results': [], 'error': str(e)})
 
 @login_required
 def add_bairro(request):
@@ -75,11 +79,27 @@ def add_bairro(request):
             error_messages = []
             for field in form:
                 if field.errors:
-                    for error in field.errors:
-                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+                    error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'bairros/add.html', {'form': form, 'error_messages': error_messages})
     else: form = BairroForm()
     return render(request, 'bairros/add.html', {'form': form})
+
+@login_required
+@require_POST
+def add_bairro_ajax(request):
+    nome = request.POST.get('nome', '').strip().upper()
+    if not nome:
+        return JsonResponse({'erro': 'Nome vazio'}, status=400)
+    empresa = request.user.empresa
+    bairro, criado = Bairro.objects.get_or_create(
+        nome_bairro=nome,
+        vinc_emp=empresa
+    )
+    return JsonResponse({
+        'id': bairro.id,
+        'nome': bairro.nome_bairro,
+        'criado': criado
+    })
 
 @login_required
 def att_bairro(request, id):
@@ -103,8 +123,7 @@ def att_bairro(request, id):
             error_messages = []
             for field in form:
                 if field.errors:
-                    for error in field.errors:
-                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+                    error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'bairros/att.html', {'form': form, 'b': b, 'error_messages': error_messages})
     else:
         return render(request, 'bairros/att.html', {'form': form, 'b': b})

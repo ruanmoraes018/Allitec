@@ -48,6 +48,7 @@ class Filial(models.Model):
     dt_criacao = models.DateField(verbose_name="Data de Registro", null=True, blank=True, db_index=True)
     dt_inativacao = models.DateField(verbose_name="Data de Inativação", null=True, blank=True, db_index=True)
     max_parcelas = models.PositiveIntegerField(default=1)
+    max_dias_intervalo = models.PositiveIntegerField(default=30)
     tp_calc_juros = models.CharField(max_length=15, verbose_name="Tp. Cálculo Juros", choices=[('Percentual', 'Percentual'), ('Valor', 'Valor')], default="Percentual")
     tp_calc_multa = models.CharField(max_length=15, verbose_name="Tp. Cálculo Multa", choices=[('Percentual', 'Percentual'), ('Valor', 'Valor')], default="Percentual")
     ft_multa = models.DecimalField(verbose_name="Fator Multa", max_digits=10, decimal_places=2, default=0, null=True, blank=True)
@@ -68,10 +69,9 @@ class Filial(models.Model):
         self.email = self.email.lower()
         self.fantasia_normalizado = remove_accents(self.fantasia).lower()
         logo_alterada = False
-        logo_file = self.logo
         super().save(*args, **kwargs)
-        if logo_file and os.path.basename(logo_file.name) != 'default_logo.png':
-            img = Image.open(logo_file)
+        if self.logo and self.logo.name != 'default_logo.png':
+            img = Image.open(self.logo.path)
             if img.mode in ('RGBA', 'P'):
                 img = img.convert('RGB')
             max_size = (300, 300)

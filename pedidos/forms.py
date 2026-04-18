@@ -3,20 +3,24 @@ from django.forms import inlineformset_factory
 from filiais.models import Filial
 from .models import Pedido, PedidoProduto
 from clientes.models import Cliente
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Field
+from tabelas_preco.models import TabelaPreco
 
 class PedidoForm(forms.ModelForm):
     cli = forms.ModelChoiceField(label='Cliente', queryset=Cliente.objects.none(), widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
     vinc_fil = forms.ModelChoiceField(label='Filial', queryset=Filial.objects.none(), widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
+    tabela_preco = forms.ModelChoiceField(label='Tabela de Preços', queryset=TabelaPreco.objects.none(), widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
     vendedor = forms.CharField(widget=forms.TextInput(attrs={ 'class': 'form-control form-control-sm border-dark-subtle'}))
     obs = forms.CharField(label='Observações', required=False, widget=forms.Textarea(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase', 'rows': 2}))
     dt_emi = forms.DateField(label='Dt. Emissão', input_formats=['%d/%m/%Y'], widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
-    dt_fat = forms.DateField(label='Dt. Fatura', input_formats=['%d/%m/%Y'], widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
     total = forms.DecimalField(label="Total", required=False, widget=forms.NumberInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'readonly': 'readonly'}))
+    
 
     class Meta:
         model = Pedido
         fields = (
-            'vinc_fil', 'cli', 'vendedor', 'obs', 'dt_emi', 'dt_fat', 'total'
+            'vinc_fil', 'cli', 'tabela_preco', 'vendedor', 'obs', 'dt_emi', 'total'
         )
         widgets = {
             'dt_emi': forms.TextInput(attrs={
@@ -28,13 +32,22 @@ class PedidoForm(forms.ModelForm):
         }
     def __init__(self, *args, empresa=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Field('cli', wrapper_class=''),             # remove mb-3
+            Field('vinc_fil', wrapper_class=''),      # remove mb-3
+            Field('tabela_preco', wrapper_class=''),
+        )
         if empresa:
             # --- CLIENTE ---
-            self.fields['cli'].queryset = Cliente.objects.filter(vinc_emp=empresa)
-            # --- Filial ---
             self.fields['vinc_fil'].queryset = Filial.objects.filter(vinc_emp=empresa)
+            self.fields['cli'].queryset = Cliente.objects.filter(vinc_emp=empresa)
+            self.fields['tabela_preco'].queryset = TabelaPreco.objects.filter(vinc_emp=empresa)
             if not self.instance.pk and user and user.filial_user:
                 self.fields['vinc_fil'].initial = user.filial_user.pk
+                self.fields['cli'].initial = user.filial_user.cli.pk
+                self.fields['tabela_preco'].initial = user.filial_user.tb_preco.pk
         # Formatar os valores se o form está sendo carregado com uma instância
         if self.instance and self.instance.pk:
             if self.instance.dt_emi:

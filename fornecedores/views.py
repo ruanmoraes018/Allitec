@@ -75,17 +75,17 @@ def lista_fornecedores(request):
 
 @login_required
 def lista_fornecedores_ajax(request):
-    term = request.GET.get('term', '').strip()
-    fornecedores = Fornecedor.objects.filter(
-        vinc_emp=request.user.empresa
-    ).filter(
-        Q(id__icontains=term) | Q(fantasia__icontains=term)
-    )[:20]
-    fornecedores_data = []
-    for fornecedor in fornecedores:
-        fornecedores_data.append({
-            'id': fornecedor.id,
-            'fantasia': fornecedor.fantasia,
+    termo_busca = request.GET.get('term') or request.GET.get('q') or ''
+    empresa = request.user.empresa
+    try:
+        if termo_busca.isdigit():
+            condicao_busca = Q(fantasia__icontains=termo_busca) | Q(id=termo_busca)
+        else:
+            condicao_busca = Q(fantasia__icontains=termo_busca)
+        fornecedores = Fornecedor.objects.filter(condicao_busca & Q(vinc_emp=empresa))[:20]
+        results = [{
+            'id': fornecedor.id, 
+            'text': f"{fornecedor.fantasia.upper()}",
             'situacao': fornecedor.situacao,
             'cpfCnpj': fornecedor.cpf_cnpj,
             'email': fornecedor.email,
@@ -96,8 +96,11 @@ def lista_fornecedores_ajax(request):
             'bairro': fornecedor.bairro.nome_bairro if fornecedor.bairro else '',
             'cidade': fornecedor.cidade.nome_cidade if fornecedor.cidade else '',
             'uf': fornecedor.uf.nome_estado if fornecedor.uf else ''
-        })
-    return JsonResponse({'fornecedores': fornecedores_data})
+            } for fornecedor in fornecedores]
+        return JsonResponse({'results': results})
+    except Exception as e:
+        print(f"Erro na busca AJAX: {e}")
+        return JsonResponse({'results': [], 'error': str(e)})
 
 @login_required
 def add_fornecedor(request):

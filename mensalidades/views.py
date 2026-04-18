@@ -17,6 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 import json
 import re
+from django.db.models import Q
 
 sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
 
@@ -99,10 +100,19 @@ def lista_mensalidades(request):
 
 @login_required
 def lista_mensalidades_ajax(request):
-    term = request.GET.get('term', '')
-    mensalidades = Mensalidade.objects.filter(empresa__fantasia=term)[:10]
-    data = {'mensalidades': [{'id': mensalidade.id, 'empresa': mensalidade.empresa.fantasia} for mensalidade in mensalidades]}
-    return JsonResponse(data)
+    termo_busca = request.GET.get('term') or request.GET.get('q') or ''
+    try:
+        filtros = Q(situacao__iexact='Aberta')
+        if termo_busca.isdigit():
+            condicao_busca = Q(empresa__fantasia__icontains=termo_busca) | Q(id=termo_busca)
+        else:
+            condicao_busca = Q(empresa__fantasia__icontains=termo_busca)
+        mensalidades = Mensalidade.objects.filter(filtros & condicao_busca)[:20]
+        results = [{'id': mensalidade.id, 'text': f"{mensalidade.empresa.fantasia.upper()}"} for mensalidade in mensalidades]
+        return JsonResponse({'results': results})
+    except Exception as e:
+        print(f"Erro na busca AJAX: {e}")
+        return JsonResponse({'results': [], 'error': str(e)})
 
 @login_required
 def add_mensalidade(request):

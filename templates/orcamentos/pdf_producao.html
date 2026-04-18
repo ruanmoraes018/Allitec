@@ -6,7 +6,9 @@
     <meta charset="UTF-8">
     <title>Ordem de Produção - Porta de Enrolar - {{ o.num_orcamento }}</title>
     <style>
-        @page {size: A4; margin: 12mm 10mm 12mm 10mm;}
+        @page {size: A4; margin: 12mm 10mm 12mm 10mm;
+            @bottom-center { content: "Página " counter(page) " de " counter(pages); font-size: 10px; font-weight: bold; }
+        }
         body {font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #111; margin: 0; padding: 0;}
         .page {width: 100%;}
         .header {width: 100%; border-collapse: collapse; margin-bottom: 8px;}
@@ -56,7 +58,7 @@
                 <td class="label">Solicitante</td>
                 <td>{{ o.nome_solicitante }}</td>
                 <td class="label">Fornecedor</td>
-                <td>________________________________</td>
+                <td>{{ o.nome_fornecedor }}</td>
             </tr>
         </table>
         <!-- DADOS GERAIS DE PRODUÇÃO -->

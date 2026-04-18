@@ -72,19 +72,19 @@ def lista_tecnicos(request):
 
 @login_required
 def lista_tecnicos_ajax(request):
-    term = request.GET.get('term', '').strip()  # Captura o termo digitado
-    tecnicos = Tecnico.objects.filter(vinc_emp=request.user.empresa,
-    ).filter(
-        Q(id__icontains=term) | Q(nome__icontains=term)  # Busca por ID ou fantasia
-    )[:20]  # Limita a 10 resultados
-    tecnicos_data = [
-        {
-            'id': tecnico.id,
-            'text': tecnico.nome
-        }
-        for tecnico in tecnicos
-    ]
-    return JsonResponse({'tecnicos': tecnicos_data})
+    termo_busca = request.GET.get('term') or request.GET.get('q') or ''
+    empresa = request.user.empresa
+    try:
+        if termo_busca.isdigit():
+            condicao_busca = Q(nome__icontains=termo_busca) | Q(id=termo_busca)
+        else:
+            condicao_busca = Q(nome__icontains=termo_busca)
+        tecnicos = Tecnico.objects.filter(condicao_busca & Q(vinc_emp=empresa))[:20]
+        results = [{'id': tecnico.id, 'text': f"{tecnico.nome.upper()}"} for tecnico in tecnicos]
+        return JsonResponse({'results': results})
+    except Exception as e:
+        print(f"Erro na busca AJAX: {e}")
+        return JsonResponse({'results': [], 'error': str(e)})
 
 @login_required
 def add_tecnico(request):

@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from util.permissoes import verifica_permissao
 from filiais.models import Usuario
 from django.views.decorators.http import require_POST
+from django.db.models import Q
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -53,10 +54,19 @@ def lista_grupos(request):
 
 @login_required
 def lista_grupos_ajax(request):
-    term = request.GET.get('term', '')
-    grupos = Grupo.objects.filter(nome_grupo__icontains=term, vinc_emp=request.user.empresa)
-    data = {'grupos': [{'id': grupo.id, 'text': grupo.nome_grupo} for grupo in grupos]}
-    return JsonResponse(data)
+    termo_busca = request.GET.get('term') or request.GET.get('q') or ''
+    empresa = request.user.empresa
+    try:
+        if termo_busca.isdigit():
+            condicao_busca = Q(nome_grupo__icontains=termo_busca) | Q(id=termo_busca)
+        else:
+            condicao_busca = Q(nome_grupo__icontains=termo_busca)
+        grupos = Grupo.objects.filter(condicao_busca & Q(vinc_emp=empresa))[:20]
+        results = [{'id': grupo.id, 'text': f"{grupo.nome_grupo.upper()}"} for grupo in grupos]
+        return JsonResponse({'results': results})
+    except Exception as e:
+        print(f"Erro na busca AJAX: {e}")
+        return JsonResponse({'results': [], 'error': str(e)})
 
 @login_required
 def add_grupo(request):

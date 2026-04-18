@@ -56,8 +56,8 @@
                                     </div>
                                 </div>
                                 <div class="form-section" id="enderecos">
-                                    <div class="row mt-2" style="overflow-x: auto;">
-                                        <table class="table table-sm table-bordered table-striped table-hover table-responsive-md table-rounded mb-2" id="tabela-produtos">
+                                    <div class="table-responsive mt-2">
+                                        <table class="table table-sm table-bordered table-striped table-hover table-rounded mb-2" id="tabela-produtos">
                                             <thead class="table-dark">
                                                 <tr>
                                                     <th scope="col" style="text-align: center; cursor: pointer; width: 2%;" onclick="toggleSelectAll()"><input type="checkbox" class="form-check-input" id="select-all" onclick="event.stopPropagation(); toggleSelectAll();"></th>
@@ -91,9 +91,7 @@
                                 </div>
                                 <div class="form-section" id="complementos">
                                     <div class="row mt-2" style="margin-left: -8px;">
-                                        <div class="col-md-12">
-                                            {{ form.obs|as_crispy_field }}
-                                        </div>
+                                        <div class="col-md-12">{{ form.obs|as_crispy_field }}</div>
                                     </div>
                                 </div>
                                 <div class="card" style="margin: 0;">
@@ -101,7 +99,7 @@
                                         <h6 class="fw-bold" style="margin-top: -10px;">TOTAIS DA NOTA/PEDIDO</h6>
                                     </div>
                                 </div>
-                                <div class="card mt-2 mb-2 mx-auto" style="width: 50rem;">
+                                <div class="card mt-2 mb-2 mx-auto" style="max-width: 50rem; width: 100%;">
                                     <div class="row">
                                         <ul class="list-group col" style="border-radius: 15px; margin: 10px 5px 10px 10px;">
                                             <li class="list-group-item fw-bold">Total Desconto: <span style="background-color: #20B2AA; color: white; border-radius: 15px; padding-left: 10px; padding-right: 10px; float: right;" id="total-desconto">0.00</span></li>
@@ -122,7 +120,7 @@
                     <div class="card-footer" style="margin-bottom: -10px;">
                         <div class="base_botao">
                             <button type="button" class="btn btn-success botoes" data-bs-target="#staticBackdrop" id="openModalBtn">Criar</button>
-                            <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#loadingModal">Voltar</a>
+                            <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;">Voltar</a>
                         </div>
                     </div>
                 </div>

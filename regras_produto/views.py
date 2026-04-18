@@ -18,6 +18,9 @@ from django.http import HttpResponse
 from openpyxl.styles import Font
 import ast
 import operator as op
+from django.db.models import Q
+from django.db import DatabaseError, IntegrityError
+from django.core.exceptions import ObjectDoesNotExist
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -104,6 +107,8 @@ def lista_regras(request):
     form = ImportarRegraProdutoForm()
     s = request.GET.get('s')
     tp = request.GET.get('tp')
+    sit = request.GET.get('sit')
+    tipo = request.GET.get('tipo')
     reg = request.GET.get('reg', '10')
     regras = RegraProduto.objects.filter(vinc_emp=empresa)
     if tp == 'desc' and s:
@@ -114,6 +119,14 @@ def lista_regras(request):
             regras = regras.filter(codigo__iexact=s).order_by('descricao')
         except ValueError:
             regras = RegraProduto.objects.none()
+    if sit == 'ativo':
+        regras = regras.filter(ativo=True)
+    elif sit == 'inativo':
+        regras = regras.filter(ativo=False)
+    if tipo == 'qtd':
+        regras = regras.filter(tipo='QTD')
+    elif tipo == 'selecao':
+        regras = regras.filter(tipo='SELECAO')
     if reg == 'todos':
         num_pagina = regras.count() or 1
     else:
@@ -124,23 +137,23 @@ def lista_regras(request):
     paginator = Paginator(regras, num_pagina)
     page = request.GET.get('page')
     regras = paginator.get_page(page)
-    return render(request, 'regras_produto/lista.html', {'regras': regras, 'form_importacao': form, 's': s, 'tp': tp, 'reg': reg,})
+    return render(request, 'regras_produto/lista.html', {'regras': regras, 'form_importacao': form, 's': s, 'tp': tp, 'sit': sit, 'tipo': tipo, 'reg': reg,})
 
 @login_required
 def lista_regras_ajax(request):
-    term = request.GET.get('term', '')
-    regras = RegraProduto.objects.filter(descricao__icontains=term, vinc_emp=request.user.empresa)[:20]
-    data = {
-        'regras': [
-            {
-                'id': regra.id,
-                'codigo': regra.codigo,
-                'descricao': regra.descricao
-            }
-            for regra in regras
-        ]
-    }
-    return JsonResponse(data)
+    termo_busca = request.GET.get('term') or request.GET.get('q') or ''
+    empresa = request.user.empresa
+    try:
+        if termo_busca.isdigit():
+            condicao_busca = Q(descricao__icontains=termo_busca) | Q(id=termo_busca)
+        else:
+            condicao_busca = Q(descricao__icontains=termo_busca)
+        regras = RegraProduto.objects.filter(condicao_busca & Q(vinc_emp=empresa))[:20]
+        results = [{'id': regra.id, 'text': f"{regra.codigo}", 'descricao': regra.descricao} for regra in regras]
+        return JsonResponse({'results': results})
+    except Exception as e:
+        print(f"Erro na busca AJAX: {e}")
+        return JsonResponse({'results': [], 'error': str(e)})
 
 OPERADORES = {ast.Add: op.add, ast.Sub: op.sub, ast.Mult: op.mul, ast.Div: op.truediv, ast.Pow: op.pow, ast.USub: op.neg,}
 
@@ -171,192 +184,244 @@ def regras_js(request):
     regras = RegraProduto.objects.filter(
         vinc_emp=empresa,
         ativo=True
-    ).values('codigo', 'tipo', 'expressao', 'expressao_json')
+    ).values('codigo', 'tipo', 'expressao_json')
     data = {
         r['codigo']: {
             'tipo': r['tipo'],
-            'expressao': r['expressao'],
             'expressao_json': r['expressao_json'],
         }
         for r in regras
     }
     return JsonResponse(data)
 
+@require_POST
+@login_required
+def aplicar_regras_porta(request):
+    try:
+        corpo = json.loads(request.body)
+        if isinstance(corpo, list):
+            dados = corpo[0]
+        else:
+            dados = corpo
+        tabela_id = dados.get('tabela_id')
+        contexto = dados.get('contexto', {})
+        if not tabela_id:
+            return JsonResponse({'success': False, 'error': 'Tabela não informada'}, status=400)
+        regras = RegraProduto.objects.filter(vinc_emp=request.user.empresa, ativo=True)
+        produtos_resultado = []
+        for regra in regras:
+            produto_selecionado = None
+            qtd_calculada = 0
+            if regra.tipo == 'SELECAO':
+                produto_selecionado, qtd_calculada = aplicar_regra_selecao(regra, contexto)
+            if regra.tipo == 'QTD':
+                if regra.expressao_json:
+                    itens = regra.expressao_json
+                    if isinstance(itens, str):
+                        itens = json.loads(itens)
+                    for item in itens:
+                        produto = Produto.objects.filter(id=item.get('produto_id')).first()
+                        expr = item.get('qtd_expr')
+                        try:
+                            qtd = calcular_expressao_segura(expr, contexto)
+                        except:
+                            qtd = 0
+                        if produto and qtd > 0:
+                            preco = ProdutoTabela.objects.filter(produto=produto, tabela_id=tabela_id).first()
+                            if not preco:
+                                continue
+                            produtos_resultado.append({'id': produto.id, 'codigo': produto.id, 'desc_prod': produto.desc_prod, 'unidProd': produto.unidProd.nome_unidade if produto.unidProd else '',
+                                'tp_prod': produto.tp_prod, 'vl_compra': float(produto.vl_compra), 'vl_unit': float(preco.vl_prod), 'qtd': float(qtd), 'regra_origem': regra.codigo})
+                else:
+                    produto = regra.produto
+                    try:
+                        qtd = calcular_expressao_segura(regra.expressao, contexto)
+                    except:
+                        qtd = 0
+                    if produto and qtd > 0:
+                        preco = ProdutoTabela.objects.filter(produto=produto, tabela_id=tabela_id).first()
+                        if not preco:
+                            continue
+                        produtos_resultado.append({'id': produto.id, 'codigo': produto.id, 'desc_prod': produto.desc_prod, 'unidProd': produto.unidProd.nome_unidade if produto.unidProd else '',
+                            'tp_prod': produto.tp_prod, 'vl_compra': float(produto.vl_compra), 'vl_unit': float(preco.vl_prod), 'qtd': float(qtd), 'regra_origem': regra.codigo})
+            if produto_selecionado and qtd_calculada > 0:
+                try:
+                    preco = ProdutoTabela.objects.filter(produto=produto_selecionado, tabela_id=tabela_id).first()
+                    if not preco:
+                        continue
+                    produtos_resultado.append({'id': produto_selecionado.id, 'codigo': produto_selecionado.id, 'desc_prod': produto_selecionado.desc_prod,
+                        'unidProd': str(produto_selecionado.unidProd) if produto_selecionado.unidProd else '', 'tp_prod': produto_selecionado.tp_prod,
+                        'vl_compra': float(produto_selecionado.vl_compra), 'vl_unit': float(preco.vl_prod), 'qtd': qtd_calculada, 'regra_origem': regra.codigo})
+                except ProdutoTabela.DoesNotExist:
+                    print(f"Preço não encontrado para produto {produto_selecionado.id} na tabela {tabela_id}")
+                    continue
+        produtos_resultado.sort(key=lambda x: x['desc_prod'])
+        return JsonResponse({'success': True, 'produtos': produtos_resultado})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+def calcular_expressao_segura(expr, contexto):
+    def _eval(node):
+        if isinstance(node, ast.Num):  # número
+            return node.n
+        elif isinstance(node, ast.Constant):  # py3.8+
+            return node.value
+        elif isinstance(node, ast.BinOp):  # operação
+            return OPERADORES[type(node.op)](_eval(node.left), _eval(node.right))
+        elif isinstance(node, ast.UnaryOp):  # negativo
+            return OPERADORES[type(node.op)](_eval(node.operand))
+        elif isinstance(node, ast.Name):  # variável
+            if node.id in contexto:
+                return contexto[node.id]
+            raise ValueError(f"Variável '{node.id}' não encontrada")
+        else:
+            raise TypeError(node)
+    tree = ast.parse(expr, mode='eval')
+    return _eval(tree.body)
+
 def aplicar_regra_selecao(regra, contexto):
-    dados = regra.expressao_json or []
-    if isinstance(dados, list):
-        peso = Decimal(str(contexto.get('peso', 0)))
-        for item in sorted(dados, key=lambda x: x.get('condicoes', {}).get('max', 0)):
-            max_val = item.get('condicoes', {}).get('max')
-            if max_val is not None and peso <= Decimal(str(max_val)):
-                return item.get('produto_id')
-    if isinstance(dados, dict):
-        for valor in contexto.values():
-            if valor in dados:
-                return dados[valor]
-    return None
+    try:
+        if not regra.expressao_json:
+            return None, 0
+        criterios = regra.expressao_json
+        if isinstance(criterios, str):
+            criterios = json.loads(criterios)
+        if not isinstance(criterios, list):
+            return None, 0
+    except:
+        return None, 0
+    for item in criterios:
+        condicoes = item.get('condicoes', {})
+        atende = True
+        for chave, valor in condicoes.items():
+            if chave == 'max':
+                if contexto.get('peso', 0) > valor:
+                    atende = False
+                    break
+            elif chave == 'valor':
+                campo = condicoes.get('campo')
+                if not campo or contexto.get(campo) != valor:
+                    atende = False
+                    break
+        if atende:
+            produto_id = item.get('produto_id')
+            qtd_expr = item.get('qtd_expr')
+            produto = Produto.objects.filter(id=produto_id).first()
+            qtd = 1
+            if qtd_expr:
+                try:
+                    qtd = calcular_expressao_segura(qtd_expr, contexto)
+                except:
+                    qtd = 1
+            return produto, qtd
+    return None, 0
 
 @require_POST
 @login_required
 def calcular_orcamento(request):
     empresa = request.user.empresa
-    body = json.loads(request.body)
-    tabela_id = body.get('tabela_id')
-    contexto = body.get('contexto', {})
-    produtos_req = body.get('produtos', [])
-
-    contexto_decimal = {
-        k: Decimal(str(v)) for k, v in contexto.items()
-    }
-
-    ids_produtos = list(set(p['id'] for p in produtos_req if 'id' in p))
-
-    produtos_base = Produto.objects.select_related('regra').filter(
-        id__in=ids_produtos,
-        vinc_emp=empresa
-    )
-
-    precos_tabela = {}
-    if tabela_id:
-        itens_tabela = ProdutoTabela.objects.filter(
-            tabela_id=tabela_id,
-            produto_id__in=ids_produtos,
-            produto__vinc_emp=empresa,
-            tabela__vinc_emp=empresa
-        )
-        precos_tabela = {
-            item.produto_id: item.vl_prod
-            for item in itens_tabela
-        }
-
-    itens_dict = {}
-    total_geral = Decimal('0.00')
-
-    for prod in produtos_base:
-        produto_final = prod
-
-        if prod.regra and prod.regra.tipo == 'SELECAO':
-            produto_nome = aplicar_regra_selecao(prod.regra, contexto_decimal)
-            if not produto_nome:
-                continue
-
-            produto_final = Produto.objects.filter(
-                desc_prod=produto_nome,
-                vinc_emp=empresa
-            ).select_related('regra').first()
-
-            if not produto_final:
-                continue
-
-        qtd = Decimal('1')
-
-        if produto_final.regra and produto_final.regra.tipo == 'QTD':
-            try:
-                qtd = avaliar_expressao_segura(
-                    produto_final.regra.expressao,
-                    contexto_decimal
-                )
-            except Exception:
-                qtd = Decimal('0')
-
-        if qtd <= 0:
-            continue
-
-        vl_unit = precos_tabela.get(produto_final.id, Decimal('0.00'))
-        total = qtd * vl_unit
-
-        item = itens_dict.setdefault(produto_final.id, {
-            'id': produto_final.id,
-            'desc': produto_final.desc_prod,
-            'qtd': Decimal('0'),
-            'vl_unit': vl_unit,
-            'total': Decimal('0.00'),
-            'regra_aplicada': produto_final.regra.codigo if produto_final.regra else None
-        })
-
-        item['qtd'] += qtd
-        item['total'] += total
-
-    itens = []
-    for item in itens_dict.values():
-        total_geral += item['total']
-        itens.append({
-            'id': item['id'],
-            'desc': item['desc'],
-            'qtd': float(item['qtd']),
-            'vl_unit': float(item['vl_unit']),
-            'total': float(item['total']),
-            'regra_aplicada': item['regra_aplicada']
-        })
-
-    return JsonResponse({
-        'itens': itens,
-        'total': float(total_geral)
-    })
+    try:
+        raw_body = json.loads(request.body)
+        body = raw_body[0] if isinstance(raw_body, list) else raw_body
+        tabela_id = body.get('tabela_id')
+        produtos_req = body.get('produtos', [])
+        ids_originais = list(set(p['id'] for p in produtos_req if 'id' in p))
+        produtos_base = Produto.objects.filter(id__in=ids_originais, vinc_emp=empresa)
+        precos = {p.produto_id: p.vl_prod for p in ProdutoTabela.objects.filter(tabela_id=tabela_id,produto_id__in=ids_originais)}
+        itens_dict = {}
+        total_geral = Decimal('0.00')
+        for prod in produtos_base:
+            qtd = Decimal('1')
+            vl_unit = precos.get(prod.id, Decimal('0.00'))
+            total = qtd * vl_unit
+            item = itens_dict.setdefault(prod.id, {'id': prod.id,'desc': prod.desc_prod,'qtd': Decimal('0'),'vl_unit': vl_unit,'total': Decimal('0.00'),'regra_aplicada': None})
+            item['qtd'] += qtd
+            item['total'] += total
+        itens_saida = []
+        for item in itens_dict.values():
+            total_geral += item['total']
+            itens_saida.append({'id': item['id'],'desc': item['desc'],'qtd': float(item['qtd']),'vl_unit': float(item['vl_unit']),'total': float(item['total']),'regra_aplicada': item['regra_aplicada']})
+        return JsonResponse({'itens': itens_saida, 'total': float(total_geral)})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
 def add_regra(request):
+    error_messages = []
     if not request.user.has_perm('regras_produto.add_regraproduto'):
         messages.info(request, 'Você não tem permissão para adicionar regras de produto.')
         return redirect('/regras_produto/lista/')
-    if request.method == 'POST':
-        expressao_json = request.POST.get('expressao_json')
-        form = RegraProdutoForm(request.POST)
-        if form.is_valid():
+    empresa = request.user.empresa
+    try:
+        if request.method == 'POST':
+            expressao_json = request.POST.get('expressao_json')
+            form = RegraProdutoForm(request.POST, empresa=empresa)
+            if not form.is_valid():
+                erros = [
+                    f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!"
+                    for field in form if field.errors
+                ]
+                return render(request, "regras_produto/att.html", {"form": form, "e": e, "error_messages": erros})
+            
             e = form.save(commit=False)
-            e.vinc_emp = request.user.empresa
+            e.vinc_emp = empresa
             try:
-                e.expressao_json = json.loads(expressao_json) if expressao_json else []
+                parsed = json.loads(expressao_json) if expressao_json else []
+                e.expressao_json = parsed
             except:
                 e.expressao_json = []
             e.save()
             messages.success(request, 'Regra adicionada com sucesso!')
             est = str(e.codigo)
             return redirect('/regras_produto/lista/?tp=cod&s=' + est)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors:
-                    for error in field.errors:
-                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'regras_produto/add.html', {'form': form, 'error_messages': error_messages})
-    else: form = RegraProdutoForm()
+    except ObjectDoesNotExist: error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}")
+    except DatabaseError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco de dados: {str(e)}")
+    except Exception as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")        
+    form = RegraProdutoForm(empresa=empresa)
     return render(request, 'regras_produto/add.html', {'form': form})
 
 @login_required
 def att_regra(request, id):
-    e = get_object_or_404(RegraProduto, pk=id, vinc_emp=request.user.empresa)
-    form = RegraProdutoForm(instance=e)
+    error_messages = []
+    empresa = request.user.empresa
+    e = get_object_or_404(RegraProduto, pk=id, vinc_emp=empresa)
+    expressao_json_str = json.dumps(e.expressao_json or [])
+    form = RegraProdutoForm(instance=e, empresa=empresa)
     if not request.user.has_perm('regras_produto.change_regraproduto'):
         messages.info(request, 'Você não tem permissão para editar regras de produto.')
         return redirect('/regras_produto/lista/')
-    if request.method == 'POST':
-        expressao_json = request.POST.get('expressao_json')
-        form = RegraProdutoForm(request.POST, instance=e)
-        if form.is_valid():
+    try:
+        if request.method == 'POST':
+            expressao_json = request.POST.get('expressao_json')
+            form = RegraProdutoForm(request.POST, instance=e, empresa=empresa)
+            if not form.is_valid():
+                erros = [
+                    f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!"
+                    for field in form if field.errors
+                ]
+                return render(request, "regras_produto/att.html", {"form": form, "e": e, "error_messages": erros, "expressao_json_str": expressao_json_str})
             e = form.save(commit=False)
-            e.vinc_emp = request.user.empresa
+            e.vinc_emp = empresa
             try:
-                e.expressao_json = json.loads(expressao_json) if expressao_json else []
+                parsed = json.loads(expressao_json) if expressao_json else []
+                e.expressao_json = parsed
             except:
                 e.expressao_json = []
             e.save()
             est = str(e.codigo)
+            
             messages.success(request, 'Regra atualizada com sucesso!')
             next_url = request.POST.get('next') or request.GET.get('next')
             if next_url:
                 return redirect(next_url)
             else:
                 return redirect('/regras_produto/lista/?tp=cod&s=' + est)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors:
-                    for error in field.errors:
-                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'regras_produto/att.html', {'form': form, 'e': e, 'error_messages': error_messages})
-    else:
-        return render(request, 'regras_produto/att.html', {'form': form, 'e': e, 'expressao_json_str': json.dumps(e.expressao_json or [])})
+    except ObjectDoesNotExist: error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}")
+    except DatabaseError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco de dados: {str(e)}")
+    except Exception as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'regras_produto/att.html', {'form': form, 'error_messages': error_messages, 'expressao_json_str': expressao_json_str})
 
 @login_required
 def del_regra(request, id):

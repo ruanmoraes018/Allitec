@@ -44,6 +44,23 @@
                                 {{ form.gera_parcelas|as_crispy_field }}
                             </div>
                         </div>
+
+                        <hr>
+
+                        <!-- 🔥 INTEGRAÇÃO -->
+                        <div class="row g-3" style="margin-left: -8px;">
+                            <div class="col-md-3">
+                                {{ form.gateway|as_crispy_field }}
+                            </div>
+
+                            <div class="col-md-9">
+                                <label class="form-label">Credenciais</label>
+                                <div id="campos-credenciais"></div>
+                            </div>
+
+                            <!-- campo oculto que vai salvar -->
+                            {{ form.credenciais.as_hidden }}
+                        </div>
                     </div>
                     <div class="card-footer">
                         <div class="base_botao">
@@ -73,4 +90,114 @@
         </div>
     </div>
 </div>
+<script>
+const CAMPOS_GATEWAY = {
+    mercadopago: [
+        {name: "access_token", label: "Access Token"}
+    ],
+    pagseguro: [
+        {name: "email", label: "Email"},
+        {name: "token", label: "Token"}
+    ],
+    stripe: [
+        {name: "secret_key", label: "Secret Key"}
+    ],
+    pix_direto: [
+        {name: "client_id", label: "Client ID"},
+        {name: "client_secret", label: "Client Secret"},
+        {name: "chave_pix", label: "Chave Pix"}
+    ]
+};
+
+function renderCampos() {
+    const gateway = document.getElementById("id_gateway").value;
+    const container = document.getElementById("campos-credenciais");
+
+    container.innerHTML = "";
+
+    if (!CAMPOS_GATEWAY[gateway]) return;
+
+    CAMPOS_GATEWAY[gateway].forEach(campo => {
+        const div = document.createElement("div");
+        div.classList.add("mb-2");
+
+        div.innerHTML = `
+            <label class="form-label">${campo.label}</label>
+            <input type="text" class="form-control cred-input" data-name="${campo.name}">
+        `;
+
+        container.appendChild(div);
+    });
+}
+
+function montarJSON() {
+    const gateway = document.getElementById("id_gateway").value;
+    const inputs = document.querySelectorAll(".cred-input");
+    const data = {};
+
+    // 🔥 validação
+    if (CAMPOS_GATEWAY[gateway]) {
+        for (let campo of CAMPOS_GATEWAY[gateway]) {
+            const input = document.querySelector(`[data-name="${campo.name}"]`);
+
+            if (!input || !input.value) {
+                alert(`Preencha o campo: ${campo.label}`);
+                if (input) input.focus();
+                return false;
+            }
+        }
+    }
+
+    inputs.forEach(input => {
+        const name = input.dataset.name;
+        const value = input.value;
+
+        if (value) {
+            data[name] = value;
+        }
+    });
+
+    document.getElementById("id_credenciais").value = JSON.stringify(data);
+    return true;
+}
+
+function preencherCamposExistentes() {
+    const hidden = document.getElementById("id_credenciais").value;
+
+    if (!hidden) return;
+
+    try {
+        const data = JSON.parse(hidden);
+
+        Object.keys(data).forEach(key => {
+            const input = document.querySelector(`[data-name="${key}"]`);
+            if (input) input.value = data[key];
+        });
+
+    } catch (e) {}
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    const gateway = document.getElementById("id_gateway");
+    const form = document.querySelector("form");
+
+    // render inicial
+    renderCampos();
+
+    // preenche se edição
+    setTimeout(preencherCamposExistentes, 100);
+
+    // troca gateway
+    gateway.addEventListener("change", function () {
+        renderCampos();
+    });
+
+    // submit único
+    form.addEventListener("submit", function(e) {
+        if (!montarJSON()) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
 {% endblock %}

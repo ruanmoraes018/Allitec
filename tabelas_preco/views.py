@@ -8,6 +8,7 @@ import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
 from filiais.models import Usuario
+from django.db.models import Q
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -48,10 +49,19 @@ def lista_tabelas_preco(request):
 
 @login_required
 def lista_tabelas_preco_ajax(request):
-    term = request.GET.get('term', '')
-    tabelas_preco = TabelaPreco.objects.filter(descricao__icontains=term, vinc_emp=request.user.empresa)[:20]
-    data = {'tabelas_preco': [{'id': tabela_preco.id, 'text': tabela_preco.descricao} for tabela_preco in tabelas_preco]}
-    return JsonResponse(data)
+    termo_busca = request.GET.get('term') or request.GET.get('q') or ''
+    empresa = request.user.empresa
+    try:
+        if termo_busca.isdigit():
+            condicao_busca = Q(descricao__icontains=termo_busca) | Q(id=termo_busca)
+        else:
+            condicao_busca = Q(descricao__icontains=termo_busca)
+        tabelas_preco = TabelaPreco.objects.filter(condicao_busca & Q(vinc_emp=empresa))[:20]
+        results = [{'id': tabela_preco.id, 'text': f"{tabela_preco.descricao.upper()}"} for tabela_preco in tabelas_preco]
+        return JsonResponse({'results': results})
+    except Exception as e:
+        print(f"Erro na busca AJAX: {e}")
+        return JsonResponse({'results': [], 'error': str(e)})
 
 @login_required
 def get_tabela_preco(request):

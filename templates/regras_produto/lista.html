@@ -36,6 +36,22 @@
                     <input class="form-control" type="text" name="s" id="s" placeholder="Digite o termo de busca" value="{{ request.GET.s }}">
                 </div>
                 <div class="col-md-1 search-div">
+                    <label class="form-label">Situação:</label>
+                    <select class="form-control" type="text" name="sit" id="sit" placeholder="Digite o termo de busca">
+                        <option value="">Todas</option>
+                        <option value="ativo" {% if request.GET.sit == 'ativo' %}selected{% endif %}>Ativo</option>
+                        <option value="inativo" {% if request.GET.sit == 'inativo' %}selected{% endif %}>Inativo</option>
+                    </select>
+                </div>
+                <div class="col-md-2 search-div">
+                    <label class="form-label">Tipo:</label>
+                    <select class="form-control" type="text" name="tipo" id="tipo" placeholder="Digite o termo de busca">
+                        <option value="">Todos</option>
+                        <option value="qtd" {% if request.GET.tipo == 'qtd' %}selected{% endif %}>Quantidade</option>
+                        <option value="selecao" {% if request.GET.tipo == 'selecao' %}selected{% endif %}>Seleção</option>
+                    </select>
+                </div>
+                <div class="col-md-1 search-div">
                     <label class="form-label">Reg.:</label>
                     <select class="form-control" id="qtd_reg" name="reg">
                         <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>

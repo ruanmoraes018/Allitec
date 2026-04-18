@@ -10,4 +10,5 @@ urlpatterns = [
     path('exportar/', views.exportar_regras_produto, name='exp-regras'),
     path('modelo/', views.baixar_modelo_regras, name='modelo-regras'),
     path('calcular_orcamento/', views.calcular_orcamento, name='calcular_orcamento'),
+    path('aplicar_regras_porta/', views.aplicar_regras_porta, name='aplicar-regras-porta'),
 ]

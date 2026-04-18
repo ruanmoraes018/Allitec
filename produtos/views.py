@@ -56,22 +56,25 @@ def lista_produtos(request):
     if grupo: produtos_qs = produtos_qs.filter(grupo_id=grupo)
     if marca: produtos_qs = produtos_qs.filter(marca_id=marca)
     if unid: produtos_qs = produtos_qs.filter(unidProd_id=unid)
-    if reg == 'todos': num_pagina = produtos_qs.count() or 1
+    if reg == 'todos':
+        num_pagina = produtos_qs.count() or 1
     else:
-        try: num_pagina = int(reg) if int(reg) > 0 else 10
-        except ValueError: num_pagina = 10
+        try:
+            num_pagina = int(reg) if int(reg) > 0 else 10
+        except ValueError:
+            num_pagina = 10
     paginator = Paginator(produtos_qs, num_pagina)
     page = request.GET.get('page')
-    produtos = paginator.get_page(page)
-    produtos_ids = [p.id for p in produtos]
+    produtos_qs = paginator.get_page(page)
+    produtos_ids = [p.id for p in produtos_qs]
     tabelas_map = {}
     if produtos_ids:
         tabelas = (ProdutoTabela.objects.filter(produto_id__in=produtos_ids, produto__vinc_emp=empresa).select_related('tabela'))
         for tab in tabelas:
             tabelas_map.setdefault(tab.produto_id, []).append({"id": tab.id, "descricao": tab.tabela.descricao if tab.tabela else str(tab), "vl_prod": float(tab.vl_prod)})
-    for p in produtos:
+    for p in produtos_qs:
         p.tab_conv = tabelas_map.get(p.id, [])
-    return render(request, 'produtos/lista.html', {'produtos': produtos, 's': s, 'tp': tp, 'sit': sit, 'ordem': ordem, 'marca': marca, 'marcas': Marca.objects.filter(vinc_emp=empresa), 'grupo': grupo, 'grupos': Grupo.objects.filter(vinc_emp=empresa), 'unidades': Unidade.objects.filter(vinc_emp=empresa), 'unid': unid, 'reg': reg, 'tp_produto': tp_produto})
+    return render(request, 'produtos/lista.html', {'produtos': produtos_qs, 's': s, 'tp': tp, 'sit': sit, 'ordem': ordem, 'marca': marca, 'marcas': Marca.objects.filter(vinc_emp=empresa), 'grupo': grupo, 'grupos': Grupo.objects.filter(vinc_emp=empresa), 'unidades': Unidade.objects.filter(vinc_emp=empresa), 'unid': unid, 'reg': reg, 'tp_produto': tp_produto})
 
 @login_required
 def att_prod_lote(request):
@@ -246,40 +249,20 @@ def att_tb_preco_lote(request):
 
 @login_required
 def lista_produtos_ajax(request):
+    termo_busca = request.GET.get('term') or request.GET.get('q') or ''
     empresa = request.user.empresa
-    termo = (request.GET.get('s') or '').strip()
-
-    produtos = Produto.objects.filter(
-        vinc_emp=empresa
-    )
-
-    if termo:
-        termo_lower = termo.lower()
-
-        filtros = (
-            Q(desc_prod__icontains=termo) |
-            Q(desc_normalizado__icontains=termo_lower) |
-            Q(codigos__codigo__icontains=termo)
-        )
-
-        # se for número, busca por ID também
-        if termo.isdigit():
-            filtros |= Q(id=int(termo))
-
-        produtos = produtos.filter(filtros).distinct()
-
-    produtos = produtos.order_by('desc_prod')[:30]
-
-    return JsonResponse({
-        'produtos': [
-            {
-                'id': p.id,
-                'desc_prod': p.desc_prod,
-                'text': f'{p.id} - {p.desc_prod}',
-            }
-            for p in produtos
-        ]
-    })
+    try:
+        filtros = Q(situacao__iexact='Ativo')
+        if termo_busca.isdigit():
+            condicao_busca = Q(desc_prod__icontains=termo_busca) | Q(id=termo_busca) | Q(desc_normalizado__icontains=termo_busca) | Q(codigos__codigo__icontains=termo_busca)
+        else:
+            condicao_busca = Q(desc_prod__icontains=termo_busca) | Q(desc_normalizado__icontains=termo_busca)
+        produtos = Produto.objects.filter(filtros & condicao_busca & Q(vinc_emp=empresa))[:20]
+        results = [{'id': produto.id, 'text': f"{produto.id} - {produto.desc_prod.upper()}", 'desc_prod': produto.desc_prod} for produto in produtos]
+        return JsonResponse({'results': results})
+    except Exception as e:
+        print(f"Erro na busca AJAX: {e}")
+        return JsonResponse({'results': [], 'error': str(e)})
 
 @login_required
 def buscar_produtos(request):
@@ -302,7 +285,7 @@ def buscar_produtos(request):
             produtos = Produto.objects.filter(vinc_emp=empresa, situacao="Ativo",codigos__codigo__iexact=termo).distinct()
         if tp_produto:
             produtos = produtos.filter(tp_prod__icontains=tp_produto)
-    produtos = (produtos.select_related('regra', 'unidProd', 'grupo').order_by('id'))
+    produtos = (produtos.select_related('unidProd', 'grupo').order_by('id'))
     data = []
     for prod in produtos:
         if auto and prod.regra:
@@ -311,7 +294,7 @@ def buscar_produtos(request):
         tabela = None
         if tabela_id:
             tabela = ProdutoTabela.objects.filter(produto=prod, tabela_id=tabela_id, tabela__vinc_emp=empresa).first()
-        data.append({'id': prod.id, 'desc_prod': prod.desc_prod, 'unidProd': prod.unidProd.nome_unidade if prod.unidProd else '', 'grupo': prod.grupo.nome_grupo if prod.grupo else '', 'estoque_prod': getattr(prod, 'estoque_prod', None), 'vl_compra': prod.vl_compra, 'vl_prod': float(tabela.vl_prod) if tabela else None, 'tp_prod': prod.tp_prod, 'especifico': prod.especifico if prod.especifico else '', 'regra': {'codigo': prod.regra.codigo if prod.regra else None, 'tipo': prod.regra.tipo if prod.regra else None, 'expressao': prod.regra.expressao if prod.regra else None} if prod.regra else None})
+        data.append({'id': prod.id, 'desc_prod': prod.desc_prod, 'unidProd': prod.unidProd.nome_unidade if prod.unidProd else '', 'grupo': prod.grupo.nome_grupo if prod.grupo else '', 'estoque_prod': getattr(prod, 'estoque_prod', None), 'vl_compra': prod.vl_compra, 'vl_prod': float(tabela.vl_prod) if tabela else None, 'tp_prod': prod.tp_prod, 'especifico': prod.especifico if prod.especifico else ''})
     return JsonResponse({'produtos': data})
 
 @login_required

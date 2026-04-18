@@ -76,14 +76,17 @@ def lista_clientes(request):
 
 @login_required
 def lista_clientes_ajax(request):
-    term = request.GET.get('term', '').strip()
+    termo_busca = request.GET.get('term') or request.GET.get('q') or ''
     empresa = request.user.empresa
-    clientes = Cliente.objects.filter(vinc_emp=empresa).filter(Q(id__icontains=term) | Q(fantasia__icontains=term))[:20]
-    clientes_data = []
-    for cliente in clientes:
-        clientes_data.append({
-            'id': cliente.id,
-            'fantasia': cliente.fantasia,
+    try:
+        if termo_busca.isdigit():
+            condicao_busca = Q(fantasia__icontains=termo_busca) | Q(id=termo_busca)
+        else:
+            condicao_busca = Q(fantasia__icontains=termo_busca)
+        clientes = Cliente.objects.filter(condicao_busca & Q(vinc_emp=empresa))[:20]
+        results = [{
+            'id': cliente.id, 
+            'text': f"{cliente.fantasia.upper()}",
             'situacao': cliente.situacao,
             'cpfCnpj': cliente.cpf_cnpj,
             'email': cliente.email,
@@ -94,9 +97,11 @@ def lista_clientes_ajax(request):
             'bairro': cliente.bairro.nome_bairro if cliente.bairro else '',
             'cidade': cliente.cidade.nome_cidade if cliente.cidade else '',
             'uf': cliente.uf.nome_estado if cliente.uf else ''
-        })
-
-    return JsonResponse({'clientes': clientes_data})
+            } for cliente in clientes]
+        return JsonResponse({'results': results})
+    except Exception as e:
+        print(f"Erro na busca AJAX: {e}")
+        return JsonResponse({'results': [], 'error': str(e)})
 
 @login_required
 def add_cliente(request):

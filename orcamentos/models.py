@@ -55,9 +55,11 @@ class Orcamento(models.Model):
     tabela_preco = models.ForeignKey('tabelas_preco.TabelaPreco', on_delete=models.PROTECT, null=True, blank=True)
     cli = models.ForeignKey(Cliente, on_delete=models.PROTECT, null=True, db_index=True)
     solicitante = models.ForeignKey(Tecnico, on_delete=models.PROTECT, null=True, blank=True, db_index=True)
+    fornecedor = models.ForeignKey('fornecedores.Fornecedor', on_delete=models.SET_NULL, null=True, blank=True, db_index=True)
     fantasia_emp = models.CharField(max_length=255, blank=True)
     nome_cli = models.CharField(max_length=255, blank=True)
     nome_solicitante = models.CharField(max_length=255, blank=True)
+    nome_fornecedor = models.CharField(max_length=255, blank=True)
     situacao = models.CharField(max_length=10, choices=[('Aberto', 'Aberto'), ('Faturado', 'Faturado'), ('Cancelado', 'Cancelado')], default='Aberto', db_index=True)
     status = models.CharField(max_length=15, choices=[('Em Produção', 'Em Produção'), ('Embalada', 'Embalada'), ('Entregue', 'Entregue'), ('Instalada', 'Instalada')], default='Em Produção', db_index=True)
     num_orcamento = models.CharField(max_length=25, db_index=True)
@@ -98,6 +100,7 @@ class Orcamento(models.Model):
     def save(self, *args, **kwargs):
         self.nome_solicitante = getattr(self.solicitante, 'nome', '')
         self.nome_cli = getattr(self.cli, 'fantasia', '')
+        self.nome_fornecedor = getattr(self.fornecedor, 'fantasia', '')
         self.fantasia_emp = getattr(self.vinc_fil, 'fantasia', '').upper()
         super().save(*args, **kwargs)
 
