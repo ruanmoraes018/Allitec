@@ -54,6 +54,11 @@ def user_permissions(request):
             'perm_add_fornecedor': 'fornecedores.add_fornecedor' in permissoes,
             'perm_change_fornecedor': 'fornecedores.change_fornecedor' in permissoes,
             'perm_delete_fornecedor': 'fornecedores.delete_fornecedor' in permissoes,
+            # Vendedores
+            'perm_view_vendedores': 'vendedores.view_vendedor' in permissoes,
+            'perm_add_vendedor': 'vendedores.add_vendedor' in permissoes,
+            'perm_change_vendedor': 'vendedores.change_vendedor' in permissoes,
+            'perm_delete_vendedor': 'vendedores.delete_vendedor' in permissoes,
             # Orçamentos
             'perm_view_orcamentos': 'orcamentos.view_orcamento' in permissoes,
             'perm_add_orcamento': 'orcamentos.add_orcamento' in permissoes,

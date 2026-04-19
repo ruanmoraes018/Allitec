@@ -96,7 +96,6 @@
                                                             </td>
                                                             <td>
                                                                 <span class="text-muted fw-bold">{{ item.desc_acres }}</span>
-                                                                <input type="hidden" name="produtos[{{ forloop.counter0 }}][valor_desc_real]" value="{{ item.valor_desc_real }}">
                                                                 <input type="hidden" name="produtos[{{ forloop.counter0 }}][tipo_desc]" value="{{ item.tipo_desc }}">
                                                                 <input type="hidden" name="produtos[{{ forloop.counter0 }}][operacao]" value="{{ item.tp_desc_acres|lower }}">
                                                                 <input type="hidden" name="produtos[{{ forloop.counter0 }}][valor_desc_real]" value="{{ item.valor_desc_real }}">
@@ -167,7 +166,7 @@
                     <h1 class="modal-title fs-5" id="staticBackdropLabel"><i class="fa-regular fa-circle-question"></i> Confirmação!</h1>
                 </div>
                 <div class="modal-body">
-                    <p>Você confirma a INCLUSÃO DE PEDIDO?</p>
+                    <p>Você confirma a ALTERAÇÃO DE PEDIDO?</p>
                 </div>
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>

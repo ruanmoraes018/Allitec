@@ -44,16 +44,13 @@ def login_filial(request):
     if request.method == "POST":
         form = EmpresaLoginForm(request.POST)
         form.request = request  # importante pro authenticate
-
         if form.is_valid():
             login(request, form.cleaned_data['user'])
             return redirect("inicio")
         else:
-            # 🔥 AQUI É O PULO DO GATO
             for field, errors in form.errors.items():
                 for error in form.non_field_errors():
                     messages.error(request, error)
-
     else:
         form = EmpresaLoginForm()
 
@@ -83,9 +80,7 @@ def verificar_ou_criar_localizacao(request):
         bairro = Bairro.objects.filter(nome_bairro__iexact=bairro_nome, vinc_emp=request.user.empresa).first()
         if not bairro:
             bairro = Bairro.objects.create(nome_bairro=bairro_nome, vinc_emp=request.user.empresa)
-    response = {
-        'estado_id': estado.id, 'estado_nome': estado.nome_estado, 'cidade_id': cidade.id, 'cidade_nome': cidade.nome_cidade, 'bairro_id': bairro.id if bairro else "", 'bairro_nome': bairro.nome_bairro if bairro else "",
-    }
+    response = {'estado_id':estado.id,'estado_nome':estado.nome_estado,'cidade_id':cidade.id,'cidade_nome':cidade.nome_cidade,'bairro_id':bairro.id if bairro else "",'bairro_nome':bairro.nome_bairro if bairro else "",}
     return JsonResponse(response)
 
 @login_required
@@ -203,11 +198,12 @@ def dados_filiais_js(request):
     filiais = Filial.objects.filter(
         vinc_emp=empresa,
         situacao='Ativa'
-    ).values('id', 'cli_id', 'tec_id')
+    ).values('id', 'cli_id', 'tec_id', 'vendedor_id')
     data = {
         str(f['id']): {
             'cli': f['cli_id'],
             'tec': f['tec_id'],
+            'vend': f['vendedor_id'],
         }
         for f in filiais
     }

@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% block title %}Cadastrar Vendedor{% endblock %}
+{% block content %}
+<div class="container-fluid bg-white">
+    <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'lista-vendedores' %}" id="item-naveg">Vendedores</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Adicionar</li>
+        </ol>
+    </nav>
+    <div class="formularios">
+        <form method="POST" id="createForm" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% if form %}
+                {% if error_messages %}
+                    <div id="toast-messages" data-messages='[
+                        {"text": "{% for message in error_messages %}{{ message }}<br>{% endfor %}", "tag": "error"}
+                    ]'></div>
+                {% endif %}
+                <div class="card">
+                    <div class="card-header">
+                        <span>
+                            INCLUSÃO DE VENDEDORES
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3" style="margin-left: -8px;">
+                            <div class="col-md-1">
+                                {{ form.situacao|as_crispy_field }}
+                            </div>
+                            <div class="col-md-1">
+                                {{ form.pessoa|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ form.cpf_cnpj|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ form.ie|as_crispy_field }}
+                            </div>
+                            <div class="col-md-3">
+                                {{ form.razao_social|as_crispy_field }}
+                            </div>
+                            <div class="col-md-3">
+                                {{ form.fantasia|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ form.cep|as_crispy_field }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.endereco|as_crispy_field }}
+                            </div>
+                            <div class="col-md-1">
+                                {{ form.numero|as_crispy_field }}
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label mb-2">Bairro*</label>
+                                <div class="input-group input-group-sm" id="bairro-wrapper">
+                                    <div id="bairro-select-area" class="flex-grow-1">
+                                        {{ form.bairro }}
+                                    </div>
+                                    <div id="bairro-input-area" style="flex:1; display:none;">
+                                        <input type="text" id="novo-bairro" class="form-control form-control-sm border-dark-subtle " placeholder="Digite o novo bairro">
+                                    </div>
+                                    <button type="button" class="btn btn-dark rounded-end" id="btn-novo-bairro">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-success btn-sm" id="btn-confirmar-bairro" style="display:none;">
+                                        <i class="fa-solid fa-check"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-sm" id="btn-cancelar-bairro" style="display:none;">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                {{ form.cidade|as_crispy_field }}
+                            </div>
+                            <div class="col-md-3">
+                                {{ form.complem|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ form.uf|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ form.tel|as_crispy_field }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.email|as_crispy_field }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="base_botao">
+                            <button type="button" class="btn btn-success botoes" data-bs-target="#staticBackdrop" id="openModalBtn">Criar</button>
+                            <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#loadingModal">Voltar</a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </form>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h1 class="modal-title fs-5" id="staticBackdropLabel"><i class="fa-regular fa-circle-question"></i> Confirmação!</h1>
+                </div>
+                <div class="modal-body">
+                    <p>Você confirma a INCLUSÃO DO VENDEDOR?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>
+                    <button type="button" class="btn btn-secondary" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

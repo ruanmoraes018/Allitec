@@ -50,6 +50,7 @@ class UsuarioCadastroForm(forms.ModelForm):
             'view_produto', 'add_produto', 'change_produto', 'clonar_produto', 'delete_produto',
             'view_cliente', 'add_cliente', 'change_cliente', 'delete_cliente',
             'view_fornecedor', 'add_fornecedor', 'change_fornecedor', 'delete_fornecedor',
+            'view_vendedor', 'add_vendedor', 'change_vendedor', 'delete_vendedor',
             'view_orcamento', 'add_orcamento', 'change_orcamento', 'clonar_orcamento', 'delete_orcamento', 'atribuir_desconto', 'atribuir_acrescimo', 'faturar_orcamento', 'cancelar_orcamento', 'alterar_dt_venc_orc', 'alterar_dt_fat_orc',
             'view_tecnico', 'add_tecnico', 'change_tecnico', 'delete_tecnico',
             'view_marca', 'add_marca', 'change_marca', 'delete_marca',
@@ -59,23 +60,24 @@ class UsuarioCadastroForm(forms.ModelForm):
             'view_contareceber', 'add_contareceber', 'change_contareceber', 'delete_contareceber', 'atribuir_desconto_cr', 'baixar_cr', 'estornar_cr',
         ]
         permissoes = Permission.objects.filter(content_type__app_label__in=['formas_pgto', 'tipo_cobranca', 'entradas', 'bairros', 'cidades', 'estados', 'grupos', 'bancos', 'unidades', 'filiais', 'usuarios', 'tabelas_preco',
-            'clientes', 'fornecedores', 'produtos', 'orcamentos', 'tecnicos', 'pedidos', 'marcas', 'regras_produto', 'contas_receber'])
+            'clientes', 'fornecedores', 'vendedores', 'produtos', 'orcamentos', 'tecnicos', 'pedidos', 'marcas', 'regras_produto', 'contas_receber'])
         permissoes_ordenadas = sorted(permissoes, key=lambda p: ordem_codename.index(p.codename) if p.codename in ordem_codename else len(ordem_codename))
         self.fields['permissoes'].queryset = Permission.objects.filter(id__in=[p.id for p in permissoes_ordenadas])
         self.categorias_permissoes = OrderedDict({'Complementos': ['Bairros', 'Bancos', 'Cidades', 'Estados', 'Grupos', 'Marcas', 'Unidades', 'Tabelas de Preço', 'Tipos de Cobrança', 'Formas de Pagamento', 'Regras de Produto'],
-            'Cadastros': ['Clientes', 'Filiais', 'Fornecedores', 'Produtos', 'Técnicos', 'Usuários'], 'Estoque': ['Entradas de NF/Pedidos'], 'Faturamento': ['Pedidos', 'Orçamentos'], 'Financeiro': ['Contas à Receber',],})
+            'Cadastros': ['Clientes', 'Filiais', 'Fornecedores', 'Produtos', 'Técnicos', 'Usuários', 'Vendedores'], 'Estoque': ['Entradas de NF/Pedidos'], 'Faturamento': ['Pedidos', 'Orçamentos'], 'Financeiro': ['Contas à Receber',],})
         grupo_permissoes = OrderedDict({'Regras de Produto': [], 'Formas de Pagamento': [], 'Tipos de Cobrança': [], 'Tabelas de Preço': [], 'Entradas de NF/Pedidos': [], 'Contas à Receber': [], 'Bairros': [], 'Cidades': [],
-            'Estados': [], 'Grupos': [], 'Bancos': [], 'Marcas': [], 'Unidades': [], 'Filiais': [], 'Fornecedores': [], 'Usuários': [], 'Produtos': [], 'Clientes': [], 'Pedidos': [], 'Orçamentos': [], 'Técnicos': [],})
+            'Estados': [], 'Grupos': [], 'Bancos': [], 'Marcas': [], 'Unidades': [], 'Filiais': [], 'Fornecedores': [], 'Usuários': [], 'Produtos': [], 'Clientes': [], 'Pedidos': [], 'Orçamentos': [], 'Técnicos': [], 'Vendedores': [],})
         # Permissões por App
         entradas_perms = ['view_entrada', 'add_entrada', 'change_entrada', 'delete_entrada', 'efetivar_entrada', 'cancelar_entrada']
         fornecedores_perms = ['view_fornecedor', 'add_fornecedor', 'change_fornecedor', 'delete_fornecedor']
+        vendedores_perms = ['view_vendedor', 'add_vendedor', 'change_vendedor', 'delete_vendedor']
         produtos_perms = ['view_produto', 'add_produto', 'change_produto', 'delete_produto', 'clonar_produto']
         formas_perms = ['view_formapgto', 'add_formapgto', 'change_formapgto', 'delete_formapgto']
         tabelas_perms = ['view_tabelapreco', 'add_tabelapreco', 'change_tabelapreco', 'delete_tabelapreco']
         marcas_perms = ['view_marca', 'add_marca', 'change_marca', 'delete_marca']
         regras_perms = ['view_regraproduto', 'add_regraproduto', 'change_regraproduto', 'delete_regraproduto']
         orcamentos_perms = ['view_orcamento', 'add_orcamento', 'change_orcamento', 'clonar_orcamento', 'delete_orcamento', 'atribuir_desconto', 'atribuir_acrescimo', 'faturar_orcamento', 'cancelar_orcamento', 'alterar_dt_venc_orc', 'alterar_dt_fat_orc',]
-        pedidos_perms = ['view_pedido', 'add_pedido', 'change_pedido', 'clonar_pedido', 'delete_pedido', 'atribuir_desconto_ped', 'atribuir_acrescimo_ped', 'faturar_pedido', 
+        pedidos_perms = ['view_pedido', 'add_pedido', 'change_pedido', 'clonar_pedido', 'delete_pedido', 'atribuir_desconto_ped', 'atribuir_acrescimo_ped', 'faturar_pedido',
                          'cancelar_pedido', 'vender_sem_estoque_ped', 'alt_vl_ped', 'alterar_data_faturamento']
         cr_perms = ['view_contareceber', 'add_contareceber', 'change_contareceber', 'delete_contareceber', 'atribuir_desconto_cr', 'baixar_cr', 'estornar_cr',]
         for perm in permissoes_ordenadas:
@@ -95,6 +97,7 @@ class UsuarioCadastroForm(forms.ModelForm):
             elif 'unidade' in perm.codename: grupo_permissoes['Unidades'].append(perm)
             elif 'filial' in perm.codename: grupo_permissoes['Filiais'].append(perm)
             elif perm.codename in fornecedores_perms: grupo_permissoes['Fornecedores'].append(perm)
+            elif perm.codename in vendedores_perms: grupo_permissoes['Vendedores'].append(perm)
             elif 'usuario' in perm.codename: grupo_permissoes['Usuários'].append(perm)
             elif perm.codename in produtos_perms: grupo_permissoes['Produtos'].append(perm)
             elif 'cliente' in perm.codename: grupo_permissoes['Clientes'].append(perm)

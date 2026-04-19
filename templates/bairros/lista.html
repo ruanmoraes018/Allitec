@@ -63,7 +63,7 @@
                 <tbody>
                     {% for bairro in bairros %}
                         <tr>
-                            <td style="width: 80px;">
+                            <td data-label="Opções:" class="mobile-2col">
                                 <span>
                                     <i class="fas fa-trash btn-permissao"
                                        title="Deletar bairro"
@@ -102,8 +102,8 @@
                                   data-permissao="bairros.change_bairro"
                                   data-msg-negado="Seu usuário não pode editar bairros!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                             </td>
-                            <td style="align-items: center;">{{ bairro.id }}</td>
-                            <td class="text-uppercase" style="align-items: center;">{{ bairro.nome_bairro }}</td>
+                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ bairro.id }}</td>
+                            <td data-label="Descrição:" class="mobile-full text-uppercase" style="align-items: center;">{{ bairro.nome_bairro }}</td>
                         </tr>
                     {% empty %}
                     <tr>

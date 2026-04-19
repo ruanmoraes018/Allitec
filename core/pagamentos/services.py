@@ -15,35 +15,31 @@ class PagamentoService:
                 creds = {}
 
         self.creds = creds
-    def gerar_pagamento(self, valor, descricao, email):
+    def gerar_pagamento(self, valor, descricao, email, external_reference=None):
         if self.gateway == 'mercadopago':
-            return self._mercadopago(valor, descricao, email)
+            return self._mercadopago(valor, descricao, email, external_reference)
         elif self.gateway == 'pix_direto':
             return self._pix_direto(valor, descricao)
         raise Exception("Gateway não suportado")
-    def _mercadopago(self, valor, descricao, email):
+    def _mercadopago(self, valor, descricao, email, external_reference=None):
         token = self.creds.get("access_token")
-
         if not token:
             raise Exception("Token não configurado")
-
         sdk = mercadopago.SDK(token)
-
         response = sdk.payment().create({
             "transaction_amount": float(valor),
             "description": descricao,
             "payment_method_id": "pix",
-            "payer": {"email": email}
+            "notification_url": "https://allitec.pythonanywhere.com/pedidos/webhook/mp/",
+            "external_reference": external_reference,
+            "payer": {
+                "email": email
+            }
         })
-
         resp = response.get("response", {})
-
-        # 🔥 DEBUG IMPORTANTE
         if "id" not in resp:
             raise Exception(f"Erro MercadoPago: {resp}")
-
         tx = resp.get("point_of_interaction", {}).get("transaction_data", {})
-
         return {
             "id": resp.get("id"),
             "qr_code": tx.get("qr_code"),

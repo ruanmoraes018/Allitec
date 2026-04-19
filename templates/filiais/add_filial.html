@@ -58,7 +58,7 @@
                                         <label class="form-label mb-2">Bairro*</label>
                                         <div class="input-group input-group-sm" id="bairro-wrapper">
                                             <div id="bairro-select-area" class="flex-grow-1">
-                                                {{ form.bairro }}
+                                                {{ form.bairro_fil }}
                                             </div>
                                             <div id="bairro-input-area" style="flex:1; display:none;">
                                                 <input type="text" id="novo-bairro" class="form-control form-control-sm border-dark-subtle " placeholder="Digite o novo bairro">
@@ -105,8 +105,14 @@
                                     <div class="col-md-1">{{ form.ft_juros|as_crispy_field }}</div>
                                     <div class="col-md-2">{{ form.tp_calc_multa|as_crispy_field }}</div>
                                     <div class="col-md-1">{{ form.ft_multa|as_crispy_field }}</div>
-                                    <div class="col-md-3">{{ form.max_parcelas|as_crispy_field }}</div>
-                                    <div class="col-md-3">{{ form.max_dias_intervalo|as_crispy_field }}</div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Máx. Parcelas<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Contas à Receber"></i></label>
+                                        {{ form.max_parcelas|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Máx. (Dias Intervalo)<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Contas à Receber"></i></label>
+                                        {{ form.max_dias_intervalo|as_crispy_field }}
+                                    </div>
                                 </div>
                             </div>
                         </div>

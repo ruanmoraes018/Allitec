@@ -209,7 +209,7 @@
                                         <a href="{% url 'lista-empresas' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Empresas</a>
                                     </div>
                                 </div>
-                            {% elif perm_view_filial or perm_view_usuario or perm_view_produtos or perm_view_clientes or perm_view_tecnicos or perm_view_fornecedores %}
+                            {% elif perm_view_filial or perm_view_usuario or perm_view_produtos or perm_view_clientes or perm_view_tecnicos or perm_view_fornecedores or perm_view_vendedores %}
                                 <a class="btn btn-dark w-100 text-start" data-bs-toggle="collapse" href="#guiaCadastros" role="button" aria-expanded="false" aria-controls="guiaCadastros">
                                     <i class="fa-solid fa-box-archive"></i> Cadastros
                                 </a>
@@ -232,6 +232,9 @@
                                         {% endif %}
                                         {% if perm_view_tecnicos %}
                                             <a href="{% url 'lista-tecnicos' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Técnicos</a>
+                                        {% endif %}
+                                        {% if perm_view_vendedores %}
+                                            <a href="{% url 'lista-vendedores' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Vendedores</a>
                                         {% endif %}
                                     </div>
                                 </div>

@@ -3,6 +3,10 @@
 {% load custom_filters %}
 {% block title %}Lista - Pedidos{% endblock %}
 {% block content %}
+    <style>
+        .check-circle {width: 90px;height: 90px;border-radius: 50%;background: #28a745;display: flex;align-items: center;justify-content: center;margin: 0 auto 15px;animation: pulse 1.2s infinite;}
+        .check-circle i {color: #fff;font-size: 42px;animation: pop 0.4s ease forwards;}
+    </style>
     <div class="container-fluid bg-white">
         <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
             <ol class="breadcrumb">
@@ -118,104 +122,80 @@
             <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
                 <thead thead class="table-dark">
                     <tr>
-                        <th scope="col" style="text-align: justify; width: 4%;">Opções</th>
-                        <th scope="col" style="text-align: justify; width: 8%;">Nº Pedido</th>
-                        <th scope="col" style="text-align: justify; width: 6%;">Situação</th>
-                        <th scope="col" style="text-align: justify; width: 18%;">Filial</th>
-                        <th scope="col" style="text-align: justify; width: 18%;">Cliente</th>
-                        <th scope="col" style="text-align: justify; width: 9%;">Vendedor</th>
-                        <th scope="col" style="align-items: center; width: 7%;">Dt. Emissão</th>
-                        <th scope="col" style="align-items: center; width: 7%;">Dt. Entrega</th>
-                        <th scope="col" style="text-align: justify; width: 7%;">Valor</th>
-                        <th scope="col" style="align-items: center; width: 12%;">Formas</th>
+                        <th scope="col" style="text-align: justify; width: 4%;">Opções</th><th scope="col" style="text-align: justify; width: 8%;">Nº Pedido</th>
+                        <th scope="col" style="text-align: justify; width: 6%;">Situação</th><th scope="col" style="text-align: justify; width: 18%;">Filial</th>
+                        <th scope="col" style="text-align: justify; width: 18%;">Cliente</th><th scope="col" style="text-align: justify; width: 9%;">Vendedor</th>
+                        <th scope="col" style="align-items: center; width: 7%;">Dt. Emissão</th><th scope="col" style="align-items: center; width: 7%;">Dt. Entrega</th>
+                        <th scope="col" style="text-align: justify; width: 7%;">Valor</th><th scope="col" style="align-items: center; width: 12%;">Formas</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for pedido in pedidos %}
                         <tr>
-                            <td>
-                                <a href="#" data-bs-toggle="modal" data-bs-target="#menuModal{{ pedido.id }}">
-                                    <span><i class="fa-solid fa-bars" style="font-size: 20px; color: black; margin-left: 15px;" title="Menu de Opções"></i></span>
-                                </a>
+                            <td data-label="Opções:" class="mobile-2col">
+                                <div style="text-align: left;">
+                                    <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#menuModal{{ pedido.id }}" title="Opções">
+                                        <i class="fa-solid fa-bars"></i>
+                                    </button>
+                                </div>
                                 <!-- Modal de opções da pedido -->
-                                <div class="modal fade modal-sm" id="menuModal{{ pedido.id }}" tabindex="-1" aria-labelledby="menuModalLabel{{ pedido.id }}" aria-hidden="true">
+                                <div class="modal fade modal-sm" id="menuModal{{ pedido.id }}" data-orcamento-id="{{ pedido.id }}" tabindex="-1" aria-labelledby="menuModalLabel{{ pedido.id }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
-                                            <div class="modal-header" style="background-color: #191919;">
-                                                <div class="d-flex justify-content-center w-100" style="margin-left: 50px;">
-                                                    <h1 class="modal-title fs-5 text-center" id="menuModalLabel{{ pedido.id }}" style="color: white;">
-                                                        <i class="fa-brands fa-square-letterboxd"></i> <strong>Opções - {{ pedido.id }}</strong>
-                                                    </h1>
-                                                </div>
-                                            </div>
-                                            <div class="modal-body d-grid gap-2">
-                                                <a href="{% url 'att-pedido' pedido.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="pedidos.change_pedido" data-msg-negado="Seu usuário não pode editar pedidos!">
-                                                    <button class="btn btn-outline-dark" type="button" id="botoes-modal" data-id="{{ pedido.id }}">
-                                                        <span><i class="fas fa-edit" title="Editar Orçamento"></i></span>
-                                                        <strong style="color: #13c43f; font-size: 20px;">EDITAR</strong>
-                                                    </button>
+                                            <div class="modal-header titulo-modal"><h5 class="modal-title fw-bold mx-auto" id="menuModalLabel{{ pedido.id }}">Opções - {{ pedido.id }}</h5></div>
+                                            <div class="modal-body p-2">
+                                                <a href="{% url 'att-pedido' pedido.id %}?next={{ request.get_full_path|urlencode }}" data-permissao="pedidos.change_pedido" data-msg-negado="Seu usuário não pode editar pedidos!" class="btn btn-light w-100 text-start menu-opcao op-editar border border-secondary btn-permissao" >
+                                                    <i class="fas fa-edit"></i> Editar
                                                 </a>
-                                                <a href="{% url 'clonar-pedido' pedido.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="pedidos.clonar_pedido" data-msg-negado="Seu usuário não pode clonar pedidos!">
-                                                    <button class="btn btn-outline-dark" type="button" id="botoes-modal" data-id="{{ pedido.id }}">
-                                                        <span><i class="fa-solid fa-clone" title="Clonar Orçamento"></i></span>
-                                                        <strong style="color: #483D8B; font-size: 20px;">CLONAR</strong>
-                                                    </button>
+                                                <a href="{% url 'clonar-pedido' pedido.id %}?next={{ request.get_full_path|urlencode }}" data-permissao="pedidos.clonar_pedido" data-msg-negado="Seu usuário não pode clonar pedidos!" class="btn btn-light w-100 text-start menu-opcao op-clonar border border-secondary btn-permissao">
+                                                    <i class="fa-solid fa-clone"></i> Clonar
                                                 </a>
                                                 {% if pedido.situacao == 'Aberto' %}
-                                                    <!-- Botão de Deletar -->
-                                                    <button class="btn btn-outline-dark btn-delete" type="button" data-orcamento-id="{{ pedido.id }}">
-                                                        <span><i class="fas fa-trash"></i></span>
-                                                        <strong style="color: #db1e47; font-size: 20px;">DELETAR</strong>
-                                                    </button>
-                                                {% else %}
-                                                    <a href="{% url 'del-pedido' pedido.id %}?next={{ request.get_full_path|urlencode }}">
-                                                        <button class="btn btn-outline-dark btn-delete" type="button" data-orcamento-id="{{ pedido.id }}">
-                                                            <span><i class="fas fa-trash"></i></span>
-                                                            <strong style="color: #db1e47; font-size: 20px;">DELETAR</strong>
-                                                        </button>
-                                                    </a>
+                                                <button class="btn btn-light w-100 text-start menu-opcao op-deletar btn-delete border border-secondary btn-permissao" data-orcamento-id="{{ pedido.id }}" data-permissao="pedidos.delete_pedido" data-msg-negado="Seu usuário não pode deletar pedidos!">
+                                                    <i class="fas fa-trash"></i> Deletar
+                                                </button>
+                                                <button class="btn btn-light w-100 text-start menu-opcao op-faturar btn-faturar border border-secondary btn-permissao" data-id="{{ pedido.id }}" data-permissao="pedidos.faturar_pedido" data-msg-negado="Seu usuário não pode faturar pedidos!">
+                                                    <i class="fa-solid fa-money-bill"></i> Faturar
+                                                </button>
                                                 {% endif %}
-
+                                                <button class="btn btn-light w-100 text-start menu-opcao op-detalhe border border-secondary" data-id="{{ pedido.id }}" data-bs-toggle="modal" data-bs-target="#infoEntModalP{{ pedido.id }}">
+                                                    <i class="fa-solid fa-circle-info"></i> Detalhes
+                                                </button>
                                                 {% if pedido.situacao == 'Faturado' %}
-                                                    <button class="btn btn-outline-dark" type="button" id="doc-botao" data-bs-toggle="collapse" data-bs-target="#btnCancelar" aria-expanded="false" aria-controls="btnCancelar">
-                                                        <i class="fa-solid fa-circle-xmark"></i>
-                                                        <strong style="font-size: 20px; color: red;">CANCELAR</strong>
-                                                    </button>
-
-                                                    <div class="collapse" id="btnCancelar">
-                                                        <div class="card card-body">
-                                                            <form method="post" action="{% url 'cancelar-pedido' pedido.id %}">
-                                                                {% csrf_token %}
-                                                                <div style="margin-bottom: 5px;">
-                                                                    <label for="id_motivo" class="form-label">Motivo do Cancelamento*</label>
-                                                                    <textarea class="form-control" id="id_motivo" name="motivo" required></textarea>
-                                                                </div>
-                                                                <div style="text-align: center;">
-                                                                    <button type="submit" class="btn btn-danger" aria-label="Cancelar orçamento">
-                                                                        Cancelar
-                                                                    </button>
-                                                                </div>
-                                                            </form>
+                                                <button class="btn btn-light w-100 text-start menu-opcao op-cancelar border border-secondary btn-permissao" data-permissao="pedidos.cancelar_pedido" data-msg-negado="Seu usuário não pode cancelar pedidos!" data-collapse="#colCancelar{{ pedido.id }}">
+                                                    <i class="fa-solid fa-circle-xmark"></i> Cancelar
+                                                </button>
+                                                <div class="collapse" id="colCancelar{{ pedido.id }}">
+                                                    <div class="card" style="margin: 0;">
+                                                        <div class="card-body">
+                                                            <label class="form-label fw-bold">Motivo do cancelamento</label>
+                                                            <textarea id="motivoCancelamento{{ pedido.id }}" class="form-control form-control-sm border-dark-subtle text-uppercase" rows="2" required></textarea>
+                                                            <div class="mt-3 d-flex justify-content-end gap-2">
+                                                                <button type="button" class="btn btn-danger btn-sm btn-abrir-modal-pedido" data-orcamento-id="{{ pedido.id }}" data-bs-target="#modalConfirmarCancelamento{{ pedido.id }}">
+                                                                    Cancelar pedido
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                {% endif %}
-                                                {% if pedido.situacao == 'Aberto' %}
-                                                    <button class="btn btn-outline-dark btn-faturar btn-permissao"
-                                                        type="button"
-                                                        data-permissao="pedidos.faturar_pedido"
-                                                        data-msg-negado="Seu usuário não pode faturar pedidos!"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#faturarModalP-{{ pedido.id }}"
-                                                        data-id="{{ pedido.id }}"
-                                                        data-orcamento-id="{{ pedido.id }}"
-                                                        id="doc-botao">
-                                                    <span><i class="fa-solid fa-money-bill" title="Faturar Orçamento"></i></span>
-                                                    <strong style="color: #3CB371; font-size: 20px;">FATURAR</strong>
-                                                </button>
+                                                </div>
+                                                <div class="modal fade" id="modalConfirmarCancelamento{{ pedido.id }}" tabindex="-1" aria-hidden="true">
+                                                    <div class="modal-dialog modal-dialog-centered">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header titulo-modal">
+                                                                <h5 class="modal-title"><i class="fa-regular fa-circle-question"></i>Confirmação</h5>
+                                                            </div>
+                                                            <div class="modal-body"><p class="mb-2">Você confirma o CANCELAMENTO DO PEDIDO <strong>{{ pedido.id }}</strong>?</p></div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-primary btn-confirmar btn-confirmar-canc-pedido" data-orcamento-id="{{ pedido.id }}" disabled><u>S</u>im <span class="contador">3</span></button>
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                                 {% endif %}
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary mx-auto" data-bs-dismiss="modal">Fechar</button>
+                                                <button type="button" class="btn btn-secondary btn-sm mx-auto" data-bs-dismiss="modal">Fechar</button>
                                             </div>
                                         </div>
                                     </div>
@@ -226,32 +206,24 @@
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
                                                 <div class="modal-header titulo-modal">
-                                                    <h1 class="modal-title fs-5" id="modalTitle-{{ pedido.id }}">
-                                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
-                                                    </h1>
+                                                    <h5 class="modal-title" id="modalTitle-{{ pedido.id }}"> <i class="fa-regular fa-circle-question"></i> Confirmação! </h5>
                                                 </div>
-                                                <div class="modal-body">
-                                                    <p>Você confirma a EXCLUSÃO DO PEDIDO <strong>{{ pedido.id }}</strong>?</p>
-                                                </div>
+                                                <div class="modal-body"> <p>Você confirma a EXCLUSÃO DO PEDIDO <strong>{{ pedido.id }}</strong>?</p> </div>
                                                 <div class="modal-footer">
-                                                    <form method="post" action="{% url 'del-pedido' pedido.id %}" class="form-excluir">
+                                                    <form method="post" action="{% url 'del-pedido' pedido.id %}" id="form-del-{{ pedido.id }}">
                                                         {% csrf_token %}
-                                                        <button type="submit" class="btn btn-primary btn-confirmar" id="confirmBtn" disabled>
-                                                            <u>S</u>im <span class="contador">3</span>
-                                                        </button>
-                                                        <button type="button" class="btn btn-secondary" id="btnRecusa" data-bs-dismiss="modal">
-                                                            <u>N</u>ão
-                                                        </button>
+                                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled><u>S</u>im <span class="contador">3</span></button>
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
                                                     </form>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 {% endif %}
-                                <div class="modal fade modal-faturar-pedido" id="faturarModalP-{{ pedido.id }}" tabindex="-1" aria-hidden="true" data-pedido-id="{{ pedido.id }}" data-num-pedido="{{ pedido.id }}">
+                                <div class="modal fade modal-faturar-pedido" id="faturarModalP-{{ pedido.id }}" tabindex="-1" aria-hidden="true" data-pedido-id="{{ pedido.id }}"  data-total="{{ pedido.total }}" data-num-pedido="{{ pedido.id }}">
                                     <div class="modal-dialog modal-dialog-centered modal-lg">
                                         <div class="modal-content">
-                                            <div class="modal-header bg-success text-white">
+                                            <div class="modal-header bg-success text-white" style="max-height: 30px;">
                                                 <h5 class="modal-title"><i class="fa-solid fa-money-bill"></i> Faturar Pedido {{ pedido.id }}</h5>
                                             </div>
                                             <div class="modal-body">
@@ -260,6 +232,10 @@
                                                     <div style="flex: 1;">
                                                         <label class="form-label fw-bold">Cliente:</label>
                                                         <input class="form-control fw-bold" value="{{ pedido.cli }}" disabled>
+                                                    </div>
+                                                    <div style="flex: 1;">
+                                                        <label class="form-label fw-bold">Valor Total:</label>
+                                                        <input class="form-control fw-bold" value="{{ pedido.total|floatformat:2 }}" disabled>
                                                     </div>
                                                     <div style="width:150px;">
                                                         <label class="form-label fw-bold">Data Emissão:</label>
@@ -272,11 +248,8 @@
                                                     </div>
                                                     <div style="width:45px;">
                                                         <label class="form-label">&nbsp;</label>
-                                                        <button type="button"
-                                                            class="btn btn-outline-secondary btn-sm btn-lib-dt-fat-ped"
-                                                            data-permissao="pedidos.alterar_data_faturamento"
-                                                            data-msg-negado="Sem permissão para alterar data de faturamento."
-                                                            data-editando="0">
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-lib-dt-fat-ped" data-permissao="pedidos.alterar_data_faturamento"
+                                                            data-msg-negado="Sem permissão para alterar data de faturamento." data-editando="0">
                                                             <i class="fa fa-pen"></i>
                                                         </button>
                                                     </div>
@@ -297,7 +270,7 @@
                                                     </div>
                                                     <div class="col-md-2">
                                                         <label class="form-label fw-bold">Valor</label>
-                                                        <input type="text" class="form-control form-control-sm inp-valor-pgto" id="valorPgto-{{ pedido.id }}" value="{{ pedido.total|floatformat:2 }}">
+                                                        <input type="text" class="form-control form-control-sm inp-valor-pgto" id="valorPgto-{{ pedido.id }}" value="{{ pedido.total }}" data-total="{{ pedido.total }}">
                                                     </div>
                                                     <div class="col-md-2 campos-parcela d-none">
                                                         <label class="form-label fw-bold">Parcelas</label>
@@ -308,9 +281,7 @@
                                                         <input type="number" min="0" value="30" class="form-control form-control-sm" id="diasPgto-{{ pedido.id }}">
                                                     </div>
                                                     <div class="col-md-2">
-                                                        <button class="btn btn-success btn-sm w-100 btn-add-forma">
-                                                            Adicionar
-                                                        </button>
+                                                        <button class="btn btn-success btn-sm w-100 btn-add-forma"><i class="fas fa-plus"></i> Adicionar</button>
                                                     </div>
                                                 </div>
                                                 <hr>
@@ -336,9 +307,7 @@
                                                 </table>
                                                 <div class="row">
                                                     <div class="mt-2">
-                                                        <small class="fw-bold text-muted saldo-restante">
-                                                            Saldo Restante: R$ 0.00
-                                                        </small>
+                                                        <small class="fw-bold text-muted saldo-restante">Saldo Restante: R$ 0.00</small>
                                                     </div>
                                                     <div class="col-md-2 d-none">
                                                         <label class="form-label fw-bold">Troco</label>
@@ -352,7 +321,7 @@
                                                     <input type="hidden" name="dados_pagamento" id="dadosPagamento-{{ pedido.id }}">
                                                     <input type="hidden" name="parcelas_json" id="parcelasJson-{{ pedido.id }}">
                                                     <button type="submit" class="btn btn-success btn-confirmar-pedido">Faturar</button>
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                    <button type="button" class="btn btn-secondary btn-canc-fat-pedido" data-bs-dismiss="modal">Cancelar</button>
                                                 </form>
                                             </div>
                                         </div>
@@ -361,73 +330,77 @@
                                 <div class="modal fade" id="modalPixPagamento" tabindex="-1">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content border-0 shadow-lg">
-
-                                            <div class="modal-header bg-success text-white">
-                                                <h5 class="modal-title">Pagamento via PIX</h5>
+                                            <div class="modal-header titulo-modal text-white" style="max-height: 30px;">
+                                                <h5 class="modal-title"><i class="fa-brands fa-pix"></i> Pagamento via PIX</h5>
                                             </div>
-
                                             <div class="modal-body text-center">
-
                                                 <!-- QR -->
                                                 <div id="pixQrContainer" class="mb-3"></div>
-
                                                 <!-- Status -->
                                                 <div id="statusPix" class="mt-3">
                                                     <div class="spinner-border text-success mb-2"></div>
                                                     <div class="fw-semibold">Aguardando pagamento...</div>
                                                 </div>
-
                                                 <!-- Sucesso -->
                                                 <div id="statusSucesso" class="d-none mt-3">
                                                     <div class="check-anim">✔</div>
                                                     <div class="fw-bold text-success">Pagamento confirmado!</div>
                                                 </div>
-
                                             </div>
-
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal fade" id="infoEntModal" tabindex="-1" aria-labelledby="infoEntModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header titulo-modal">
+                                                <h5 class="modal-title" id="infoEntModalLabel"></h5>
+                                            </div>
+                                            <div class="modal-body" id="infoEntBody"></div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </td>
-                            <td style="align-items: center;">{{ pedido.id }}</td>
-                            {% if pedido.situacao == 'Aberto' %}
-                                <td style="text-align: center; width: 80px;" class="task-item">
+                            <td data-label="Nº Pedido:" class="mobile-2col" style="align-items: center;">{{ pedido.id }}</td>
+                            <td data-label="Situação:" class="mobile-2col" style="text-align: center;">
+                                {% if pedido.situacao == 'Aberto' %}
                                     <div style="background-color: #005eff; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
                                         <strong>{{ pedido.situacao }}</strong>
                                     </div>
-                                </td>
-                            {% elif pedido.situacao == 'Faturado' %}
-                                <td style="text-align: center; width: 100px;" class="task-item">
+                                {% elif pedido.situacao == 'Faturado' %}
                                     <div style="background-color: #3CB371; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
                                         <strong>{{ pedido.situacao }}</strong>
                                     </div>
-                                </td>
-                            {% else %}
-                                <td style="text-align: center; width: 100px;" class="task-item">
+                                {% else %}
                                     <div style="background-color: #800000; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
                                         <strong>{{ pedido.situacao }}</strong>
                                     </div>
-                                </td>
-                            {% endif %}
-                            <td style="align-items: center;">{{ pedido.fantasia_fil }}</td>
-                            <td style="color: #36454F; font-weight: bold;">{{ pedido.nome_cli }}</td>
-                            <td style="color: #36454F; font-weight: bold;">{{ pedido.nome_vend }}</td>
-                            <td style="align-items: center;">{{ pedido.dt_emi|date:"d/m/Y" }}</td>
-                            <td style="align-items: center;">{{ pedido.dt_fat|date:"d/m/Y" }}</td>
-                            <td style="color: #36454F; font-weight: bold;">{{ pedido.total|moeda_br }}</td>
-                            <td style="align-items: center; font-weight: bold;">
+                                {% endif %}
+                            </td>
+                            <td data-label="Filial:" class="mobile-2col" style="align-items: center;">{{ pedido.fantasia_fil }}</td>
+                            <td data-label="Cliente:" class="mobile-2col" style="color: #36454F; font-weight: bold;">{{ pedido.nome_cli }}</td>
+                            <td data-label="Vendedor:" class="mobile-2col" style="color: #36454F; font-weight: bold;">{{ pedido.nome_vend }}</td>
+                            <td data-label="Dt. Emissão:" class="mobile-2col" style="align-items: center;">{{ pedido.dt_emi|date:"d/m/Y" }}</td>
+                            <td data-label="{% if pedido.situacao != 'Aberto' %}Dt. Fatura:{% endif %}" class="mobile-2col" style="align-items: center;">{{ pedido.dt_fat|date:"d/m/Y" }}</td>
+                            <td data-label="Vl. Total:" class="mobile-2col" style="color: #36454F; font-weight: bold;">{{ pedido.total|moeda_br }}</td>
+                            <td data-label="Formas Pgto.:" class="mobile-full" style="align-items: center; font-weight: bold;">
                                 <div style="max-height: 5em; overflow-y: auto; white-space: normal; line-height: 0.8em;">
-                                    {% for forma in pedido.formas_convertidas %}
-                                        <div class="p-1 mb-1 bg-secondary text-light rounded-3" style="font-size: 0.8rem;">
-                                            {{ forma.descricao }} <span style="float: right;">{{ forma.valor|moeda_br }}</span>
-                                        </div>
-                                    {% endfor %}
+                                    {% if pedido.situacao != 'Aberto' %}
+                                        {% for forma in pedido.formas_convertidas %}
+                                            <div class="p-1 mb-1 bg-secondary text-light rounded-3" style="font-size: 0.8rem;">
+                                                {{ forma.descricao }} <span style="float: right;">{{ forma.valor|moeda_br }}</span>
+                                            </div>
+                                        {% endfor %}
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="12" class="me-auto" style="text-align: center;">
+                        <td data-label="" class="mobile-full" colspan="12" class="me-auto" style="text-align: center;">
                             Nenhum pedido encontrado.
                         </td>
                     </tr>
@@ -507,13 +480,11 @@
                     const checkClose = setInterval(function () {
                         if (win.closed) {
                             clearInterval(checkClose);
-
                             // Aciona o botão de busca ao fechar o comprovante
                             const btnBuscar = document.getElementById('data-btn');
                             if (btnBuscar) {
                                 btnBuscar.click();
                             }
-
                             // Exibe o Toastify só depois que o comprovante for fechado
                             Toastify({
                                 text: "Orçamento faturado com sucesso!",

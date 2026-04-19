@@ -8,6 +8,8 @@ class BloqueioInadimplenciaMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        if request.path.startswith('/pedidos/webhook/') or request.path.startswith('/mensalidades/webhook/'):
+            return self.get_response(request)
 
         request.bloqueado = False
         request.motivo_bloqueio = ""

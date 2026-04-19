@@ -34,6 +34,7 @@ class Filial(models.Model):
     cep = models.CharField(max_length=10, verbose_name='CEP')
     numero = models.CharField(max_length=10, verbose_name='Nº')
     tb_preco = models.ForeignKey('tabelas_preco.TabelaPreco', on_delete=models.SET_NULL, null=True)
+    vendedor = models.ForeignKey('vendedores.Vendedor', on_delete=models.SET_NULL, null=True)
     cli = models.ForeignKey('clientes.Cliente', on_delete=models.SET_NULL, null=True)
     tec = models.ForeignKey('tecnicos.Tecnico', on_delete=models.SET_NULL, null=True)
     bairro_fil = models.ForeignKey('bairros.Bairro', on_delete=models.SET_NULL, null=True)
