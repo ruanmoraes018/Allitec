@@ -84,9 +84,11 @@ def att_prod_lote(request):
         switch_unidade = request.POST.get('switchEmp')
         switch_marca = request.POST.get('switchMarca')
         switch_lista_orc = request.POST.get('switchListaOrc')
+        switch_situacao = request.POST.get('switchSituacao')
         unidade_id = request.POST.get('unid1')
         grupo_id = request.POST.get('gp1')
         marca_id = request.POST.get('marca1')
+        situacao = request.POST.get('situacao1')
         empresa = request.user.empresa
         produtos = Produto.objects.filter(id__in=produtos_ids, vinc_emp=empresa)
         if not produtos.exists():
@@ -114,6 +116,9 @@ def att_prod_lote(request):
                 alguma_alteracao = True
             if switch_marca == 'on' and marca_id and marca:
                 produto.marca = marca
+                alguma_alteracao = True
+            if switch_situacao == 'on' and situacao in ['Ativo', 'Inativo']:
+                produto.situacao = situacao
                 alguma_alteracao = True
             produto.save()
         if alguma_alteracao:
@@ -173,39 +178,28 @@ def att_preco_lote(request):
 @require_POST
 def att_tb_preco_lote(request):
     empresa = request.user.empresa
-
     try:
         body = json.loads(request.body or '{}')
-
         tabela_id = body.get('tabela_id')
         tipo = str(body.get('tipo', '')).strip()
         campo_1 = Decimal(str(body.get('campo_1') or 0))
         campo_2 = Decimal(str(body.get('campo_2') or 0))
         produtos_req = body.get('produtos', [])
-
         if not tabela_id:
             return JsonResponse({'ok': False, 'msg': 'Selecione uma tabela de preço.'})
-
         if not produtos_req:
             return JsonResponse({'ok': False, 'msg': 'Nenhum produto foi selecionado.'})
-
         tabela = TabelaPreco.objects.get(id=tabela_id, vinc_emp=empresa)
-
         valores_ret = {}
-
         for item in produtos_req:
             pid = item.get('id')
             base_calculo = Decimal(str(item.get('base_calculo') or 0))
-
             produto = Produto.objects.get(id=pid, vinc_emp=empresa)
-
             margem = Decimal('0.00')
             valor = Decimal('0.00')
-
             if tipo == "0":  # margem
                 margem = campo_1
                 valor = base_calculo * (Decimal('1.00') + (margem / Decimal('100.00')))
-
             elif tipo == "1":  # valor
                 valor = campo_2
                 if base_calculo > 0:
@@ -214,7 +208,6 @@ def att_tb_preco_lote(request):
                     margem = Decimal('0.00')
             else:
                 return JsonResponse({'ok': False, 'msg': 'Tipo de atribuição inválido.'})
-
             ProdutoTabela.objects.update_or_create(
                 produto=produto,
                 tabela=tabela,
@@ -223,27 +216,21 @@ def att_tb_preco_lote(request):
                     'margem': margem,
                 }
             )
-
             valores_ret[str(pid)] = {
                 'vl_prod': float(valor),
                 'margem': float(margem),
             }
-
         return JsonResponse({
             'ok': True,
             'tabela_nome': getattr(tabela, 'descricao', str(tabela)),
             'valores': valores_ret,
         })
-
     except TabelaPreco.DoesNotExist:
         return JsonResponse({'ok': False, 'msg': 'Tabela de preço não encontrada.'})
-
     except Produto.DoesNotExist:
         return JsonResponse({'ok': False, 'msg': 'Um dos produtos não foi encontrado.'})
-
     except (InvalidOperation, ValueError, TypeError) as e:
         return JsonResponse({'ok': False, 'msg': f'Erro nos valores enviados: {e}'})
-
     except Exception as e:
         return JsonResponse({'ok': False, 'msg': str(e)})
 
@@ -288,9 +275,6 @@ def buscar_produtos(request):
     produtos = (produtos.select_related('unidProd', 'grupo').order_by('id'))
     data = []
     for prod in produtos:
-        if auto and prod.regra:
-            expr = (prod.regra.expressao or '').strip()
-            if expr in ['0', '0.0', '0.00']: continue
         tabela = None
         if tabela_id:
             tabela = ProdutoTabela.objects.filter(produto=prod, tabela_id=tabela_id, tabela__vinc_emp=empresa).first()
@@ -384,42 +368,32 @@ def buscar_tabelas_produto_ajax(request):
 def salvar_tabelas_produto_ajax(request):
     if not request.user.has_perm('produtos.change_produto'):
         return JsonResponse({'ok': False, 'msg': 'Você não tem permissão para alterar produtos.'}, status=403)
-
     try:
         body = json.loads(request.body or '{}')
         produto_id = body.get('produto_id')
         tabelas = body.get('tabelas', [])
-
         if not produto_id:
             return JsonResponse({'ok': False, 'msg': 'Produto não informado.'}, status=400)
-
         produto = Produto.objects.get(pk=produto_id, vinc_emp=request.user.empresa)
-
         tabelas_ids_recebidas = []
-
         for tab in tabelas:
             tabela_id = tab.get('tabela_id')
             if not tabela_id:
                 continue
-
             tabela = TabelaPreco.objects.filter(
                 pk=tabela_id,
                 vinc_emp=request.user.empresa
             ).first()
-
             if not tabela:
                 continue
-
             try:
                 vl_prod = str_para_decimal(str(tab.get('valor', '0')))
             except Exception:
                 vl_prod = Decimal('0.00')
-
             try:
                 margem = str_para_decimal(str(tab.get('margem', '0')))
             except Exception:
                 margem = Decimal('0.00')
-
             ProdutoTabela.objects.update_or_create(
                 produto=produto,
                 tabela=tabela,
@@ -428,17 +402,13 @@ def salvar_tabelas_produto_ajax(request):
                     'margem': margem
                 }
             )
-
             tabelas_ids_recebidas.append(tabela.id)
-
         ProdutoTabela.objects.filter(
             produto=produto
         ).exclude(
             tabela_id__in=tabelas_ids_recebidas
         ).delete()
-
         return JsonResponse({'ok': True, 'msg': 'Tabelas do produto salvas com sucesso.'})
-
     except Produto.DoesNotExist:
         return JsonResponse({'ok': False, 'msg': 'Produto não encontrado.'}, status=404)
     except Exception as e:
@@ -480,8 +450,6 @@ def add_produto(request):
             if p.grupo and p.grupo.vinc_emp != empresa:
                 return HttpResponseForbidden()
             if p.marca and p.marca.vinc_emp != empresa:
-                return HttpResponseForbidden()
-            if p.regra and p.regra.vinc_emp != empresa:
                 return HttpResponseForbidden()
             p.vinc_emp = empresa
             p.lista_orc = lista_orc
@@ -667,23 +635,17 @@ def clonar_produto(request, id):
     p = None
     todas_tabelas = TabelaPreco.objects.none()
     prod_tabelas = ProdutoTabela.objects.none()
-
     if not request.user.has_perm('produtos.clonar_produto'):
         messages.info(request, 'Você não tem permissão para clonar produtos.')
         return redirect('/produtos/lista/')
-
     try:
         p = get_object_or_404(Produto, pk=id, vinc_emp=empresa)
-
         if request.method == 'POST':
             post_data = request.POST.copy()
-
             if not post_data.get('estoque_prod', '').strip():
                 post_data['estoque_prod'] = '0.00'
-
             form = ProdutoForm(post_data, empresa=empresa)
             lista_orc = post_data.get('lista_orc') == 'on'
-
             if form.is_valid():
                 novo_produto = form.save(commit=False)
 
@@ -692,8 +654,6 @@ def clonar_produto(request, id):
                 if novo_produto.grupo and novo_produto.grupo.vinc_emp != empresa:
                     return HttpResponseForbidden()
                 if novo_produto.marca and novo_produto.marca.vinc_emp != empresa:
-                    return HttpResponseForbidden()
-                if novo_produto.regra and novo_produto.regra.vinc_emp != empresa:
                     return HttpResponseForbidden()
                 novo_produto.vinc_emp = empresa
                 novo_produto.lista_orc = lista_orc
@@ -748,11 +708,7 @@ def clonar_produto(request, id):
                     # Cria o código somente se ele foi informado manualmente no clone
                     CodigoProduto.objects.create(produto=novo_produto, codigo=codigo, vinc_emp=empresa)
                 messages.success(request, 'Produto clonado com sucesso!')
-                next_url = request.POST.get('next') or request.GET.get('next')
-                if next_url:
-                    return redirect(next_url)
-                else:
-                    return redirect(f'/produtos/lista/?tp=cod&s={novo_produto.id}&tp_produto={novo_produto.tp_prod}')
+                return redirect(f'/produtos/lista/?tp=cod&s={novo_produto.id}')
             else:
                 for field in form:
                     if field.errors:

@@ -26,7 +26,9 @@ class Produto(models.Model):
         choices=[
             ('Principal', 'Principal'),
             ('Adicional', 'Adicional'),
-        ]
+        ],
+        blank=True,
+        null=True
     )
     lista_orc = models.BooleanField(default=False, verbose_name="Exibir na Lista (Orçamentos)")
     desc_prod = models.CharField(max_length=50)

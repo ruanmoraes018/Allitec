@@ -75,11 +75,13 @@ class FilialForm(forms.ModelForm):
     tec = forms.ModelChoiceField(queryset=Tecnico.objects.none(), widget=forms.Select(attrs={'class': f'{s} text-uppercase'}), label='Técnico Padrão')
     tb_preco = forms.ModelChoiceField(queryset=TabelaPreco.objects.none(), widget=forms.Select(attrs={'class': f'{s} text-uppercase'}), label='Tabela de Preço Padrão')
     vendedor = forms.ModelChoiceField(queryset=Vendedor.objects.none(), widget=forms.Select(attrs={'class': f'{s} text-uppercase'}), label='Vendedor Padrão')
+    multi_m2 = forms.DecimalField(label='', max_digits=10, decimal_places=2, widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
     class Meta:
         model = Filial
         fields = (
             'situacao', 'cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro_fil', 'cidade_fil', 'uf', 'tel', 'email', 'logo', 'tp_chave', 'chave_pix', 'banco_fil', 'info_comp', 'complem',
-            'beneficiario', 'info_orcamento', 'layout_contrato', 'info_local', 'tp_calc_juros', 'tp_calc_multa', 'ft_juros', 'ft_multa', 'max_parcelas', 'cli', 'tec', 'vendedor', 'tb_preco', 'max_dias_intervalo', 'vendedor'
+            'beneficiario', 'info_orcamento', 'layout_contrato', 'info_local', 'tp_calc_juros', 'tp_calc_multa', 'ft_juros', 'ft_multa', 'max_parcelas', 'cli', 'tec', 'vendedor', 'tb_preco', 'max_dias_intervalo', 'vendedor', 
+            'multi_m2'
         )
 
     def __init__(self, *args, empresa=None, **kwargs):
@@ -103,7 +105,7 @@ class FilialReadOnlyForm(forms.ModelForm):
         model = Filial
         fields = (
             'situacao', 'cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro_fil', 'cidade_fil', 'uf', 'tel', 'email', 'dt_criacao', 'logo', 'tp_chave', 'chave_pix', 'banco_fil', 'info_comp', 'complem',
-            'beneficiario', 'info_orcamento', 'layout_contrato', 'info_local', 'tp_calc_juros', 'tp_calc_multa', 'ft_juros', 'ft_multa', 'max_parcelas', 'cli', 'tec', 'tb_preco', 'max_dias_intervalo', 'vendedor'
+            'beneficiario', 'info_orcamento', 'layout_contrato', 'info_local', 'tp_calc_juros', 'tp_calc_multa', 'ft_juros', 'ft_multa', 'max_parcelas', 'cli', 'tec', 'tb_preco', 'max_dias_intervalo', 'vendedor', 'multi_m2'
         )
     def __init__(self, *args, empresa=None, **kwargs):
         super(FilialReadOnlyForm, self).__init__(*args, **kwargs)

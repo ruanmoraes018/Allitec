@@ -55,7 +55,7 @@
             <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
                 <thead thead class="table-dark">
                     <tr>
-                        <th scope="col" style="text-align: justify; width: 7%;">Opções</th>
+                        <th scope="col" style="text-align: center; width: 6%;">Opções</th>
                         <th scope="col" style="text-align: center; width: 7%;">Código</th>
                         <th scope="col" style="align-items: center;">Descrição</th>
                     </tr>
@@ -63,7 +63,10 @@
                 <tbody>
                     {% for cidade in cidades %}
                         <tr>
-                            <td style="width: 80px;">
+                            <td data-label="Opções:" class="mobile-2col">
+                                <a href="{% url 'att-cidade' cidade.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
+                                  data-permissao="cidades.change_cidade"
+                                  data-msg-negado="Seu usuário não pode editar cidades!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                                 <span>
                                     <i class="fas fa-trash btn-permissao"
                                        title="Deletar cidade"
@@ -98,12 +101,9 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-cidade' cidade.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
-                                  data-permissao="cidades.change_cidade"
-                                  data-msg-negado="Seu usuário não pode editar cidades!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                             </td>
-                            <td style="align-items: center;">{{ cidade.id }}</td>
-                            <td class="text-uppercase" style="align-items: center;">{{ cidade.nome_cidade }}</td>
+                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ cidade.id }}</td>
+                            <td data-label="Descrição:" class="mobile-full text-uppercase" style="align-items: center;">{{ cidade.nome_cidade }}</td>
                         </tr>
                     {% empty %}
                     <tr>

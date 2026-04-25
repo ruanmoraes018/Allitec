@@ -1,6 +1,7 @@
 from django.db import models
 from decimal import Decimal
 from datetime import date
+from django.utils import timezone
 
 class ContaReceber(models.Model):
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
@@ -22,11 +23,12 @@ class ContaReceber(models.Model):
     multa = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     desconto = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     # Datas
-    data_emissao = models.DateField(auto_now_add=True)
+    data_emissao = models.DateField()
     data_vencimento = models.DateField()
     data_pagamento = models.DateField(null=True, blank=True)
     situacao = models.CharField(max_length=14, choices=SITUACAO, default='Aberta')
     observacao = models.TextField(blank=True, null=True)
+    obs_internas = models.TextField(blank=True, null=True)
     class Meta:
         verbose_name_plural = "Contas à Receber"
         permissions = [
@@ -77,6 +79,15 @@ class ContaReceber(models.Model):
         return self.valor + self.valor_multa + self.valor_juros
     def __str__(self):
         return f"{self.num_conta}"
+    
+    def processar_pagamento(self, pagamento):
+        self.valor_pago += pagamento.valor
+
+        if self.saldo <= 0:
+            self.situacao = "Paga"
+            self.data_pagamento = timezone.now().date()
+
+        self.save()
 
 class ContaReceberBaixaForma(models.Model):
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)

@@ -90,7 +90,7 @@
                 <thead thead class="table-dark">
                     <tr>
                         <th scope="col">Opções</th>
-                        <th scope="col" style="text-align: center; width: 5%;">Código</th>
+                        <th scope="col" style="text-align: center; width: 6%;">Código</th>
                         <th scope="col" style="text-align: center; width: 7%;">Situação</th>
                         <th scope="col" style="text-align: center; width: 7%;">Tp. Pessoa</th>
                         <th scope="col" style="align-items: center;">Nome/Razão Social</th>
@@ -103,7 +103,10 @@
                 <tbody>
                     {% for cliente in clientes %}
                         <tr>
-                            <td style="width: 80px;">
+                            <td data-label="Opções:" class="mobile-2col">
+                                <a href="{% url 'att-cliente' cliente.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
+                                  data-permissao="clientes.change_cliente"
+                                  data-msg-negado="Seu usuário não pode editar clientes!"><span><i class="fas fa-edit" title="Editar cliente"></i></span></a>
                                 <span>
                                     <i class="fas fa-trash btn-permissao"
                                        title="Deletar cliente"
@@ -133,14 +136,11 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-cliente' cliente.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
-                                  data-permissao="clientes.change_cliente"
-                                  data-msg-negado="Seu usuário não pode editar clientes!"><span><i class="fas fa-edit" title="Editar cliente"></i></span></a>
                             </td>
-                            <td style="align-items: center;">{{ cliente.id }}</td>
-                            <td style="text-align: center; padding: 5px;">
+                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ cliente.id }}</td>
+                            <td data-label="Situação:" class="mobile-2col" style="text-align: center; padding: 5px;">
                                 {% if cliente.situacao == 'Ativo' %}
-                                    <div style="background-color: #2c2c2c; border-radius: 20px; color: white; margin-top: 5px;">
+                                    <div style="background-color: #2c2c2c; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
                                         <strong>{{ cliente.situacao }}</strong>
                                     </div>
                                 {% else %}
@@ -149,9 +149,9 @@
                                     </div>
                                 {% endif %}
                             </td>
-                            <td style="text-align: center; padding: 5px;">
+                            <td data-label="Tp. Pessoa:" class="mobile-2col" style="text-align: center; padding: 5px;">
                                 {% if cliente.pessoa == 'Física' %}
-                                    <div style="background-color: #008080; border-radius: 20px; color: white; margin-top: 5px;">
+                                    <div style="background-color: #008080; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
                                         <strong>{{ cliente.pessoa }}</strong>
                                     </div>
                                 {% else %}
@@ -160,15 +160,15 @@
                                     </div>
                                 {% endif %}
                             </td>
-                            <td style="align-items: center;">{{ cliente.razao_social }}</td>
-                            <td style="align-items: center; text-transform: uppercase;">{{ cliente.fantasia }}</td>
-                            <td style="align-items: center;">{{ cliente.cpf_cnpj }}</td>
-                            <td style="align-items: center;">{{ cliente.cidade.nome_cidade }}</td>
-                            <td style="align-items: center;">{{ cliente.tel }}</td>
+                            <td data-label="{% if cliente.pessoa == 'Física' %}Nome:{% else %}Razão Social:{% endif %}" class="mobile-2col" style="align-items: center;">{{ cliente.razao_social }}</td>
+                            <td data-label="{% if cliente.pessoa == 'Física' %}Apelido:{% else %}Fantasia:{% endif %}" class="mobile-2col" style="align-items: center; text-transform: uppercase;">{{ cliente.fantasia }}</td>
+                            <td data-label="{% if cliente.pessoa == 'Física' %}CPF:{% else %}CNPJ:{% endif %}" class="mobile-2col" style="align-items: center;">{{ cliente.cpf_cnpj }}</td>
+                            <td data-label="Cidade:" class="mobile-2col" style="align-items: center;">{{ cliente.cidade.nome_cidade }}</td>
+                            <td data-label="Telefone:" class="mobile-2col" style="align-items: center;">{{ cliente.tel }}</td>
                         </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="9" class="me-auto" style="text-align: center;">
+                        <td colspan="9" class="mobile-full-center" style="text-align: center;">
                             Nenhum cliente encontrado.
                         </td>
                     </tr>

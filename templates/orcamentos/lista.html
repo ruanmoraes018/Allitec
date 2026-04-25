@@ -392,7 +392,7 @@
                             <td data-label="Dt. Emissão:" class="mobile-2col" style="text-align: center;">
                                 {{ orcamento.dt_emi|date:"d/m/Y H:i" }}
                             </td>
-                            <td data-label="Dt. Fatura:" class="mobile-2col" style="align-items: center;">{{ orcamento.dt_fat|date:"d/m/Y" }}</td>
+                            <td data-label="{% if orcamento.situacao != 'Aberto' %}Dt. Fatura:{% endif %}" class="mobile-2col" style="align-items: center;">{{ orcamento.dt_fat|date:"d/m/Y" }}</td>
                             <td data-label="Dt. Entrega:" class="mobile-2col" style="align-items: center;">{{ orcamento.dt_ent|date:"d/m/Y" }}</td>
                             <td data-label="Valor:" class="mobile-2col" style="color: #36454F; font-weight: bold;">{{ orcamento.total|moeda_br }}</td>
                             <td data-label="Formas:" class="mobile-full" style="align-items: center; font-weight: bold;">

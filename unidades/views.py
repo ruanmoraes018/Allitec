@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from util.permissoes import verifica_permissao
 from filiais.models import Usuario
 from django.db.models import Q
+from django.views.decorators.http import require_POST
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -88,6 +89,23 @@ def add_unidade(request):
             return render(request, 'unidades/add.html', {'form': form, 'error_messages': error_messages})
     else: form = UnidadeForm()
     return render(request, 'unidades/add.html', {'form': form})
+
+@login_required
+@require_POST
+def add_unidade_ajax(request):
+    nome = request.POST.get('nome', '').strip().upper()
+    if not nome:
+        return JsonResponse({'erro': 'Nome vazio'}, status=400)
+    empresa = request.user.empresa
+    unidade, criado = Unidade.objects.get_or_create(
+        nome_unidade=nome,
+        vinc_emp=empresa
+    )
+    return JsonResponse({
+        'id': unidade.id,
+        'nome': unidade.nome_unidade,
+        'criado': criado
+    })
 
 @login_required
 def att_unidade(request, id):

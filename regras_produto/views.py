@@ -283,37 +283,63 @@ def aplicar_regra_selecao(regra, contexto):
     try:
         if not regra.expressao_json:
             return None, 0
+
         criterios = regra.expressao_json
         if isinstance(criterios, str):
             criterios = json.loads(criterios)
+
         if not isinstance(criterios, list):
             return None, 0
-    except:
+
+    except Exception:
         return None, 0
+
     for item in criterios:
         condicoes = item.get('condicoes', {})
         atende = True
-        for chave, valor in condicoes.items():
-            if chave == 'max':
-                if contexto.get('peso', 0) > valor:
-                    atende = False
-                    break
-            elif chave == 'valor':
-                campo = condicoes.get('campo')
-                if not campo or contexto.get(campo) != valor:
-                    atende = False
-                    break
-        if atende:
-            produto_id = item.get('produto_id')
-            qtd_expr = item.get('qtd_expr')
-            produto = Produto.objects.filter(id=produto_id).first()
-            qtd = 1
-            if qtd_expr:
-                try:
-                    qtd = calcular_expressao_segura(qtd_expr, contexto)
-                except:
-                    qtd = 1
-            return produto, qtd
+
+        # 🔥 NOVO: valida faixa (min / max)
+        valor_base = contexto.get('peso')  # 👉 aqui está o segredo
+
+        if 'min' in condicoes:
+            if valor_base is None or float(valor_base) < float(condicoes['min']):
+                atende = False
+
+        if 'max' in condicoes:
+            if valor_base is None or float(valor_base) > float(condicoes['max']):
+                atende = False
+
+        # 🔥 valida tem_pintura
+        if atende and 'tem_pintura' in condicoes:
+            if bool(contexto.get('tem_pintura')) != condicoes['tem_pintura']:
+                atende = False
+
+        # 🔥 valida campo + valor
+        if atende and 'campo' in condicoes and 'valor' in condicoes:
+            campo = condicoes['campo']
+            valor_esperado = str(condicoes['valor']).strip().lower()
+            valor_recebido = str(contexto.get(campo, '')).strip().lower()
+
+            if valor_recebido != valor_esperado:
+                atende = False
+
+        if not atende:
+            continue
+
+        produto_id = item.get('produto_id')
+        qtd_expr = item.get('qtd_expr')
+
+        produto = Produto.objects.filter(id=produto_id).first()
+
+        qtd = 1
+        if qtd_expr:
+            try:
+                qtd = calcular_expressao_segura(qtd_expr, contexto)
+            except:
+                qtd = 1
+
+        return produto, qtd
+
     return None, 0
 
 @require_POST
@@ -331,7 +357,7 @@ def calcular_orcamento(request):
         itens_dict = {}
         total_geral = Decimal('0.00')
         for prod in produtos_base:
-            qtd = Decimal('1')
+            qtd = Decimal(str(next((p.get('qtd', 1) for p in produtos_req if p.get('id') == prod.id), 1)))
             vl_unit = precos.get(prod.id, Decimal('0.00'))
             total = qtd * vl_unit
             item = itens_dict.setdefault(prod.id, {'id': prod.id,'desc': prod.desc_prod,'qtd': Decimal('0'),'vl_unit': vl_unit,'total': Decimal('0.00'),'regra_aplicada': None})

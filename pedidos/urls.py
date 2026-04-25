@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 urlpatterns = [
     path("lista/", views.lista_pedidos, name='lista-pedidos'),
+    path('detalhes_ajax/<int:id>/', views.detalhes_pedido_ajax, name='detalhes_pedido_ajax'),
     path("add/", views.add_pedido, name='add-pedido'),
     path("att/<int:id>/", views.att_pedido, name='att-pedido'),
     path("clonar/<int:id>/", views.clonar_pedido, name='clonar-pedido'),

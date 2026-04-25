@@ -80,11 +80,10 @@
                 <thead thead class="table-dark">
                     <tr>
                         <th scope="col">Opções</th>
-                        <th scope="col" style="text-align: justify; width: 6%;">Código</th>
+                        <th scope="col" style="text-align: center; width: 6%;">Código</th>
                         <th scope="col" style="text-align: center; width: 7%;">Situação</th>
                         <th scope="col" style="align-items: center; width: 15%;">Nome</th>
                         <th scope="col" style="align-items: center; width: 10%;">Filial</th>
-                        <th scope="col" style="align-items: center;">E-mail</th>
                         <th scope="col" style="align-items: center;">Username</th>
                     </tr>
                 </thead>
@@ -92,7 +91,8 @@
                     {% for usuario in usuarios %}
                         <tr>
 
-                            <td style="width: 80px;">
+                            <td data-label="Opções:" class="mobile-2col">
+                                <a href="{% url 'att-usuario' usuario.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="filiais.change_usuario" data-msg-negado="Seu usuário não pode editar usuários!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                                 <span>
                                     <i class="fas fa-trash btn-permissao"
                                        title="Deletar usuário"
@@ -101,7 +101,6 @@
                                        data-msg-negado="Seu usuário não pode deletar usuários!">
                                     </i>
                                 </span>
-
                                 <!-- Modal ÚNICO para cada usuario -->
                                 <div class="modal fade" id="modal-{{ usuario.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ usuario.id }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
@@ -132,10 +131,9 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-usuario' usuario.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="filiais.change_usuario" data-msg-negado="Seu usuário não pode editar usuários!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                             </td>
-                            <td style="align-items: center; width: 6%;">{{ usuario.codigo_local }}</td>
-                            <td style="text-align: center; padding: 5px;">
+                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ usuario.codigo_local }}</td>
+                            <td data-label="Situação:" class="mobile-2col" style="text-align: center; padding: 5px;">
                                 {% if usuario.is_active %}
                                     <div style="background-color: #2c2c2c; border-radius: 20px; color: white; padding: 2px 8px; margin-top: 5px;">
                                         <strong>Ativo</strong>
@@ -146,14 +144,13 @@
                                     </div>
                                 {% endif %}
                             </td>
-                            <td style="align-items: center;">{{ usuario.first_name }}</td>
-                            <td style="align-items: center; text-transform: uppercase;">{{ usuario.filial_user }}</td>
-                            <td style="align-items: center;">{{ usuario.email }}</td>
-                            <td style="align-items: center;">{{ usuario.username }}</td>
+                            <td data-label="Nome:" class="mobile-2col" style="align-items: center;">{{ usuario.first_name }}</td>
+                            <td data-label="Filial:" class="mobile-2col" style="align-items: center; text-transform: uppercase;">{{ usuario.filial_user }}</td>
+                            <td data-label="Nome de Usuário:" class="mobile-2col" style="align-items: center;">{{ usuario.username }}</td>
                         </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="me-auto" style="text-align: center;">
+                        <td colspan="8" class="mobile-full-center" style="text-align: center;">
                             Nenhum usuario encontrado.
                         </td>
                     </tr>

@@ -18,6 +18,10 @@ from cidades.models import Cidade
 from bairros.models import Bairro
 from collections import defaultdict
 from django.db.models import Q
+from django.views.decorators.csrf import csrf_exempt
+from core.pagamentos.webhooks import processar_webhook
+from pedidos.models import Pagamento
+from django.utils import timezone
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -198,12 +202,13 @@ def dados_filiais_js(request):
     filiais = Filial.objects.filter(
         vinc_emp=empresa,
         situacao='Ativa'
-    ).values('id', 'cli_id', 'tec_id', 'vendedor_id')
+    ).values('id', 'cli_id', 'tec_id', 'vendedor_id', 'multi_m2')
     data = {
         str(f['id']): {
             'cli': f['cli_id'],
             'tec': f['tec_id'],
             'vend': f['vendedor_id'],
+            'multi_m2': float(f['multi_m2']) if f['multi_m2'] is not None else 0,
         }
         for f in filiais
     }
@@ -368,3 +373,24 @@ def dashboard(request):
         'tecnicos': orcamentos_por_tecnico, 'data_atual': data_atual, 'dt_ini': dt_ini, 'dt_fim': dt_fim, 'data_inicial': data_inicial, 'data_final': data_final,
     }
     return render(request, 'dashbord.html', context)
+
+@csrf_exempt
+def webhook_pagamentos(request):
+    result = processar_webhook(request)
+    if not result:
+        return JsonResponse({"ok": True})
+    pagamento = Pagamento.objects.filter(txid=result["txid"]).first()
+    if not pagamento:
+        return JsonResponse({"ok": False})
+    if pagamento.status == "pago":
+        return JsonResponse({"ok": True})
+    if result.get("status") == "pago":
+        pagamento.status = "pago"
+        pagamento.payload = result.get("payload")
+        pagamento.dt_pagamento = timezone.now()
+        pagamento.save()
+        origem = pagamento.origem
+        # 🔥 regra única
+        if hasattr(origem, "processar_pagamento"):
+            origem.processar_pagamento(pagamento)
+    return JsonResponse({"ok": True})

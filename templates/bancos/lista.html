@@ -55,7 +55,7 @@
             <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
                 <thead thead class="table-dark">
                     <tr>
-                        <th scope="col" style="text-align: justify; width: 7%;">Opções</th>
+                        <th scope="col" style="text-align: center; width: 6%;">Opções</th>
                         <th scope="col" style="text-align: center; width: 7%;">Código</th>
                         <th scope="col" style="align-items: center;">Descrição</th>
                         <th scope="col" style="align-items: center;">Código</th>
@@ -64,7 +64,10 @@
                 <tbody>
                     {% for banco in bancos %}
                         <tr>
-                            <td style="width: 80px;">
+                            <td data-label="Opções:" class="mobile-2col">
+                                <a href="{% url 'att-banco' banco.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
+                                  data-permissao="bancos.change_banco"
+                                  data-msg-negado="Seu usuário não pode editar bancos!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                                 <span>
                                     <i class="fas fa-trash btn-permissao"
                                        title="Deletar banco"
@@ -99,17 +102,15 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-banco' banco.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
-                                  data-permissao="bancos.change_banco"
-                                  data-msg-negado="Seu usuário não pode editar bancos!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
+                                
                             </td>
-                            <td style="align-items: center;">{{ banco.id }}</td>
-                            <td class="text-uppercase" style="align-items: center;">{{ banco.nome_banco }}</td>
-                            <td style="align-items: center;">{{ banco.cod_banco }}</td>
+                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ banco.id }}</td>
+                            <td data-label="Descrição:" class="mobile-2col text-uppercase" style="align-items: center;">{{ banco.nome_banco }}</td>
+                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ banco.cod_banco }}</td>
                         </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="me-auto" style="text-align: center;">
+                        <td colspan="8" class="mobile-full-center" style="text-align: center;">
                             Nenhum banco encontrado.
                         </td>
                     </tr>

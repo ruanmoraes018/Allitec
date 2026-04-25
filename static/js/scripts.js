@@ -22,6 +22,7 @@ $(document).ready(function() {
                 Cliente P.: ${f.cli ?? '-'}
                 Técnico P.: ${f.tec ?? '-'}
                 Vendedor P.: ${f.vend ?? '-'}
+                Multi M2: ${f.multi_m2 ?? '-'}
                 `).join('\n\n');
             console.log(texto);
         });
@@ -242,7 +243,8 @@ $(document).ready(function() {
     const tiposRegras = {
         qtd: [{ name: 'qtd_expr', label: 'Qtd (fórmula)', type: 'text' }],
         peso: [{ name: 'max', label: 'Máx', type: 'number' }, { name: 'qtd_expr', label: 'Qtd (fórmula)', type: 'text' }],
-        simples: [{ name: 'campo', label: 'Campo', type: 'text' }, { name: 'valor', label: 'Valor', type: 'text' }, { name: 'qtd_expr', label: 'Qtd (fórmula)', type: 'text' }]
+        simples: [{ name: 'campo', label: 'Campo', type: 'text' }, { name: 'valor', label: 'Valor', type: 'text' }, { name: 'tem_pintura', label: 'É Pintura?', type: 'select' }, 
+            { name: 'qtd_expr', label: 'Qtd (fórmula)', type: 'text' }]
     };
     const CAMPOS_CONTEXTO = [
         { value: 'tipo_lamina', label: 'Tipo da Lâmina' },{ value: 'tipo_pintura', label: 'Tipo de Pintura' },{ value: 'peso', label: 'Peso' },
@@ -253,14 +255,12 @@ $(document).ready(function() {
         if (tipoSelecionado === 'SELECAO' || tipoSelecionado === 'QTD') {
             $('#bloco-regras-selecao').show();
             $('#div_id_produto').hide();
-            $('#id_expressao').closest('.form-group, .mb-3, .form-row, div').hide();
         } else {
             $('#bloco-regras-selecao').hide();
             $('#tabela-regras thead').empty();
             $('#tabela-regras tbody').empty();
             $('#div_id_produto').show();
             $('#id_expressao_json').val('');
-            $('#id_expressao').closest('.form-group, .mb-3, .form-row, div').show();
         }
     }
     $('#id_tipo').on('change', function () {
@@ -288,18 +288,36 @@ $(document).ready(function() {
         const colunas = tiposRegras[tipo] || [];
         let tds = '';
         colunas.forEach(c => {
+
             if (c.name === 'campo') {
-                let options = CAMPOS_CONTEXTO.map(campo =>`<option value="${campo.value}">${campo.label}</option>`).join('');
+                let options = CAMPOS_CONTEXTO.map(campo =>
+                    `<option value="${campo.value}">${campo.label}</option>`
+                ).join('');
+
                 tds += `
                     <td>
-                        <select class="campo form-control">
+                        <select class="campo form-control form-control-sm">
                             <option value="">Selecione</option>
                             ${options}
                         </select>
                     </td>
                 `;
+
+            } else if (c.name === 'tem_pintura') {
+
+                // 🔥 AQUI resolve o problema
+                tds += `
+                    <td>
+                        <select class="tem_pintura form-control form-control-sm">
+                            <option value="">-- Selecione --</option>
+                            <option value="true">Sim</option>
+                            <option value="false">Não</option>
+                        </select>
+                    </td>
+                `;
+
             } else {
-                tds += `<td><input type="${c.type}" class="${c.name} form-control"></td>`;
+                tds += `<td><input type="${c.type}" class="${c.name} form-control form-control-sm"></td>`;
             }
         });
         tds += `
@@ -336,6 +354,10 @@ $(document).ready(function() {
                         condicoes['campo'] = val;
                     } else if (c.name === 'valor') {
                         condicoes['valor'] = isNaN(val) ? val : parseFloat(val);
+                    } else if (c.name === 'tem_pintura') {
+                        if (val !== '') {
+                            condicoes['tem_pintura'] = val === 'true';
+                        }
                     } else {
                         condicoes[c.name] = isNaN(val) ? val : parseFloat(val);
                     }
@@ -360,7 +382,7 @@ $(document).ready(function() {
         $('#tabela-regras tbody').append($linha);
         iniciarSelect2($linha);
     });
-    $(document).on('input change', '.max, .valor, .campo, .produto, .qtd_expr', function () {gerarJSON();});
+    $(document).on('input change', '.max, .valor, .campo, .produto, .qtd_expr, .tem_pintura', function () {gerarJSON();});
     $(document).on('click', '.remover', function () {
         $(this).closest('tr').remove();
         gerarJSON();
@@ -394,7 +416,16 @@ $(document).ready(function() {
             $('#tabela-regras tbody').append($linha);
             // 🔹 Preenche condições (SELECAO)
             if (item.condicoes) {
-                Object.keys(item.condicoes).forEach(key => {$linha.find(`.${key}`).val(item.condicoes[key]).trigger('change');});
+                Object.keys(item.condicoes).forEach(key => {
+                    let valor = item.condicoes[key];
+
+                    // 🔥 CORREÇÃO PARA BOOLEAN
+                    if (key === 'tem_pintura') {
+                        valor = valor === true ? 'true' : 'false';
+                    }
+
+                    $linha.find(`.${key}`).val(valor).trigger('change');
+                });
             }
             // 🔹 Preenche fórmula (QTD ou SELECAO)
             if (item.qtd_expr) {
@@ -587,10 +618,24 @@ $(document).ready(function() {
     // Usado quando o modal informações de Pagamento é aberto
     function parseBR(valor) {
         if (!valor) return 0;
-        return Number(String(valor).replace(/\./g, '').replace(',', '.')) || 0;
+
+        valor = String(valor).trim();
+
+        if (valor.includes(','))
+            return Number(valor.replace(/\./g, '').replace(',', '.'));
+
+        return Number(valor);
+    }
+
+    function parseEN(valor) {
+        return Number(valor || 0);
     }
     function formatBR(valor) {
         return Number(valor || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+    function formatarEN(valor) {
+        const num = Number(valor || 0);
+        return num.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
     function recalcularBaixa(modal, atualizarCampos = true) {
         const valorConta = parseBR(modal.find('[id^="valor_cr"]').val());
@@ -613,11 +658,11 @@ $(document).ready(function() {
         return { jurosFinal, multaFinal, descontoFinal, totalPagar };
     }
     function atualizarRestante(modal) {
-        const total = parseBR1(modal.find('[id^="vl_tot_cr"]').val());
+        const total = parseBR(modal.find('[id^="vl_tot_cr"]').val());
         let soma = 0;
-        modal.find('.vl-item-pgto').each(function () {soma += parseBR1($(this).val());});
+        modal.find('.vl-item-pgto').each(function () {soma += Number($(this).val());});
         const restante = total - soma;
-        modal.find('[id^="restante_cr"]').text(moedaBR(restante > 0 ? restante : 0));
+        modal.find('[id^="restante_cr"]').text(formatBR(restante > 0 ? restante : 0));
         return restante;
     }
     $(document).on('shown.bs.modal', '[id^="mdInfoBaixa-"]', function () {
@@ -639,7 +684,7 @@ $(document).ready(function() {
             const tbody = modal.find('table[id^="tb_formas_"] tbody');
             const formaId = select.val();
             const formaTxt = select.find('option:selected').text();
-            const valor = parseBR1(valorInput.val());
+            const valor = parseBR(valorInput.val());
             const restante = atualizarRestante(modal);
             if (!formaId) {
                 toast('Selecione uma forma de pagamento!', cor_amarelo);
@@ -656,18 +701,18 @@ $(document).ready(function() {
             tbody.append(`
                 <tr>
                     <td>${formaTxt}<input type="hidden" name="forma_id[]" value="${formaId}"></td>
-                    <td class="text-end">${moedaBR(valor)}<input type="hidden" class="vl-item-pgto" name="forma_valor[]" value="${valor.toFixed(2)}"></td>
+                    <td class="text-end">${formatBR(valor)}<input type="hidden" class="vl-item-pgto" name="forma_valor[]" value="${valor.toFixed(2)}"></td>
                     <td class="text-center"><button type="button" class="btn btn-danger btn-sm remover-forma"><i class="fa-solid fa-trash"></i></button></td>
                 </tr>
             `);
             const novoRestante = atualizarRestante(modal);
-            valorInput.val(moedaBR(novoRestante > 0 ? novoRestante : 0));
+            valorInput.val(formatBR(novoRestante > 0 ? novoRestante : 0));
             select.val(null).trigger('change');
         });
         modal.off('click.removerForma').on('click.removerForma', '.remover-forma', function () {
             $(this).closest('tr').remove();
             const restante = atualizarRestante(modal);
-            modal.find('[id^="vl_pg_cr"]').val(moedaBR(restante > 0 ? restante : 0));
+            modal.find('[id^="vl_pg_cr"]').val(formatBR(restante > 0 ? restante : 0));
         });
         modal.find('.btn-baixar-cr').off('click.baixar').on('click.baixar', function () {
             const calc = recalcularBaixa(modal);
@@ -679,16 +724,16 @@ $(document).ready(function() {
             }
             const form = $('<form>', {method: 'POST', action: actionUrl});
             form.append(`<input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">`);
-            form.append(`<input type="hidden" name="juros" value="${moedaBR(calc.jurosFinal)}">`);
-            form.append(`<input type="hidden" name="multa" value="${moedaBR(calc.multaFinal)}">`);
-            form.append(`<input type="hidden" name="desconto" value="${moedaBR(calc.descontoFinal)}">`);
+            form.append(`<input type="hidden" name="juros" value="${formatarEN(calc.jurosFinal)}">`);
+            form.append(`<input type="hidden" name="multa" value="${formatarEN(calc.multaFinal)}">`);
+            form.append(`<input type="hidden" name="desconto" value="${formatarEN(calc.descontoFinal)}">`);
             modal.find('input[name="forma_id[]"], input[name="forma_valor[]"]').each(function () {form.append($(this).clone());});
             $('body').append(form);
             form.submit();
         });
         recalcularBaixa(modal);
         const restante = atualizarRestante(modal);
-        modal.find('[id^="vl_pg_cr"]').val(moedaBR(restante > 0 ? restante : 0));
+        modal.find('[id^="vl_pg_cr"]').val(formatBR(restante > 0 ? restante : 0));
     });
     document.addEventListener('focusin', function (e) {if (e.target.closest('.select2-container') || e.target.closest('.ui-datepicker')) {e.stopPropagation();}}, true);
     $(document).on('shown.bs.modal', '#mdResOrc', function () {
@@ -1822,14 +1867,14 @@ $(document).ready(function() {
         const vl_compra = $(this).data('vl-compra');
         $('#id_desc_prod, #id_marcaProd, #id_unidProduto, #id_grupoProd, #id_preco_unit').val('');
         $('#id_desc_prodP, #id_marcaProdP, #id_unidProdutoP, #id_grupoProdP, #id_preco_unitP').val('');
-        $('#id_cod_produto').val(id) || $('#id_cod_produtoP').val(id);
-        $('#id_desc_prod').val(desc) || $('#id_desc_prodP').val(desc);
-        $('#id_marcaProd').val(marc) || $('#id_marcaProdP').val(marc);
-        $('#id_grupoProd').val(gp) || $('#id_grupoProdP').val(gp);
-        $('#id_unidProduto').val(unid) || $('#id_unidProdutoP').val(unid);
-        $('#id_preco_unit').val(vl_compra.toFixed(2)) || $('#id_preco_unitP').val(vl_compra.toFixed(2));
+        $('#id_cod_produto, #id_cod_produtoP').val(id);
+        $('#id_desc_prod, #id_desc_prodP').val(desc);
+        $('#id_marcaProd, #id_marcaProdP').val(marc);
+        $('#id_grupoProd, #id_grupoProdP').val(gp);
+        $('#id_unidProduto, #id_unidProdutoP').val(unid);
+        $('#id_preco_unit, #id_preco_unitP').val(vl_compra.toFixed(2));
         $('#produtoModal').modal('hide'); // Fecha o modal após a seleção
-        $('#id_quantidade').focus() || $('#id_quantidadeP').focus();
+        $('#id_quantidade, #id_quantidadeP').focus();
     });
     function carregarProdutos(page = 1) {
         const termo = $('#campo-pesquisa-produto').val();
@@ -3604,10 +3649,11 @@ $(document).ready(function() {
         const $modal = $(this).closest('.modal');
         const pedidoId = $modal.data('pedidoId');
 
-        let formas = [];
+        let formasNormais = [];
+        let formasGateway = [];
         let parcelas = [];
-        let temGateway = false;
 
+        // 🔹 coleta formas
         $modal.find('#tableFormas-' + pedidoId + ' tbody tr').each(function () {
 
             const gateway = $(this).data('gateway');
@@ -3615,18 +3661,21 @@ $(document).ready(function() {
 
             if (valor <= 0) return;
 
-            formas.push({
+            const obj = {
                 forma: $(this).data('forma'),
                 valor: valor,
                 parcelas: parseInt($(this).data('parcelas') || 1),
                 dias: parseInt($(this).data('dias') || 0)
-            });
+            };
 
             if (gateway && gateway !== 'nenhum') {
-                temGateway = true;
+                formasGateway.push(obj);
+            } else {
+                formasNormais.push(obj);
             }
         });
 
+        // 🔹 coleta parcelas
         $modal.find('#previewPedido-' + pedidoId + ' tbody tr').each(function () {
             parcelas.push({
                 numero: $(this).find('td:eq(0)').text(),
@@ -3635,39 +3684,47 @@ $(document).ready(function() {
             });
         });
 
-        // 🔥 REGRA FINAL CORRETA
-        if (temGateway) {
-            // 🔥 primeiro verifica se já existe PIX pendente
+        // 🔥 REGRA NOVA
+
+        // 💰 1. Fatura o que NÃO tem gateway
+        if (formasNormais.length > 0) {
+            faturarNormal($modal, pedidoId, formasNormais, parcelas);
+        }
+
+        // ⚡ 2. Processa gateway (PIX)
+        if (formasGateway.length > 0) {
+
+            // verifica se já existe PIX pendente
             $.get(`/pedidos/${pedidoId}/recuperar-pagamento/`, function (resp) {
+
                 if (!resp.erro && resp.qr_code) {
                     toast(`${ic_amarelo} Existe um PIX pendente para este pedido`, cor_amarelo);
                     abrirModalPix([resp], pedidoId);
-                } else {
-                    gerarPix($modal, pedidoId, formas);
 
+                } else {
+                    gerarPix($modal, pedidoId, formasGateway);
                 }
+
             }).fail(function () {
-                gerarPix($modal, pedidoId, formas);
+                gerarPix($modal, pedidoId, formasGateway);
             });
-        } else {
-            faturarNormal($modal, pedidoId, formas, parcelas);
         }
     });
     function faturarNormal($modal, pedidoId, formas, parcelas) {
         iniciarLoading();
+
         $.post(`/pedidos/faturar/${pedidoId}/`, {
             csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
             dados_pagamento: JSON.stringify(formas),
             parcelas_json: JSON.stringify(parcelas)
         }, function (resp) {
             if (resp.ok) {
-                toast(`${ic_verde} ${resp.msg}`, cor_verde)
-                setTimeout(() => {
-                    location.reload();
-                }, 3000);
+                toast(`${ic_verde} ${resp.msg}`, cor_verde);
             } else {
                 alert(resp.msg || 'Erro ao faturar');
             }
+        }).always(function () {
+            fecharLoading();
         });
     }
     function gerarPix($modal, pedidoId, formas) {
@@ -3741,9 +3798,6 @@ $(document).ready(function() {
                 }
             });
         }, 3000);
-    }
-    function fecharLoading() {
-        $('#loadingOverlay').remove();
     }
     const msg = sessionStorage.getItem('msg_sucesso');
     if (msg) {
@@ -4030,8 +4084,10 @@ $(document).ready(function() {
             $(`.ft-peso[data-porta="${porta}"]`).val('');
             return;
         }
-        let resultado;
-        resultado = m2 * 10;
+        let filialId = $('#id_vinc_fil').val();
+        let multi = DADOS_FILIAL?.[filialId]?.multi_m2;
+        if (!multi) multi = 15;
+        let resultado = m2 * parseFloat(multi);
         $(`.ft-peso[data-porta="${porta}"]`).val(resultado.toFixed(2));
     }
     function calcLgCorte(porta) {
@@ -4047,11 +4103,17 @@ $(document).ready(function() {
         $(`.larg-corte[data-porta="${porta}"]`).val(calc.toFixed(2));
     }
     function calcPeso(porta) {
-        let larg_corte = parseFloat($(`.larg-corte[data-porta="${porta}"]`).val()) || 0;
-        let ft_peso = parseFloat($(`.ft-peso[data-porta="${porta}"]`).val()) || 0;
-        const calculo = (larg_corte * 0.8) * ft_peso * 1.2;
-        const pesoFinal = arredondarParaCima(calculo, 0);
-        $(`.peso[data-porta="${porta}"]`).val(pesoFinal);
+        let alt_corte = parseFloat($(`.alt-corte[data-porta="${porta}"]`).val().replace(',', '.'));
+        let m2 = parseFloat($(`.m2[data-porta="${porta}"]`).val()) || 0;
+        if (isNaN(alt_corte)) {
+            $(`.ft-peso[data-porta="${porta}"]`).val('');
+            return;
+        }
+        let filialId = $('#id_vinc_fil').val();
+        let multi = DADOS_FILIAL?.[filialId]?.multi_m2;
+        if (!multi) multi = 15;
+        let resultado = m2 * parseFloat(multi);
+        $(`.peso[data-porta="${porta}"]`).val(resultado.toFixed(2));
     }
     function calcularEixoMotor(porta) {
         let ft_peso = parseFloat($(`.ft-peso[data-porta="${porta}"]`).val());
@@ -4125,6 +4187,16 @@ $(document).ready(function() {
         const tabelas = $('[id^="tblAdc_"]');
         for (const el of tabelas) {
             const porta = el.id.split('_')[1];
+            const adicionais = prodAdcManager.data[porta] || [];
+            prodAdcManager.data[porta] = adicionais.filter(item => {
+                const regra = item.regra_origem || '';
+                const isPintura = regra.includes('PINTURA');
+                if (isPintura) {
+                    $(`#tblAdc_${porta} tbody tr[data-item-id="${item.id}"]`).remove();
+                    return false;
+                }
+                return true;
+            });
             await carregarProdutosIniciais(porta);
         }
         await atualizarSubtotal();
@@ -4312,7 +4384,7 @@ $(document).ready(function() {
             recalcularTotaisPorta(i);
         }
     }
-    $(document).on('focus', '.id_larg, .larg-corte, .alt-corte, .qtd-laminas, .m2, .ft-peso, .peso, .qtd-prod-adc, .qtd-prod, .valor-prod, .valor-prod-adc', function () {
+    $(document).on('focus', '.id_larg, .larg-corte, .alt-corte, .qtd-laminas, .m2, .ft-peso, .qtd-prod-adc, .qtd-prod, .valor-prod, .valor-prod-adc', function () {
         if (!$(this).data('mask-applied')) {$(this).mask('00000.00', { reverse: true }).data('mask-applied', true);}
     });
     function inicializarCamposDecimais() {
@@ -4819,14 +4891,36 @@ $(document).ready(function() {
             console.warn("Tabela ainda não carregada, abortando cálculo...");
             return;
         }
-        function adicionarProduto(id) {
+        function adicionarProduto($tr) {
+            const id = Number($tr.data('item-id'));
             if (!id) return;
-            if (idsAdicionados.has(id)) return; // bloqueia duplicado
+            if (idsAdicionados.has(id)) return;
+
             idsAdicionados.add(id);
-            produtos.push({ id: Number(id) });
+
+            const qtdManual = $tr.data('qtd-manual');
+            let qtd;
+
+            if (qtdManual !== undefined && qtdManual !== null) {
+                qtd = Number(qtdManual);
+            } else {
+                const txt = $tr.find('.qtd-produto').text().trim();
+                const qtdExibida = parseFloat(txt.replace(',', '.')) || 0;
+                qtd = qtdExibida ? Number(qtdExibida) : 0;
+            }
+
+            produtos.push({
+                id: id,
+                qtd: qtd
+            });
         }
-        $(`#tblProd_${porta} tbody tr`).each(function () {adicionarProduto($(this).data('item-id'));});
-        $(`#tblAdc_${porta} tbody tr`).each(function () {adicionarProduto($(this).data('item-id'));});
+        $(`#tblProd_${porta} tbody tr`).each(function () {
+            adicionarProduto($(this));
+        });
+
+        $(`#tblAdc_${porta} tbody tr`).each(function () {
+            adicionarProduto($(this));
+        });
         if (produtos.length === 0) return;
         const resp = await fetch('/regras_produto/calcular_orcamento/', {
             method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken()},
@@ -4856,20 +4950,38 @@ $(document).ready(function() {
             if (!origem) return;
             const qtdManual = $tr.data('qtd-manual');
             let qtdExibida = null;
-            if (qtdManual !== undefined && qtdManual !== null) {qtdExibida = Number(qtdManual) || 0;}
-            else {
+            if (qtdManual !== undefined && qtdManual !== null) {
+                qtdExibida = Number(qtdManual) || 0;
+            } else {
                 const txt = $tr.find('.qtd-produto').text().replace(/\./g, '').replace(',', '.').trim();
                 qtdExibida = txt ? Number(txt) : 0;
             }
-            if (qtdExibida > 0) {return;}
-            if (!idsRetornados.has(id)) {$tr.hide();}
+            if (qtdExibida > 0) {
+                return;
+            }
+            if (!idsRetornados.has(id)) {
+                $tr.hide();
+            }
         });
         $(`#tblAdc_${porta} tbody tr`).each(function () {
             const $tr = $(this);
             const id = Number($tr.data('item-id'));
             const origem = $tr.data('regra-origem');
             if (!origem) return;
-            if (!idsRetornados.has(id)) {$tr.hide();}
+            const qtdManual = $tr.data('qtd-manual');
+            let qtdExibida = null;
+            if (qtdManual !== undefined && qtdManual !== null) {
+                qtdExibida = Number(qtdManual) || 0;
+            } else {
+                const txt = $tr.find('.qtd-produto').text().replace(/\./g, '').replace(',', '.').trim();
+                qtdExibida = txt ? Number(txt) : 0;
+            }
+            if (qtdExibida > 0) {
+                return;
+            }
+            if (!idsRetornados.has(id)) {
+                $tr.hide();
+            }
         });
         data.itens.forEach(item => {
             let $tr = $(`#tblProd_${porta} tbody tr[data-item-id="${item.id}"]`);
@@ -4881,7 +4993,12 @@ $(document).ready(function() {
             if (!$tr.length) return;
             let qtdManual = $tr.data('qtd-manual');
             let qtdBackend = Number(item.qtd) || 0;
-            let qtd = (qtdManual !== undefined && qtdManual !== null) ? Number(qtdManual) : qtdBackend;
+            let qtd;
+            if (qtdManual !== undefined && qtdManual !== null && qtdManual > 0) {
+                qtd = Number(qtdManual);
+            } else {
+                qtd = qtdBackend;
+            }
             if ($tr.data('regra-origem') && qtd <= 0) {
                 $tr.hide();
                 return;
@@ -5147,7 +5264,15 @@ $(document).ready(function() {
         prodManager.updateEditingItem(cells);
         const $tr = $(`#tblProd_${porta} tbody tr[data-item-id="${itemId}"]`);
         const qtdManual = parseFloat($('#editQtdInput').val()) || 0;
+
+        // 🔥 SALVA A QUANTIDADE MANUAL
         $tr.data('qtd-manual', qtdManual);
+
+        const item = prodManager.data[porta]?.find(i => i.id === itemId);
+        if (item) {
+            item.qtd_manual = true;
+            item.qtd_final = qtdManual;
+        }
         bootstrap.Modal.getInstance(document.getElementById('editItemModal')).hide();
         prodManager.clearEditing();
         setTimeout(async () => {
@@ -5169,6 +5294,11 @@ $(document).ready(function() {
         adicionarAdicionalNaTabela(porta, {cod, desc, unid, qtd, vl, vl_compra, lado: item.lado || '', especifico: item.especifico || ''});
         const $tr = $(`#tblAdc_${porta} tbody tr[data-item-id="${itemId}"]`);
         $tr.data('qtd-manual', qtd);
+
+        if (item) {
+            item.qtd_manual = true;
+            item.qtd_final = qtd;
+        }
         bootstrap.Modal.getInstance(document.getElementById('editItemAdcModal')).hide();
         prodAdcManager.clearEditing();
         setTimeout(async () => {
@@ -6332,17 +6462,20 @@ $(document).ready(function() {
     verificarEstadoSwitch('#switchEmp', '#unidade1');
     verificarEstadoSwitch('#switchSit', '#grupo1');
     verificarEstadoSwitch('#switchMarca', '#marca1');
+    verificarEstadoSwitch('#switchSituacao', '#situacao1');
     $('#switchEmp').change(function () {verificarEstadoSwitch('#switchEmp', '#unidade1');});
     $('#switchSit').change(function () {verificarEstadoSwitch('#switchSit', '#grupo1');});
     $('#switchMarca').change(function () {verificarEstadoSwitch('#switchMarca', '#marca1');});
+    $('#switchSituacao').change(function () {verificarEstadoSwitch('#switchSituacao', '#situacao1');});
     // Ao clicar no label, marca/desmarca o switch e dispara o change para atualizar o campo
-    $('label[for="switchEmp"], label[for="switchSit"], label[for="switchMarca"]').on('click', function () {
+    $('label[for="switchEmp"], label[for="switchSit"], label[for="switchMarca"], label[for="switchSituacao"]').on('click', function () {
         const switchId = $(this).attr('for');
         setTimeout(() => {
             let target;
             if (switchId === 'switchEmp') target = '#unidade1';
             else if (switchId === 'switchSit') target = '#grupo1';
             else if (switchId === 'switchMarca') target = '#marca1';
+            else if (switchId === 'switchSituacao') target = '#situacao1';
             verificarEstadoSwitch('#' + switchId, target);
         }, 10);
     });
@@ -6608,13 +6741,13 @@ $(document).ready(function() {
     $('#id_regra').select2({
         placeholder: opSel, allowClear: true, templateResult: renderRegra, templateSelection: d => d.text, language: lingSel, ajax: ajaxRegras('/regras_produto/lista_ajax/')}).on('select2:open', focSel2);~
     // Tabelas de Preço
-    $('#tb-prec, #id_tabela_preco, #id_tb_preco').select2({
+    $('#tb-prec, #id_tabela_preco, #id_tb_preco, #id_tabela').select2({
         placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/tabelas_preco/lista_ajax/')}).on('select2:open', focSel2);
     // Só para o seletor da tabela ao realizar Entrada
-    $('#id_tabela, #id_tabelaEnt').select2({
+    $('#id_tabelaEnt').select2({
         dropdownParent: $('#edProdModal'), placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/tabelas_preco/lista_ajax/')}).on('select2:open', focSel2);
     // Unidades
-    $('#unidade, #unidade1, #campo-unidade-produto, #id_unidProd').select2({
+    $('#unidade, #unidade1, #campo-unidade-produto').select2({
         placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/unidades/lista_ajax/')}).on('select2:open', focSel2);
     // Para o modal Criação individual
     $('#xml-produto-unidade').select2({
@@ -6732,6 +6865,11 @@ $(document).ready(function() {
         select: '#id_bairro, #id_bairro_fil',input: '#novo-bairro',btnNew: '#btn-novo-bairro',btnOk: '#btn-confirmar-bairro',btnCancel: '#btn-cancelar-bairro',selectArea: '#bairro-select-area',inputArea: '#bairro-input-area',
         urlCreate: '/bairros/add-ajax/',urlList: '/bairros/lista_ajax/',placeholder: 'Selecione um bairro',entityName: 'Bairro'
     });
+    // Unidades
+    const unidadeComponent = createSelectWithAdd({
+        select: '#id_unidProd',input: '#nova-unidade',btnNew: '#btn-nova-unidade',btnOk: '#btn-confirmar-unidade',btnCancel: '#btn-cancelar-unidade',selectArea: '#unidade-select-area',inputArea: '#unidade-input-area',
+        urlCreate: '/unidades/add-ajax/',urlList: '/unidades/lista_ajax/',placeholder: 'Selecione uma unidade',entityName: 'Unidade'
+    });
     // Selects unificados
     $('#id_unid_prod, #unid, #id_unidadeProduto, #id_form_pgto, #userSelect, #id_tp_chave, [id^="sel-status"]').select2({placeholder: 'Selecione uma opção', allowClear: true});
     // Funções referentes aos formulários de cadastro e edição
@@ -6797,7 +6935,7 @@ $(document).ready(function() {
         if (isNaN(num)) {num = 0;}
         return num.toFixed(2);
     }
-    let selectors = '.inp-valor-pgto, #id_desc_acres, #id_preco_unitP, [id^=desc_m_cr], [id^=desc_j_cr], [id^=juros_cr], [id^=multa_cr], [id^=vl_pg_cr], .inp-valor, #id_valor, #id_juros, #id_multa, #id_vl_juros, #id_vl_multa, #id_ft_juros, #id_ft_multa, .valor-prod, .valor-prod-adc, .qtd-prod-adc, .qtd-prod, #campo_1, #campo_2, #id_margem, #id_vl_prod, #id_vl_tab, #id_vl_tabEnt, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
+    let selectors = '#id_multi_m2, .inp-valor-pgto, #id_desc_acres, #id_preco_unitP, [id^=desc_m_cr], [id^=desc_j_cr], [id^=juros_cr], [id^=multa_cr], [id^=vl_pg_cr], .inp-valor, #id_valor, #id_juros, #id_multa, #id_vl_juros, #id_vl_multa, #id_ft_juros, #id_ft_multa, .valor-prod, .valor-prod-adc, .qtd-prod-adc, .qtd-prod, #campo_1, #campo_2, #id_margem, #id_vl_prod, #id_vl_tab, #id_vl_tabEnt, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
     $(selectors).each(function () {$(this).val(normalizarNumero($(this).val()));});
     $(document).on('input', selectors, function () {
         let valor = $(this).val();
@@ -6985,6 +7123,288 @@ $(document).ready(function() {
             error: function(xhr) {
                 fecharLoading();
                 console.error('Erro ao carregar orçamento:', xhr.responseText);
+            }
+        });
+    }
+    // Listagem de Pedidos no modal
+    function montarTabelaItensPedido(itens) {
+        if (!itens || !itens.length) {
+            return `<div class="text-center text-muted py-3">Nenhum item encontrado.</div>`;
+        }
+        let linhas = "";
+        itens.forEach(function(item) {
+            const valor = parseFloat(item.desconto_acrescimo || 0);
+            let sinal = '';
+
+            if (valor !== 0) {
+                sinal = item.tp_desc_acres === 'Desconto' ? '-' : '+';
+            }
+
+            linhas += `
+                <tr>
+                    <td>${item.item}</td>
+                    <td>${item.codigo}</td>
+                    <td>${item.produto}</td>
+                    <td>${item.unidade || ''}</td>
+
+                    <td style="font-weight:bold;color:#2E8B57;">
+                        R$ ${formatMoneyBR(item.valor_unit)}
+                    </td>
+
+                    <td>${item.qtd}</td>
+
+                    <td>
+                        ${valor !== 0 ? `${sinal} R$ ${formatMoneyBR(valor)}` : ''}
+                    </td>
+
+                    <td style="font-weight:bold;color:#2E8B57;">
+                        R$ ${formatMoneyBR(item.subtotal)}
+                    </td>
+                </tr>
+            `;
+        });
+        return `
+            <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                <table class="table table-sm table-bordered table-striped w-100 mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Item</th><th>Código</th><th>Descrição</th><th>Unidade</th><th>Vl. Unit.</th><th>Qtde</th><th>Desc/Acres</th><th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>${linhas}</tbody>
+                </table>
+            </div>
+        `;
+    }
+    $(document).on('click', '.op-detalhe-pedido', function() {
+        iniciarLoading();
+        const id = $(this).data('id');
+        listarPedido(id);
+    });
+    function listarPedido(id) {
+        $.ajax({
+            url: '/pedidos/detalhes_ajax/' + id + '/', type: 'GET', success: function(response) {
+                $('#infoEntModalLabel').html(
+                    `<strong><i class="fa-solid fa-circle-info text-white"></i> Detalhes - Pedido Nº ${response.id}</strong>`
+                );
+                let situacaoColor = "#005eff";
+                if (response.situacao === "Faturado") {
+                    situacaoColor = "#3CB371";
+                } else if (response.situacao === "Cancelado") {
+                    situacaoColor = "#B22222";
+                }
+                const tabelaItens = montarTabelaItensPedido(response.itens);
+                $('#infoEntBody').html(`
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <label class="form-label">Pedido</label>
+                            <input class="form-control form-control-sm fw-bold" value="${response.id}" disabled>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Filial</label>
+                            <input class="form-control form-control-sm fw-bold" value="${response.filial}" disabled>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Cliente</label>
+                            <input class="form-control form-control-sm fw-bold" value="${response.cliente}" disabled>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Vendedor</label>
+                            <input class="form-control form-control-sm fw-bold" value="${response.vendedor}" disabled>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Data Emissão</label>
+                            <input class="form-control form-control-sm fw-bold" value="${response.data_emissao}" disabled>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Total</label>
+                            <input class="form-control form-control-sm fw-bold" style="color:#2E8B57" value="R$ ${formatMoneyBR(response.total)}" disabled>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Situação</label>
+                            <input class="form-control form-control-sm fw-bold" style="background:${situacaoColor};color:white;text-align:center" value="${response.situacao}" disabled>
+                        </div>
+                    </div>
+                    <div class="col-12 mt-3">
+                        <div class="card">
+                            <div class="card-header bg-secondary-subtle text-dark">
+                                <strong>Itens do Pedido</strong>
+                            </div>
+                            <div class="card-body">
+                                ${tabelaItens}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Observações</label>
+                            <textarea class="form-control" disabled>${response.obs || ''}</textarea>
+                        </div>
+                    </div>
+                `);
+                fecharLoading();
+                $('#infoEntModal').modal('show');
+            },
+            error: function(xhr) {
+                fecharLoading();
+                console.error('Erro ao carregar pedido:', xhr.responseText);
+            }
+        });
+    }
+    // Lista para Contas A Receber
+    function montarTabelaFormasCR(formas) {
+        if (!formas || !formas.length) {
+            return `<div class="text-center text-muted py-3">Nenhuma baixa registrada.</div>`;
+        }
+
+        let linhas = "";
+
+        formas.forEach(f => {
+            linhas += `
+                <tr>
+                    <td>${f.item}</td>
+                    <td>${f.forma}</td>
+                    <td class="text-end fw-bold text-success">
+                        R$ ${formatMoneyBR(f.valor)}
+                    </td>
+                </tr>
+            `;
+        });
+
+        return `
+            <div class="table-responsive" style="max-height: 200px;">
+                <table class="table table-sm table-bordered table-striped mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Forma</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>${linhas}</tbody>
+                </table>
+            </div>
+        `;
+    }
+    $(document).on('click', '.op-detalhe-cr', function() {
+        iniciarLoading();
+        const id = $(this).data('id');
+        listarContaReceber(id);
+    });
+    function listarContaReceber(id) {
+        $.ajax({
+            url: '/contas_receber/detalhes_ajax/' + id + '/',
+            type: 'GET',
+
+            success: function(response) {
+
+                let cor = "#005eff";
+
+                if (response.situacao === "Paga") {
+                    cor = "#3CB371";
+                } else if (response.vencido) {
+                    cor = "#B22222";
+                }
+
+                const tabelaFormas = montarTabelaFormasCR(response.formas);
+
+                $('#infoEntModalLabel').html(
+                    `<strong><i class="fa-solid fa-file-invoice-dollar text-white"></i> Conta Nº ${response.num_conta}</strong>`
+                );
+
+                $('#infoEntBody').html(`
+                    <div class="row g-3">
+
+                        <div class="col-md-2">
+                            <label>Nº Conta</label>
+                            <input class="form-control form-control-sm fw-bold" value="${response.num_conta}" disabled>
+                        </div>
+
+                        <div class="col-md-5">
+                            <label>Filial</label>
+                            <input class="form-control form-control-sm fw-bold" value="${response.filial}" disabled>
+                        </div>
+
+                        <div class="col-md-5">
+                            <label>Cliente</label>
+                            <input class="form-control form-control-sm fw-bold" value="${response.cliente}" disabled>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label>Emissão</label>
+                            <input class="form-control form-control-sm fw-bold" value="${response.data_emissao}" disabled>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label>Vencimento</label>
+                            <input class="form-control form-control-sm fw-bold" value="${response.data_vencimento}" disabled>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label>Pagamento</label>
+                            <input class="form-control form-control-sm fw-bold" value="${response.data_pagamento || '-'}" disabled>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label>Situação</label>
+                            <input class="form-control form-control-sm fw-bold text-center"
+                                style="background:${cor};color:white"
+                                value="${response.situacao}" disabled>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label>Valor</label>
+                            <input class="form-control form-control-sm fw-bold text-success"
+                                value="R$ ${formatMoneyBR(response.valor)}" disabled>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label>Juros</label>
+                            <input class="form-control form-control-sm"
+                                value="R$ ${formatMoneyBR(response.juros)}" disabled>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label>Multa</label>
+                            <input class="form-control form-control-sm"
+                                value="R$ ${formatMoneyBR(response.multa)}" disabled>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label>Desconto</label>
+                            <input class="form-control form-control-sm text-danger"
+                                value="R$ ${formatMoneyBR(response.desconto)}" disabled>
+                        </div>
+                    </div>
+
+                    <div class="col-12 mt-3">
+                        <div class="card">
+                            <div class="card-header bg-secondary-subtle text-dark">
+                                <strong>Formas de Pagamento</strong>
+                            </div>
+                            <div class="card-body">
+                                ${tabelaFormas}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <label>Observações</label>
+                        <textarea class="form-control" disabled>${response.obs}</textarea>
+                    </div>
+                    <div class="mt-3">
+                        <label>Observações Internas</label>
+                        <textarea class="form-control" disabled>${response.obs_internas}</textarea>
+                    </div>
+                `);
+
+                fecharLoading();
+                $('#infoEntModal').modal('show');
+            },
+
+            error: function(xhr) {
+                fecharLoading();
+                console.error('Erro:', xhr.responseText);
             }
         });
     }

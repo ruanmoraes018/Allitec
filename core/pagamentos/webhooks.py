@@ -1,4 +1,5 @@
 import mercadopago
+from django.contrib.contenttypes.models import ContentType
 from pedidos.models import Pagamento
 import json
 
@@ -8,7 +9,7 @@ def tratar_webhook_mercadopago(data):
     payment_id = data.get("data", {}).get("id")
     if not payment_id:
         return None
-    pagamento = Pagamento.objects.select_related('forma_pgto').filter(txid=str(payment_id)).first()
+    pagamento = Pagamento.objects.select_related('forma_pgto', 'content_type').filter(txid=str(payment_id)).first()
     if not pagamento:
         return None
     credenciais = pagamento.forma_pgto.credenciais or {}

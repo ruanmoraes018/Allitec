@@ -117,7 +117,7 @@
                 <tbody>
                     {% for entrada in entradas %}
                         <tr>
-                            <td>
+                            <td data-label="Opções:" class="mobile-2col">
                                 <div style="text-align: center;">
                                     <button type="button" data-bs-toggle="modal" data-bs-target="#menuModal{{ entrada.id }}" class="btn btn-dark btn-sm">
                                         <span>
@@ -389,33 +389,29 @@
                                     </div>
                                 </div>
                             </td>
-                            <td style="text-align: center; width: 0.5%;"><i class="fa-solid fa-circle-info" style="font-size: 25px; margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#infoEntModal{{ entrada.id }}"></i></td>
-                            <td style="align-items: center;">{{ entrada.numeracao }}</td>
-                            {% if entrada.situacao == 'Pendente' %}
-                                <td style="text-align: center; width: 80px;" class="task-item">
+                            <td data-label="" class="mobile-2col" style="text-align: center;"><i class="fa-solid fa-circle-info" style="font-size: 25px; margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#infoEntModal{{ entrada.id }}"></i></td>
+                            <td data-label="Nº:" class="mobile-2col" style="align-items: center;">{{ entrada.numeracao }}</td>
+                            <td data-label="Situação:" class="mobile-2col" style="text-align: center;">
+                                {% if entrada.situacao == 'Pendente' %}    
                                     <div style="background-color: #005eff; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
                                         <strong>{{ entrada.situacao }}</strong>
                                     </div>
-                                </td>
-                            {% elif entrada.situacao == 'Efetivada' %}
-                                <td style="text-align: center; width: 100px;" class="task-item">
+                                {% elif entrada.situacao == 'Efetivada' %}
                                     <div style="background-color: #3CB371; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
                                         <strong>{{ entrada.situacao }}</strong>
                                     </div>
-                                </td>
-                            {% else %}
-                                <td style="text-align: center; width: 100px;" class="task-item">
+                                {% else %}
                                     <div style="background-color: #800000; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
                                         <strong>{{ entrada.situacao }}</strong>
                                     </div>
-                                </td>
-                            {% endif %}
-                            <td style="align-items: center;">{{ entrada.fornecedor }}</td>
-                            <td style="align-items: center; text-transform: uppercase;">{{ entrada.vinc_fil }}</td>
-                            <td style="align-items: center;">{{ entrada.dt_emi|date:"d/m/Y" }}</td>
-                            <td style="align-items: center;">{{ entrada.dt_ent|date:"d/m/Y" }}</td>
-                            <td style="align-items: center;"><div style="color: #2E8B57; font-weight: bold;">{{ entrada.total|moeda_br }}</div></td>
-                            <td style="text-align: center;">
+                                {% endif %}    
+                            </td>
+                            <td data-label="Fornecedor:" class="mobile-2col" style="align-items: center;">{{ entrada.fornecedor }}</td>
+                            <td data-label="Filial:" class="mobile-2col" style="align-items: center; text-transform: uppercase;">{{ entrada.vinc_fil }}</td>
+                            <td data-label="Dt. Emissão:" class="mobile-2col" style="align-items: center;">{{ entrada.dt_emi|date:"d/m/Y" }}</td>
+                            <td data-label="Dt. Efetivação:" class="mobile-2col" style="align-items: center;">{{ entrada.dt_ent|date:"d/m/Y" }}</td>
+                            <td data-label="Vl. Total:" class="mobile-2col" style="align-items: center;"><div style="color: #2E8B57; font-weight: bold;">{{ entrada.total|moeda_br }}</div></td>
+                            <td data-label="Tipo:" class="mobile-2col" style="text-align: center;">
                                 {% if entrada.tipo == "Pedido" %}
                                     <div style="background-color: #4F4F4F; color: white; border-radius: 10px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
                                         <strong>Pedido</strong>
@@ -429,7 +425,7 @@
                         </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="12" class="me-auto" style="text-align: center;">
+                        <td colspan="12" class="mobile-full-center" style="text-align: center;">
                             Nenhuma entrada de NF/Pedido encontrada.
                         </td>
                     </tr>

@@ -239,6 +239,10 @@ body, html {
     .mobile-full {
         width: 100% !important;
     }
+    .mobile-full-center {
+        width: 100% !important;
+        text-align: center;
+    }
 
     /* Ícone sem label */
     .icon-cell::before {
@@ -580,7 +584,7 @@ label {
 .task-list {padding-left: 0;}
 .task-item {list-style: none; font-size: 16px; height: 50px; padding: 0 15px; padding-top: 10px; border-bottom: 1px dashed #ccc;}
 .task-item.done {background-color: #90ee90;}
-.fa-solid.fa-circle-info, .fas.fa-trash, .fas.fa-edit, .fas.fa-check, .fas.fa-sharp.fa-solid.fa-desktop, .fas.fa-sharp.fa-solid.fa-circle-info, .fas.fa-ban, .fas.fa-reply, .fa-solid.fa-file-pdf, .fa-brands.fa-elementor, .fa-solid.fa-print, .fa-solid.fa-user-check, .fa-solid.fa-person-circle-check, .fa-solid.fa-person-circle-minus, .fa-solid.fa-clone, .fa-brands.fa-square-letterboxd, .fa-solid.fa-money-bill, .fa-solid.fa-circle-xmark, .fa-regular.fa-square-check  {cursor: pointer; margin: 5px; font-size: 20px; float: right;}
+.fa-solid.fa-circle-info, .fas.fa-trash, .fas.fa-edit, .fas.fa-check, .fas.fa-sharp.fa-solid.fa-desktop, .fas.fa-sharp.fa-solid.fa-circle-info, .fas.fa-ban, .fas.fa-reply, .fa-solid.fa-file-pdf, .fa-brands.fa-elementor, .fa-solid.fa-print, .fa-solid.fa-user-check, .fa-solid.fa-person-circle-check, .fa-solid.fa-person-circle-minus, .fa-solid.fa-clone, .fa-brands.fa-square-letterboxd, .fa-solid.fa-money-bill, .fa-solid.fa-circle-xmark, .fa-regular.fa-square-check  {cursor: pointer; margin: 2.5px; font-size: 20px;}
 .fa-solid.fa-clone {color: #2F4F4F;}
 .fa-solid.fa-circle-info {color: #ff8800;}
 .fa-regular.fa-square-check {color: #2E8B57; font-size: 21px;}

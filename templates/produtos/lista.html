@@ -120,8 +120,8 @@
                 <tbody>
                     {% for produto in produtos %}
                         <tr>
-                            <td style="text-align: center; padding-top: 8px; cursor: pointer;" onclick="toggleTaskCheckbox(this)"><input type="checkbox" class="form-check-input task-checkbox" name="multi" value="{{ produto.id }}" onclick="event.stopPropagation(); checkIfAllSelected(); updateMassChangesButton();"></td>
-                            <td style="width: 108px;">
+                            <td data-label="" class="mobile-3col" style="text-align: center; padding-top: 8px; cursor: pointer;" onclick="toggleTaskCheckbox(this)"><input type="checkbox" class="form-check-input task-checkbox" name="multi" value="{{ produto.id }}" onclick="event.stopPropagation(); checkIfAllSelected(); updateMassChangesButton();"></td>
+                            <td data-label="Opções:" class="mobile-3col">
                                 <div style="text-align: center;">
                                     <button type="button" data-bs-toggle="modal" data-bs-target="#menuModal{{ produto.id }}" class="btn btn-dark btn-sm">
                                         <span><i class="fa-solid fa-bars" style="font-size: 18px; color: white; margin-top: 5px;" title="Menu de Opções"></i></span>
@@ -228,10 +228,10 @@
                                     </div>
                                 </div>
                             </td>
-                            <td style="align-items: center;">{{ produto.id }}</td>
-                            <td style="text-align: center; padding: 5px;">
+                            <td data-label="Código:" class="mobile-3col" style="align-items: center;">{{ produto.id }}</td>
+                            <td data-label="Situação:" class="mobile-2col" style="text-align: center; padding: 5px;">
                                 {% if produto.situacao == 'Ativo' %}
-                                    <div style="background-color: #2c2c2c; border-radius: 20px; color: white;">
+                                    <div style="background-color: #2c2c2c; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px;">
                                         <strong>{{ produto.situacao }}</strong>
                                     </div>
                                 {% else %}
@@ -240,12 +240,12 @@
                                     </div>
                                 {% endif %}
                             </td>
-                            <td style="align-items: center;">{{ produto.desc_prod }}</td>
-                            <td style="align-items: center;">{{ produto.tp_prod }}</td>
-                            <td style="align-items: center;">{{ produto.marca }}</td>
-                            <td style="align-items: center;">{{ produto.grupo }}</td>
-                            <td style="align-items: center;">{{ produto.unidProd }}</td>
-                            <td style="align-items: center; font-weight: bold;">
+                            <td data-label="Descrição:" class="mobile-2col" style="align-items: center;">{{ produto.desc_prod }}</td>
+                            <td data-label="Tipo:" class="mobile-2col" style="align-items: center;">{{ produto.tp_prod }}</td>
+                            <td data-label="Marca:" class="mobile-2col" style="align-items: center;">{{ produto.marca }}</td>
+                            <td data-label="Grupo:" class="mobile-2col" style="align-items: center;">{{ produto.grupo }}</td>
+                            <td data-label="Unidade:" class="mobile-2col" style="align-items: center;">{{ produto.unidProd }}</td>
+                            <td data-label="Estoque:" class="mobile-2col" style="align-items: center; font-weight: bold;">
                                 {% if produto.estoque_prod == "" %}
                                     0.00
                                 {% endif %}
@@ -254,10 +254,10 @@
                                 {% elif produto.estoque_prod > 0 %}
                                     <span class="text-success" title="Saldo Positivo">{{ produto.estoque_prod }}</span>
                                 {% else %}
-                                    <span class="text-success" title="Saldo Zerado">{{ produto.estoque_prod }}</span>
+                                    <span class="text-secondary" title="Saldo Zerado">{{ produto.estoque_prod }}</span>
                                 {% endif %}
                             </td>
-                            <td style="align-items: center;">
+                            <td data-label="Tabelas de Preço:" class="mobile-full" style="align-items: center;">
                                 <div style="max-height: 5em; overflow-y: auto; white-space: normal; line-height: 0.8em; font-weight: bold;">
                                     {% for tab in produto.tab_conv %}
                                         <div class="p-1 mb-1 bg-secondary text-light rounded-3" style="font-size: 0.8rem;">
@@ -269,7 +269,7 @@
                         </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="11" class="me-auto" style="text-align: center;">
+                        <td colspan="11" class="mobile-full" style="text-align: center;">
                             Nenhum produto encontrado.
                         </td>
                     </tr>
@@ -347,6 +347,17 @@
                             <hr>
                             <div id="multi-hidden-container"></div>
                             <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch" style="margin-top: 10px;">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="switchSituacao" name="switchSituacao">
+                                        <label class="form-check-label" for="switchSituacao">Situação</label>
+                                    </div>
+                                    <select id="situacao1" name="situacao1" class="form-select" aria-label="Situação">
+                                        <option value="">Escolha uma situação</option>
+                                        <option value="Ativo">Ativo</option>
+                                        <option value="Inativo">Inativo</option>
+                                    </select>
+                                </div>
                                 <div class="col-md-6">
                                     <div class="form-check form-switch" style="margin-top: 10px;">
                                         <input class="form-check-input" type="checkbox" role="switch" id="switchSit" name="switchSit">

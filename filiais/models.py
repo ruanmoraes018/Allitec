@@ -54,6 +54,7 @@ class Filial(models.Model):
     tp_calc_multa = models.CharField(max_length=15, verbose_name="Tp. Cálculo Multa", choices=[('Percentual', 'Percentual'), ('Valor', 'Valor')], default="Percentual")
     ft_multa = models.DecimalField(verbose_name="Fator Multa", max_digits=10, decimal_places=2, default=0, null=True, blank=True)
     ft_juros = models.DecimalField(verbose_name="Fator Juros",max_digits=10, decimal_places=2, default=0, null=True, blank=True)
+    multi_m2 = models.DecimalField(verbose_name="Multiplicador M²", max_digits=10, decimal_places=2, default=1, null=True, blank=True)
     principal = models.BooleanField(default=False, verbose_name='Filial Principal')
     vinculada_a = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='filiais_secundarias', verbose_name='Filial Vinculada à')
     def save(self, *args, **kwargs):

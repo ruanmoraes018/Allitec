@@ -55,7 +55,7 @@
             <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
                 <thead thead class="table-dark">
                     <tr>
-                        <th scope="col" style="text-align: justify; width: 7%;">Opções</th>
+                        <th scope="col" style="text-align: center; width: 6%;">Opções</th>
                         <th scope="col" style="text-align: center; width: 7%;">Código</th>
                         <th scope="col" style="align-items: center;">Descrição</th>
                     </tr>
@@ -64,6 +64,9 @@
                     {% for bairro in bairros %}
                         <tr>
                             <td data-label="Opções:" class="mobile-2col">
+                                <a href="{% url 'att-bairro' bairro.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
+                                  data-permissao="bairros.change_bairro"
+                                  data-msg-negado="Seu usuário não pode editar bairros!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                                 <span>
                                     <i class="fas fa-trash btn-permissao"
                                        title="Deletar bairro"
@@ -98,16 +101,13 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-bairro' bairro.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
-                                  data-permissao="bairros.change_bairro"
-                                  data-msg-negado="Seu usuário não pode editar bairros!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                             </td>
                             <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ bairro.id }}</td>
                             <td data-label="Descrição:" class="mobile-full text-uppercase" style="align-items: center;">{{ bairro.nome_bairro }}</td>
                         </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="me-auto" style="text-align: center;">
+                        <td colspan="8" class="mobile-full-center">
                             Nenhum bairro encontrado.
                         </td>
                     </tr>

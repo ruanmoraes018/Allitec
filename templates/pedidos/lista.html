@@ -158,7 +158,7 @@
                                                     <i class="fa-solid fa-money-bill"></i> Faturar
                                                 </button>
                                                 {% endif %}
-                                                <button class="btn btn-light w-100 text-start menu-opcao op-detalhe border border-secondary" data-id="{{ pedido.id }}" data-bs-toggle="modal" data-bs-target="#infoEntModalP{{ pedido.id }}">
+                                                <button class="btn btn-light w-100 text-start menu-opcao op-detalhe-pedido border border-secondary" data-id="{{ pedido.id }}" data-bs-toggle="modal" data-bs-target="#infoEntModalP{{ pedido.id }}">
                                                     <i class="fa-solid fa-circle-info"></i> Detalhes
                                                 </button>
                                                 {% if pedido.situacao == 'Faturado' %}
@@ -383,8 +383,8 @@
                             <td data-label="Filial:" class="mobile-2col" style="align-items: center;">{{ pedido.fantasia_fil }}</td>
                             <td data-label="Cliente:" class="mobile-2col" style="color: #36454F; font-weight: bold;">{{ pedido.nome_cli }}</td>
                             <td data-label="Vendedor:" class="mobile-2col" style="color: #36454F; font-weight: bold;">{{ pedido.nome_vend }}</td>
-                            <td data-label="Dt. Emissão:" class="mobile-2col" style="align-items: center;">{{ pedido.dt_emi|date:"d/m/Y" }}</td>
-                            <td data-label="{% if pedido.situacao != 'Aberto' %}Dt. Fatura:{% endif %}" class="mobile-2col" style="align-items: center;">{{ pedido.dt_fat|date:"d/m/Y" }}</td>
+                            <td data-label="Dt. Emissão:" class="mobile-2col" style="align-items: center;">{{ pedido.dt_emi|date:"d/m/Y - H:i" }}</td>
+                            <td data-label="{% if pedido.situacao != 'Aberto' %}Dt. Fatura:{% endif %}" class="mobile-2col" style="align-items: center;">{{ pedido.dt_fat|date:"d/m/Y - H:i" }}</td>
                             <td data-label="Vl. Total:" class="mobile-2col" style="color: #36454F; font-weight: bold;">{{ pedido.total|moeda_br }}</td>
                             <td data-label="Formas Pgto.:" class="mobile-full" style="align-items: center; font-weight: bold;">
                                 <div style="max-height: 5em; overflow-y: auto; white-space: normal; line-height: 0.8em;">

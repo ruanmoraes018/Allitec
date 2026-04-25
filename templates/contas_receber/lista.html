@@ -120,7 +120,7 @@
             <table class="table table-bordered table-responsive-sm table-rounded table-striped" id="tabelas-lista">
                 <thead class="table-dark">
                     <tr>
-                        <th scope="col" style="text-align: center; width: 4%;">Opções</th>
+                        <th scope="col" style="text-align: center; width: 3%;">Opções</th>
                         <th scope="col" style="text-align: justify;">Nr. Conta</th>
                         <th scope="col" style="text-align: center; width: 7%;">Situação</th>
                         <th scope="col" style="text-align: justify;">Filial</th>
@@ -139,7 +139,7 @@
                 <tbody>
                     {% for cr in contas_receber %}
                         <tr>
-                            <td style="width: 80px;">
+                            <td data-label="Opções:" class="mobile-2col">
                                 <div style="text-align: center;">
                                     <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#menuModal{{ cr.id }}" title="Opções">
                                         <i class="fa-solid fa-bars"></i>
@@ -173,6 +173,9 @@
                                                         <i class="fa-solid fa-arrow-rotate-left"></i> Estornar
                                                     </a>
                                                 {% endif %}
+                                                <button class="btn btn-light w-100 text-start menu-opcao op-detalhe-cr border border-secondary" data-id="{{ cr.id }}" data-bs-toggle="modal" data-bs-target="#infoEntModalP{{ cr.id }}">
+                                                    <i class="fa-solid fa-circle-info"></i> Detalhes
+                                                </button>
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary btn-sm mx-auto" data-bs-dismiss="modal">Fechar</button>
@@ -228,6 +231,19 @@
                                                         <u>N</u>ão
                                                     </button>
                                                 </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal fade" id="infoEntModal" tabindex="-1" aria-labelledby="infoEntModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header titulo-modal">
+                                                <h5 class="modal-title" id="infoEntModalLabel"></h5>
+                                            </div>
+                                            <div class="modal-body" id="infoEntBody"></div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                                             </div>
                                         </div>
                                     </div>
@@ -343,10 +359,10 @@
                                     </div>
                                 </div>
                             </td>
-                            <td style="align-items: center;">{{ cr.num_conta }}</td>
-                            <td style="text-align: center; padding: 5px;">
+                            <td data-label="Nº Conta:" class="mobile-2col" style="align-items: center;">{{ cr.num_conta }}</td>
+                            <td data-label="Opções:" class="mobile-2col" style="text-align: center; padding: 5px;">
                                 {% if cr.situacao == 'Aberta' %}
-                                    <div style="background-color: #2c2c2c; border-radius: 20px; color: white; margin-top: 5px;">
+                                    <div style="background-color: #2c2c2c; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
                                         <strong>{{ cr.situacao }}</strong>
                                     </div>
                                 {% else %}
@@ -355,13 +371,13 @@
                                     </div>
                                 {% endif %}
                             </td>
-                            <td style="align-items: center;" class="text-uppercase">{{ cr.vinc_fil.fantasia }}</td>
-                            <td style="align-items: center;" class="text-uppercase">{{ cr.cliente.fantasia }}</td>
-                            <td style="text-align: center;">{{ cr.data_emissao|date:"d/m/Y" }}</td>
-                            <td style="text-align: center;">{{ cr.data_vencimento|date:"d/m/Y" }}</td>
-                            <td style="align-items: center;"><span class="fw-bold text-success">{{ cr.valor|moeda_br }}</span></td>
-                            <td style="text-align: center;"><span class="fw-bold text-secondary">{% if cr.saldo %} {{ cr.saldo|moeda_br }} {% else %} - {% endif %}</span></td>
-                            <td style="text-align: center;">
+                            <td data-label="Filial:" class="mobile-2col" style="align-items: center;" class="text-uppercase">{{ cr.vinc_fil.fantasia }}</td>
+                            <td data-label="Cliente:" class="mobile-2col" style="align-items: center;" class="text-uppercase">{{ cr.cliente.fantasia }}</td>
+                            <td data-label="Dt. Emissão:" class="mobile-2col" style="text-align: center;">{{ cr.data_emissao|date:"d/m/Y" }}</td>
+                            <td data-label="Dt. Vencimento:" class="mobile-2col" style="text-align: center;">{{ cr.data_vencimento|date:"d/m/Y" }}</td>
+                            <td data-label="Valor:" class="mobile-2col" style="align-items: center;"><span class="fw-bold text-success">{{ cr.valor|moeda_br }}</span></td>
+                            <td data-label="Saldo:" class="mobile-2col" style="text-align: center;"><span class="fw-bold text-secondary">{% if cr.saldo %} {{ cr.saldo|moeda_br }} {% else %} - {% endif %}</span></td>
+                            <td data-label="Dias de Atraso:" class="mobile-2col" style="text-align: center;">
                                 {% if cr.dias_atraso > 0 %}
                                     <span class="fw-bold text-danger">
                                         {{ cr.dias_atraso }}
@@ -372,14 +388,14 @@
                                     </span>
                                 {% endif %}
                             </td>
-                            <td style="align-items: center;">{{ cr.valor_juros|moeda_br }}</td>
-                            <td style="align-items: center;">{{ cr.valor_multa|moeda_br }}</td>
-                            <td style="text-align: center;"><span class="fw-bold text-success">{% if cr.situacao == "Paga" %} {{ cr.valor_pago|moeda_br }} {% else %} - {% endif %}</span></td>
-                            <td style="text-align: center;">{% if cr.situacao == 'Aberta' %}-{% else %}{{ cr.data_pagamento|date:"d/m/Y" }}{% endif %}</td>
+                            <td data-label="Juros:" class="mobile-2col" style="align-items: center;">{{ cr.valor_juros|moeda_br }}</td>
+                            <td data-label="Multa:" class="mobile-2col" style="align-items: center;">{{ cr.valor_multa|moeda_br }}</td>
+                            <td data-label="{% if cr.situacao != 'Aberta' %}Valor Pago:{% endif %}" class="mobile-2col" style="text-align: center;"><span class="fw-bold text-success">{% if cr.situacao == "Paga" %} {{ cr.valor_pago|moeda_br }} {% else %}  {% endif %}</span></td>
+                            <td data-label="{% if cr.situacao != 'Aberta' %}Dt. Pagamento:{% endif %}" class="mobile-2col" style="text-align: center;">{% if cr.situacao == 'Aberta' %}{% else %}{{ cr.data_pagamento|date:"d/m/Y" }}{% endif %}</td>
                         </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="14" class="me-auto" style="text-align: center;">
+                        <td colspan="14" class="mobile-full-center" style="text-align: center;">
                             Nenhuma conta à receber encontrada.
                         </td>
                     </tr>

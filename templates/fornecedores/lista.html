@@ -89,7 +89,7 @@
             <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
                 <thead thead class="table-dark">
                     <tr>
-                        <th scope="col">Opções</th>
+                        <th scope="col" style="text-align: center; width: 6%;">Opções</th>
                         <th scope="col" style="text-align: center; width: 5%;">Código</th>
                         <th scope="col" style="text-align: center; width: 7%;">Situação</th>
                         <th scope="col" style="text-align: center; width: 7%;">Tp. Pessoa</th>
@@ -104,9 +104,17 @@
                     {% for fornecedor in fornecedores %}
                         <tr>
 
-                            <td style="width: 80px;">
+                            <td data-label="Opções:" class="mobile-2col">
+                                <a href="{% url 'att-fornecedor' fornecedor.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
+                                  data-permissao="fornecedores.change_fornecedor"
+                                  data-msg-negado="Seu usuário não pode editar fornecedores!"><span><i class="fas fa-edit" title="Editar fornecedor"></i></span></a>
                                 <span>
-                                    <i class="fas fa-trash" title="Deletar" data-bs-toggle="modal" data-bs-target="#modal-{{ fornecedor.id }}"></i>
+                                    <i class="fas fa-trash btn-permissao"
+                                       title="Deletar fornecedor"
+                                       data-bs-target="#modal-{{ fornecedor.id }}"
+                                       data-permissao="fornecedores.delete_fornecedor"
+                                       data-msg-negado="Seu usuário não pode deletar fornecedores!">
+                                    </i>
                                 </span>
                                 <!-- Modal ÚNICO para cada fornecedor -->
                                 <div class="modal fade" id="modal-{{ fornecedor.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ fornecedor.id }}" aria-hidden="true">
@@ -134,14 +142,11 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-fornecedor' fornecedor.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
-                                  data-permissao="fornecedores.change_fornecedor"
-                                  data-msg-negado="Seu usuário não pode editar fornecedores!"><span><i class="fas fa-edit" title="Editar fornecedor"></i></span></a>
                             </td>
-                            <td style="align-items: center;">{{ fornecedor.id }}</td>
-                            <td style="text-align: center; padding: 5px;">
+                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ fornecedor.id }}</td>
+                            <td data-label="Situação:" class="mobile-2col" style="text-align: center; padding: 5px;">
                                 {% if fornecedor.situacao == 'Ativo' %}
-                                    <div style="background-color: #2c2c2c; border-radius: 20px; color: white; margin-top: 5px;">
+                                    <div style="background-color: #2c2c2c; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
                                         <strong>{{ fornecedor.situacao }}</strong>
                                     </div>
                                 {% else %}
@@ -150,9 +155,9 @@
                                     </div>
                                 {% endif %}
                             </td>
-                            <td style="text-align: center; padding: 5px;">
+                            <td data-label="Tp. Pessoa:" class="mobile-2col" style="text-align: center; padding: 5px;">
                                 {% if fornecedor.pessoa == 'Física' %}
-                                    <div style="background-color: #008080; border-radius: 20px; color: white; margin-top: 5px;">
+                                    <div style="background-color: #008080; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
                                         <strong>{{ fornecedor.pessoa }}</strong>
                                     </div>
                                 {% else %}
@@ -161,15 +166,15 @@
                                     </div>
                                 {% endif %}
                             </td>
-                            <td style="align-items: center;">{{ fornecedor.razao_social }}</td>
-                            <td style="align-items: center; text-transform: uppercase;">{{ fornecedor.fantasia }}</td>
-                            <td style="align-items: center;">{{ fornecedor.cpf_cnpj }}</td>
-                            <td style="align-items: center;">{{ fornecedor.cidade.nome_cidade }}</td>
-                            <td style="align-items: center;">{{ fornecedor.tel }}</td>
+                            <td data-label="{% if fornecedor.pessoa == 'Física' %}Nome:{% else %}Razão Social:{% endif %}" class="mobile-2col" style="align-items: center;">{{ fornecedor.razao_social }}</td>
+                            <td data-label="{% if fornecedor.pessoa == 'Física' %}Apelido:{% else %}Fantasia:{% endif %}" class="mobile-2col" style="align-items: center; text-transform: uppercase;">{{ fornecedor.fantasia }}</td>
+                            <td data-label="{% if fornecedor.pessoa == 'Física' %}CPF:{% else %}CNPJ:{% endif %}" class="mobile-2col" style="align-items: center;">{{ fornecedor.cpf_cnpj }}</td>
+                            <td data-label="Cidade:" class="mobile-2col" style="align-items: center;">{{ fornecedor.cidade.nome_cidade }}</td>
+                            <td data-label="Telefone:" class="mobile-2col" style="align-items: center;">{{ fornecedor.tel }}</td>
                         </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="9" class="me-auto" style="text-align: center;">
+                        <td colspan="9" class="mobile-full-center" style="text-align: center;">
                             Nenhum fornecedor encontrado.
                         </td>
                     </tr>

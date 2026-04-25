@@ -16,4 +16,5 @@ urlpatterns = [
     path('ajax/notificacoes/', views.notificacoes_ajax, name='notificacoes_ajax'),
     path('ajax/verificar-parcelas/', views.verificar_parcelas, name='verificar_parcelas'),
     path('filiais/js/', views.dados_filiais_js, name="dados_filiais_js"),
+    path('pagamentos/webhook/mp/', views.webhook_pagamentos, name='webhook_pagamentos'),
 ]

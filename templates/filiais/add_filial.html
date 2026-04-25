@@ -81,10 +81,14 @@
                             </div>
                             <div class="form-section" id="faturamentos">
                                 <div class="row" style="margin-left: -8px; margin-bottom: 10px;">
-                                    <div class="col-md-3">{{ form.tb_preco|as_crispy_field }}</div>
-                                    <div class="col-md-3">{{ form.vendedor|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.tb_preco|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.vendedor|as_crispy_field }}</div>
                                     <div class="col-md-3">{{ form.cli|as_crispy_field }}</div>
                                     <div class="col-md-3">{{ form.tec|as_crispy_field }}</div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Multiplicador M²*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Orçamentos - Portas"></i></label>
+                                        {{ form.multi_m2|as_crispy_field }}
+                                    </div>
                                 </div>
                             </div>
                             <div class="form-section" id="complementos">
@@ -120,7 +124,7 @@
                     <div class="card-footer">
                         <div class="base_botao">
                             <button type="button" class="btn btn-success botoes" data-bs-target="#staticBackdrop" id="openModalBtn">Criar</button>
-                            <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#loadingModal">Voltar</a>
+                            <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;">Voltar</a>
                         </div>
                     </div>
                 </div>

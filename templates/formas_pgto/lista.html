@@ -55,7 +55,7 @@
             <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
                 <thead thead class="table-dark">
                     <tr>
-                        <th scope="col" style="text-align: justify; width: 7%;">Opções</th>
+                        <th scope="col" style="text-align: center; width: 6%;">Opções</th>
                         <th scope="col" style="text-align: center; width: 7%;">Código</th>
                         <th scope="col" style="align-items: center;">Descrição</th>
                     </tr>
@@ -63,7 +63,10 @@
                 <tbody>
                     {% for f_p in formas_pgto %}
                         <tr>
-                            <td style="width: 80px;">
+                            <td data-label="Opções:" class="mobile-2col">
+                                <a href="{% url 'att-formas_pgto' f_p.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
+                                  data-permissao="formas_pgto.change_formapgto"
+                                  data-msg-negado="Seu usuário não pode editar formas de pagamento!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                                 <span>
                                     <i class="fas fa-trash btn-permissao"
                                        title="Deletar forma de pagamento"
@@ -98,16 +101,14 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-formas_pgto' f_p.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
-                                  data-permissao="formas_pgto.change_formapgto"
-                                  data-msg-negado="Seu usuário não pode editar formas de pagamento!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
+                                
                             </td>
-                            <td style="align-items: center;">{{ f_p.id }}</td>
-                            <td class="text-uppercase" style="align-items: center;">{{ f_p.descricao }}</td>
+                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ f_p.id }}</td>
+                            <td data-label="Descrição:" class="mobile-2col text-uppercase" style="align-items: center;">{{ f_p.descricao }}</td>
                         </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="me-auto" style="text-align: center;">
+                        <td colspan="8" class=" mobile-full-center" style="text-align: center;">
                             Nenhuma forma de pagamento encontrada.
                         </td>
                     </tr>

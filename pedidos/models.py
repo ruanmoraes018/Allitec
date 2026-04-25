@@ -1,7 +1,10 @@
 from django.db import models
 from decimal import Decimal
 from clientes.models import Cliente
+from pedidos.views import finalizar_pedido
 from produtos.models import Produto
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 
 class Pedido(models.Model):
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
@@ -41,10 +44,18 @@ class Pedido(models.Model):
             self.status_pagamento = 'pago'
             novo_status = 'pago'
         return novo_status
+    def processar_pagamento(self, pagamento):
+        self.atualizar_status_pagamento()
+
+        if self.situacao != "Faturado":
+            finalizar_pedido(self)
+        else:
+            self.status_pagamento = "pago"
+            self.save(update_fields=["status_pagamento"])
     def save(self, *args, **kwargs):
         self.nome_cli = self.cli.fantasia
         self.fantasia_fil = self.vinc_fil.fantasia
-        self.nome_vend = self.vendedor
+        self.nome_vend = self.vendedor.fantasia
         super().save(*args, **kwargs)
     @property
     def formas_convertidas(self):
@@ -98,17 +109,30 @@ class PedidoFormaPgto(models.Model):
         return f"{self.pedido.id} - {self.forma_pgto.descricao}"
 
 class Pagamento(models.Model):
-    pedido = models.ForeignKey("pedidos.Pedido", on_delete=models.CASCADE, related_name="pagamentos")
-    forma_pgto = models.ForeignKey("formas_pgto.FormaPgto", on_delete=models.PROTECT)
-    gateway = models.CharField(max_length=20)
-    pedido_ref = models.CharField(max_length=100, null=True, blank=True)
-    txid = models.CharField(max_length=100, db_index=True)
+    vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
+
+    content_type = models.ForeignKey(
+        ContentType,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    origem = GenericForeignKey('content_type', 'object_id')
+
+    forma_pgto = models.ForeignKey('formas_pgto.FormaPgto', on_delete=models.PROTECT)
+
+    gateway = models.CharField(max_length=20, null=True, blank=True)
+
+    txid = models.CharField(max_length=100, db_index=True, null=True, blank=True)
+
     valor = models.DecimalField(max_digits=12, decimal_places=2)
     status = models.CharField(max_length=20, default='pendente')
-    qr_code = models.TextField()
+
+    qr_code = models.TextField(null=True, blank=True)
     qr_base64 = models.TextField(null=True, blank=True)
+
     payload = models.JSONField(null=True, blank=True)
+
     dt_criacao = models.DateTimeField(auto_now_add=True)
     dt_pagamento = models.DateTimeField(null=True, blank=True)
-    def __str__(self):
-        return f"{self.pedido.id} - {self.valor}"

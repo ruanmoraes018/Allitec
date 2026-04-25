@@ -90,12 +90,11 @@
                 <thead thead class="table-dark">
                     <tr>
                         <th scope="col">Opções</th>
-                        <th scope="col" style="text-align: center; width: 5%;">Código</th>
+                        <th scope="col" style="text-align: center; width: 6%;">Código</th>
                         <th scope="col" style="text-align: center; width: 7%;">Situação</th>
                         <th scope="col" style="text-align: center; width: 7%;">Tp. Pessoa</th>
                         <th scope="col" style="align-items: center;">Nome/Razão Social</th>
                         <th scope="col" style="align-items: center;">Apelido/Fantasia</th>
-                        <th scope="col" style="align-items: center;">CPF/CNPJ</th>
                         <th scope="col" style="align-items: center;">Cidade</th>
                         <th scope="col" style="align-items: center;">Telefone</th>
                     </tr>
@@ -104,7 +103,10 @@
                     {% for vendedor in vendedores %}
                         <tr>
 
-                            <td style="width: 80px;">
+                            <td data-label="Opções:" class="mobile-2col">
+                                <a href="{% url 'att-vendedor' vendedor.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
+                                  data-permissao="vendedores.change_vendedor"
+                                  data-msg-negado="Seu usuário não pode editar vendedores!"><span><i class="fas fa-edit" title="Editar vendedor"></i></span></a>
                                 <span>
                                     <i class="fas fa-trash" title="Deletar" data-bs-toggle="modal" data-bs-target="#modal-{{ vendedor.id }}"></i>
                                 </span>
@@ -134,14 +136,11 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-vendedor' vendedor.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
-                                  data-permissao="vendedores.change_vendedor"
-                                  data-msg-negado="Seu usuário não pode editar vendedores!"><span><i class="fas fa-edit" title="Editar vendedor"></i></span></a>
                             </td>
-                            <td style="align-items: center;">{{ vendedor.id }}</td>
-                            <td style="text-align: center; padding: 5px;">
+                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ vendedor.id }}</td>
+                            <td data-label="Situação:" class="mobile-2col" style="text-align: center; padding: 5px;">
                                 {% if vendedor.situacao == 'Ativo' %}
-                                    <div style="background-color: #2c2c2c; border-radius: 20px; color: white; margin-top: 5px;">
+                                    <div style="background-color: #2c2c2c; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
                                         <strong>{{ vendedor.situacao }}</strong>
                                     </div>
                                 {% else %}
@@ -150,9 +149,9 @@
                                     </div>
                                 {% endif %}
                             </td>
-                            <td style="text-align: center; padding: 5px;">
+                            <td data-label="Tp. Pessoa:" class="mobile-2col" style="text-align: center; padding: 5px;">
                                 {% if vendedor.pessoa == 'Física' %}
-                                    <div style="background-color: #008080; border-radius: 20px; color: white; margin-top: 5px;">
+                                    <div style="background-color: #008080; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
                                         <strong>{{ vendedor.pessoa }}</strong>
                                     </div>
                                 {% else %}
@@ -161,11 +160,10 @@
                                     </div>
                                 {% endif %}
                             </td>
-                            <td style="align-items: center;">{{ vendedor.razao_social }}</td>
-                            <td style="align-items: center; text-transform: uppercase;">{{ vendedor.fantasia }}</td>
-                            <td style="align-items: center;">{{ vendedor.cpf_cnpj }}</td>
-                            <td style="align-items: center;">{{ vendedor.cidade.nome_cidade }}</td>
-                            <td style="align-items: center;">{{ vendedor.tel }}</td>
+                            <td data-label="{% if vendedor.pessoa == 'Física' %}Nome:{% else %}Razão Social:{% endif %}" class="mobile-2col" style="align-items: center;">{{ vendedor.razao_social }}</td>
+                            <td data-label="{% if vendedor.pessoa == 'Física' %}Apelido:{% else %}Fantasia:{% endif %}" class="mobile-2col" style="align-items: center; text-transform: uppercase;">{{ vendedor.fantasia }}</td>
+                            <td data-label="Cidade:" class="mobile-2col" style="align-items: center;">{{ vendedor.cidade.nome_cidade }}</td>
+                            <td data-label="Telefone:" class="mobile-2col" style="align-items: center;">{{ vendedor.tel }}</td>
                         </tr>
                     {% empty %}
                     <tr>

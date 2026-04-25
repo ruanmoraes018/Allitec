@@ -55,7 +55,7 @@
             <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
                 <thead thead class="table-dark">
                     <tr>
-                        <th scope="col" style="text-align: justify; width: 7%;">Opções</th>
+                        <th scope="col" style="text-align: center; width: 6%;">Opções</th>
                         <th scope="col" style="text-align: center; width: 7%;">Código</th>
                         <th scope="col" style="align-items: center;">Descrição</th>
                     </tr>
@@ -63,9 +63,17 @@
                 <tbody>
                     {% for estado in estados %}
                         <tr>
-                            <td style="width: 80px;">
+                            <td data-label="Opções:" class="mobile-2col">
+                                <a href="{% url 'att-estado' estado.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
+                                  data-permissao="estados.change_estado"
+                                  data-msg-negado="Seu usuário não pode editar estados!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                                 <span>
-                                    <i class="fas fa-trash" title="Deletar" data-bs-toggle="modal" data-bs-target="#modal-{{ estado.id }}"></i>
+                                    <i class="fas fa-trash btn-permissao"
+                                       title="Deletar estado"
+                                       data-bs-target="#modal-{{ estado.id }}"
+                                       data-permissao="estados.delete_estado"
+                                       data-msg-negado="Seu usuário não pode deletar estados!">
+                                    </i>
                                 </span>
                                 <!-- Modal ÚNICO para cada estado -->
                                 <div class="modal fade" id="modal-{{ estado.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ estado.id }}" aria-hidden="true">
@@ -93,16 +101,14 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'att-estado' estado.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
-                                  data-permissao="estados.change_estado"
-                                  data-msg-negado="Seu usuário não pode editar estados!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
+                                
                             </td>
-                            <td style="align-items: center;">{{ estado.id }}</td>
-                            <td class="text-uppercase" style="align-items: center;">{{ estado.nome_estado }}</td>
+                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ estado.id }}</td>
+                            <td data-label="Descrição:" class="mobile-full text-uppercase" style="align-items: center;">{{ estado.nome_estado }}</td>
                         </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="me-auto" style="text-align: center;">
+                        <td colspan="8" class="mobile-full me-auto" style="text-align: center;">
                             Nenhum estado encontrado.
                         </td>
                     </tr>
