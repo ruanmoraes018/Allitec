@@ -37,7 +37,7 @@
                         <div class="form-section" id="clientes">
                             <div class="row" style="margin-left: -8px;">
                                 <input type="hidden" name="next" value="{{ request.GET.next }}">
-                                <div class="col-md-1">{{ form.num_orcamento|as_crispy_field }}</div>
+                                <div class="col-md-1">{{ form.id|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.vinc_fil|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.fornecedor|as_crispy_field }}</div>
                                 <div class="col-md-3">{{ form.solicitante|as_crispy_field }}</div>
@@ -427,7 +427,16 @@
                                         </thead>
                                         <tbody>
                                             {% for forma in orcamento.formas_pgto.all %}
-                                                <tr data-forma-id="{{ forma.formas_pgto.id }}">
+                                                <tr
+                                                    data-forma-id="{{ forma.formas_pgto.id }}"
+                                                    data-valor="{{ forma.valor }}"
+                                                    data-parcelas="{{ forma.parcelas|default:1 }}"
+                                                    data-dias="{{ forma.dias_intervalo|default:0 }}"
+                                                    data-gera-parcelas="{{ forma.formas_pgto.gera_parcelas|yesno:'1,0' }}"
+                                                    data-troco="{{ forma.formas_pgto.troco|yesno:'1,0' }}"
+                                                    data-gateway="{{ forma.formas_pgto.gateway|lower|default:'nenhum' }}"
+                                                    data-credencial='{{ forma.formas_pgto.credenciais }}'
+                                                >
                                                     <td data-label="#" class="mobile-full">{{ forloop.counter }}</td>
                                                     <td data-label="Forma Pgto.:" class="mobile-full">{{ forma.formas_pgto.descricao }}</td>
                                                     <td data-label="Valor:" class="mobile-2col" style="font-weight: bold; color: #2E8B57;">{{ forma.valor|moeda_br }}</td>

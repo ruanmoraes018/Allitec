@@ -22,4 +22,6 @@ urlpatterns = [
     path('liberar-com-senha/', views.liberar_com_senha, name='liberar_com_senha'),
     path('expirar-solicitacao/', views.expirar_solicitacao, name='expirar_solicitacao'),
     path("alterar-status/", views.alterar_status_orcamento, name="alterar_status_orcamento"),
+    path("<int:orcamento_id>/gerar-pagamento/", views.gerar_pagamento_orcamento, name='gerar-pagamento-orcamento'),
+    path('<int:orcamento_id>/status-pagamento/', views.status_pagamento_orcamento, name='status-pagamento-orcamento'),
 ]

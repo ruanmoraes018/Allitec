@@ -79,14 +79,42 @@ class ContaReceber(models.Model):
         return self.valor + self.valor_multa + self.valor_juros
     def __str__(self):
         return f"{self.num_conta}"
-    
-    def processar_pagamento(self, pagamento):
-        self.valor_pago += pagamento.valor
 
+    def processar_pagamento(self, pagamento):
+        ContaReceberBaixaForma.objects.create(
+            vinc_emp=self.vinc_emp,
+            conta_receber=self,
+            forma_pgto=pagamento.forma_pgto,
+            valor=pagamento.valor
+        )
+        self.valor_pago += pagamento.valor
         if self.saldo <= 0:
             self.situacao = "Paga"
             self.data_pagamento = timezone.now().date()
-
+        if self.saldo > 0:
+            ContaReceber.objects.create(
+                vinc_emp=self.vinc_emp,
+                vinc_fil=self.vinc_fil,
+                orcamento=self.orcamento,
+                pedido=self.pedido,
+                cliente=self.cliente,
+                forma_pgto=None,
+                num_conta=self.num_conta,
+                tp_juros=self.tp_juros,
+                tp_multa=self.tp_multa,
+                valor=self.saldo,
+                valor_pago=Decimal('0.00'),
+                juros=self.juros,
+                multa=self.multa,
+                desconto=Decimal('0.00'),
+                data_emissao=self.data_emissao,
+                data_vencimento=self.data_vencimento,
+                situacao='Aberta',
+                obs_internas=f'Saldo remanescente do título {self.num_conta}'
+            )
+            self.valor_pago = self.valor + self.juros + self.multa - self.desconto
+            self.situacao = "Paga"
+            self.data_pagamento = timezone.now().date()
         self.save()
 
 class ContaReceberBaixaForma(models.Model):

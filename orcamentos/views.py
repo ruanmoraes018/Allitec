@@ -173,7 +173,7 @@ def lista_orcamentos(request):
     fim_dia = datetime.combine(hoje, time.max)
     formas_com_parcela = OrcamentoFormaPgto.objects.filter(orcamento=OuterRef('pk'), formas_pgto__gera_parcelas=True)
     orcamentos = (Orcamento.objects.filter(vinc_emp=request.user.empresa).select_related('cli', 'vinc_fil', 'solicitante').prefetch_related('formas_pgto__formas_pgto')).annotate(tem_forma_com_parcela=Exists(formas_com_parcela))
-    if s: orcamentos = orcamentos.filter(num_orcamento__icontains=s)
+    if s: orcamentos = orcamentos.filter(id__iexact=s)
     if por_dt == 'Sim' and dt_ini and dt_fim:
         try:
             dt_ini_dt = datetime.combine(datetime.strptime(dt_ini, '%d/%m/%Y').date(), time.min)
@@ -188,7 +188,7 @@ def lista_orcamentos(request):
     if fil: orcamentos = orcamentos.filter(vinc_fil_id=fil)
     if cli: orcamentos = orcamentos.filter(cli_id=cli)
     if tec: orcamentos = orcamentos.filter(solicitante_id=tec)
-    if ordem == '0': orcamentos = orcamentos.order_by('num_orcamento')
+    if ordem == '0': orcamentos = orcamentos.order_by('id')
     elif ordem == '1': orcamentos = orcamentos.order_by('vinc_fil')
     elif ordem == '2': orcamentos = orcamentos.order_by('cli')
     elif ordem == '3': orcamentos = orcamentos.order_by('solicitante')
@@ -307,13 +307,16 @@ def add_orcamento(request):
                 try: formas = json.loads(itens_pgto)
                 except json.JSONDecodeError: formas = []
                 for f in formas:
-                    nome = f.get("forma")
+                    forma_id = f.get("forma_id")
                     valor = Decimal(str(f.get("valor", "0")))
                     parcelas = int(f.get("parcelas") or 1)
                     dias = int(f.get("dias") or 0)
-                    if not nome or valor < Decimal("0.01"): continue
-                    try: fp = FormaPgto.objects.get(descricao=nome, vinc_emp=request.user.empresa)
-                    except FormaPgto.DoesNotExist: continue
+                    if not forma_id or valor < Decimal("0.01"):
+                        continue
+                    try:
+                        fp = FormaPgto.objects.get(id=forma_id, vinc_emp=request.user.empresa)
+                    except FormaPgto.DoesNotExist:
+                        continue
                     OrcamentoFormaPgto.objects.create(orcamento=o, formas_pgto=fp, valor=valor, parcelas=parcelas, dias_intervalo=dias)
             messages.success(request, "Orçamento criado com sucesso!")
             return redirect('/orcamentos/lista/?s=' + str(o.id))
@@ -403,13 +406,16 @@ def att_orcamento(request, id):
                 try: formas = json.loads(formas_json)
                 except: formas = []
                 for f in formas:
-                    nome = f.get("forma")
+                    forma_id = f.get("forma_id")
                     valor = Decimal(str(f.get("valor") or "0"))
                     parcelas = int(f.get("parcelas") or 1)
                     dias = int(f.get("dias") or 0)
-                    if not nome or valor <= 0: continue
-                    try: fp = FormaPgto.objects.get(descricao=nome, vinc_emp=request.user.empresa)
-                    except FormaPgto.DoesNotExist: continue
+                    if not forma_id or valor < Decimal("0.01"):
+                        continue
+                    try:
+                        fp = FormaPgto.objects.get(id=forma_id, vinc_emp=request.user.empresa)
+                    except FormaPgto.DoesNotExist:
+                        continue
                     OrcamentoFormaPgto.objects.create(orcamento=orcamento, formas_pgto=fp, valor=valor, parcelas=parcelas, dias_intervalo=dias)
             orcamento.num_orcamento = f"{datetime.now():%Y-}{orcamento.id}"
             orcamento.save(update_fields=["num_orcamento"])
@@ -450,15 +456,21 @@ def clonar_orcamento(request, id):
                 ]
                 return render(request, "orcamentos/clonar_orcamento.html", {"form": form, "orcamento": orcamento, "error_messages": erros})
             novo = form.save(commit=False)
-            dt_emi = form.cleaned_data['dt_emi']
-            hora_atual = datetime.now() - timedelta(hours=3)
-            data_hora_completa = datetime.combine(dt_emi, hora_atual.time())
-            novo.dt_emi = data_hora_completa
+            novo.dt_emi = datetime.now()
             novo.situacao = "Aberto"
             novo.vinc_emp = orcamento.vinc_emp
             novo.save()
+
             novo.num_orcamento = f"{datetime.now():%Y-}{novo.id}"
             novo.save(update_fields=["num_orcamento"])
+            for forma in orcamento.formas_pgto.all():
+                OrcamentoFormaPgto.objects.create(
+                    orcamento=novo,
+                    formas_pgto=forma.formas_pgto,
+                    valor=forma.valor,
+                    parcelas=forma.parcelas,
+                    dias_intervalo=forma.dias_intervalo
+                )
             next_url = request.POST.get('next') or request.GET.get('next')
             for porta in orcamento.portas.all():
                 nova_porta = PortaOrcamento.objects.create(orcamento=novo, numero=porta.numero, largura=porta.largura, altura=porta.altura, qtd_lam=porta.qtd_lam, m2=porta.m2,
@@ -469,10 +481,7 @@ def clonar_orcamento(request, id):
                 for ad in porta.adicionais.all():
                     PortaAdicional.objects.create(porta=nova_porta, produto=ad.produto, quantidade=ad.quantidade, valor_unitario=ad.valor_unitario, valor_total=ad.valor_total, regra_origem=ad.regra_origem, lado=ad.lado)
             messages.success(request, "Orçamento clonado com sucesso!")
-            if next_url:
-                return redirect(next_url)
-            else:
-                 return redirect('/orcamentos/lista/?s=' + str(novo.id))
+            return redirect('/orcamentos/lista/?s=' + str(novo.id))
         portas_json = []
         for porta in orcamento.portas.all():
             portas_json.append({"numero": porta.numero, "largura": float(porta.largura), "altura": float(porta.altura), "qtd_lam": float(porta.qtd_lam or 0), "m2": float(porta.m2 or 0),
@@ -513,84 +522,45 @@ def del_orcamento(request, id):
 @transaction.atomic
 def faturar_orcamento(request, id):
     orcamento = get_object_or_404(
-        Orcamento.objects.select_related('cli', 'vinc_fil', 'vinc_emp').prefetch_related('formas_pgto__formas_pgto', 'portas__produtos__produto', 'portas__adicionais__produto',),
-        pk=id, vinc_emp=request.user.empresa)
+        Orcamento.objects.select_related('cli', 'vinc_fil', 'vinc_emp')
+        .prefetch_related(
+            'formas_pgto__formas_pgto',
+            'portas__produtos__produto',
+            'portas__adicionais__produto',
+        ),
+        pk=id,
+        vinc_emp=request.user.empresa
+    )
     if not request.user.has_perm('orcamentos.faturar_orcamento'):
-        messages.error(request, 'Você não tem permissão para faturar orçamentos!')
+        messages.error(request, 'Sem permissão!')
         return redirect('/orcamentos/lista/')
     if orcamento.situacao == 'Faturado':
-        messages.warning(request, 'Orçamento já está faturado!')
+        messages.warning(request, 'Já faturado!')
         return redirect('/orcamentos/lista/')
     formas = list(orcamento.formas_pgto.all())
     if not formas:
-        messages.error(request, 'Informe ao menos uma forma de pagamento antes de faturar.')
+        messages.error(request, 'Informe forma de pagamento!')
         return redirect('/orcamentos/lista/')
-    formas_map = {f.formas_pgto_id: f for f in formas}
-    tem_forma_com_parcela = any(f.formas_pgto.gera_parcelas for f in formas)
-    preview_json = request.POST.get('preview_contas_json', '').strip()
-    contas_validas = []
-    totais_por_forma = {}
-    if tem_forma_com_parcela:
-        if not preview_json:
-            messages.error(request, 'A pré-visualização das contas a receber não foi enviada.')
-            return redirect('/orcamentos/lista/')
-        try:
-            preview_contas = json.loads(preview_json)
-        except json.JSONDecodeError:
-            messages.error(request, 'Erro ao ler a pré-visualização das contas a receber.')
-            return redirect('/orcamentos/lista/')
-        if not isinstance(preview_contas, list) or not preview_contas:
-            messages.error(request, 'Nenhuma conta a receber foi informada.')
-            return redirect('/orcamentos/lista/')
-        for i, item in enumerate(preview_contas, start=1):
-            try:
-                forma_pgto_id = int(item.get('forma_pgto_id'))
-            except (TypeError, ValueError):
-                messages.error(request, f'Parcela {i}: forma de pagamento inválida.')
-                return redirect('/orcamentos/lista/')
-            if forma_pgto_id not in formas_map:
-                messages.error(request, f'Parcela {i}: forma de pagamento inexistente.')
-                return redirect('/orcamentos/lista/')
-            forma_orc = formas_map[forma_pgto_id]
-            if not forma_orc.formas_pgto.gera_parcelas:
-                messages.error(request, f'A forma {forma_orc.formas_pgto.descricao} não pode gerar parcelas.')
-                return redirect('/orcamentos/lista/')
-            # número da conta
-            num_conta = (item.get('num_conta') or '').strip()
-            if not num_conta:
-                messages.error(request, f'Parcela {i}: número da conta não informado.')
-                return redirect('/orcamentos/lista/')
-            # valor
-            try:
-                valor = Decimal(str(item.get('valor', '0'))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-            except InvalidOperation:
-                messages.error(request, f'Parcela {i}: valor inválido.')
-                return redirect('/orcamentos/lista/')
-            if valor <= 0:
-                messages.error(request, f'Parcela {i}: valor deve ser maior que zero.')
-                return redirect('/orcamentos/lista/')
-            data_str = item.get('data_vencimento')
-            try:
-                if '/' in data_str:
-                    data_vencimento = datetime.strptime(data_str, '%d/%m/%Y').date()
-                else:
-                    data_vencimento = datetime.strptime(data_str, '%Y-%m-%d').date()
-            except (TypeError, ValueError):
-                messages.error(request, f'Parcela {i}: data de vencimento inválida.')
-                return redirect('/orcamentos/lista/')
-            totais_por_forma.setdefault(forma_pgto_id, Decimal('0.00'))
-            totais_por_forma[forma_pgto_id] += valor
-            contas_validas.append({"forma_pgto_id": forma_pgto_id, "num_conta": num_conta.upper(), "valor": valor, "data_vencimento": data_vencimento})
-        for forma in formas:
-            if forma.formas_pgto.gera_parcelas:
-                total_preview = totais_por_forma.get(forma.formas_pgto_id, Decimal('0.00')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                valor_forma = Decimal(forma.valor).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                if total_preview != valor_forma:
-                    messages.error(request, f'A soma das parcelas da forma {forma.formas_pgto.descricao} - ({total_preview}) difere do valor informado ({valor_forma}).')
-                    return redirect('/orcamentos/lista/?s=' + str(orcamento.id))
-        for conta in contas_validas:
-            ContaReceber.objects.create(vinc_emp=orcamento.vinc_emp, vinc_fil=orcamento.vinc_fil, orcamento=orcamento, cliente=orcamento.cli, forma_pgto_id=conta["forma_pgto_id"],
-                num_conta=conta["num_conta"], valor=conta["valor"], data_vencimento=conta["data_vencimento"], situacao='Aberta',)
+    contas_geradas = []
+    for forma in formas:
+        gateway = (forma.formas_pgto.gateway or "").strip().lower()
+        if gateway not in ["", "nenhum", "none"]:
+            continue  # será tratado pelo fluxo de pagamento
+        if forma.formas_pgto.gera_parcelas:
+            parcelas = forma.parcelas or 1
+            valor_parcela = (Decimal(forma.valor) / parcelas).quantize(Decimal("0.01"))
+            for i in range(parcelas):
+                ContaReceber.objects.create(
+                    vinc_emp=orcamento.vinc_emp,
+                    vinc_fil=orcamento.vinc_fil,
+                    orcamento=orcamento,
+                    cliente=orcamento.cli,
+                    forma_pgto=forma.formas_pgto,
+                    num_conta=f"{orcamento.id}-{i+1}",
+                    valor=valor_parcela,
+                    data_vencimento=datetime.now().date() + timedelta(days=forma.dias_intervalo * (i+1)),
+                    situacao='Aberta'
+                )
     orcamento.situacao = 'Faturado'
     orcamento.dt_fat = datetime.now()
     orcamento.save(update_fields=['situacao', 'dt_fat'])
@@ -603,8 +573,47 @@ def faturar_orcamento(request, id):
             produto = item.produto
             produto.estoque_prod -= item.quantidade
             produto.save(update_fields=['estoque_prod'])
-    messages.success(request, f'Orçamento {orcamento.num_orcamento} faturado com sucesso!')
+    messages.success(request, f'Orçamento {orcamento.id} faturado!')
     return redirect('/orcamentos/lista/?s=' + str(orcamento.id))
+
+from core.pagamentos.fluxo import gerar_pagamentos_orcamento
+from pedidos.models import Pagamento
+from django.contrib.contenttypes.models import ContentType
+
+@login_required
+def gerar_pagamento_orcamento(request, orcamento_id):
+    orcamento = get_object_or_404(
+        Orcamento,
+        pk=orcamento_id,
+        vinc_emp=request.user.empresa
+    )
+    from django.contrib.contenttypes.models import ContentType
+    ct = ContentType.objects.get_for_model(orcamento)
+    if Pagamento.objects.filter(content_type=ct, object_id=orcamento.id).exists():
+        return JsonResponse({"erro": "Pagamento já gerado."}, status=400)
+    pagamentos = gerar_pagamentos_orcamento(orcamento)
+    if not pagamentos:
+        return JsonResponse({"erro": "Nenhum pagamento gerado."}, status=400)
+    return JsonResponse({"pagamentos": pagamentos})
+
+@login_required
+def status_pagamento_orcamento(request, orcamento_id):
+    orcamento = get_object_or_404(
+        Orcamento,
+        pk=orcamento_id,
+        vinc_emp=request.user.empresa
+    )
+    ct = ContentType.objects.get_for_model(orcamento)
+    pagamentos = Pagamento.objects.filter(
+        content_type=ct,
+        object_id=orcamento.id
+    )
+    data = [{
+        "txid": p.txid,
+        "status": p.status,
+        "valor": str(p.valor)
+    } for p in pagamentos]
+    return JsonResponse({"pagamentos": data})
 
 @require_POST
 @login_required
@@ -641,7 +650,7 @@ def cancelar_orcamento(request, id):
         orcamento.situacao = 'Cancelado'
         orcamento.dt_fat = datetime.now()
         orcamento.save(update_fields=['situacao', 'dt_fat'])
-        messages.success(request, f'Orçamento {orcamento.num_orcamento} cancelado com sucesso!')
+        messages.success(request, f'Orçamento {orcamento.id} cancelado com sucesso!')
         return redirect('/orcamentos/lista/?s=' + str(orcamento.id))
 
 @login_required
@@ -683,7 +692,7 @@ def imprimir_comp_a4(request, id):
     larg_pag, alt_pag = A4
     pdfmetrics.registerFont(TTFont('Times', times))
     pdfmetrics.registerFont(TTFont('Times Bold', times_bold))
-    c.setTitle(f'RESUMO ORÇAMENTO - {orcamento.num_orcamento}')
+    c.setTitle(f'RESUMO ORÇAMENTO - {orcamento.id}')
     c.setFont("Times", 10)
     logo_path = os.path.join(settings.MEDIA_ROOT, str(orcamento.vinc_fil.logo))
     if os.path.exists(logo_path):
@@ -707,11 +716,11 @@ def imprimir_comp_a4(request, id):
     c.line(40, y, larg_pag-40, y)
     y -= 16
     c.setFont("Times Bold", 14)
-    c.drawCentredString(larg_pag/2, y, f"Resumo Orçamento {orcamento.num_orcamento} ({orcamento.situacao})")
+    c.drawCentredString(larg_pag/2, y, f"Resumo Orçamento {orcamento.id} ({orcamento.situacao})")
     y -= 8
     c.line(40, y, larg_pag-40, y)
     y -= 20
-    col_1 = [("Nº Orçamento:", orcamento.num_orcamento), ("Dt. Emissão:", orcamento.dt_emi.strftime("%d/%m/%Y")),
+    col_1 = [("Nº Orçamento:", orcamento.id), ("Dt. Emissão:", orcamento.dt_emi.strftime("%d/%m/%Y")),
         ("Solicitante:", orcamento.nome_solicitante), ("Razão Social:", orcamento.cli.razao_social),
         ("Cliente:", f"{orcamento.cli.id} - {orcamento.nome_cli}"), ("Endereço:", f"{orcamento.cli.endereco}, Nº {orcamento.cli.numero}"),
         ("CPF/CNPJ:", orcamento.cli.cpf_cnpj),
@@ -775,7 +784,7 @@ def imprimir_comp_a4(request, id):
     c.save()
     buffer.seek(0)
     response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = f'filename="RESUMO ORÇAMENTO - {orcamento.num_orcamento}.pdf"'
+    response['Content-Disposition'] = f'filename="RESUMO ORÇAMENTO - {orcamento.id}.pdf"'
     return response
 
 @login_required
@@ -800,7 +809,7 @@ def pdf_contrato_html(request, id):
     html_string = render_to_string('orcamentos/pdf_contrato.html', {'o': o, 'portas': portas, 'linhas_formas': linhas_formas, 'logo_base64': logo_base64})
     pdf = HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf()
     response = HttpResponse(pdf, content_type='application/pdf')
-    response['Content-Disposition'] = (f'inline; filename="CONTRATO ORÇAMENTO PORTA ENROLAR - {o.num_orcamento}.pdf"')
+    response['Content-Disposition'] = (f'inline; filename="CONTRATO ORÇAMENTO PORTA ENROLAR - {o.id}.pdf"')
     return response
 
 def img_base64(path):
@@ -839,7 +848,7 @@ def pdf_proposta_html(request, id):
     html = render_to_string('orcamentos/pdf_proposta.html', {'o': o, 'lg_emp': lg_emp, 'portas': portas, 'vl_tot_p_s': vl_tot_p_s, 'vl_tot_dsct': vl_tot_dsct, 'ic_t': ic_t, 'ic_e': ic_e, 'ic_l': ic_l, 'dt_format': dt_format})
     pdf = HTML(string=html).write_pdf()
     response = HttpResponse(pdf, content_type="application/pdf")
-    response["Content-Disposition"] = ( f'inline; filename="PROPOSTA COMERCIAL - {o.num_orcamento}.pdf"' )
+    response["Content-Disposition"] = ( f'inline; filename="PROPOSTA COMERCIAL - {o.id}.pdf"' )
     return response
 
 @login_required
@@ -865,7 +874,7 @@ def pdf_orcamento_html(request, id):
     html = render_to_string('orcamentos/pdf_orcamento.html', {'o': o, 'portas': portas, 'linhas_formas': linhas_formas, 'logo_base64': logo_base64}, request=request)
     pdf = HTML(string=html, base_url=request.build_absolute_uri('/') ).write_pdf( stylesheets=[CSS(string=""" @page {size: A4; margin: 25mm 15mm 20mm 15mm;} body {font-family: Arial, sans-serif; font-size: 11px;} """)])
     response = HttpResponse(pdf, content_type="application/pdf")
-    response["Content-Disposition"] = (f'inline; filename="ORÇAMENTO PORTA ENROLAR - {o.num_orcamento}.pdf"')
+    response["Content-Disposition"] = (f'inline; filename="ORÇAMENTO PORTA ENROLAR - {o.id}.pdf"')
     return response
 
 @login_required
@@ -896,5 +905,5 @@ def pdf_producao_html(request, id):
                 body {font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #111;}
             """)])
     response = HttpResponse(pdf, content_type='application/pdf')
-    response['Content-Disposition'] = (f'inline; filename="ORDEM DE PRODUCAO PORTA ENROLAR - {o.num_orcamento}.pdf"')
+    response['Content-Disposition'] = (f'inline; filename="ORDEM DE PRODUCAO PORTA ENROLAR - {o.id}.pdf"')
     return response

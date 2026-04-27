@@ -4,25 +4,19 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponseForbidden
+from django.http import JsonResponse
 from formas_pgto.models import FormaPgto
 from util.permissoes import verifica_permissao, verifica_alguma_permissao
 import json
-from django.conf import settings
-from PIL import Image
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from django.views.decorators.http import require_POST
-from django.contrib.auth.decorators import permission_required
-from filiais.models import Filial, Usuario
+from filiais.models import Filial
 from .models import Pedido, PedidoFormaPgto, PedidoProduto, Pagamento
 from clientes.models import Cliente
 from produtos.models import Produto
 from .forms import PedidoForm
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from core.pagamentos.fluxo import gerar_pagamentos_pedido
-from core.pagamentos.services import PagamentoService
-from pedidos.models import Pedido
-from django.views.decorators.csrf import csrf_exempt
+from pedidos.services import finalizar_pedido
 from django.db import transaction
 from contas_receber.models import ContaReceber
 import logging
@@ -204,6 +198,7 @@ def add_pedido(request):
             # Cria o objeto pedido sem salvar ainda no banco
             pedido = form.save(commit=False)
             pedido.vinc_emp = request.user.empresa
+            pedido.dt_emi = datetime.now()
             pedido.save()  # Salva a pedido no banco
 
             # Dicionário para organizar os produtos enviados no POST
@@ -631,42 +626,3 @@ def recuperar_pix_pendente(request, pedido_id):
     if not pagamento:
         return JsonResponse({"erro": True})
     return JsonResponse({"txid": pagamento.txid, "qr_code": pagamento.qr_code, "qr_base64": pagamento.qr_base64, "valor": str(pagamento.valor)})
-
-@transaction.atomic
-def finalizar_pedido(pedido, formas=None, parcelas=None, parcial=False):
-    # 🔹 evita refaturar estoque
-    if pedido.situacao != "Faturado":
-        for item in pedido.itens.select_related('produto'):
-            produto = item.produto
-            produto.estoque_prod = (produto.estoque_prod or Decimal('0')) - item.quantidade
-            produto.save(update_fields=["estoque_prod"])
-    # 🔹 salva formas
-    if formas:
-        for f in formas:
-            PedidoFormaPgto.objects.create(
-                pedido=pedido,
-                forma_pgto_id=f["forma"],
-                valor=f["valor"]
-            )
-    # 🔹 gera contas
-    if parcelas:
-        for p in parcelas:
-            ContaReceber.objects.create(
-                vinc_emp=pedido.vinc_emp,
-                vinc_fil=pedido.vinc_fil,
-                cliente=pedido.cli,
-                pedido=pedido,
-                forma_pgto_id=p.get('forma'),
-                num_conta=p.get('numero'),
-                valor=Decimal(str(p.get('valor'))),
-                data_vencimento=p.get('vencimento'),
-                situacao='Aberta'
-            )
-    # 🔥 STATUS CORRETO
-    if parcial:
-        pedido.status_pagamento = "parcial"
-    else:
-        pedido.status_pagamento = "pago"
-    pedido.situacao = "Faturado"
-    pedido.dt_fat = timezone.now()
-    pedido.save(update_fields=["status_pagamento", "situacao", "dt_fat"])

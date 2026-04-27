@@ -1,8 +1,5 @@
-import mercadopago
-from django.contrib.contenttypes.models import ContentType
 from pedidos.models import Pagamento
 import json
-
 import requests
 
 def tratar_webhook_mercadopago(data):

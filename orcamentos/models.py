@@ -62,6 +62,16 @@ class Orcamento(models.Model):
     nome_fornecedor = models.CharField(max_length=255, blank=True)
     situacao = models.CharField(max_length=10, choices=[('Aberto', 'Aberto'), ('Faturado', 'Faturado'), ('Cancelado', 'Cancelado')], default='Aberto', db_index=True)
     status = models.CharField(max_length=15, choices=[('Em Produção', 'Em Produção'), ('Embalada', 'Embalada'), ('Entregue', 'Entregue'), ('Instalada', 'Instalada')], default='Em Produção', db_index=True)
+    status_pagamento = models.CharField(
+        max_length=15,
+        choices=[
+            ('Pendente', 'Pendente'),
+            ('Parcial', 'Parcial'),
+            ('Pago', 'Pago'),
+        ],
+        default='Pendente',
+        db_index=True
+    )
     num_orcamento = models.CharField(max_length=25, db_index=True)
     obs_cli = models.TextField(default="", blank=True)
     pintura = models.CharField(max_length=5, choices=[('Sim', 'Sim'), ('Não', 'Não')], default='Sim')
@@ -86,8 +96,28 @@ class Orcamento(models.Model):
     motivo = models.CharField(max_length=60, blank=True, null=True)
 
     def __str__(self):
-        return f"{self.num_orcamento}"
+        return f"Orçamento - {self.id}"
+    def atualizar_status_pagamento(self):
+        from pedidos.models import Pagamento
+        from django.contrib.contenttypes.models import ContentType
 
+        ct = ContentType.objects.get_for_model(self)
+
+        pagamentos = Pagamento.objects.filter(
+            content_type=ct,
+            object_id=self.id
+        )
+
+        if not pagamentos.exists():
+            self.status_pagamento = 'Pendente'
+        elif all(p.status == 'approved' for p in pagamentos):
+            self.status_pagamento = 'Pago'
+        elif any(p.status == 'approved' for p in pagamentos):
+            self.status_pagamento = 'Parcial'
+        else:
+            self.status_pagamento = 'Pendente'
+
+        self.save(update_fields=['status_pagamento'])
     def atualizar_subtotal(self):
         subtotal = Decimal("0.00")
         for porta in self.portas.all():
@@ -130,7 +160,7 @@ class PortaOrcamento(models.Model):
     op_guia_e = models.CharField(verbose_name="Opção Guia Esquerdo", max_length=13, choices=[('Dentro do Vão', 'Dentro do Vão'), ('Fora do Vão', 'Fora do Vão')], default='Dentro do Vão')
     op_guia_d = models.CharField(verbose_name="Opção Guia Direito", max_length=13, choices=[('Dentro do Vão', 'Dentro do Vão'), ('Fora do Vão', 'Fora do Vão')], default='Dentro do Vão')
     def __str__(self):
-        return f"Porta {self.numero} do Orçamento {self.orcamento.num_orcamento}"
+        return f"Porta {self.numero} do Orçamento {self.orcamento.id}"
 
 class PortaProduto(models.Model):
     porta = models.ForeignKey(PortaOrcamento, on_delete=models.CASCADE, related_name="produtos")

@@ -72,6 +72,8 @@ def lista_formas_pgto_ajax(request):
 def forma_pgto_info(request, id):
     fp = get_object_or_404(FormaPgto, pk=id, vinc_emp=request.user.empresa)
     return JsonResponse({
+        "id": fp.id,
+        "descricao": fp.descricao,
         "gera_parcelas": fp.gera_parcelas,
         "troco": fp.troco == "Sim",
         "gateway": fp.gateway,
@@ -113,7 +115,7 @@ def add_formas_pgto(request):
     except DatabaseError as e:
         error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco de dados: {str(e)}")
     except Exception as e:
-        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}") 
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return render(request, 'formas_pgto/add.html', {'form': form})
 
 @login_required

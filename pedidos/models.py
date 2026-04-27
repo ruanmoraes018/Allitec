@@ -1,14 +1,15 @@
 from django.db import models
 from decimal import Decimal
 from clientes.models import Cliente
-from pedidos.views import finalizar_pedido
 from produtos.models import Produto
-from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
+from pedidos.services import finalizar_pedido
 
 class Pedido(models.Model):
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
     vinc_fil = models.ForeignKey('filiais.Filial', on_delete=models.PROTECT)
+    caixa = models.ForeignKey('pdvs.Caixa', on_delete=models.PROTECT, null=True, blank=True)
     cli = models.ForeignKey(Cliente, on_delete=models.PROTECT)
     vendedor = models.ForeignKey('vendedores.Vendedor', on_delete=models.SET_NULL, null=True, blank=True)
     nome_cli = models.CharField(max_length=255, blank=True)
@@ -22,6 +23,10 @@ class Pedido(models.Model):
     dt_emi = models.DateTimeField(null=True, blank=True)
     dt_fat = models.DateTimeField(null=True, blank=True)
     motivo = models.CharField(max_length=60, blank=True, null=True)
+    pagamentos = GenericRelation(
+        'pedidos.Pagamento',
+        related_query_name='pedido'
+    )
     def __str__(self):
         return f"{self.id} - {self.cli}"
     def atualizar_total(self):

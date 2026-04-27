@@ -4,7 +4,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Ordem de Produção - Porta de Enrolar - {{ o.num_orcamento }}</title>
+    <title>Ordem de Produção - Porta de Enrolar - {{ o.id }}</title>
     <style>
         @page {size: A4; margin: 12mm 10mm 12mm 10mm;
             @bottom-center { content: "Página " counter(page) " de " counter(pages); font-size: 10px; font-weight: bold; }
@@ -48,7 +48,7 @@
                 <td class="label">Empresa</td>
                 <td>{{ o.fantasia_emp }}</td>
                 <td class="label">Nº OP / Ref.</td>
-                <td>{{ o.num_orcamento }}</td>
+                <td>{{ o.id }}</td>
                 <td class="label">Dt. Emissão</td>
                 <td>{{ o.dt_emi|date:"d/m/Y H:i" }}</td>
             </tr>

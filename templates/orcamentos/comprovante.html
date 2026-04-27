@@ -55,7 +55,7 @@
         <h6 style="text-align: center; font-weight: bold;">FONE: {{ request.user.filial_user.tel }}</h6>
     </div>
     <h5 style="text-align: center; font-weight: bold;">**Orçamento ({{ orcamento.situacao }})**</h5>
-    <p><strong>Nº Orçamento:</strong> {{ orcamento.num_orcamento }}</p>
+    <p><strong>Nº Orçamento:</strong> {{ orcamento.id }}</p>
     <p><strong>Dt. Emissão:</strong> {{ orcamento.dt_emi|date:"d/m/Y" }}</p>
     <p><strong>Solicitante:</strong> {{ orcamento.solicitante.nome }}</p>
     <div class="linha"></div>

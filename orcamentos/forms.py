@@ -14,9 +14,9 @@ class OrcamentoForm(forms.ModelForm):
     cli = forms.ModelChoiceField(label='Cliente', queryset=Cliente.objects.none(), widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
     vinc_fil = forms.ModelChoiceField(label='Filial', queryset=Filial.objects.none(), widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
     obs_cli = forms.CharField(label='Obs', required=False, widget=forms.Textarea(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase', 'rows': 2}))
-    num_orcamento = forms.CharField(label='Nº', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'disabled': 'disabled'}))
+    id = forms.CharField(label='Nº', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'disabled': 'disabled'}))
     solicitante = forms.ModelChoiceField(label='Técnico/Solicitante', queryset=Tecnico.objects.none(), widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
-    fornecedor = forms.ModelChoiceField(label='Fornecedor', queryset=Fornecedor.objects.none(), required=False, widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
+    fornecedor = forms.ModelChoiceField(label='Fornecedor', queryset=Fornecedor.objects.none(), widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
     pintura = forms.ChoiceField(choices=[('Sim', 'Sim'),('Não', 'Não')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
     portao_social = forms.ChoiceField(label="Portão Social", choices=[('Não', 'Não'),('Sim', 'Sim')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
     tp_pintura = forms.ChoiceField(label="Tipo Pintura", choices=[('Eletrostática', 'Eletrostática'),('Automotiva', 'Automotiva')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
@@ -43,7 +43,7 @@ class OrcamentoForm(forms.ModelForm):
 
     class Meta:
         model = Orcamento
-        exclude = ('motivo', 'dt_fat', 'vinc_emp', 'situacao', 'status')
+        exclude = ('motivo', 'dt_fat', 'vinc_emp', 'situacao', 'status', 'status_pagamento', 'num_orcamento')
     def __init__(self, *args, empresa=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         # Inicializa crispy-forms (opcional, se você usa layout personalizado)

@@ -4,7 +4,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Contrato de Venda e Instalação - {{o.num_orcamento}}</title>
+    <title>Contrato de Venda e Instalação - {{o.id}}</title>
     <style>
         @page {
             size: A4;
@@ -85,7 +85,7 @@
         {% endif %}
     </div>
     <div class="orcamento">
-        <strong>Contrato nº:</strong> {{ o.num_orcamento }}<br>
+        <strong>Contrato nº:</strong> {{ o.id }}<br>
         <strong>Data:</strong> {{ o.dt_emi|date:"d/m/Y" }}
     </div>
 </div>

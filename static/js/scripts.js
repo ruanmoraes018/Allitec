@@ -243,7 +243,7 @@ $(document).ready(function() {
     const tiposRegras = {
         qtd: [{ name: 'qtd_expr', label: 'Qtd (fórmula)', type: 'text' }],
         peso: [{ name: 'max', label: 'Máx', type: 'number' }, { name: 'qtd_expr', label: 'Qtd (fórmula)', type: 'text' }],
-        simples: [{ name: 'campo', label: 'Campo', type: 'text' }, { name: 'valor', label: 'Valor', type: 'text' }, { name: 'tem_pintura', label: 'É Pintura?', type: 'select' }, 
+        simples: [{ name: 'campo', label: 'Campo', type: 'text' }, { name: 'valor', label: 'Valor', type: 'text' }, { name: 'tem_pintura', label: 'É Pintura?', type: 'select' },
             { name: 'qtd_expr', label: 'Qtd (fórmula)', type: 'text' }]
     };
     const CAMPOS_CONTEXTO = [
@@ -668,6 +668,7 @@ $(document).ready(function() {
     $(document).on('shown.bs.modal', '[id^="mdInfoBaixa-"]', function () {
         const modal = $(this);
         const dtPagCr = modal.find('[id^="dt_pag_cr-"]');
+        const contaId = modal.attr('id').split('-')[1];
         if (!dtPagCr.val()) {dtPagCr.val(obterDataAtual2());}
         modal.find('[id^="desc_j_cr"], [id^="desc_m_cr"]').off('input.baixa').on('input.baixa', function () {
             let valor = this.value.replace(/[^\d]/g, '');
@@ -681,28 +682,28 @@ $(document).ready(function() {
         modal.find('[id^="btn_inc_forma"]').off('click.forma').on('click.forma', function () {
             const select = modal.find('[id^="formas_pgto_cr"]');
             const valorInput = modal.find('[id^="vl_pg_cr"]');
-            const tbody = modal.find('table[id^="tb_formas_"] tbody');
+            const tbody = modal.find(`#tb_formas_${contaId} tbody`);
             const formaId = select.val();
             const formaTxt = select.find('option:selected').text();
             const valor = parseBR(valorInput.val());
             const restante = atualizarRestante(modal);
-            if (!formaId) {
-                toast('Selecione uma forma de pagamento!', cor_amarelo);
-                return;
-            }
-            if (valor <= 0) {
-                toast('Informe um valor válido!', cor_amarelo);
-                return;
-            }
-            if (valor > restante) {
-                toast('O valor informado é maior que o restante do título!', cor_amarelo);
-                return;
-            }
+            if (!formaId) return toast('Selecione uma forma!', cor_amarelo);
+            if (valor <= 0) return toast('Valor inválido!', cor_amarelo);
+            if (valor > restante) return toast('Valor maior que restante!', cor_amarelo);
+            const gateway = select.data('gateway') || 'nenhum';
+            const credencial = JSON.stringify(select.data('credencial') || {});
             tbody.append(`
-                <tr>
+                <tr data-gateway="${gateway}" data-credencial='${credencial}'>
                     <td>${formaTxt}<input type="hidden" name="forma_id[]" value="${formaId}"></td>
-                    <td class="text-end">${formatBR(valor)}<input type="hidden" class="vl-item-pgto" name="forma_valor[]" value="${valor.toFixed(2)}"></td>
-                    <td class="text-center"><button type="button" class="btn btn-danger btn-sm remover-forma"><i class="fa-solid fa-trash"></i></button></td>
+                    <td class="text-end">
+                        ${formatBR(valor)}
+                        <input type="hidden" class="vl-item-pgto" name="forma_valor[]" value="${valor.toFixed(2)}">
+                    </td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-danger btn-sm remover-forma">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
                 </tr>
             `);
             const novoRestante = atualizarRestante(modal);
@@ -714,23 +715,167 @@ $(document).ready(function() {
             const restante = atualizarRestante(modal);
             modal.find('[id^="vl_pg_cr"]').val(formatBR(restante > 0 ? restante : 0));
         });
+        function iniciarBaixaConta(modal) {
+            recalcularBaixa(modal);
+            atualizarRestante(modal);
+        }
+        modal.find('[id^="formas_pgto_cr"]').off('change.forma').on('change.forma', function () {
+            const $select = $(this);
+            const formaId = $select.val();
+            if (!formaId) return;
+            $.get('/formas_pgto/forma-pgto-info/' + formaId + '/', function (data) {
+                $select.data('gateway', data.gateway || 'nenhum');
+                $select.data('credencial', data.credenciais || null);
+            });
+        });
         modal.find('.btn-baixar-cr').off('click.baixar').on('click.baixar', function () {
-            const calc = recalcularBaixa(modal);
-            const actionUrl = window.location.origin + '/contas_receber/pagar/' + modal.attr('id').split('-')[1] + '/';
-            const csrfToken = $('[name=csrfmiddlewaretoken]').first().val();
-            if (modal.find('.vl-item-pgto').length === 0) {
-                toast('Adicione pelo menos uma forma de pagamento!', cor_amarelo);
-                return;
+            const linhas = modal.find(`#tb_formas_${contaId} tbody tr`);
+            let temGateway = false;
+            linhas.each(function () {
+                const gateway = ($(this).data('gateway') || '').toLowerCase();
+                if (gateway && gateway !== 'nenhum') {
+                    temGateway = true;
+                    return false;
+                }
+            });
+            if (temGateway) {
+                const formas = [];
+                linhas.each(function () {
+                    const formaId = $(this).find('input[name="forma_id[]"]').val();
+                    const valor = $(this).find('input[name="forma_valor[]"]').val();
+                    if (formaId && valor) {
+                        formas.push({
+                            forma_id: formaId,
+                            valor: valor
+                        });
+                    }
+                });
+                iniciarLoading();
+                $.ajax({
+                    url: `/contas_receber/${contaId}/gerar-pagamento/`,
+                    method: 'POST',
+                    data: {
+                        formas: JSON.stringify(formas),
+                        csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()
+                    },
+                    success: function (resp) {
+                        if (resp.erro) {
+                            toast(resp.erro, cor_vermelho);
+                            return;
+                        }
+                        fecharLoading();
+                        abrirModalPixConta(contaId, resp);
+                    }
+                });
+                return; // 🚫 BLOQUEIA BAIXA NORMAL
             }
-            const form = $('<form>', {method: 'POST', action: actionUrl});
-            form.append(`<input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">`);
+            const calc = recalcularBaixa(modal);
+            const form = $('<form>', {
+                method: 'POST',
+                action: `/contas_receber/pagar/${contaId}/`
+            });
+            form.append(`<input type="hidden" name="csrfmiddlewaretoken" value="${$('[name=csrfmiddlewaretoken]').val()}">`);
             form.append(`<input type="hidden" name="juros" value="${formatarEN(calc.jurosFinal)}">`);
             form.append(`<input type="hidden" name="multa" value="${formatarEN(calc.multaFinal)}">`);
             form.append(`<input type="hidden" name="desconto" value="${formatarEN(calc.descontoFinal)}">`);
-            modal.find('input[name="forma_id[]"], input[name="forma_valor[]"]').each(function () {form.append($(this).clone());});
+            modal.find('input[name="forma_id[]"], input[name="forma_valor[]"]').each(function () {
+                form.append($(this).clone());
+            });
             $('body').append(form);
             form.submit();
         });
+        // 🔥 BAIXA NORMAL
+        function baixarContaNormal(modal, contaId, formas) {
+            const calc = recalcularBaixa(modal, false);
+            const form = $('<form>', {
+                method: 'POST',
+                action: `/contas_receber/pagar/${contaId}/`
+            });
+            form.append(`<input type="hidden" name="csrfmiddlewaretoken" value="${$('input[name=csrfmiddlewaretoken]').val()}">`);
+            form.append(`<input type="hidden" name="juros" value="${calc.jurosFinal}">`);
+            form.append(`<input type="hidden" name="multa" value="${calc.multaFinal}">`);
+            form.append(`<input type="hidden" name="desconto" value="${calc.descontoFinal}">`);
+            formas.forEach(f => {
+                form.append(`<input type="hidden" name="forma_id[]" value="${f.forma}">`);
+                form.append(`<input type="hidden" name="forma_valor[]" value="${f.valor}">`);
+            });
+            $('body').append(form);
+            form.submit();
+        }
+        // 🔥 GERAR PIX
+        function gerarPixConta(contaId, formas) {
+            iniciarLoading();
+            $.post(`/contas_receber/${contaId}/gerar-pagamento/`, {
+                csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+                formas: JSON.stringify(formas)
+            }, function (resp) {
+                fecharLoading();
+                if (resp.qr_code) {
+                    abrirModalPixConta(contaId, resp);
+                } else {
+                    alert('Erro ao gerar PIX');
+                }
+            });
+        }
+        function abrirModalPixConta(contaId, resp) {
+            $('#pixQrContainer').html('');
+            $('#statusPix').removeClass('d-none');
+            $('#statusSucesso').addClass('d-none');
+            $('#pixQrContainer').html(`
+                <div class="mb-3">
+                    <img src="data:image/png;base64,${resp.qr_base64}" width="220" class="mb-2">
+                    <div class="input-group">
+                        <input type="text"
+                               class="form-control text-center"
+                               value="${resp.qr_code}"
+                               readonly>
+                        <button class="btn btn-outline-secondary btn-copiar"
+                                data-code="${resp.qr_code}">
+                            Copiar
+                        </button>
+                    </div>
+                    <strong class="d-block mt-2">
+                        R$ ${formatBR(resp.valor)}
+                    </strong>
+                </div>
+            `);
+            $(document).off('click.copiarPix').on('click.copiarPix', '.btn-copiar', function () {
+                navigator.clipboard.writeText($(this).data('code'));
+                toast('Código PIX copiado!', cor_verde);
+            });
+            const modalPix = new bootstrap.Modal(document.getElementById('modalPixPagamento'));
+            modalPix.show();
+            const interval = setInterval(() => {
+                $.get(`/contas_receber/${contaId}/status-pagamento/`, function (resp) {
+                    if (resp.pago) {
+                        clearInterval(interval);
+                        let mensagem = 'Conta recebida com sucesso!';
+                        if (resp.parcial) {
+                            mensagem = `Baixa parcial realizada. Saldo restante: R$ ${formatBR(resp.restante)}`;
+                        }
+                        $('#modalPixPagamento .modal-body').html(`
+                            <div class="text-center py-4">
+                                <div class="check-circle mx-auto">
+                                    <i class="fa-solid fa-check"></i>
+                                </div>
+                                <h5 class="text-success fw-bold">Pagamento confirmado!</h5>
+                                <p class="text-muted mb-0">Finalizando baixa...</p>
+                            </div>
+                        `);
+                        toast(`${ic_verde} ${mensagem}`, cor_verde);
+                        setTimeout(() => {
+                            modalPix.hide();
+                            iniciarLoading();
+                            setTimeout(() => {
+                                window.location.href = `/contas_receber/lista/?s=${contaId}`;
+                            }, 3000);
+                        }, 2000);
+                    }
+                });
+            }, 3000);
+            document.getElementById('modalPixPagamento')
+                .addEventListener('hidden.bs.modal', () => clearInterval(interval), { once: true });
+        }
         recalcularBaixa(modal);
         const restante = atualizarRestante(modal);
         modal.find('[id^="vl_pg_cr"]').val(formatBR(restante > 0 ? restante : 0));
@@ -2862,14 +3007,21 @@ $(document).ready(function() {
             permissao,
             function () {
                 if ($('#createForm').length) {
-
-                    if ($('#tabela-produtos tbody tr').length === 0 ||
-                        $('#tabela-produtos tbody tr.vazio').length) {
-
-                        toast(`${ic_amarelo} Insira ao menos um produto antes de continuar!`, cor_amarelo);
-                        return;
+                    const isOrcamento = $('.tabela-produtos').length > 0;
+                    if (isOrcamento) {
+                        const temProdutos = $('.tabela-produtos tbody tr:not(.vazio)').length > 0;
+                        const temAdicionais = $('.tabela-adicionais tbody tr:not(.vazio)').length > 0;
+                        if (!temProdutos && !temAdicionais) {
+                            toast(`${ic_amarelo} Insira ao menos um item antes de continuar!`, cor_amarelo);
+                            return;
+                        }
+                    } else {
+                        if ($('#tabela-produtos tbody tr').length === 0 ||
+                            $('#tabela-produtos tbody tr.vazio').length) {
+                            toast(`${ic_amarelo} Insira ao menos um produto antes de continuar!`, cor_amarelo);
+                            return;
+                        }
                     }
-
                 }
                 const collapseTarget = $btn.data('collapse');
                 if (collapseTarget) {
@@ -3072,8 +3224,15 @@ $(document).ready(function() {
                 const formaId = $linha.data('formaId');
                 const valorBruto = $linha.attr('data-valor') || $linha.data('valor') || 0;
                 const valor = parseValorEN(valorBruto);
-                const parcelas = parseInt($linha.data('parcelas') || 1, 10);
-                const intervalo = parseInt($linha.data('intervalo') || 0, 10);
+                const geraParcelas = parseInt($linha.data('geraParcelas') || 0, 10) === 1;
+
+                const parcelas = geraParcelas
+                    ? parseInt($linha.data('parcelas') || 1, 10)
+                    : 1;
+
+                const intervalo = geraParcelas
+                    ? parseInt($linha.data('intervalo') || 0, 10)
+                    : 0;
                 const valores = splitValue(valor, parcelas);
                 for (let i = 1; i <= parcelas; i++) {
                     const venc = new Date(fatura);
@@ -3199,10 +3358,150 @@ $(document).ready(function() {
         });
         $(document).off('click.orcamentos', '.btn-confirmar-faturamento').on('click.orcamentos', '.btn-confirmar-faturamento', function (e) {
             e.preventDefault();
-            const id = $(this).data('id');
-            atualizarPreviewJson(id);
-            $(this).closest('form')[0].submit();
+            const $btn = $(this);
+            const $modal = $btn.closest('.modal-faturar-orcamento');
+            const orcamentoId = $btn.data('id');
+            atualizarPreviewJson(orcamentoId);
+            let temGateway = false;
+            let formasGateway = [];
+            // 🔍 percorre formas
+            $modal.find('.linha-forma-pgto').each(function () {
+                const $row = $(this);
+
+                const gateway = ($row.attr('data-gateway') || '').toString().toLowerCase().trim();
+
+                // 🔥 corrige valor BR
+                let valorRaw = $row.data('valor');
+
+                if (typeof valorRaw === 'string') {
+                    valorRaw = valorRaw.replace(/\./g, '').replace(',', '.');
+                }
+
+                const valor = parseFloat(valorRaw) || 0;
+
+                console.log("DEBUG FORMA:", {
+                    gateway,
+                    valor,
+                    forma_id: $row.data('forma-id')
+                });
+
+                if (gateway && gateway !== 'nenhum' && gateway !== 'none') {
+                    temGateway = true;
+
+                    formasGateway.push({
+                        forma_id: $row.data('forma-id'), // 🔥 padrão seguro
+                        valor: valor
+                    });
+                }
+            });
+            // 🚨 NÃO tem gateway → fluxo normal
+            if (!temGateway) {
+                $btn.closest('form')[0].submit();
+                return;
+            }
+            // ⚡ TEM gateway → gerar pagamento
+            iniciarLoading();
+            $.ajax({
+                url: `/orcamentos/${orcamentoId}/gerar-pagamento/`,
+                method: 'GET',
+                success: function (resp) {
+                    fecharLoading();
+                    if (!resp.pagamentos || !resp.pagamentos.length) {
+                        toast(`${ic_vermelho} Nenhum pagamento foi gerado!`, cor_vermelho);
+                        return;
+                    }
+                    // 👉 abre modal PIX
+                    abrirModalPixOrcamento(resp.pagamentos, orcamentoId);
+                },
+                error: function () {
+                    toast(`${ic_vermelho} Erro ao gerar pagamento!`, cor_vermelho);
+                }
+            });
         });
+        function abrirModalPixOrcamento(pagamentos, orcamentoId) {
+            let html = '';
+            pagamentos.forEach(p => {
+                const valor = parseFloat(p.valor || 0);
+                const valorFormatado = valor.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+                html += `
+                    <div class="mb-3 text-center">
+                        <img src="data:image/png;base64,${p.qr_base64}" width="220" class="mb-2">
+                        <div class="input-group">
+                            <input type="text" class="form-control text-center" value="${p.qr_code}" readonly>
+                            <button class="btn btn-outline-secondary btn-copiar" data-code="${p.qr_code}">
+                                Copiar
+                            </button>
+                        </div>
+                        <strong class="d-block mt-2">R$ ${valorFormatado}</strong>
+                    </div>
+                `;
+            });
+            $('#pixQrContainer').html(html);
+            // 🔄 reset estado
+            $('#statusPix').removeClass('d-none');
+            $('#statusSucesso').addClass('d-none');
+
+            const modalPix = new bootstrap.Modal(document.getElementById('modalPixPagamento'));
+            modalPix.show();
+
+            monitorarPagamentoOrcamento(orcamentoId, modalPix);
+        }
+        $(document).on('click', '.btn-copiar', function () {
+            const code = $(this).data('code');
+            navigator.clipboard.writeText(code).then(() => {
+                toast(`${ic_verde} Código PIX copiado!`, cor_verde);
+            });
+        });
+        function monitorarPagamentoOrcamento(orcamentoId, modalPix) {
+            const interval = setInterval(() => {
+                $.get(`/orcamentos/${orcamentoId}/status-pagamento/`, function (resp) {
+                    if (!resp.pagamentos || !resp.pagamentos.length) return;
+                    // 🔥 verifica TODOS
+                    const todosPagos = resp.pagamentos.every(p => {
+                        const status = String(p.status).toLowerCase();
+                        return ['aprovado', 'pago'].includes(status);
+                    });
+                    if (todosPagos) {
+                        clearInterval(interval);
+                        const body = document.querySelector('#modalPixPagamento .modal-body');
+                        body.innerHTML = `
+                            <div class="text-center py-4">
+                                <div class="check-circle mx-auto">
+                                    <i class="fa-solid fa-check"></i>
+                                </div>
+                                <h5 class="text-success fw-bold">Pagamento confirmado!</h5>
+                                <p class="text-muted mb-0">Finalizando Orçamento...</p>
+                            </div>
+                        `;
+                        toast(`${ic_verde} Pagamento aprovado!`, cor_verde);
+                        // 🔥 chama faturamento automático
+                        faturarOrcamentoAposPagamento(orcamentoId, modalPix);
+                    }
+                });
+            }, 3000);
+        }
+        function faturarOrcamentoAposPagamento(orcamentoId, modalPix) {
+            $.post(`/orcamentos/fat.orc/${orcamentoId}/`, {
+                csrfmiddlewaretoken: getCSRFToken()
+            })
+            .done(function () {
+                toast(`${ic_verde} Orçamento faturado com sucesso!`, cor_verde);
+                setTimeout(() => {
+                    modalPix.hide();
+                    $('.modal-faturar-orcamento').modal('hide');
+                    iniciarLoading();
+                    setTimeout(() => {
+                        window.location.href = `/orcamentos/lista/?s=${orcamentoId}&sit=Faturado`;
+                    }, 1500);
+                }, 1500);
+            })
+            .fail(function () {
+                toast(`${ic_vermelho} Erro ao faturar orçamento!`, cor_vermelho);
+            });
+        }
     });
     // Teste para Faturamento de Pedidos
     function formatarMoedaBrasileira(valor) {
@@ -3567,115 +3866,30 @@ $(document).ready(function() {
             }
         });
     });
-    // $(document).on('click', '.btn-confirmar-pedido', function (e) {
-    //     e.preventDefault();
-    //     e.stopPropagation();
-
-    //     const $modal = $(this).closest('.modal');
-    //     const pedidoId = $modal.data('pedidoId');
-
-    //     let formas = [];
-    //     let parcelas = [];
-    //     let temGateway = false;
-
-    //     $modal.find('#tableFormas-' + pedidoId + ' tbody tr').each(function () {
-    //         const gateway = $(this).data('gateway');
-    //         const credencial = JSON.parse($(this).attr('data-credencial') || '{}');
-    //         const valor = parseValor($(this).data('valor') || 0);
-
-    //         if (valor <= 0) return;
-
-    //         formas.push({
-    //             forma: $(this).data('forma'),
-    //             valor: valor,
-    //             parcelas: parseInt($(this).data('parcelas') || 1),
-    //             dias: parseInt($(this).data('dias') || 0)
-    //         });
-
-    //         if (gateway && gateway !== 'nenhum' && credencial) {
-    //             temGateway = true;
-    //         }
-    //     });
-
-    //     // salva parcelas sempre
-    //     $modal.find('#previewPedido-' + pedidoId + ' tbody tr').each(function () {
-    //         parcelas.push({
-    //             numero: $(this).find('td:eq(0)').text(),
-    //             valor: $(this).find('td:eq(1) input').val(),
-    //             vencimento: $(this).find('td:eq(2) input').val()
-    //         });
-    //     });
-
-    //     // salva nos hidden
-    //     $modal.find('#dadosPagamento-' + pedidoId).val(JSON.stringify(formas));
-    //     $modal.find('#parcelasJson-' + pedidoId).val(JSON.stringify(parcelas));
-
-    //     // 🔥 CAMINHO 1: TEM GATEWAY
-    //     if (temGateway) {
-    //         iniciarLoading();
-
-    //         $.post(`/pedidos/${pedidoId}/faturar/`, {
-    //             csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
-    //             dados_pagamento: JSON.stringify(formas),
-    //             parcelas_json: JSON.stringify(parcelas)
-    //         }, function (resp) {
-
-    //             if (resp.gateway) {
-    //                 abrirModalPix(resp.qr_code, resp.qr_base64);
-    //                 return;
-    //             }
-
-    //             if (resp.ok) {
-    //                 mostrarToastSucesso(resp.msg);
-
-    //                 // 🔥 delay de 3 segundos e recarrega
-    //                 setTimeout(() => {
-    //                     location.reload();
-    //                 }, 3000);
-    //             } else {
-    //                 alert(resp.msg || 'Erro ao faturar');
-    //             }
-
-    //         });
-
-    //         return;
-    //     }
-    //     enviarFaturamento($modal, pedidoId, formas, parcelas);
-    // });
     $(document).on('click', '.btn-confirmar-pedido', function (e) {
         e.preventDefault();
         e.stopPropagation();
-
         const $modal = $(this).closest('.modal');
         const pedidoId = $modal.data('pedidoId');
-
         let formasNormais = [];
         let formasGateway = [];
         let parcelas = [];
-
-        // 🔹 coleta formas
         $modal.find('#tableFormas-' + pedidoId + ' tbody tr').each(function () {
-
             const gateway = $(this).data('gateway');
             const valor = parseValor($(this).data('valor') || 0);
-
             if (valor <= 0) return;
-
             const obj = {
                 forma: $(this).data('forma'),
                 valor: valor,
                 parcelas: parseInt($(this).data('parcelas') || 1),
                 dias: parseInt($(this).data('dias') || 0)
             };
-
             if (gateway && gateway !== 'nenhum') {
                 formasGateway.push(obj);
             } else {
                 formasNormais.push(obj);
             }
         });
-
-        // 🔹 coleta parcelas
         $modal.find('#previewPedido-' + pedidoId + ' tbody tr').each(function () {
             parcelas.push({
                 numero: $(this).find('td:eq(0)').text(),
@@ -3683,28 +3897,17 @@ $(document).ready(function() {
                 vencimento: $(this).find('td:eq(2) input').val()
             });
         });
-
-        // 🔥 REGRA NOVA
-
-        // 💰 1. Fatura o que NÃO tem gateway
         if (formasNormais.length > 0) {
             faturarNormal($modal, pedidoId, formasNormais, parcelas);
         }
-
-        // ⚡ 2. Processa gateway (PIX)
         if (formasGateway.length > 0) {
-
-            // verifica se já existe PIX pendente
             $.get(`/pedidos/${pedidoId}/recuperar-pagamento/`, function (resp) {
-
                 if (!resp.erro && resp.qr_code) {
                     toast(`${ic_amarelo} Existe um PIX pendente para este pedido`, cor_amarelo);
                     abrirModalPix([resp], pedidoId);
-
                 } else {
                     gerarPix($modal, pedidoId, formasGateway);
                 }
-
             }).fail(function () {
                 gerarPix($modal, pedidoId, formasGateway);
             });
@@ -3792,7 +3995,7 @@ $(document).ready(function() {
                         $('.modal-faturar-pedido').modal('hide');
                         iniciarLoading();
                         setTimeout(() => {
-                            location.reload();
+                            window.location.href = `/pedidos/lista/?s=${pedidoId}&sit=Faturado`;
                         }, 3000);
                     }, 2000);
                 }
@@ -3831,7 +4034,7 @@ $(document).ready(function() {
             success: function () {
                 toast(`${ic_verde} Orçamento cancelado com sucesso!`, cor_verde);
                 iniciarLoading();
-                setInterval(location.reload, 3000);
+                setTimeout(() => location.reload(), 3000);
             },
             error: function () {toast(`${ic_vermelho} Erro ao cancelar orçamento!`, cor_vermelho);}
         });
@@ -4210,7 +4413,7 @@ $(document).ready(function() {
     }
     $('#id_alt, #id_tp_vao, #id_larg, #id_qtd, #id_rolo, #id_alt_corte, #id_larg_corte').on('blur', atualizarCalculoCompletoDebounced);
     $('#desconto, #acrescimo').mask('000.000.000.000.000,00', {reverse: true});
-    $('#id_vl_prod, #id_vl_prod_adc, #editValorItemInput, #editValorItemAdcInput, .editable, .inpFrete, #id_vl_form_pgto, #id_desconto, #id_acrescimo').mask('00000.00', {reverse: true});
+    $('#id_vl_prod, #id_vl_prod_adc, #editValorItemInput, #editValorItemAdcInput, .editable, .inpFrete, #id_desconto, #id_acrescimo').mask('00000.00', {reverse: true});
     $('#editQtdInput, #editQtdAdcInput, #id_qtd_prod, #id_qtd_prod_adc').mask('000,000.00', {reverse: true});
     $('#id_vl_p_s, #id_vl_compra').mask('000000000.00', {reverse: true});
     var desconto = 0;
@@ -5154,11 +5357,6 @@ $(document).ready(function() {
         }
         $('#staticBackdrop').modal('show');
     });
-    $(document).on("click", ".btn-confirmar-faturamento", function () {
-        const id = $(this).data("id");
-        const confirmModal = new bootstrap.Modal(document.getElementById("staticBackdrop" + id), { backdrop: 'static', keyboard: false });
-        confirmModal.show();
-    });
     function zerarTotais() {
         const zeroBR = 'R$ 0,00';
         $('#subtotal_txt').text(zeroBR);
@@ -5324,54 +5522,122 @@ $(document).ready(function() {
         $('#editQtdAdcInput').val((qtd + 1).toFixed(2));
     });
     const formaManager = {
-        addItem(cells) {
+        addItem(cells, options = {}) {
             const idx = $('#itensTableForm tbody tr').length + 1;
+            const geraParcelas = options.geraParcelas == 1 || options.geraParcelas === true;
+            const parcelasExibir = geraParcelas ? cells[2] : '-';
+            const diasExibir     = geraParcelas ? cells[3] : '-';
+            const parcelas = geraParcelas ? (cells[2] || 1) : 1;
+            const dias     = geraParcelas ? (cells[3] || 0) : 0;
             $('#itensTableForm tbody').append(`
-                <tr>
-                    <td data-label="#" class="mobile-full">${idx}</td>
-                    <td data-label="Forma Pgto." class="mobile-full">${cells[0]}</td>
-                    <td data-label="Valor" class="mobile-2col" style="font-weight:bold;color:#2E8B57;">${cells[1]}</td>
-                    <td data-label="Parcelas" class="mobile-2col">${cells[2]}</td>
-                    <td data-label="Dias" class="mobile-2col">${cells[3]}</td>
-                    <td data-label="Exc." class="mobile-2col"><button class="btn btn-danger btn-sm deleteFormaBtn"><i class="fa-solid fa-trash-can text-white"></i></button></td>
+                <tr
+                    data-forma-id="${options.formaId || ''}"
+                    data-valor="${options.valor || 0}"
+                    data-parcelas="${parcelas}"
+                    data-dias="${dias}"
+                    data-gera-parcelas="${geraParcelas ? 1 : 0}"
+                    data-troco="${options.troco ? 1 : 0}"
+                    data-gateway="${options.gateway || ''}"
+                    data-credencial='${JSON.stringify(options.credencial || {}).replace(/'/g, "&apos;")}'
+                >
+                    <td>${idx}</td>
+                    <td>${cells[0]}</td>
+                    <td>${cells[1]}</td>
+                    <td>${parcelasExibir}</td>
+                    <td>${diasExibir}</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm deleteFormaBtn">
+                            <i class="fa-solid fa-trash-can text-white"></i>
+                        </button>
+                    </td>
                 </tr>
             `);
         }
     };
-    function addForma(formaId, formaPgto, valor, parcelas = 1, dias = 0) {
+    function addForma(
+        formaId,
+        formaPgto,
+        valor,
+        parcelas = 1,
+        dias = 0,
+        gateway = '',
+        geraParcelas = false,
+        credenciais = {},
+        troco = false
+    ) {
         const valorNumero = parseFloat(valor) || 0;
-        const valorExibicao = valorNumero.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
-        const parcelasExibicao = dias > 0 ? parcelas : '-';
-        const diasExibicao     = dias > 0 ? dias : '-';
-        formaManager.addItem([formaPgto, valorExibicao, parcelasExibicao, diasExibicao]);
-        const $ultimaLinha = $('#itensTableForm tbody tr:last');
-        $ultimaLinha.attr('data-forma-id', formaId).data('forma-id', formaId).data('valor', valorNumero).data('parcelas', parcelas).data('dias', dias);
+        const valorExibicao = valorNumero.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        const parcelasExibicao = geraParcelas ? parcelas : '-';
+        const diasExibicao     = geraParcelas ? dias : '-';
+        // 🔥 AQUI ESTÁ A CORREÇÃO PRINCIPAL
+        formaManager.addItem(
+            [
+                formaPgto,
+                valorExibicao,
+                parcelasExibicao,
+                diasExibicao
+            ],
+            {
+                formaId: formaId,
+                valor: valorNumero,
+                parcelas: parcelas,
+                dias: dias,
+                gateway: gateway,
+                geraParcelas: geraParcelas,
+                credencial: credenciais,
+                troco: troco
+            }
+        );
         atualizarSubtotal();
         verificarTotalFormas();
         calcularValorForma();
         somaFormas();
         gerarJSONFormas();
     }
-    function toNumberBR(v) {return parseFloat(String(v || '0').replace(/\./g, '').replace(',', '.')) || 0;}
+    function toNumberBR(v) {
+        return parseFloat(String(v || '0').replace(/\./g, '').replace(',', '.')) || 0;
+    }
     function gerarJSONFormas() {
         const formas = [];
-        console.log("===== INICIANDO gerarJSONFormas =====");
         $('#itensTableForm tbody tr').each(function (i) {
-            const forma = $(this).find('td:eq(1)').text().trim();
-            const valor = toNumberBR($(this).find('td:eq(2)').text());
-            const parcelas = $(this).data('parcelas') || 1;
-            const dias = $(this).data('dias') || 0;
-            console.log(`Linha ${i + 1}`, {forma, valor, parcelas, dias});
-            if (!forma || valor < 0.01) {
+            const $row = $(this);
+            const forma_id = $row.data('forma-id');
+            // 🔥 CORREÇÃO AQUI
+            let valorRaw = $row.data('valor');
+            if (typeof valorRaw === 'string') {
+                valorRaw = valorRaw.replace(/\./g, '').replace(',', '.');
+            }
+            const valor = parseFloat(valorRaw) || 0;
+            const gera_parcelas = !!$row.data('gera-parcelas');
+            const parcelas = gera_parcelas ? ($row.data('parcelas') ?? 1) : 1;
+            const dias     = gera_parcelas ? ($row.data('dias') ?? 0) : 0;
+            const gateway  = ($row.data('gateway') || '').toString().toLowerCase();
+            console.log(`Linha ${i + 1}`, {
+                forma_id,
+                valor,
+                parcelas,
+                dias,
+                gateway,
+                gera_parcelas
+            });
+            if (!forma_id || valor < 0.01) {
                 console.warn(`Linha ${i + 1} ignorada`);
                 return;
             }
-            formas.push({forma, valor, parcelas, dias});
+            formas.push({
+                forma_id,
+                valor: Number(valor.toFixed(2)),
+                parcelas,
+                dias,
+                gateway,
+                gera_parcelas
+            });
         });
         const json = JSON.stringify(formas);
-        console.log("JSON FINAL FORMAS PGTO:", json);
         $('#id_json_formas_pgto').val(json);
-        console.log("===== FIM gerarJSONFormas =====");
         return formas;
     }
     $('#confirmBtn').on('click', function () {
@@ -5417,16 +5683,29 @@ $(document).ready(function() {
             return;
         }
         $.ajax({
-            url: "/formas_pgto/get/", method: "GET", data: { id: formaPgto },
+            url: `/formas_pgto/forma-pgto-info/${formaPgto}/`, // 🔥 rota correta
+            method: "GET",
             success: function (response) {
-                addForma(response.id, response.descricao, valor, parcelas, dias);
+                console.log(response);
+
+                addForma(
+                    response.id,
+                    response.descricao,
+                    valor,
+                    parcelas,
+                    dias,
+                    response.gateway,
+                    response.gera_parcelas,
+                    response.credenciais,
+                    response.troco
+                );
                 $('#id_formas_pgto').val(null).trigger('change');
+
+                // (opcional) limpa campos auxiliares
                 $('#id_vl_form_pgto').val('');
                 $('#id_parcelas').val(1);
                 $('#id_dias').val(30);
-                calcularValorForma();
-                gerarJSONFormas();
-            }, error: function () {toast(`${ic_vermelho} Erro ao buscar a Forma de Pagamento!`, cor_vermelho);}
+            }
         });
     });
     $(document).on('click', '.deleteFormaBtn', function () {
@@ -6935,7 +7214,7 @@ $(document).ready(function() {
         if (isNaN(num)) {num = 0;}
         return num.toFixed(2);
     }
-    let selectors = '#id_multi_m2, .inp-valor-pgto, #id_desc_acres, #id_preco_unitP, [id^=desc_m_cr], [id^=desc_j_cr], [id^=juros_cr], [id^=multa_cr], [id^=vl_pg_cr], .inp-valor, #id_valor, #id_juros, #id_multa, #id_vl_juros, #id_vl_multa, #id_ft_juros, #id_ft_multa, .valor-prod, .valor-prod-adc, .qtd-prod-adc, .qtd-prod, #campo_1, #campo_2, #id_margem, #id_vl_prod, #id_vl_tab, #id_vl_tabEnt, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
+    let selectors = '#id_vl_form_pgto, #id_multi_m2, .inp-valor-pgto, #id_desc_acres, #id_preco_unitP, [id^=desc_m_cr], [id^=desc_j_cr], [id^=juros_cr], [id^=multa_cr], [id^=vl_pg_cr], .inp-valor, #id_valor, #id_juros, #id_multa, #id_vl_juros, #id_vl_multa, #id_ft_juros, #id_ft_multa, .valor-prod, .valor-prod-adc, .qtd-prod-adc, .qtd-prod, #campo_1, #campo_2, #id_margem, #id_vl_prod, #id_vl_tab, #id_vl_tabEnt, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
     $(selectors).each(function () {$(this).val(normalizarNumero($(this).val()));});
     $(document).on('input', selectors, function () {
         let valor = $(this).val();
@@ -7030,7 +7309,7 @@ $(document).ready(function() {
         $.ajax({
             url: '/orcamentos/detalhes_ajax/' + idOrcamento + '/', type: 'GET',
             success: function(response) {
-                $(`#infoEntModalLabel`).html('<strong><i class="fa-solid fa-circle-info text-white" style="float: none;"></i> Detalhes - Orçamento Nº ' + response.num_orcamento + '</strong>');
+                $(`#infoEntModalLabel`).html('<strong><i class="fa-solid fa-circle-info text-white" style="float: none;"></i> Detalhes - Orçamento Nº ' + response.id + '</strong>');
                 let situacaoTexto = response.situacao;
                 let situacaoColor = "";
                 let statusHTML = "";
@@ -7061,7 +7340,7 @@ $(document).ready(function() {
                     <div class="row g-3">
                         <div class="col-md-2">
                             <label class="form-label">Nº Orçamento</label>
-                            <input class="form-control form-control-sm fw-bold" value="${response.num_orcamento}" disabled>
+                            <input class="form-control form-control-sm fw-bold" value="${response.id}" disabled>
                         </div>
                         <div class="col-md-5">
                             <label class="form-label">Filial</label>

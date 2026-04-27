@@ -72,7 +72,7 @@
             {% endif %}
         </form>
     </div>
-    
+
     <!-- Modal -->
     <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -101,25 +101,27 @@
     function renderCampos(callback = null) {
         const gateway = document.getElementById("id_gateway").value;
         const container = document.getElementById("campos-credenciais");
-        const valoresAtuais = {};
-        document.querySelectorAll(".cred-input").forEach(input => {
-            valoresAtuais[input.dataset.name] = input.value;
-        });
+        // 🔥 pega direto do hidden (fonte da verdade)
+        let credenciais = {};
+        try {
+            credenciais = JSON.parse(document.getElementById("id_credenciais").value || "{}");
+        } catch (e) {}
         container.innerHTML = "";
         if (!CAMPOS_GATEWAY[gateway]) return;
         CAMPOS_GATEWAY[gateway].forEach(campo => {
+            const valor = credenciais[campo.name] || "";
             const div = document.createElement("div");
             div.innerHTML = `
                 <label class="form-label">${campo.label}</label>
-                <input type="text" class="form-control form-control-sm border-dark-subtle cred-input" data-name="${campo.name}" value="${valoresAtuais[campo.name] || ''}">
+                <input type="text"
+                       class="form-control form-control-sm border-dark-subtle cred-input"
+                       data-name="${campo.name}"
+                       value="${valor}">
             `;
             container.appendChild(div);
         });
         bindEventosCredenciais();
-        // 🔥 EXECUTA CALLBACK DEPOIS DO RENDER
-        setTimeout(() => {
-            if (callback) callback();
-        }, 0);
+        if (callback) callback();
     }
     function iniciarPreenchimento() {
         const hidden = document.getElementById("id_credenciais");
@@ -142,20 +144,10 @@
         });
     }
     function atualizarJSONCredenciais() {
-        const gateway = document.getElementById("id_gateway").value;
-        const inputs = document.querySelectorAll(".cred-input");
         const data = {};
-        if (CAMPOS_GATEWAY[gateway]) {
-            for (let campo of CAMPOS_GATEWAY[gateway]) {
-                const input = document.querySelector(`[data-name="${campo.name}"]`);
-                if (input && input.value.trim() === "") {
-                    return; // ainda não preencheu tudo
-                }
-            }
-        }
-        inputs.forEach(input => {
+        document.querySelectorAll(".cred-input").forEach(input => {
             const name = input.dataset.name;
-            const value = input.value;
+            const value = input.value.trim();
             if (value) {
                 data[name] = value;
             }

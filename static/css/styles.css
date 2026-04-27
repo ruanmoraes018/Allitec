@@ -44,6 +44,8 @@ body, html {
     color: white;
     text-align: center;
 }
+.check-circle {width: 90px;height: 90px;border-radius: 50%;background: #28a745;display: flex;align-items: center;justify-content: center;margin: 0 auto 15px;animation: pulse 1.2s infinite;}
+.check-circle i {color: #fff;font-size: 42px;animation: pop 0.4s ease forwards;}
 /* Botões do menu de opções */
 .menu-opcao {
     display: flex;

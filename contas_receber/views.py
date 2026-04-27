@@ -138,7 +138,7 @@ def detalhes_conta_receber_ajax(request, id):
 
     except ContaReceber.DoesNotExist:
         return JsonResponse({'error': 'Conta não encontrada'}, status=404)
-    
+
 @login_required
 def add_conta_receber(request):
     if not request.user.has_perm('contas_receber.add_contareceber'):
@@ -217,19 +217,51 @@ def del_conta_receber(request, id):
     messages.success(request, 'Conta à Receber deletada com sucesso!')
     return redirect('/contas_receber/lista/')
 
+def aplicar_pagamento(self, valor, forma_pgto):
+    from decimal import Decimal
+    ContaReceberBaixaForma.objects.create(
+        vinc_emp=self.vinc_emp,
+        conta_receber=self,
+        forma_pgto=forma_pgto,
+        valor=valor
+    )
+    self.valor_pago += valor
+    if self.saldo > 0:
+        restante = self.saldo
+        ContaReceber.objects.create(
+            vinc_emp=self.vinc_emp,
+            vinc_fil=self.vinc_fil,
+            orcamento=self.orcamento,
+            pedido=self.pedido,
+            cliente=self.cliente,
+            forma_pgto=None,
+            num_conta=self.num_conta,
+            tp_juros=self.tp_juros,
+            tp_multa=self.tp_multa,
+            valor=restante,
+            valor_pago=Decimal('0.00'),
+            juros=self.juros,
+            multa=self.multa,
+            desconto=Decimal('0.00'),
+            data_emissao=self.data_emissao,
+            data_vencimento=self.data_vencimento,
+            situacao='Aberta'
+        )
+        self.valor_pago = self.valor + self.juros + self.multa - self.desconto
+    self.situacao = "Paga"
+    self.data_pagamento = timezone.now().date()
+    self.save()
+
 @login_required
 @transaction.atomic
 def pagar_conta_receber(request, id):
     cr = get_object_or_404(ContaReceber, pk=id, vinc_emp=request.user.empresa)
-
     if cr.situacao == 'Paga':
         messages.warning(request, 'Conta à Receber já está paga.')
         return redirect('/contas_receber/lista/')
-
     if request.method != 'POST':
         messages.error(request, 'Método inválido.')
         return redirect('/contas_receber/lista/')
-
     def dec(v):
         try:
             v = str(v or '0').strip()
@@ -238,70 +270,50 @@ def pagar_conta_receber(request, id):
             return Decimal(v)
         except:
             return Decimal('0.00')
-
     juros_final = dec(request.POST.get('juros'))
     multa_final = dec(request.POST.get('multa'))
     desconto_final = dec(request.POST.get('desconto'))
-
     forma_ids = request.POST.getlist('forma_id[]')
     forma_valores_raw = request.POST.getlist('forma_valor[]')
-
     if not forma_ids or len(forma_ids) != len(forma_valores_raw):
         messages.warning(request, 'Informe pelo menos uma forma de pagamento válida.')
         return redirect('/contas_receber/lista/')
-
     formas_processadas = []
     total_pago = Decimal('0.00')
-
     for forma_id, valor_raw in zip(forma_ids, forma_valores_raw):
         valor = dec(valor_raw)
         if valor <= 0:
             continue
-
         formas_processadas.append({
             'forma_id': forma_id,
             'valor': valor,
         })
         total_pago += valor
-
     if not formas_processadas:
         messages.warning(request, 'Nenhum valor válido foi informado para a baixa.')
         return redirect('/contas_receber/lista/')
-
     total_titulo = cr.valor + juros_final + multa_final - desconto_final
-
     if total_pago <= 0:
         messages.warning(request, 'O valor pago deve ser maior que zero.')
         return redirect('/contas_receber/lista/')
-
     if total_pago > total_titulo:
         messages.warning(request, 'O valor pago não pode ser maior que o total do título.')
         return redirect('/contas_receber/lista/')
-
     restante = total_titulo - total_pago
-
-    # 🔥 Atualiza título original
-    cr.valor_pago = total_pago
     cr.desconto = desconto_final
     cr.data_pagamento = date.today()
     cr.situacao = 'Paga'
     cr.observacao = (cr.observacao or '') + f' Baixa de R$ {total_pago:.2f}.'
-
     if len(formas_processadas) == 1:
         cr.forma_pgto_id = formas_processadas[0]['forma_id']
-
     cr.save()
-
-    # 🔥 Salva formas
     for item in formas_processadas:
-        ContaReceberBaixaForma.objects.create(
-            vinc_emp=request.user.empresa,
-            conta_receber=cr,
-            forma_pgto_id=item['forma_id'],
-            valor=item['valor'],
+        forma = FormaPgto.objects.get(
+            id=item['forma_id'],
+            vinc_emp=request.user.empresa
         )
-
-    # 🔥 Gera novo título SEM alterar num_conta
+        cr.aplicar_pagamento(item['valor'], forma)
+    messages.success(request, 'Baixa realizada com sucesso.')
     if restante > 0:
         ContaReceber.objects.create(
             vinc_emp=cr.vinc_emp,
@@ -323,14 +335,12 @@ def pagar_conta_receber(request, id):
             situacao='Aberta',
             obs_internas=f'Saldo remanescente do título {cr.num_conta}, pago dia {cr.data_pagamento.strftime("%d/%m/%Y")}.'
         )
-
         messages.success(
             request,
             f'Baixa parcial realizada. Saldo restante: R$ {restante:.2f}.'
         )
     else:
         messages.success(request, 'Baixa realizada com sucesso.')
-
     return redirect('/contas_receber/lista/')
 
 @login_required
@@ -344,25 +354,54 @@ def estornar_conta_receber(request, id):
         cr.save()
         messages.success(request, 'Estorno da Conta à Receber realizada com sucesso!')
         return redirect('/contas_receber/lista/')
-    
+
+
+import json
 
 @login_required
-def gerar_pix_conta_receber(request, id):
-    conta = get_object_or_404(ContaReceber, pk=id, vinc_emp=request.user.empresa)
-
+def gerar_pix_conta_receber(request, conta_id):
+    conta = get_object_or_404(
+        ContaReceber,
+        pk=conta_id,
+        vinc_emp=request.user.empresa
+    )
     if conta.situacao == "Paga":
         return JsonResponse({"erro": "Conta já paga"})
-
-    pagamento = gerar_pagamento_conta_receber(conta)
-
+    formas_json = request.POST.get("formas", "[]")
+    try:
+        formas = json.loads(formas_json)
+    except:
+        return JsonResponse({"erro": "Formato inválido de formas"})
+    if not formas:
+        return JsonResponse({"erro": "Nenhuma forma enviada"})
+    total = Decimal('0.00')
+    forma_pix = None
+    for f in formas:
+        valor = Decimal(str(f.get("valor", 0)))
+        forma_id = f.get("forma_id")
+        if valor <= 0 or not forma_id:
+            continue
+        forma = FormaPgto.objects.filter(
+            id=forma_id,
+            vinc_emp=request.user.empresa
+        ).first()
+        if not forma:
+            continue
+        total += valor
+        if (forma.gateway or "").strip().lower() not in ["", "nenhum", "none"]:
+            forma_pix = forma
+    if not forma_pix:
+        return JsonResponse({"erro": "Nenhuma forma com gateway encontrada"})
+    if total <= 0:
+        return JsonResponse({"erro": "Valor inválido"})
+    pagamento = gerar_pagamento_conta_receber(conta, forma_pix, total)
     if not pagamento:
         return JsonResponse({"erro": "Falha ao gerar PIX"})
-
     return JsonResponse({
         "txid": pagamento.txid,
         "qr_code": pagamento.qr_code,
         "qr_base64": pagamento.qr_base64,
-        "valor": str(pagamento.valor)
+        "valor": str(total)
     })
 
 from django.utils import timezone
@@ -375,22 +414,24 @@ def status_pagamento_conta(request, conta_id):
         id=conta_id,
         vinc_emp=request.user.empresa
     )
-    status_anterior = conta.situacao
-    # 🔹 recalcula pagamento baseado nas formas baixadas
     total_pago = conta.formas_baixa.aggregate(
         total=Sum('valor')
     )['total'] or Decimal('0.00')
     conta.valor_pago = total_pago
-    # 🔹 atualiza situação
-    if conta.saldo <= 0:
+    if conta.saldo <= 0 and conta.valor_pago > 0:
         conta.situacao = "Paga"
         if not conta.data_pagamento:
             conta.data_pagamento = timezone.now().date()
     conta.save(update_fields=["valor_pago", "situacao", "data_pagamento"])
-    if conta.situacao != status_anterior:
-        print(f"✅ Status atualizado: {status_anterior} → {conta.situacao}")
+    total = conta.valor + conta.juros + conta.multa - conta.desconto
+
+    parcial = conta.valor_pago > 0 and conta.valor_pago < total
+    restante = total - conta.valor_pago
     return JsonResponse({
         "status": conta.situacao,
         "saldo": str(conta.saldo),
-        "valor_pago": str(conta.valor_pago)
+        "valor_pago": str(conta.valor_pago),
+        "pago": conta.situacao == "Paga",
+        "parcial": parcial,
+        "restante": str(restante)
     })

@@ -11,5 +11,4 @@ urlpatterns = [
     path("estornar/<int:id>/", views.estornar_conta_receber, name="estornar-conta-receber"),
     path("<int:conta_id>/gerar-pagamento/", views.gerar_pix_conta_receber, name='gerar-recebimento-cr'),
     path('<int:conta_id>/status-pagamento/', views.status_pagamento_conta, name='status-pagamento-cr'),
-    path('webhook/mp/', views.webhook_contas_receber, name='webhook_contas'),
 ]

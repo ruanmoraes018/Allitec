@@ -31,7 +31,7 @@
     </style>
     <head>
         <meta charset="UTF-8">
-        <title>Orçamento Porta Enrolar - {{ o.num_orcamento }}</title>
+        <title>Orçamento Porta Enrolar - {{ o.id }}</title>
     </head>
     <body>
         <header class="page-header">
@@ -53,7 +53,7 @@
                     <tr>
                         <td style="font-size: 10px; text-align: justify;"><strong>CNPJ: {{ o.vinc_fil.cnpj }} |</strong> <span><strong>FONE: {{ o.vinc_fil.tel }}</strong></span></td>
                         <td style="background-color: gray;"><strong>Nº ORÇAMENTO</strong></td>
-                        <td>{{o.num_orcamento}}</td>
+                        <td>{{o.id}}</td>
                     </tr>
                     <tr>
                         <td style="font-size: 10px; text-align: justify;"><strong>END: {{o.vinc_fil.endereco}}, Nº: {{o.vinc_fil.numero}} - BAIRRO: {{o.vinc_fil.bairro_fil}}</strong></td>
@@ -172,13 +172,13 @@
                         <th>Rolo</th>
                     </tr>
                     <tr>
-                        <td><strong>{{ pt.largura }}</strong></td>
-                        <td><strong>{{ pt.altura }}</strong></td>
+                        <td><strong>{{ pt.largura }}m</strong></td>
+                        <td><strong>{{ pt.altura }}m</strong></td>
                         <td><strong>{{ pt.qtd_lam }}</strong></td>
                         <td><strong>{{ pt.m2 }}</strong></td>
-                        <td><strong>{{ pt.peso }}</strong></td>
+                        <td><strong>{{ pt.peso }}Kg</strong></td>
                         <td><strong>{{ pt.eixo_motor }}</strong></td>
-                        <td><strong>{{ pt.rolo }}</strong></td>
+                        <td><strong>{{ pt.rolo }}cm</strong></td>
                     </tr>
                     <tr style="background-color: #5F9EA0; text-align: center;">
                         <th>Larg. Corte</th>
@@ -189,8 +189,8 @@
                         <th>Guia Direito</th>
                     </tr>
                     <tr>
-                        <td><strong>{{ pt.larg_corte }}</strong></td>
-                        <td><strong>{{ pt.alt_corte }}</strong></td>
+                        <td><strong>{{ pt.larg_corte }}m</strong></td>
+                        <td><strong>{{ pt.alt_corte }}m</strong></td>
                         <td><strong>{{ pt.tp_lamina }}</strong></td>
                         <td colspan="2"><strong>{{ pt.tp_vao }}</strong></td>
                         <td><strong>{{ pt.op_guia_e }}</strong></td>

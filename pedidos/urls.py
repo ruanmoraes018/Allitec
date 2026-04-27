@@ -13,5 +13,4 @@ urlpatterns = [
     path('<int:pedido_id>/status-pagamento/', views.status_pagamento_pedido, name='status-pagamento-pedido'),
     path('<int:pedido_id>/recuperar-pagamento/', views.recuperar_pix_pendente, name='recuperar-pix-pendente'),
     path('pedidos-produto/<int:produto_id>/', views.pedidos_por_produto, name='pedidos_por_produto'),
-    path("webhook/mp/", views.webhook_pedidos, name="webhook-pagamento"),
 ]
