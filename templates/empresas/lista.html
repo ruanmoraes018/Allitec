@@ -93,6 +93,7 @@
                 <thead thead class="table-dark">
                     <tr>
                         <th scope="col">Opções</th>
+                        <th scope="col" style="width: 6%;">Código</th>
                         <th scope="col" style="text-align: center; width: 7%;">Situação</th>
                         <th scope="col" style="align-items: center;">Razão Social</th>
                         <th scope="col" style="align-items: center;">Fantasia</th>
@@ -143,6 +144,7 @@
                                 </div>
                                 <a href="{% url 'att-empresa' empresa.id %}?next={{ request.get_full_path|urlencode }}"><span><i class="fas fa-edit" title="Editar empresa" data-bs-toggle="modal" data-bs-target="#loadingModal"></i></span></a>
                             </td>
+                            <td>{{ empresa.id }}</td>
                             <td style="text-align: center; padding: 5px;">
                                 {% if empresa.situacao == 'Ativa' %}
                                     <div style="background-color: #2c2c2c; border-radius: 20px; color: white; margin-top: 5px;">
