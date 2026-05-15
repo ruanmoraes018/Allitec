@@ -15,6 +15,7 @@ from cidades.models import Cidade
 from estados.models import Estado
 from django.http import JsonResponse
 from django.db.models import Q
+from django.db import transaction
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -85,78 +86,133 @@ def lista_empresas_ajax(request):
         return JsonResponse({'results': [], 'error': str(e)})
 
 @login_required
+@transaction.atomic
 def add_empresa(request):
+
     if not request.user.has_perm('empresas.add_empresa'):
         messages.info(request, 'Você não tem permissão para adicionar empresas.')
         return redirect('/empresas/lista/')
+
     if request.method == 'POST':
         form = EmpresaForm(request.POST, request.FILES)
-        if form.is_valid():
-            nova_empresa = form.save(commit=False)
-            nova_empresa.situacao = 'Ativa'
-            logo = request.FILES.get('logo')
-            if logo:
-                nova_empresa.logo = logo
-            else:
-                nova_empresa.logo = 'media/default_logo.png'
-            nova_empresa.save()
-            if nova_empresa.gerar_filial is True:
-                novo_bairro, created = Bairro.objects.get_or_create(
-                    nome_bairro=nova_empresa.bairro_emp,
-                    vinc_emp=nova_empresa
-                )
-                nova_cidade, created = Cidade.objects.get_or_create(
-                    nome_cidade=nova_empresa.cidade_emp,
-                    vinc_emp=nova_empresa
-                )
-                novo_estado, created = Estado.objects.get_or_create(
-                    nome_estado=nova_empresa.uf_emp,
-                    vinc_emp=nova_empresa
-                )
-                nova_filial, created = Filial.objects.get_or_create(
-                    situacao='Ativa', cnpj=nova_empresa.cnpj, ie=nova_empresa.ie, razao_social=nova_empresa.razao_social,
-                    fantasia=nova_empresa.fantasia, endereco=nova_empresa.endereco, cep=nova_empresa.cep, numero=nova_empresa.numero,
-                    bairro_fil=novo_bairro, complem=nova_empresa.complem, cidade_fil=nova_cidade,
-                    uf=novo_estado, tel=nova_empresa.tel, email=nova_empresa.email, fantasia_normalizado=nova_empresa.fantasia_normalizado,
-                    principal=True, logo=nova_empresa.logo, vinc_emp=nova_empresa
-                )
-                novo_cliente, created = Cliente.objects.get_or_create(
-                    situacao='Ativo', pessoa="Física", cpf_cnpj='.', ie='.', razao_social='CONSUMIDOR', fantasia='CONSUMIDOR', endereco='.',
-                    cep='.', numero='.', bairro=novo_bairro, complem='.', cidade=nova_cidade, uf=novo_estado,
-                    tel='.', email='.', vinc_emp=nova_empresa
-                )
-                novo_tecnico, created = Tecnico.objects.get_or_create(
-                    situacao='Ativo', pessoa="Física", cpf_cnpj='.', ie='.', razao_social='CONSUMIDOR', fantasia='CONSUMIDOR', endereco='.',
-                    cep='.', numero='.', bairro=novo_bairro, cidade=nova_cidade, uf=novo_estado, tel='.', email='.', vinc_emp=nova_empresa
-                )
-                if created:
-                    novo_bairro.save()
-                    nova_cidade.save()
-                    novo_estado.save()
-                    nova_filial.save()
-                    novo_cliente.save()
-                    novo_tecnico.save()
-                    print("Nova filial cadastrada")
-                    print("Novo cliente cadastrado")
-                    print("Novo técnico cadastrado")
-                    print("Novo bairro cadastrado")
-                    print("Nova cidade cadastrada")
-                    print("Novo estado cadastrado")
-            messages.success(request, 'Empresa cadastrada com sucesso.')
-            return redirect('/empresas/lista/')
 
-        else:
-            # Monta mensagens de erro personalizadas
-            error_messages = []
-            for field in form:
-                if field.errors:
-                    error_messages.append(
-                        f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!"
+        if form.is_valid():
+            try:
+                nova_empresa = form.save(commit=False)
+                nova_empresa.situacao = 'Ativa'
+
+                logo = request.FILES.get('logo')
+                if logo:
+                    nova_empresa.logo = logo
+                else:
+                    nova_empresa.logo = 'default_logo.png'
+
+                nova_empresa.save()
+
+                if nova_empresa.gerar_filial:
+
+                    novo_bairro, _ = Bairro.objects.get_or_create(
+                        nome_bairro=nova_empresa.bairro_emp,
+                        vinc_emp=nova_empresa
                     )
-            return render(request, 'empresas/add.html', {'form': form, 'error_messages': error_messages})
-    else:
-        form = EmpresaForm()
-    return render(request, 'empresas/add.html', {'form': form})
+
+                    nova_cidade, _ = Cidade.objects.get_or_create(
+                        nome_cidade=nova_empresa.cidade_emp,
+                        vinc_emp=nova_empresa
+                    )
+
+                    novo_estado, _ = Estado.objects.get_or_create(
+                        nome_estado=nova_empresa.uf_emp,
+                        vinc_emp=nova_empresa
+                    )
+
+                    Filial.objects.get_or_create(
+                        situacao='Ativa',
+                        cnpj=nova_empresa.cnpj,
+                        ie=nova_empresa.ie,
+                        razao_social=nova_empresa.razao_social,
+                        fantasia=nova_empresa.fantasia,
+                        endereco=nova_empresa.endereco,
+                        cep=nova_empresa.cep,
+                        numero=nova_empresa.numero,
+                        bairro_fil=novo_bairro,
+                        complem=nova_empresa.complem,
+                        cidade_fil=nova_cidade,
+                        uf=novo_estado,
+                        tel=nova_empresa.tel,
+                        email=nova_empresa.email,
+                        fantasia_normalizado=nova_empresa.fantasia_normalizado,
+                        principal=True,
+                        logo=nova_empresa.logo,
+                        vinc_emp=nova_empresa
+                    )
+
+                    Cliente.objects.get_or_create(
+                        situacao='Ativo',
+                        pessoa="Física",
+                        cpf_cnpj='.',
+                        ie='.',
+                        razao_social='CONSUMIDOR',
+                        fantasia='CONSUMIDOR',
+                        endereco='.',
+                        cep='.',
+                        numero='.',
+                        bairro=novo_bairro,
+                        complem='.',
+                        cidade=nova_cidade,
+                        uf=novo_estado,
+                        tel='.',
+                        email='.',
+                        vinc_emp=nova_empresa
+                    )
+
+                    Tecnico.objects.get_or_create(
+                        situacao='Ativo',
+                        nome='CONSUMIDOR',
+                        endereco='.',
+                        cep='.',
+                        numero='.',
+                        bairro=novo_bairro,
+                        cidade=nova_cidade,
+                        uf=novo_estado,
+                        tel='.',
+                        email='.',
+                        vinc_emp=nova_empresa
+                    )
+
+                messages.success(request, 'Empresa cadastrada com sucesso.')
+                return redirect('/empresas/lista/')
+
+            except Exception as e:
+                transaction.set_rollback(True)
+
+                messages.error(
+                    request,
+                    f'Erro ao cadastrar empresa: {str(e)}'
+                )
+
+        error_messages = []
+
+        for field in form:
+            if field.errors:
+                error_messages.append(
+                    f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!"
+                )
+
+        return render(
+            request,
+            'empresas/add.html',
+            {
+                'form': form,
+                'error_messages': error_messages
+            }
+        )
+
+    return render(
+        request,
+        'empresas/add.html',
+        {'form': EmpresaForm()}
+    )
 
 @login_required
 def att_empresa(request, id):
