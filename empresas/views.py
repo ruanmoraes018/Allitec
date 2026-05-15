@@ -127,8 +127,7 @@ def add_empresa(request):
                 )
                 novo_tecnico, created = Tecnico.objects.get_or_create(
                     situacao='Ativo', pessoa="Física", cpf_cnpj='.', ie='.', razao_social='CONSUMIDOR', fantasia='CONSUMIDOR', endereco='.',
-                    cep='.', numero='.', bairro=novo_bairro, complem='.', cidade=nova_cidade, uf=novo_estado,
-                    tel='.', email='.', vinc_emp=nova_empresa
+                    cep='.', numero='.', bairro=novo_bairro, cidade=nova_cidade, uf=novo_estado, tel='.', email='.', vinc_emp=nova_empresa
                 )
                 if created:
                     novo_bairro.save()
