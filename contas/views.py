@@ -118,6 +118,22 @@ def lista_usuarios(request):
         'reg': reg
     })
 
+@login_required
+def lista_usuarios_ajax(request):
+    termo_busca = request.GET.get('term') or request.GET.get('q') or ''
+    empresa = request.user.empresa
+    try:
+        if termo_busca.isdigit():
+            condicao_busca = Q(first_name__icontains=termo_busca) | Q(codigo_local=termo_busca)
+        else:
+            condicao_busca = Q(first_name__icontains=termo_busca)
+        usuarios = Usuario.objects.filter(condicao_busca & Q(empresa=empresa))[:20]
+        results = [{'id': p.codigo_local, 'text': f"{p.first_name.upper()}"} for p in usuarios]
+        return JsonResponse({'results': results})
+    except Exception as e:
+        print(f"Erro na busca AJAX: {e}")
+        return JsonResponse({'results': [], 'error': str(e)})
+
 def agrupar_permissoes_por_grupo(permissoes):
     grupos = defaultdict(list)
     for perm in permissoes:

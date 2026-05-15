@@ -13,7 +13,7 @@ class Entrada(models.Model):
     tipo = models.CharField(max_length=12, choices=[('Pedido', 'Pedido'), ('Nota Fiscal', 'Nota Fiscal')])
     situacao = models.CharField(max_length=10, choices=[('Pendente', 'Pendente'), ('Efetivada', 'Efetivada'), ('Cancelada', 'Cancelada')], default='Pendente')
     modelo = models.CharField(max_length=2, blank=True, null=True)
-    serie = models.CharField(max_length=2, blank=True, null=True)
+    serie = models.CharField(max_length=5, blank=True, null=True)
     nat_op = models.CharField(max_length=255, blank=True, null=True)
     chave_acesso = models.CharField(max_length=44, blank=True, null=True)
     obs = models.TextField(default="", blank=True)

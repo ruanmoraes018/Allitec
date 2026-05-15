@@ -52,6 +52,21 @@ def lista_formas_pgto(request):
         'reg': reg,
     })
 
+def forma_padrao(request):
+    fp = FormaPgto.objects.filter(
+        vinc_emp=request.user.empresa,
+        situacao='Ativo',
+        forma_padrao='Sim'
+    ).first()
+
+    if not fp:
+        return JsonResponse({'id': None})
+
+    return JsonResponse({
+        'id': fp.id,
+        'text': fp.descricao
+    })
+
 @login_required
 def lista_formas_pgto_ajax(request):
     termo_busca = request.GET.get('term') or request.GET.get('q') or ''
@@ -78,6 +93,7 @@ def forma_pgto_info(request, id):
         "troco": fp.troco == "Sim",
         "gateway": fp.gateway,
         "credenciais": fp.credenciais,
+        'tipo': fp.tipo,
     })
 
 @login_required

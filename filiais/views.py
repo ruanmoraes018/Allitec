@@ -202,13 +202,21 @@ def dados_filiais_js(request):
     filiais = Filial.objects.filter(
         vinc_emp=empresa,
         situacao='Ativa'
-    ).values('id', 'cli_id', 'tec_id', 'vendedor_id', 'multi_m2')
+    ).values('id', 'cli_id', 'cli__fantasia', 'tec_id', 'vendedor_id', 'vendedor__fantasia', 'multi_m2', 'multi_lg_corte1', 'multi_lg_corte2', 'multi_lg_corte3', 'tb_preco_id', 'tb_preco__descricao', 'agrupa_itens')
     data = {
         str(f['id']): {
             'cli': f['cli_id'],
+            'cli_nome': f['cli__fantasia'],
             'tec': f['tec_id'],
             'vend': f['vendedor_id'],
+            'vend_nome': f['vendedor__fantasia'],
             'multi_m2': float(f['multi_m2']) if f['multi_m2'] is not None else 0,
+            'tb_preco': f['tb_preco_id'],
+            'tb_preco_nome': f['tb_preco__descricao'],
+            'agrupa_itens': f['agrupa_itens'],
+            'multi_lg_corte1': float(f['multi_lg_corte1']) if f['multi_lg_corte1'] is not None else 0,
+            'multi_lg_corte2': float(f['multi_lg_corte2']) if f['multi_lg_corte2'] is not None else 0,
+            'multi_lg_corte3': float(f['multi_lg_corte3']) if f['multi_lg_corte3'] is not None else 0,
         }
         for f in filiais
     }

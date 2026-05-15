@@ -9,7 +9,7 @@ from pedidos.services import finalizar_pedido
 class Pedido(models.Model):
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
     vinc_fil = models.ForeignKey('filiais.Filial', on_delete=models.PROTECT)
-    caixa = models.ForeignKey('pdvs.Caixa', on_delete=models.PROTECT, null=True, blank=True)
+    caixa = models.ForeignKey('lancpdvs.Caixa', on_delete=models.PROTECT, null=True, blank=True)
     cli = models.ForeignKey(Cliente, on_delete=models.PROTECT)
     vendedor = models.ForeignKey('vendedores.Vendedor', on_delete=models.SET_NULL, null=True, blank=True)
     nome_cli = models.CharField(max_length=255, blank=True)
@@ -23,6 +23,7 @@ class Pedido(models.Model):
     dt_emi = models.DateTimeField(null=True, blank=True)
     dt_fat = models.DateTimeField(null=True, blank=True)
     motivo = models.CharField(max_length=60, blank=True, null=True)
+    estoque_baixado = models.BooleanField(default=False)
     pagamentos = GenericRelation(
         'pedidos.Pagamento',
         related_query_name='pedido'
@@ -76,11 +77,13 @@ class Pedido(models.Model):
             ("vender_sem_estoque_ped", "Pode vender sem estoque"),
             ("alt_vl_ped", "Pode alterar valor de produtos em pedidos"),
             ("alterar_data_faturamento", "Pode alterar data de faturamento"),
+            ("relatorio_pedidos", "Pode acessar relatório de pedidos"),
         ]
 
 class PedidoProduto(models.Model):
     pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name="itens")
     produto = models.ForeignKey(Produto, on_delete=models.CASCADE, related_name="produtos_vinculados_ped")
+    codigo_usado = models.CharField(max_length=50, blank=True, null=True)
     vl_unit = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     quantidade = models.DecimalField(max_digits=10, decimal_places=2)
     tp_desc_acres = models.CharField(max_length=10, choices=[('Desconto', 'Desconto'), ('Acréscimo', 'Acréscimo')], default='Desconto')

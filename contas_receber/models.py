@@ -116,7 +116,15 @@ class ContaReceber(models.Model):
             self.situacao = "Paga"
             self.data_pagamento = timezone.now().date()
         self.save()
-
+    def aplicar_pagamento(self, valor, forma_pgto):
+        ContaReceberBaixaForma.objects.create(
+            vinc_emp=self.vinc_emp,
+            conta_receber=self,
+            forma_pgto=forma_pgto,
+            valor=valor
+        )
+        self.valor_pago += valor
+        self.save()
 class ContaReceberBaixaForma(models.Model):
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
     conta_receber = models.ForeignKey(ContaReceber, on_delete=models.CASCADE, related_name='formas_baixa')

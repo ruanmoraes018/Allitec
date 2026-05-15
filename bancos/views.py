@@ -91,7 +91,7 @@ def add_banco(request):
 
 @login_required
 def att_banco(request, id):
-    b = get_object_or_404(Banco, pk=id)
+    b = get_object_or_404(Banco, pk=id, vinc_emp=request.user.empresa)
     form = BancoForm(instance=b)
     if not request.user.has_perm('bancos.change_banco'):
         messages.info(request, 'Você não tem permissão para editar bancos.')

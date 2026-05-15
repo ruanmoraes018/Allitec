@@ -9,11 +9,13 @@ from formas_pgto.models import FormaPgto
 from util.permissoes import verifica_permissao, verifica_alguma_permissao
 import json
 from decimal import Decimal, InvalidOperation
+from util.parse_decimal import parse_decimal
 from django.views.decorators.http import require_POST
 from filiais.models import Filial
+from vendedores.models import Vendedor
 from .models import Pedido, PedidoFormaPgto, PedidoProduto, Pagamento
 from clientes.models import Cliente
-from produtos.models import Produto
+from produtos.models import CodigoProduto, Produto
 from .forms import PedidoForm
 from core.pagamentos.fluxo import gerar_pagamentos_pedido
 from pedidos.services import finalizar_pedido
@@ -22,15 +24,9 @@ from contas_receber.models import ContaReceber
 import logging
 logger = logging.getLogger(__name__)
 from django.utils.timezone import localtime
-
-def parse_decimal(value):
-    if value is None or value == "":
-        return Decimal("0")
-    try:
-        # substitui vírgula por ponto antes de converter
-        return Decimal(str(value).replace(",", "."))
-    except InvalidOperation:
-        return Decimal("0")
+import re
+from django.db.models import Sum
+from django.db.models.functions import Coalesce
 
 @verifica_permissao('pedidos.view_pedido')
 @login_required
@@ -43,6 +39,7 @@ def lista_pedidos(request):
     por_dt = request.GET.get('p_dt')
     cli = request.GET.get('cl')
     fil = request.GET.get('fil')
+    vend = request.GET.get('vend')
     reg = request.GET.get('reg', '10')
     hoje = datetime.today()
     inicio_dia = datetime.combine(hoje, time.min)
@@ -70,8 +67,10 @@ def lista_pedidos(request):
         pedidos = pedidos.filter(situacao=f_s)
     # Filtro por cliente
     if cli: pedidos = pedidos.filter(cli_id=cli)
-   # Filtro por Filial
+    # Filtro por Filial
     if fil: pedidos = pedidos.filter(vinc_fil_id=fil)
+    # Filtro por Vendedor
+    if vend: pedidos = pedidos.filter(vendedor_id=vend)
     # Paginação
     if reg == 'todos':
         num_pagina = pedidos.count() or 1
@@ -83,17 +82,36 @@ def lista_pedidos(request):
     paginator = Paginator(pedidos, num_pagina)
     page = request.GET.get('page')
     pedidos = paginator.get_page(page)
-
+    ped_ab_pg = sum(1 for p in pedidos.object_list if p.situacao == 'Aberto')
+    ped_fat_pg = sum(1 for p in pedidos.object_list if p.situacao == 'Faturado')
+    ped_canc_pg = sum(1 for p in pedidos.object_list if p.situacao == 'Cancelado')
+    # Total da página atual
+    tot_ab_pg = sum(
+        (p.total or Decimal('0.00'))
+        for p in pedidos.object_list
+        if p.situacao == 'Aberto'
+    )
+    tot_fat_pg = sum(
+        (p.total or Decimal('0.00'))
+        for p in pedidos.object_list
+        if p.situacao == 'Faturado'
+    )
+    tot_canc_pg = sum(
+        (p.total or Decimal('0.00'))
+        for p in pedidos.object_list
+        if p.situacao == 'Cancelado'
+    )
     return render(request, 'pedidos/lista.html', {
-        'pedidos': pedidos, 's': s, 'fil': fil, 'cli': cli, 'sit': f_s,
+        'pedidos': pedidos, 's': s, 'fil': fil, 'cli': cli, 'sit': f_s, 'vend': vend,
         'filiais': Filial.objects.filter(vinc_emp=request.user.empresa),
         'clientes': Cliente.objects.filter(vinc_emp=request.user.empresa),
+        'vendedores': Vendedor.objects.filter(vinc_emp=request.user.empresa),
+        'tot_ab': tot_ab_pg, 'tot_fat': tot_fat_pg, 'tot_canc': tot_canc_pg,
+        'ped_ab': ped_ab_pg, 'ped_fat': ped_fat_pg, 'ped_canc': ped_canc_pg,
         'dt_ini': dt_ini, 'dt_fim': dt_fim, 'p_dt': por_dt, 'tp_dt': tp_dt, 'reg': reg,
     })
-
 def pedidos_por_produto(request, produto_id):
     pedidos = PedidoProduto.objects.filter(produto_id=produto_id, vinc_emp=request.user.empresa).select_related('pedido', 'pedido__cliente')
-
     data = []
     for ep in pedidos:
         pedido = ep.pedido
@@ -105,7 +123,6 @@ def pedidos_por_produto(request, produto_id):
             'valor_unitario': Decimal(ep.vl_unit),
             'total_pedido': float(pedido.total),  # 👈 total da pedido
         })
-
     return JsonResponse({'pedidos': data})
 
 @login_required
@@ -131,7 +148,7 @@ def detalhes_pedido_ajax(request, id):
         for item in pedido.itens.all():
             itens.append({
                 "item": f"{contador:03}",
-                "codigo": item.produto.id,
+                "codigo": item.codigo_usado if item.codigo_usado is not None else item.produto.id,
                 "produto": item.produto.desc_prod,
                 "unidade": getattr(item.produto.unidProd, "nome_unidade", ""),
                 "valor_unit": str(item.vl_unit),
@@ -181,6 +198,18 @@ def detalhes_pedido_ajax(request, id):
     except Pedido.DoesNotExist:
         return JsonResponse({'error': 'Pedido não encontrado'}, status=404)
 
+def buscar_produto(codigo, empresa):
+    codigo = str(codigo).strip()
+    # 1. Prioridade: código secundário
+    cod_sec = CodigoProduto.objects.filter(codigo=codigo, vinc_emp=empresa).select_related('produto').first()
+    if cod_sec:
+        return cod_sec.produto
+    # 2. Fallback: ID do produto
+    try:
+        return Produto.objects.get(id=int(codigo), vinc_emp=empresa)
+    except (ValueError, Produto.DoesNotExist):
+        raise Produto.DoesNotExist("Produto não encontrado")
+    
 @login_required
 def add_pedido(request):
     # Verifica se o usuário tem permissão para adicionar pedidos
@@ -218,31 +247,41 @@ def add_pedido(request):
                         produtos_dict[idx][campo] = value  # Armazena o valor do campo dentro do dicionário
 
             # Percorre os produtos organizados e os adiciona na pedido
+            agrupa = request.user.filial_user.agrupa_itens  # ou request.user.filial
+            itens_existentes = {
+                (i.produto_id, float(i.vl_unit)): i
+                for i in PedidoProduto.objects.filter(pedido=pedido)
+            }
             for dados in produtos_dict.values():
+                codigo = dados.get("codigo")
                 try:
-                    # Busca o produto no banco pelo código
-                    produto = Produto.objects.get(pk=dados.get("codigo"), vinc_emp=request.user.empresa)
+                    produto = buscar_produto(codigo, request.user.empresa)
                 except Produto.DoesNotExist:
-                    # Se não encontrar, mostra aviso e ignora este produto
-                    messages.warning(request, f"Produto {dados.get('produto')} não encontrado e foi ignorado.")
+                    messages.warning(request, f"Produto {codigo} não encontrado.")
                     continue
-
-                # Cria ou atualiza o produto vinculado à pedido
-                PedidoProduto.objects.update_or_create(
-                    pedido=pedido,
-                    produto=produto,
-                    defaults={
-                        "vl_unit": parse_decimal(dados.get("preco_unitario")),
-                        "quantidade": parse_decimal(dados.get("quantidade")),
-                        "desc_acres": parse_decimal(dados.get("valor_desc_real")),
-                        "tp_desc_acres": "Desconto" if dados.get("operacao") == "desconto" else "Acréscimo",
-                    },
-                )
-
+                qtd = parse_decimal(dados.get("quantidade"))
+                vl_unit = parse_decimal(dados.get("preco_unitario"))
+                desc_acres = parse_decimal(dados.get("valor_desc_real"))
+                tp = "Desconto" if dados.get("operacao") == "desconto" else "Acréscimo"
+                key = (produto.id, float(vl_unit))
+                item_existente = itens_existentes.get(key)
+                if agrupa and item_existente:
+                    item_existente.quantidade += qtd
+                    item_existente.save()
+                else:
+                    novo = PedidoProduto.objects.create(
+                        pedido=pedido,
+                        produto=produto,
+                        vl_unit=vl_unit,
+                        quantidade=qtd,
+                        desc_acres=desc_acres,
+                        tp_desc_acres=tp,
+                        codigo_usado=codigo
+                    )
+                    itens_existentes[key] = novo
             # Atualiza o valor total da pedido depois de salvar os produtos
             pedido.total = pedido.atualizar_total()
             pedido.save(update_fields=["total"])
-
             # Exibe mensagem de sucesso e redireciona para a lista de pedidos
             messages.success(request, f'Pedido gerado com sucesso!')
             return redirect(f'/pedidos/lista/?s={pedido.id}')
@@ -276,32 +315,38 @@ def add_pedido(request):
 
 @login_required
 def att_pedido(request, id):
-    # Busca a pedido no banco (ou retorna 404 se não existir)
-    pedido = get_object_or_404(Pedido, pk=id, vinc_emp=request.user.empresa)
-
-    # Verifica se o usuário tem permissão de alteração
+    pedido = get_object_or_404(
+        Pedido,
+        pk=id,
+        vinc_emp=request.user.empresa
+    )
     if not request.user.has_perm('pedidos.change_pedido'):
         messages.info(request, 'Você não tem permissão para editar pedidos.')
         return redirect('/pedidos/lista/')
-
     if pedido.situacao in ["Faturado", "Cancelado"]:
-        messages.warning(request, f'Pedidos só podem ser editados com Situação em Aberto!')
+        messages.warning(request, 'Pedidos só podem ser editados com Situação em Aberto!')
         return redirect(f'/pedidos/lista/?s={pedido.id}')
     if request.method == "POST":
-        # Cria o formulário com os dados enviados e a instância existente
         dt_emi_original = pedido.dt_emi
-        form = PedidoForm(request.POST, instance=pedido, empresa=request.user.empresa, user=request.user)
+        form = PedidoForm(
+            request.POST,
+            instance=pedido,
+            empresa=request.user.empresa,
+            user=request.user
+        )
 
         if form.is_valid():
             pedido = form.save(commit=False)
             pedido.dt_emi = dt_emi_original
             pedido.save()
+
             next_url = request.POST.get('next') or request.GET.get('next')
-            # Dicionário temporário para os produtos
+
+            # 🔥 ORGANIZA PRODUTOS
             produtos_dict = {}
+
             for key, value in request.POST.items():
                 if key.startswith("produtos["):
-                    import re
                     m = re.match(r"produtos\[(\d+)\]\[(\w+)\]", key)
                     if m:
                         idx, campo = m.groups()
@@ -309,31 +354,56 @@ def att_pedido(request, id):
                             produtos_dict[idx] = {}
                         produtos_dict[idx][campo] = value
 
-            # Atualiza os produtos da pedido
-            produtos_ids = []
+            # 🔥 CONFIG
+            agrupa = request.user.filial_user.agrupa_itens
+
+            # 🔥 REMOVE ITENS ANTIGOS
+            PedidoProduto.objects.filter(pedido=pedido).delete()
+
+            # 🔥 CACHE LOCAL (evita query repetida)
+            itens_existentes = {}
+
+            # 🔥 RECRIA ITENS
             for dados in produtos_dict.values():
+                codigo = dados.get("codigo")
+
                 try:
-                    produto = Produto.objects.get(pk=dados.get("codigo"), vinc_emp=request.user.empresa)
+                    produto = buscar_produto(codigo, request.user.empresa)
                 except Produto.DoesNotExist:
-                    messages.warning(request, f"Produto {dados.get('produto')} não encontrado e foi ignorado.")
+                    messages.warning(request, f"Produto {codigo} não encontrado.")
                     continue
 
-                ep, created = PedidoProduto.objects.update_or_create(
-                    pedido=pedido,
-                    produto=produto,
-                    defaults={
-                        "vl_unit": parse_decimal(dados.get("preco_unitario")),
-                        "quantidade": parse_decimal(dados.get("quantidade")),
-                        "desc_acres": parse_decimal(dados.get("valor_desc_real")),
-                        "tp_desc_acres": "Desconto" if dados.get("operacao") == "desconto" else "Acréscimo",
-                    },
-                )
-                produtos_ids.append(ep.id)
+                qtd = parse_decimal(dados.get("quantidade"))
+                vl_unit = parse_decimal(dados.get("preco_unitario"))
+                desc_acres = parse_decimal(dados.get("valor_desc_real"))
+                tp = "Desconto" if dados.get("operacao") == "desconto" else "Acréscimo"
 
-            # Atualiza o total da pedido
+                key = (produto.id, float(vl_unit))
+                item_existente = itens_existentes.get(key)
+
+                # 🔥 AGRUPAMENTO
+                if agrupa and item_existente:
+                    item_existente.quantidade += qtd
+                    item_existente.save()
+
+                else:
+                    novo = PedidoProduto.objects.create(
+                        pedido=pedido,
+                        produto=produto,
+                        vl_unit=vl_unit,
+                        quantidade=qtd,
+                        desc_acres=desc_acres,
+                        tp_desc_acres=tp,
+                        codigo_usado=codigo
+                    )
+
+                    itens_existentes[key] = novo
+
+            # 🔥 ATUALIZA TOTAL
             pedido.total = pedido.atualizar_total()
             pedido.save(update_fields=["total"])
-            # 🔥 invalida PIX pendente se o valor mudou
+
+            # 🔥 CANCELA PIX PENDENTE SE VALOR MUDOU
             pagamentos_pendentes = pedido.pagamentos.filter(status="pendente")
 
             for p in pagamentos_pendentes:
@@ -341,24 +411,33 @@ def att_pedido(request, id):
                     p.status = "cancelado"
                     p.save(update_fields=["status"])
 
-            messages.success(request, f'Pedido atualizado com sucesso!')
+            messages.success(request, 'Pedido atualizado com sucesso!')
+
             if next_url:
                 return redirect(next_url)
-            else:
-                return redirect(f'/pedidos/lista/?s={pedido.id}')
+
+            return redirect(f'/pedidos/lista/?s={pedido.id}')
+
         else:
             error_messages = []
             for field in form:
                 for error in field.errors:
-                    error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+                    error_messages.append(
+                        f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!"
+                    )
+
             return render(request, "pedidos/att.html", {
                 "form": form,
                 "pedido": pedido,
                 "error_messages": error_messages
             })
+
     else:
-        # Se não for POST, carrega o formulário com os dados da pedido
-        form = PedidoForm(instance=pedido, empresa=request.user.empresa, user=request.user)
+        form = PedidoForm(
+            instance=pedido,
+            empresa=request.user.empresa,
+            user=request.user
+        )
 
     return render(request, "pedidos/att.html", {
         "form": form,
@@ -368,19 +447,19 @@ def att_pedido(request, id):
 
 @login_required
 def clonar_pedido(request, id):
-    # 🔒 Permissão
     if not request.user.has_perm('pedidos.clonar_pedido'):
         messages.warning(request, "Você não tem permissão para clonar pedidos.")
         return redirect('/pedidos/lista/')
-    # 🔍 Pedido original
+
     pedido_origem = get_object_or_404(
         Pedido,
         pk=id,
         vinc_emp=request.user.empresa
     )
+
     if request.method == "POST":
-        # 👉 igual ao add_pedido
         form = PedidoForm(request.POST, empresa=request.user.empresa, user=request.user)
+
         if form.is_valid():
             pedido = form.save(commit=False)
             pedido.vinc_emp = request.user.empresa
@@ -388,47 +467,67 @@ def clonar_pedido(request, id):
             pedido.status_pagamento = "pendente"
             pedido.dt_emi = datetime.now()
             pedido.save()
-            # 🔁 produtos
+
             produtos_dict = {}
-            import re
+
             for key, value in request.POST.items():
                 if key.startswith("produtos["):
                     m = re.match(r"produtos\[(\d+)\]\[(\w+)\]", key)
                     if m:
                         idx, campo = m.groups()
-                        if idx not in produtos_dict:
-                            produtos_dict[idx] = {}
+                        produtos_dict.setdefault(idx, {})
                         produtos_dict[idx][campo] = value
+
+            agrupa = request.user.filial_user.agrupa_itens
+            itens_existentes = {}
+
             for dados in produtos_dict.values():
+                codigo = dados.get("codigo")
+
                 try:
-                    produto = Produto.objects.get(
-                        pk=dados.get("codigo"),
-                        vinc_emp=request.user.empresa
-                    )
+                    produto = buscar_produto(codigo, request.user.empresa)
                 except Produto.DoesNotExist:
                     continue
-                PedidoProduto.objects.create(
-                    pedido=pedido,
-                    produto=produto,
-                    vl_unit=parse_decimal(dados.get("preco_unitario")),
-                    quantidade=parse_decimal(dados.get("quantidade")),
-                    desc_acres=parse_decimal(dados.get("desconto")),
-                    tp_desc_acres="Desconto" if dados.get("operacao") == "desconto" else "Acréscimo",
-                )
+
+                qtd = parse_decimal(dados.get("quantidade"))
+                vl_unit = parse_decimal(dados.get("preco_unitario"))
+                desc_acres = parse_decimal(dados.get("valor_desc_real"))
+                tp = "Desconto" if dados.get("operacao") == "desconto" else "Acréscimo"
+
+                key = (produto.id, float(vl_unit))
+                item_existente = itens_existentes.get(key)
+
+                if agrupa and item_existente:
+                    item_existente.quantidade += qtd
+                    item_existente.save()
+                else:
+                    novo = PedidoProduto.objects.create(
+                        pedido=pedido,
+                        produto=produto,
+                        vl_unit=vl_unit,
+                        quantidade=qtd,
+                        desc_acres=desc_acres,
+                        tp_desc_acres=tp,
+                        codigo_usado=codigo
+                    )
+                    itens_existentes[key] = novo
+
             pedido.total = pedido.atualizar_total()
             pedido.save(update_fields=["total"])
+
             messages.success(request, "Pedido clonado com sucesso!")
             return redirect(f'/pedidos/lista/?s={pedido.id}')
+
     else:
-        # 👉 pré-preenche com dados do pedido original
         form = PedidoForm(
             instance=pedido_origem,
             empresa=request.user.empresa,
             user=request.user
         )
+
     return render(request, "pedidos/clonar.html", {
         "form": form,
-        "produtos": pedido_origem.itens.all(),  # 🔥 isso já resolve tudo
+        "produtos": pedido_origem.itens.all(),
     })
 
 @login_required
@@ -549,12 +648,21 @@ def faturar_pedido(request, id):
 
     # 🔥 FATURA PARTE NORMAL
     if formas_normais:
-        finalizar_pedido(
+        resultado = finalizar_pedido(
             pedido,
             formas=formas_normais,
             parcelas=parcelas if tem_forma_com_parcela else None,
-            parcial=bool(formas_gateway)
+            parcial=bool(formas_gateway),
+            request=request
         )
+
+        # 🔥 BLOQUEIO REAL DE ERRO
+        if isinstance(resultado, dict) and not resultado.get("ok", True):
+            transaction.set_rollback(True)
+            return JsonResponse({
+                "ok": False,
+                "msg": resultado["erro"]
+            })
 
     return JsonResponse({
         "ok": True,
@@ -626,3 +734,10 @@ def recuperar_pix_pendente(request, pedido_id):
     if not pagamento:
         return JsonResponse({"erro": True})
     return JsonResponse({"txid": pagamento.txid, "qr_code": pagamento.qr_code, "qr_base64": pagamento.qr_base64, "valor": str(pagamento.valor)})
+
+@login_required
+def imprimir_cupom_pedido(request, id):
+    pedido = get_object_or_404(Pedido, id=id, vinc_emp=request.user.empresa)
+    return render(request, 'pedidos/cupom.html', {
+        'pedido': pedido
+    })

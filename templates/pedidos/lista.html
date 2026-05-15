@@ -42,22 +42,15 @@
                         {% endfor %}
                     </select>
                 </div>
-                <!--<div class="col-md-2 search-div flex-md-fill">-->
-                <!--    <label class="form-label">Técnico/Solicitante:</label>-->
-                <!--    <select class="form-control" id="tecnico" name="tec">-->
-                <!--        <option value="">Escolha uma opção</option>-->
-                <!--        {% if tecnico_selecionado %}-->
-                <!--            <option value="{{ tecnico_selecionado.id }}" selected>-->
-                <!--                {{ tecnico_selecionado.nome }}-->
-                <!--            </option>-->
-                <!--        {% endif %}-->
-                <!--        {% for tecnico in tecnicos %}-->
-                <!--            <option value="{{ tecnico.id }}" {% if request.GET.tec == tecnico.id|stringformat:"s" %}selected{% endif %}>-->
-                <!--                {{ tecnico.nome }}-->
-                <!--            </option>-->
-                <!--        {% endfor %}-->
-                <!--    </select>-->
-                <!--</div>-->
+                <div class="col-md-2 search-div flex-md-fill">
+                    <label class="form-label">Vendedor:</label>
+                    <select class="form-control" id="vendedor" name="vend">
+                        <option value="">Selecione um vendedor</option>
+                        {% for v in vendedores %}
+                            <option value="{{ v.id }}" {% if request.GET.vend == v.id|stringformat:"s" %}selected{% endif %}>{{ v.fantasia }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 <div class="col-md-1 search-div">
                     <label class="form-label">Situação:</label>
                     <div class="d-flex">
@@ -118,10 +111,10 @@
             <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
                 <thead thead class="table-dark">
                     <tr>
-                        <th scope="col" style="text-align: justify; width: 4%;">Opções</th><th scope="col" style="text-align: justify; width: 8%;">Nº Pedido</th>
+                        <th scope="col" style="text-align: justify; width: 4%;">Opções</th><th scope="col" style="text-align: justify; width: 8%;">Nº Pedido</th><th style="width: 20px;"></th>
                         <th scope="col" style="text-align: justify; width: 6%;">Situação</th><th scope="col" style="text-align: justify; width: 18%;">Filial</th>
                         <th scope="col" style="text-align: justify; width: 18%;">Cliente</th><th scope="col" style="text-align: justify; width: 9%;">Vendedor</th>
-                        <th scope="col" style="align-items: center; width: 7%;">Dt. Emissão</th><th scope="col" style="align-items: center; width: 7%;">Dt. Entrega</th>
+                        <th scope="col" style="align-items: center; width: 7%;">Dt. Emissão</th><th scope="col" style="align-items: center; width: 7%;">Dt. Fatura</th>
                         <th scope="col" style="text-align: justify; width: 7%;">Valor</th><th scope="col" style="align-items: center; width: 12%;">Formas</th>
                     </tr>
                 </thead>
@@ -216,7 +209,7 @@
                                         </div>
                                     </div>
                                 {% endif %}
-                                <div class="modal fade modal-faturar-pedido" id="faturarModalP-{{ pedido.id }}" tabindex="-1" aria-hidden="true" data-pedido-id="{{ pedido.id }}"  data-total="{{ pedido.total }}" data-num-pedido="{{ pedido.id }}">
+                                <div class="modal fade modal-pagamento modal-faturar-pedido" data-tipo="pedido" id="faturarModalP-{{ pedido.id }}" tabindex="-1" aria-hidden="true" data-pedido-id="{{ pedido.id }}"  data-total="{{ pedido.total }}" data-num-pedido="{{ pedido.id }}">
                                     <div class="modal-dialog modal-dialog-centered modal-lg">
                                         <div class="modal-content">
                                             <div class="modal-header bg-success text-white" style="max-height: 30px;">
@@ -231,7 +224,7 @@
                                                     </div>
                                                     <div style="flex: 1;">
                                                         <label class="form-label fw-bold">Valor Total:</label>
-                                                        <input class="form-control fw-bold" value="{{ pedido.total|floatformat:2 }}" disabled>
+                                                        <input class="form-control fw-bold totalModal" value="{{ pedido.total|floatformat:2 }}" disabled>
                                                     </div>
                                                     <div style="width:150px;">
                                                         <label class="form-label fw-bold">Data Emissão:</label>
@@ -255,7 +248,7 @@
                                                 <div class="row align-items-end g-2">
                                                     <div class="col-md-4">
                                                         <label class="form-label fw-bold">Forma Pgto</label>
-                                                        <select class="form-select form-select-sm" id="formaPgtoSelect-{{ pedido.id }}">
+                                                        <select class="form-select forma-pgto">
                                                             <option value="">Selecione</option>
                                                             {% for f in formas_pgto %}
                                                                 <option value="{{ f.id }}" data-gera="{{ f.gera_parcelas|yesno:'1,0' }}">
@@ -266,15 +259,15 @@
                                                     </div>
                                                     <div class="col-md-2">
                                                         <label class="form-label fw-bold">Valor</label>
-                                                        <input type="text" class="form-control form-control-sm inp-valor-pgto" id="valorPgto-{{ pedido.id }}" value="{{ pedido.total }}" data-total="{{ pedido.total }}">
+                                                        <input type="text" class="form-control inp-valor-pgto">
                                                     </div>
                                                     <div class="col-md-2 campos-parcela d-none">
                                                         <label class="form-label fw-bold">Parcelas</label>
-                                                        <input type="number" min="1" value="1" class="form-control form-control-sm" id="parcelasPgto-{{ pedido.id }}">
+                                                        <input type="number" class="form-control form-control-sm parcelasPgto">
                                                     </div>
                                                     <div class="col-md-2 campos-parcela d-none">
                                                         <label class="form-label fw-bold">Dias</label>
-                                                        <input type="number" min="0" value="30" class="form-control form-control-sm" id="diasPgto-{{ pedido.id }}">
+                                                        <input type="number" class="form-control form-control-sm diasPgto">
                                                     </div>
                                                     <div class="col-md-2">
                                                         <button class="btn btn-success btn-sm w-100 btn-add-forma"><i class="fas fa-plus"></i> Adicionar</button>
@@ -283,7 +276,7 @@
                                                 <hr>
                                                 <!-- TABELA FORMAS -->
                                                 <h6 class="fw-bold">Formas de Pagamento</h6>
-                                                <table class="table table-bordered table-striped" id="tableFormas-{{ pedido.id }}">
+                                                <table class="table table-bordered table-striped table-formas">
                                                     <thead class="table-dark">
                                                         <tr>
                                                             <th>#</th><th>Forma</th><th>Valor</th><th>Parcelas</th><th>Dias</th><th style="width:50px;">Ações</th>
@@ -303,11 +296,7 @@
                                                 </table>
                                                 <div class="row">
                                                     <div class="mt-2">
-                                                        <small class="fw-bold text-muted saldo-restante">Saldo Restante: R$ 0.00</small>
-                                                    </div>
-                                                    <div class="col-md-2 d-none">
-                                                        <label class="form-label fw-bold">Troco</label>
-                                                        <input type="text" class="form-control form-control-sm" id="troco-{{ pedido.id }}" readonly>
+                                                        <h5 class="fw-bold saldo-restante">Saldo Restante: R$ 0.00</h5>
                                                     </div>
                                                 </div>
                                             </div>
@@ -316,8 +305,8 @@
                                                     {% csrf_token %}
                                                     <input type="hidden" name="dados_pagamento" id="dadosPagamento-{{ pedido.id }}">
                                                     <input type="hidden" name="parcelas_json" id="parcelasJson-{{ pedido.id }}">
-                                                    <button type="submit" class="btn btn-success btn-confirmar-pedido">Faturar</button>
-                                                    <button type="button" class="btn btn-secondary btn-canc-fat-pedido" data-bs-dismiss="modal">Cancelar</button>
+                                                    <button type="submit" class="btn btn-success btn-sm btn-confirmar-pedido">Faturar</button>
+                                                    <button type="button" class="btn btn-secondary btn-sm btn-canc-fat-pedido" data-bs-dismiss="modal">Cancelar</button>
                                                 </form>
                                             </div>
                                         </div>
@@ -361,6 +350,7 @@
                                 </div>
                             </td>
                             <td data-label="Nº Pedido:" class="mobile-2col" style="align-items: center;">{{ pedido.id }}</td>
+                            <td class="icon-cell mx-auto mobile-2col" data-label=""><i class="fa-solid fa-circle-info" id="icone-pedido" data-id="{{ pedido.id }}" style="cursor: pointer;" title="Detalhes do Pedido"></i></td>
                             <td data-label="Situação:" class="mobile-2col" style="text-align: center;">
                                 {% if pedido.situacao == 'Aberto' %}
                                     <div style="background-color: #005eff; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
@@ -405,10 +395,41 @@
             </table>
         </div>
         <div class="card">
-            <div class="card-body" style="max-height: 50px;">
-                <strong>Total de Pedidos: {{ pedidos|length }}</strong>
-                <a id="add-link" href="{% url 'add-pedido' %}" style="margin-left: 1%; margin-right: 1%; float: right;" class="btn-permissao" data-permissao="pedidos.add_pedido" data-msg-negado="Seu usuário não pode adicionar pedidos!">
-                    <button type="button" class="btn btn-primary btn-sm" id="add-pedido"><i class="fas fa-plus"></i> Novo</button>
+            <div class="card-body d-flex align-items-center justify-content-between" style="overflow-x:auto; white-space: nowrap;">
+                <ul class="list-group list-group-horizontal mb-0 flex-grow-1">
+                    <li class="list-group-item">
+                        Pedidos Abertos:
+                        <span class="badge rounded-pill text-bg-primary">{{ ped_ab }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        Total Ped. Abertos:
+                        <span class="badge rounded-pill text-bg-primary">R$ {{ tot_ab|moeda_br }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        Pedidos Faturados:
+                        <span class="badge rounded-pill text-bg-success">{{ ped_fat }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        Total Ped. Faturados:
+                        <span class="badge rounded-pill text-bg-success">R$ {{ tot_fat|moeda_br }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        Pedidos Cancelados:
+                        <span class="badge rounded-pill text-bg-danger">{{ ped_canc }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        Total Ped. Cancelados:
+                        <span class="badge rounded-pill text-bg-danger">R$ {{ tot_canc|moeda_br }}</span>
+                    </li>
+                </ul>
+                <a id="add-link"
+                href="{% url 'add-pedido' %}"
+                class="btn-permissao ms-3"
+                data-permissao="pedidos.add_pedido"
+                data-msg-negado="Seu usuário não pode adicionar pedidos!">
+                    <button type="button" class="btn btn-primary btn-sm" id="add-pedido">
+                        <i class="fas fa-plus"></i> Novo
+                    </button>
                 </a>
             </div>
             <div class="card-footer text-body-secondary">

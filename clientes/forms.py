@@ -8,6 +8,7 @@ from filiais.models import Filial
 class ClienteForm(forms.ModelForm):
     vinc_fil = forms.ModelChoiceField(label='Filial', queryset=Filial.objects.none(), widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle text-uppercase'}))
     situacao = forms.ChoiceField(label="Situação", choices=[('Ativo', 'Ativo'), ('Inativo', 'Inativo')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
+    somente_avista = forms.ChoiceField(label="Vender somente à vista", choices=[(True, 'Sim'), (False, 'Não')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
     pessoa = forms.ChoiceField(label="Pessoa", choices=[('Física', 'Física'), ('Jurídica', 'Jurídica')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
     cpf_cnpj = forms.CharField(label='CPF', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
     ie = forms.CharField(label='Inscrição Estadual/RG', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
@@ -25,7 +26,7 @@ class ClienteForm(forms.ModelForm):
     class Meta:
         model = Cliente
         fields = (
-            'situacao', 'pessoa', 'cpf_cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro', 'complem', 'cidade', 'uf', 'tel', 'email', 'vinc_fil'
+            'somente_avista', 'situacao', 'pessoa', 'cpf_cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro', 'complem', 'cidade', 'uf', 'tel', 'email', 'vinc_fil'
         )
 
     def __init__(self, *args, empresa=None, user=None, **kwargs):

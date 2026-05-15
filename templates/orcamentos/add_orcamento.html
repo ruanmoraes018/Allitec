@@ -35,7 +35,7 @@
                         <!--Cliente-->
                         <div class="form-section" id="clientes">
                             <div class="row" style="margin-left: -8px;">
-                                <div class="col-md-1">{{ form.num_orcamento|as_crispy_field }}</div>
+                                <div class="col-md-1">{{ form.id|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.vinc_fil|as_crispy_field }}</div>
                                 <div class="col-md-3">{{ form.solicitante|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.fornecedor|as_crispy_field }}</div>
@@ -469,14 +469,14 @@
                         <label class="form-label fw-bold" for="campo_desconto">Valor:</label>
                         <div class="input-group mb-2">
                             <span class="input-group-text" id="simbolo">R$</span>
-                            <input class="form-control fw-bold" id="campo_desconto" type="text" placeholder="0.00" aria-describedby="simbolo">
+                            <input class="form-control fw-bold" id="campo_desconto" type="text" placeholder="0,00" aria-describedby="simbolo">
                         </div>
                     </div>
                     <div class="col">
                         <label class="form-label fw-bold" for="auxiliar_desconto">Percentual:</label>
                         <div class="input-group mb-2">
                             <span class="input-group-text" id="simboloAuxiliar">%</span>
-                            <input class="form-control fw-bold" id="auxiliar_desconto" disabled="disabled" type="text" placeholder="0.00" aria-describedby="simboloAuxiliar">
+                            <input class="form-control fw-bold" id="auxiliar_desconto" disabled="disabled" type="text" placeholder="0,00" aria-describedby="simboloAuxiliar">
                         </div>
                     </div>
                 </div>

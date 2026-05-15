@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Lista - Relatórios{% endblock %}
+{% block content %}
+    <div class="container-fluid bg-white">
+        <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Listagem de Relatórios</li>
+            </ol>
+        </nav>
+        {% if messages %}
+            <div id="django-messages" data-messages='[
+                {% for message in messages %}
+                    {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
+                    {% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ]'></div>
+        {% endif %}
+        <div class="row">
+            {% for rel in relatorios %}
+                <div class="col-md-6 mb-3">
+                    <div class="card shadow-sm border-0">
+                        <!-- HEADER CLICÁVEL -->
+                        <div class="card-body border" data-bs-toggle="collapse" data-bs-target="#relatorio{{ forloop.counter }}" style="cursor:pointer;">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="{{ rel.icone }}" style="font-size:28px;"></i>
+                                <div class="ms-3">
+                                    <h5 class="mb-0">{{ rel.titulo }}</h5>
+                                    <small class="text-muted">{{ rel.modulo }}</small>
+                                </div>
+                            </div>
+                            <hr>
+                            <p class="text-dark mb-0">{{ rel.descricao }}</p>
+                        </div>
+                        <!-- ACCORDION -->
+                        <div class="collapse" id="relatorio{{ forloop.counter }}">
+                            <div class="card-body border-top">
+                                <!-- FILTROS GENÉRICOS -->
+                                <form method="GET" action="{% url rel.view_name %}" target="_blank">
+                                    <div class="row">
+                                        {% for filtro in rel.filtros %}
+                                        <select class="form-control" id="usar-data" name="p_dt" hidden>
+                                            <option value="Sim" selected>Sim</option>
+                                        </select>
+                                            <div class="col-md-{{ filtro.col }} mb-2">
+                                                <label class="form-label">{{ filtro.label }}</label>
+                                                <!-- DATE -->
+                                                {% if filtro.tipo == 'date' %}
+                                                    <input type="text" name="{{ filtro.name }}" id="{{ filtro.id }}" class="form-control form-control-sm border-dark-subtle">
+                                                {% endif %}
+                                                <!-- FILIAL -->
+                                                {% if filtro.tipo == 'filial' %}
+                                                    <select name="{{ filtro.name }}" id="{{ filtro.id }}" class="form-select form-select-sm flex-md-fill">
+                                                        <option value="">Selecione</option>
+                                                        {% for cliente in clientes %}
+                                                            <option value="{{ cliente.id }}">{{ cliente.fantasia }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                {% endif %}
+                                                <!-- CLIENTE -->
+                                                {% if filtro.tipo == 'cliente' %}
+                                                    <select name="{{ filtro.name }}" id="{{ filtro.id }}" class="form-select form-select-sm flex-md-fill">
+                                                        <option value="">Selecione</option>
+                                                        {% for cliente in clientes %}
+                                                            <option value="{{ cliente.id }}">{{ cliente.fantasia }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                {% endif %}
+                                                <!-- VENDEDOR -->
+                                                {% if filtro.tipo == 'vendedor' %}
+                                                    <select name="{{ filtro.name }}" id="{{ filtro.id }}" class="form-select form-select-sm flex-md-fill">
+                                                        <option value="">Selecione</option>
+                                                        {% for v in vendedores %}
+                                                            <option value="{{ v.id }}">{{ v.fantasia }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                {% endif %}
+                                                <!-- GRUPO -->
+                                                {% if filtro.tipo == 'grupo' %}
+                                                    <select name="{{ filtro.name }}" id="{{ filtro.id }}" class="form-select form-select-sm">
+                                                        <option value="">Selecione</option>
+                                                        {% for grupo in grupos %}
+                                                            <option value="{{ grupo.id }}">{{ grupo.nome_grupo }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                {% endif %}
+                                                <!-- MARCA -->
+                                                {% if filtro.tipo == 'marca' %}
+                                                    <select name="{{ filtro.name }}" id="{{ filtro.id }}" class="form-select form-select-sm">
+                                                        <option value="">Selecione</option>
+                                                        {% for marca in marcas %}
+                                                            <option value="{{ marca.id }}">{{ marca.nome_marca }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                {% endif %}
+                                                <!-- SELECT -->
+                                                {% if filtro.tipo == 'select' %}
+                                                    <select name="{{ filtro.name }}" class="form-select form-select-sm border-dark-subtle">
+                                                        {% for val, nome in filtro.options %}
+                                                            <option value="{{ val }}">{{ nome }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
+                                        <!-- BOTÃO -->
+                                        <div class="col-md-2">
+                                            <label class="form-label">&nbsp;</label>
+                                            <button type="submit" class="btn btn-dark btn-sm w-100">
+                                                <i class="fa fa-file-pdf"></i> Gerar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-md-12">
+                    <div class="alert alert-warning">
+                        Nenhum relatório liberado.
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}

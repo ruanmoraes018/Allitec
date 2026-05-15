@@ -1,6 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 from filiais.models import Filial
+from util.parse_decimal import parse_decimal
 from .models import Entrada, EntradaProduto
 from fornecedores.models import Fornecedor
 
@@ -40,6 +41,17 @@ class EntradaForm(forms.ModelForm):
 
     def clean_obs(self):
         return self.cleaned_data['obs'].upper()
+    
+    def clean(self):
+        cleaned_data = super().clean()
+
+        try:
+            cleaned_data['frete'] = parse_decimal(
+                cleaned_data.get('frete')
+            )
+        except:
+            self.add_error('frete', 'Valor inválido.')
+        return cleaned_data
 
 EntradaProdutoFormSet = inlineformset_factory(
     Entrada,

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+{% load custom_filters %}
+<html lang="pt-br">
+    <head>
+        <meta charset="UTF-8">
+        <title>Relatório de Produtos Vendidos</title>
+    </head>
+    <body>
+        <!-- TÍTULO -->
+        <h1 class="titulo">
+            RELATÓRIO DE PRODUTOS VENDIDOS {% if tipo == "resumido" %}(RESUMIDO){% else %}(DETALHADO){% endif %}</h1>
+        <!-- SUBTÍTULO -->
+        <div class="row" style="margin-bottom: 10px;">
+            <span class="subtitulo">Emitido em {% now "d/m/Y H:i" %} por {{ request.user.first_name }}.</span>
+            <span style="float: right;">Período {{ dt_ini|date:"d/m/Y" }} À {{ dt_fim|date:"d/m/Y" }}.</span>
+        </div>
+        <!-- CARDS -->
+        <table class="cards-table">
+            <tr>
+                <td class="card-info">
+                    <div class="card-titulo">TOTAL VENDIDO</div>
+                    <div class="card-valor"> R$ {{ total_vendido|moeda_br }}</div>
+                </td>
+                <td class="card-info">
+                    <div class="card-titulo">QTDE VENDIDA</div>
+                    <div class="card-valor">{{ total_qtd }}</div>
+                </td>
+                <td class="card-info">
+                    <div class="card-titulo">TOTAL PRODUTOS</div>
+                    <div class="card-valor">{{ total_produtos }}</div>
+                </td>
+                <td class="card-info">
+                    <div class="card-titulo">PRODUTO CAMPEÃO</div>
+                    <div class="card-valor">
+                        {% if produto_campeao %}{{ produto_campeao.produto__desc_prod }}{% else %} -{% endif %}
+                    </div>
+                </td>
+            </tr>
+        </table>
+        <!-- RESUMIDO -->
+        {% if tipo == 'resumido' %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th><th>Produto</th><th>Qtde Vendida</th><th>Total Pedidos</th><th>Total Vendido</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in produtos %}
+                        <tr>
+                            <td class="center">{{ forloop.counter }}</td>
+                            <td>{{ p.produto__desc_prod }}</td>
+                            <td class="center">{{ p.qtd_vendida }}</td>
+                            <td class="center">{{ p.total_pedidos }}</td>
+                            <td class="right"><strong> R$ {{ p.total_vendido|moeda_br }}</strong></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+        <!-- DETALHADO -->
+        {% if tipo == 'detalhado' %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th><th>Produto</th><th>Grupo</th><th>Marca</th><th>Estoque</th><th>Vl. Compra</th><th>Qtde Vendida</th><th>Total Pedidos</th><th>Total Compras</th><th>Total Vendido</th><th>Lucro</th><th>Margem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in produtos %}
+                        <tr>
+                            <td class="center">{{ forloop.counter }}</td>
+                            <td>{{ p.produto__desc_prod }}</td>
+                            <td>{{ p.produto__grupo__nome_grupo|default:"-" }}</td>
+                            <td>{{ p.produto__marca__nome_marca|default:"-" }}</td>
+                            <td class="center">{{ p.produto__estoque_prod }}</td>
+                            <td class="right"> R$ {{ p.produto__vl_compra|moeda_br }}</td>
+                            <td class="center">{{ p.qtd_vendida }}</td>
+                            <td class="center">{{ p.total_pedidos }}</td>
+                            <td class="right"> R$ {{ p.total_compras|moeda_br }}</td>
+                            <td class="right"><strong>R$ {{ p.total_vendido|moeda_br }}</strong></td>
+                            <td class="right"><strong>R$ {{ p.lucro|moeda_br }}</strong></td>
+                            <td class="center">{{ p.margem_lucro|floatformat:2 }}%</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+        <!-- RODAPÉ -->
+        <div class="rodape">
+            <span class="total-produtos">
+                TOTAL DE PRODUTOS: <strong>{{ total_produtos }}</strong>
+            </span>
+            <span class="total-geral">
+                TOTAL GERAL: <strong>R$ {{ total_vendido|moeda_br }}</strong>
+            </span>
+        </div>
+    </body>
+</html>

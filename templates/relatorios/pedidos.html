@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+{% load custom_filters %}
+<html lang="pt-br">
+    <head>
+        <meta charset="UTF-8">
+        <title>Relatório de Pedidos</title>
+    </head>
+    <body>
+        <h1 class="titulo">RELATÓRIO DE PEDIDOS - {% if fil %}{{ fil.fantasia }}{% else %}TODAS AS FILIAIS{% endif %} {% if tipo == "resumido" %}(RESUMIDO){% else %}(DETALHADO){% endif %}</h1>
+        <div class="row" style="margin-bottom: 10px;">
+            <span class="subtitulo">Emitido em {% now "d/m/Y H:i" %} por {{ request.user.first_name }}.</span>
+            <span style="float: right;">Período {{ dt_ini|date:"d/m/Y" }} À {{ dt_fim|date:"d/m/Y" }}.</span>
+        </div>
+         <!-- RELATÓRIO RESUMIDO -->
+        {% if tipo == 'resumido' %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nº</th><th>Data</th><th>Cliente</th><th>Vendedor</th><th>Filial</th><th>Situação</th><th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pedido in pedidos %}
+                        <tr>
+                            <td class="center">{{ pedido.id }}</td>
+                            <td class="center">{{ pedido.dt_emi|date:"d/m/Y H:i:s" }}</td>
+                            <td>{{ pedido.nome_cli }}</td>
+                            <td>{{ pedido.nome_vend }}</td>
+                            <td>{{ pedido.fantasia_fil }}</td>
+                            <td class="center">
+                                {% if pedido.situacao == 'Faturado' %}
+                                    <span class="situacao fat">{{ pedido.situacao }}</span>
+                                {% elif pedido.situacao == 'Cancelado' %}
+                                    <span class="situacao can">{{ pedido.situacao }}</span>
+                                {% else %}
+                                    <span class="situacao abe">{{ pedido.situacao }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="right">R$ {{ pedido.total|moeda_br }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+        <!-- RELATÓRIO DETALHADO -->
+        {% if tipo == 'detalhado' %}
+            {% for pedido in pedidos %}
+                <div class="pedido-box">
+                    <div class="pedido-header">Pedido Nº {{ pedido.id }}</div>
+                    <table>
+                        <tr>
+                            <td width="15%"><strong>Cliente</strong></td>
+                            <td width="35%">{{ pedido.nome_cli }}</td>
+                            <td width="15%"><strong>Vendedor</strong></td>
+                            <td width="35%">{{ pedido.nome_vend }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Filial</strong></td>
+                            <td>{{ pedido.fantasia_fil }}</td>
+                            <td><strong>Data</strong></td>
+                            <td>{{ pedido.dt_emi|date:"d/m/Y H:i:s" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Situação</strong></td>
+                            <td class="center">
+                                {% if pedido.situacao == 'Faturado' %}
+                                    <span class="situacao fat">{{ pedido.situacao }}</span>
+                                {% elif pedido.situacao == 'Cancelado' %}
+                                    <span class="situacao can">{{ pedido.situacao }}</span>
+                                {% else %}
+                                    <span class="situacao abe">{{ pedido.situacao }}</span>
+                                {% endif %}
+                            </td>
+                            <td><strong>Total</strong></td>
+                            <td><strong>R$ {{ pedido.total|moeda_br }}</strong></td>
+                        </tr>
+                    </table>
+                    <!-- ITENS -->
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Item</th><th>Código</th><th>Descrição</th><th>Unidade</th><th>Vl. Unit.</th><th>Qtde</th><th>Desc/Acres</th><th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in pedido.itens.all %}
+                                <tr>
+                                    <td class="center">{{ forloop.counter }}</td>
+                                    <td class="center">{{ item.codigo_usado|default:item.produto.id }}</td>
+                                    <td>{{ item.produto.desc_prod }}</td>
+                                    <td class="center">{{ item.produto.unidProd }}</td>
+                                    <td class="right">R$ {{ item.vl_unit }}</td>
+                                    <td class="right">{{ item.quantidade }}</td>
+                                    <td class="right">
+                                        {% if item.desc_acres > 0 %}
+                                            {% if item.tp_desc_acres == 'Desconto' %} - {% else %} + {% endif %}
+                                            R$ {{ item.valor_desc_real }}
+                                        {% endif %}
+                                    </td>
+                                    <td class="right">
+                                        <strong>R$ {{ item.subtotal|moeda_br }}</strong>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% if pedido.obs %}
+                    <div style="margin-top:10px;">
+                        <strong>Observações:</strong>
+                        {{ pedido.obs }}
+                    </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% endif %}
+        <div class="row">
+            <span class="total-pedidos">TOTAL DE PEDIDOS: {{ total_pedidos }}</span>
+            <span class="total-geral">TOTAL GERAL: R$ {{ valor_total|moeda_br }}</span>
+        </div>
+    </body>
+</html>

@@ -8,12 +8,12 @@ CSRF_TRUSTED_ORIGINS = ['https://allitec.pythonanywhere.com']
 INSTALLED_APPS = [
     'django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions',
     'django.contrib.messages', 'django.contrib.staticfiles', 'core', 'pedidos', 'tabelas_preco', 'vendedores',
-    'regras_produto', 'marcas', 'formas_pgto', 'tipo_cobranca',
-    'filiais', 'compras', 'entradas', 'conferencias',
+    'regras_produto', 'marcas', 'formas_pgto', 'tipo_cobranca', 'lancpdvs', 'pdvs',
+    'filiais', 'compras', 'entradas', 'conferencias', 'relatorios',
     'unidades', 'clientes', 'fornecedores', 'produtos',
     'orcamentos', 'tecnicos', 'bancos', 'grupos',
-    'empresas', "bairros", "cidades", "estados", 'contas_receber',
-    'notifications', "mensalidades", "contratos", "crispy_forms", "crispy_bootstrap5",
+    'empresas', 'bairros', 'cidades', 'estados', 'contas_receber',
+    'notifications', 'mensalidades', 'contratos', 'crispy_forms', 'crispy_bootstrap5',
 ]
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware', 'django.contrib.sessions.middleware.SessionMiddleware',

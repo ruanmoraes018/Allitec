@@ -491,7 +491,7 @@
                 </div>
                 <div class="modal-body">
                     <div class="row g-2">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Unidade</label>
                             <select class="form-select form-select-sm" id="massa-unidade">
                                 <option value="">Selecione</option>
@@ -500,7 +500,7 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Marca</label>
                             <select class="form-select form-select-sm" id="massa-marca">
                                 <option value="">Selecione</option>
@@ -509,20 +509,13 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Grupo</label>
                             <select class="form-select form-select-sm" id="massa-grupo">
                                 <option value="">Selecione</option>
                                 {% for g in grupos %}
                                     <option value="{{ g.id }}">{{ g.nome_grupo }}</option>
                                 {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Tipo</label>
-                            <select class="form-select form-select-sm" id="massa-tipo">
-                                <option value="Principal">Principal</option>
-                                <option value="Adicional">Adicional</option>
                             </select>
                         </div>
                     </div>

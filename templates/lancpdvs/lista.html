@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+{% block title %}Lista - Caixas{% endblock %}
+{% block content %}
+    <div class="container-fluid bg-white">
+        <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Listagem de Caixas</li>
+            </ol>
+        </nav>
+        {% if messages %}
+            <div id="django-messages" data-messages='[
+                {% for message in messages %}
+                    {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
+                    {% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ]'></div>
+        {% endif %}
+        {% if not perm_add_caixa and not perm_change_caixa and not perm_delete_caixa %}
+            <div class="alert alert-warning">
+                Usuário não autorizado para realizar esta função.
+            </div>
+        {% endif %}
+        <form method="GET" id="search-form" style="margin-left: 1%; margin-right: 1%;">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-2 search-div flex-md-fill">
+                    <label class="form-label">Cód. Caixa:</label>
+                    <input class="form-control" type="text" name="s" id="s" placeholder="Digite o termo de busca" value="{{ request.GET.s }}">
+                </div>
+                <div class="col-md-2 search-div flex-md-fill">
+                    <label class="form-label">Filial:</label>
+                    <select class="form-select form-select-sm" id="vinc_emp" name="fil">
+                        <option value="">Selecione uma filial</option>
+                        {% for f in filiais %}
+                            <option value="{{ f.id }}" {% if request.GET.fil == f.id|stringformat:"s" %}selected{% endif %}>{{ f }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 search-div flex-md-fill">
+                    <label class="form-label">Usuário:</label>
+                    <select class="form-select form-select-sm" id="usuario" name="user1">
+                        <option value="">Selecione um usuário</option>
+                        {% for u in usuarios %}
+                            <option value="{{ u.id }}" {% if request.GET.user1 == u.id|stringformat:"s" %}selected{% endif %}>{{ u }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-1 search-div">
+                    <label class="form-label">Situação:</label>
+                    <div class="d-flex">
+                        <select class="form-control" name="sit" id="situacao">
+                            <option value="Todos" {% if request.GET.sit == 'Todos' %}selected{% endif %}>Todos</option>
+                            <option value="Aberto" {% if request.GET.sit == 'Aberto' %}selected{% endif %}>Abertos</option>
+                            <option value="Fechado" {% if request.GET.sit == 'Fechado' %}selected{% endif %}>Fechados</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-1 search-div">
+                    <label class="form-label">Reg.:</label>
+                    <select class="form-control" id="qtd_reg" name="reg">
+                        <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
+                        <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
+                        <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
+                        <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
+                        <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
+                        <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
+                    </select>
+                </div>
+                <div class="col search-div d-flex justify-content-start">
+                    <button class="btn btn-dark" title="Consultar caixas" type="submit" id="data-btn" data-bs-toggle="modal" data-bs-target="#loadingModal">🔎</button>
+                </div>
+            </div>
+        </form>
+        <div class="table-container" style="margin-left: 1%; margin-right: 1%;">
+            <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
+                <thead thead class="table-dark">
+                    <tr>
+                        <th scope="col" style="text-align: center; width: 6%;">Opções</th>
+                        <th scope="col" style="text-align: center; width: 7%;">Código</th>
+                        <th scope="col" style="text-align: center; width: 7%;">Situação</th>
+                        <th scope="col" style="align-items: center;">Filial</th>
+                        <th scope="col" style="align-items: center;">PDV</th>
+                        <th scope="col" style="align-items: center;">Usuário</th>
+                        <th scope="col" style="align-items: center;">Data Abertura</th>
+                        <th scope="col" style="align-items: center;">Data Fechamento</th>
+                        <th scope="col" style="align-items: center;">Valor Abertura</th>
+                        <th scope="col" style="align-items: center;">Valor Fechamento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in caixas %}
+                        <tr>
+                            <td data-label="Opções:" class="mobile-2col">
+                                <a href="{% url 'att-lancamento' c.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
+                                  data-permissao="lancpdvs.change_caixa"
+                                  data-msg-negado="Seu usuário não pode editar caixas!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
+                                <span>
+                                    <i class="fas fa-trash btn-permissao"
+                                       title="Deletar caixa"
+                                       data-bs-target="#modal-{{ c.id }}"
+                                       data-permissao="lancpdvs.delete_caixa"
+                                       data-msg-negado="Seu usuário não pode deletar caixas!">
+                                    </i>
+                                </span>
+                                <!-- Modal ÚNICO para cada banco -->
+                                <div class="modal fade" id="modal-{{ c.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ c.id }}" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header titulo-modal">
+                                                <h1 class="modal-title fs-5" id="modalLabel-{{ c.id }}">
+                                                    <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                                </h1>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Você confirma a EXCLUSÃO DO CAIXA <strong>{{ c.terminal.nome }}</strong>?</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <form method="post" action="{% url 'del-lancamento' c.id %}" class="form-excluir">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                                        <u>S</u>im <span class="contador">3</span>
+                                                    </button>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                        <u>N</u>ão
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                            </td>
+                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ c.id }}</td>
+                            <td data-label="Situação:" class="mobile-2col" style="text-align: center;">
+                                {% if c.situacao == 'Ativo' %}
+                                    <div style="background-color: blue; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
+                                        <strong>{{ c.situacao }}</strong>
+                                    </div>
+                                {% else %}
+                                    <div style="background-color: green; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
+                                        <strong>{{ c.situacao }}</strong><br>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td data-label="Filial:" class="mobile-2col text-uppercase" style="align-items: center;">{{ c.vinc_fil }}</td>
+                            <td data-label="PDV:" class="mobile-2col text-uppercase" style="align-items: center;">{{ c.terminal.nome }}</td>
+                            <td data-label="Usuário:" class="mobile-2col" style="align-items: center;">{{ c.usuario.first_name }}</td>
+                            <td data-label="Data Abertura:" class="mobile-2col" style="align-items: center;">{{ c.data_abertura|date:"d/m/Y H:i:s" }}</td>
+                            <td data-label="Data Fechamento:" class="mobile-2col" style="align-items: center;">{% if c.data_fechamento %}{{ c.data_fechamento|date:"d/m/Y H:i:s" }}{% else %}-{% endif %}</td>
+                            <td data-label="Valor Abertura:" class="mobile-2col" style="align-items: center;">R$ {{ c.saldo_inicial|moeda_br }}</td>
+                            <td data-label="Valor Fechamento:" class="mobile-2col" style="align-items: center;">{% if c.valor_fechamento %}R$ {{ c.valor_fechamento }}{% else %}-{% endif %}</td>
+                        </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="15" class="mobile-full-center" style="text-align: center;">
+                            Nenhum caixa encontrado.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="card">
+            <div class="card-body" style="max-height: 50px;">
+                <strong>Total de Caixas: {{ caixas|length }}</strong>
+                <a id="add-link" href="{% url 'add-lancamento' %}" style="margin-left: 1%; margin-right: 1%; float: right;" class="btn-permissao" data-permissao="lancpdvs.add_caixa" data-msg-negado="Seu usuário não pode adicionar caixas!">
+                    <button type="button" class="btn btn-primary btn-sm" id="add-banco"><i class="fas fa-plus"></i> Novo</button>
+                </a>
+            </div>
+            <div class="card-footer text-body-secondary">
+                <nav aria-label="Page navigation example" style="padding-bottom: 1px;">
+                    <ul class="pagination justify-content-center">
+                        {% if caixas.number > 1 and caixas.number > 3 %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="First">
+                                    <span aria-hidden="true" style="color: #0f1d2b;">1</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                        {% if caixas.number > 4 %}
+                            <li class="page-item disabled">
+                                <a class="page-link">...</a>
+                            </li>
+                        {% endif %}
+                        {% for num in caixas.paginator.page_range %}
+                            {% if num >= caixas.number|add:'-2' and num <= caixas.number|add:'2' %}
+                                {% if caixas.number == num %}
+                                    <li class="page-item active" aria-current="page">
+                                        <span class="page-link" style="background-color: #0f1d2b; color: white;">{{ num }}</span>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" style="color: #0f1d2b;" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if caixas.number < caixas.paginator.num_pages|add:'-3' %}
+                            <li class="page-item disabled">
+                                <a class="page-link">...</a>
+                            </li>
+                        {% endif %}
+                        {% if caixas.number < caixas.paginator.num_pages and caixas.number < caixas.paginator.num_pages|add:'-2' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ caixas.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                    <span aria-hidden="true" style="color: #0f1d2b;">{{ caixas.paginator.num_pages }}</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+{% endblock %}

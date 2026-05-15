@@ -3,6 +3,66 @@ from pedidos.models import Pagamento
 from decimal import Decimal
 from django.contrib.contenttypes.models import ContentType
 
+def gerar_pagamentos_caixa(caixa):
+    pagamentos_gerados = []
+    # 🔥 pega só entradas de venda (ignora sangria, suprimento, etc.)
+    movimentos = caixa.movimentos.filter(
+        tipo='Entrada',
+        categoria='Venda'
+    )
+    # 🔥 agrupa por forma de pagamento
+    resumo = {}
+    for mov in movimentos:
+        forma = mov.forma_pagamento
+        if forma.id not in resumo:
+            resumo[forma.id] = {
+                "forma": forma,
+                "valor": Decimal("0")
+            }
+        resumo[forma.id]["valor"] += mov.valor
+    # 🔥 gera pagamento só das formas com gateway
+    for item in resumo.values():
+        forma = item["forma"]
+        valor = item["valor"]
+        gateway = (forma.gateway or "").strip().lower()
+        if gateway in ["", "nenhum", "none"]:
+            continue
+        try:
+            service = PagamentoService(forma)
+            result = service.gerar_pagamento(
+                valor=valor,
+                descricao=f"Venda Caixa {caixa.id}",
+                email=None,
+                external_reference=str(caixa.id)
+            )
+            if not result:
+                continue
+            txid = result.get("id")
+            qr_code = result.get("qr_code")
+            if not txid or not qr_code:
+                continue
+            pagamento = Pagamento.objects.create(
+                vinc_emp=caixa.vinc_emp,
+                content_type=ContentType.objects.get_for_model(caixa),
+                object_id=caixa.id,
+                forma_pgto=forma,
+                valor=valor,
+                txid=txid,
+                qr_code=qr_code,
+                qr_base64=result.get("qr_base64"),
+                gateway=forma.gateway,
+                status="pendente"
+            )
+            pagamentos_gerados.append({
+                "txid": pagamento.txid,
+                "qr_code": pagamento.qr_code,
+                "qr_base64": pagamento.qr_base64,
+                "valor": str(pagamento.valor)
+            })
+        except Exception:
+            continue
+    return pagamentos_gerados
+
 def gerar_pagamentos_pedido(pedido):
     pagamentos_gerados = []
     for forma in pedido.formas_pgto.all():

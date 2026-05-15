@@ -32,6 +32,10 @@ class Cliente(models.Model):
             ('Jurídica', 'Jurídica')
         ]
     )
+    somente_avista = models.BooleanField(
+        default=False,
+        verbose_name='Vender apenas à vista'
+    )
     cpf_cnpj = models.CharField(max_length=25)
     ie = models.CharField(max_length=20, blank=True, null=True)
     razao_social = models.CharField(max_length=100)

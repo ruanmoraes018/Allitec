@@ -129,10 +129,14 @@
                                                                                             <span class="badge-permissao fs-6">Alterar data de Vencimento das Parcelas</span>
                                                                                         {% elif 'alterar_dt_fat_orc' in code or 'alterar_data_faturamento' in code %}
                                                                                             <span class="badge-permissao fs-6">Alterar data de Faturamento</span>
-                                                                                        {% elif 'vender_sem_estoque_ped' in code %}
+                                                                                        {% elif 'vender_sem_estoque_ped' in code or 'vender_sem_estoque_orc' in code %}
                                                                                             <span class="badge-permissao fs-6">Faturar Sem Estoque</span>
                                                                                         {% elif 'alt_vl_ped' in code %}
                                                                                             <span class="badge-permissao fs-6">Alterar Valor do Produto</span>
+                                                                                        {% elif 'relatorio_pedidos' in code %}
+                                                                                            <span class="badge-permissao fs-6">Acessar Relatórios de Pedidos</span>
+                                                                                        {% elif 'relatorio_vendas_produto' in code %}
+                                                                                            <span class="badge-permissao fs-6">Acessar Relatórios de Vendas de Produtos</span>
                                                                                         {% else %}
                                                                                             {{ perm.name }}
                                                                                         {% endif %}

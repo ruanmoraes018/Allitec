@@ -7,8 +7,6 @@ from .models import Fornecedor
 from .forms import FornecedorForm
 import unicodedata
 from django.http import JsonResponse
-from filiais.models import Usuario
-from django.db.models.functions import Concat, Substr
 from django.db.models import Q
 from util.permissoes import verifica_permissao, verifica_alguma_permissao
 from bairros.models import Bairro

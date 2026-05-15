@@ -21,6 +21,7 @@ from django.db import DatabaseError, IntegrityError
 from django.core.exceptions import ObjectDoesNotExist
 from django.views.decorators.http import require_POST
 import json
+from util.parse_decimal import parse_decimal
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -76,6 +77,38 @@ def lista_produtos(request):
         p.tab_conv = tabelas_map.get(p.id, [])
     return render(request, 'produtos/lista.html', {'produtos': produtos_qs, 's': s, 'tp': tp, 'sit': sit, 'ordem': ordem, 'marca': marca, 'marcas': Marca.objects.filter(vinc_emp=empresa), 'grupo': grupo, 'grupos': Grupo.objects.filter(vinc_emp=empresa), 'unidades': Unidade.objects.filter(vinc_emp=empresa), 'unid': unid, 'reg': reg, 'tp_produto': tp_produto})
 
+@login_required
+@require_POST
+def precos_tabela_lote(request):
+    try:
+        data = json.loads(request.body)
+
+        tabela_id = data.get('tabela_id')
+        produtos = data.get('produtos', [])
+
+        if not tabela_id or not produtos:
+            return JsonResponse({"precos": {}})
+
+        # 🔥 BUSCA TODOS DE UMA VEZ
+        precos_qs = ProdutoTabela.objects.filter(
+            tabela_id=tabela_id,
+            produto_id__in=produtos
+        ).values('produto_id', 'vl_prod')
+
+        # 🔥 MONTA MAPA {produto_id: preco}
+        mapa = {
+            str(p['produto_id']): float(p['vl_prod'])
+            for p in precos_qs
+        }
+
+        return JsonResponse({"precos": mapa})
+
+    except Exception as e:
+        return JsonResponse({
+            "erro": str(e),
+            "precos": {}
+        }, status=500)
+    
 @login_required
 def att_prod_lote(request):
     if request.method == "POST":
@@ -387,11 +420,11 @@ def salvar_tabelas_produto_ajax(request):
             if not tabela:
                 continue
             try:
-                vl_prod = str_para_decimal(str(tab.get('valor', '0')))
+                vl_prod = parse_decimal(str(tab.get('valor', '0')))
             except Exception:
                 vl_prod = Decimal('0.00')
             try:
-                margem = str_para_decimal(str(tab.get('margem', '0')))
+                margem = parse_decimal(str(tab.get('margem', '0')))
             except Exception:
                 margem = Decimal('0.00')
             ProdutoTabela.objects.update_or_create(
@@ -413,16 +446,6 @@ def salvar_tabelas_produto_ajax(request):
         return JsonResponse({'ok': False, 'msg': 'Produto não encontrado.'}, status=404)
     except Exception as e:
         return JsonResponse({'ok': False, 'msg': str(e)}, status=500)
-
-def str_para_decimal(valor_str):
-    if not valor_str:
-        return Decimal('0.00')
-    valor_limpo = re.sub(r'[^\d,.-]', '', valor_str)
-    valor_limpo = valor_limpo.replace(',', '.')
-    try:
-        return Decimal(valor_limpo)
-    except InvalidOperation:
-        return Decimal('0.00')
 
 @login_required
 @transaction.atomic
@@ -475,11 +498,11 @@ def add_produto(request):
                     messages.warning(request, f"Tabela {tabela_id} não encontrada.")
                     continue
                 try:
-                    vl_prod_decimal = str_para_decimal(vl_prod)
+                    vl_prod_decimal = parse_decimal(vl_prod)
                 except Exception:
                     vl_prod_decimal = Decimal('0.00')
                 try:
-                    margem_decimal = str_para_decimal(margem)
+                    margem_decimal = parse_decimal(margem)
                 except Exception:
                     margem_decimal = Decimal('0.00')
                 ProdutoTabela.objects.create(produto=p, tabela=tabela, vl_prod=vl_prod_decimal, margem=margem_decimal)
@@ -568,8 +591,8 @@ def att_produto(request, id):
                 except TabelaPreco.DoesNotExist:
                     messages.warning(request, f"Tabela {tabela_id} não encontrada.")
                     continue
-                vl_prod_decimal = str_para_decimal(vl_prod)
-                margem_decimal = str_para_decimal(margem)
+                vl_prod_decimal = parse_decimal(vl_prod)
+                margem_decimal = parse_decimal(margem)
                 ep, created = ProdutoTabela.objects.update_or_create(
                     produto=p,
                     tabela=tabela,
@@ -680,8 +703,8 @@ def clonar_produto(request, id):
                     except TabelaPreco.DoesNotExist:
                         messages.warning(request, f"Tabela {tabela_id} não encontrada.")
                         continue
-                    vl_prod_decimal = str_para_decimal(vl_prod)
-                    margem_decimal = str_para_decimal(margem)
+                    vl_prod_decimal = parse_decimal(vl_prod)
+                    margem_decimal = parse_decimal(margem)
                     ep = ProdutoTabela.objects.create(produto=novo_produto, tabela=tabela, vl_prod=vl_prod_decimal, margem=margem_decimal)
                     tab_preco_ids.append(ep.id)
                 # Se nenhuma tabela foi enviada via POST, clona as existentes do produto original

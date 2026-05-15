@@ -47,6 +47,7 @@ from django.db.models import Prefetch
 from django.db import DatabaseError, IntegrityError
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Exists, OuterRef
+from util.parse_decimal import parse_decimal
 
 PortaFormSet = inlineformset_factory( Orcamento, PortaOrcamento, form=PortaOrcamentoForm, extra=1, can_delete=False )
 ProdutoFormSet = inlineformset_factory( PortaOrcamento, PortaProduto, form=PortaProdutoForm, extra=1, can_delete=True )
@@ -239,13 +240,6 @@ def detalhes_orc_ajax(request, id):
     except Orcamento.DoesNotExist:
         return JsonResponse({'error': 'Orçamento não encontrado'}, status=404)
 
-def paraDecimal(valor):
-    try:
-        if valor in (None, '', 0): return Decimal('0.00')
-        valor = str(valor).strip()
-        valor = valor.replace('.', '').replace(',', '.') if ',' in valor else valor
-        return Decimal(valor)
-    except (InvalidOperation, ValueError): return Decimal('0.00')
 
 @login_required
 @transaction.atomic
@@ -268,6 +262,8 @@ def add_orcamento(request):
             o.vinc_emp = request.user.empresa
             o.save()
             o.num_orcamento = f"{datetime.now():%Y-}{o.id}"
+            o.desconto = parse_decimal(request.POST.get("desconto") or "0")
+            o.acrescimo = parse_decimal(request.POST.get("acrescimo") or "0")
             o.save(update_fields=['num_orcamento'])
             portas_json = request.POST.get("json_portas")
             if portas_json:
@@ -351,8 +347,8 @@ def att_orcamento(request, id):
                 return render(request, "orcamentos/att_orcamento.html", {"form": form, "orcamento": orcamento, "error_messages": erros})
             orcamento_editado = form.save(commit=False)
             orcamento_editado.dt_emi = dt_emi_original
-            orcamento_editado.desconto = Decimal(str(request.POST.get("desconto") or "0"))
-            orcamento_editado.acrescimo = Decimal(str(request.POST.get("acrescimo") or "0"))
+            orcamento_editado.desconto = parse_decimal(request.POST.get("desconto") or "0")
+            orcamento_editado.acrescimo = parse_decimal(request.POST.get("acrescimo") or "0")
             orcamento_editado.save()
             next_url = request.POST.get('next') or request.GET.get('next')
             portas_json = request.POST.get("json_portas")
@@ -551,6 +547,7 @@ def faturar_orcamento(request, id):
             valor_parcela = (Decimal(forma.valor) / parcelas).quantize(Decimal("0.01"))
             for i in range(parcelas):
                 ContaReceber.objects.create(
+                    data_emissao=orcamento.dt_emi,
                     vinc_emp=orcamento.vinc_emp,
                     vinc_fil=orcamento.vinc_fil,
                     orcamento=orcamento,
@@ -564,6 +561,22 @@ def faturar_orcamento(request, id):
     orcamento.situacao = 'Faturado'
     orcamento.dt_fat = datetime.now()
     orcamento.save(update_fields=['situacao', 'dt_fat'])
+    pode_faturar_sem_estoque = request.user.has_perm('orcamentos.vender_sem_estoque_orc')
+
+    if not pode_faturar_sem_estoque:
+        for porta in orcamento.portas.all():
+            for item in porta.produtos.all():
+                if item.produto.estoque_prod < item.quantidade:
+                    return JsonResponse({
+                        'erro': f'Estoque insuficiente para o produto {item.produto.desc_prod}. Disponível: {item.produto.estoque_prod}!'
+                    }, status=400)
+
+            for item in porta.adicionais.all():
+                if item.produto.estoque_prod < item.quantidade:
+                    return JsonResponse({
+                        'erro': f'Estoque insuficiente para o produto {item.produto.desc_prod}. Disponível: {item.produto.estoque_prod}!'
+                    }, status=400)
+                
     for porta in orcamento.portas.all():
         for item in porta.produtos.all():
             produto = item.produto

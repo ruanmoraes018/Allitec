@@ -50,6 +50,7 @@ class Produto(models.Model):
         verbose_name_plural = "Produtos"
         permissions = [
             ("clonar_produto", "Pode clonar produtos"),
+            ("relatorio_vendas_produto", "Pode acessar relatório de vendas de pedidos.")
         ]
 
 class ProdutoTabela(models.Model):

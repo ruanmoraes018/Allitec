@@ -14,4 +14,5 @@ urlpatterns = [
     path("clonar/<int:id>/", views.clonar_produto, name='clonar-produto'),
     path('ajax/salvar-tabelas/', views.salvar_tabelas_produto_ajax, name='salvar_tabelas_produto_ajax'),
     path('ajax/buscar-tabelas/', views.buscar_tabelas_produto_ajax, name='buscar_tabelas_produto_ajax'),
+    path('precos-lote/', views.precos_tabela_lote, name='precos-lote'),
 ]

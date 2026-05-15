@@ -58,7 +58,7 @@
                     <div class="d-flex">
                         <select class="form-control" name="tp_dt" id="tp_data">
                             <option value="Emissão" {% if request.GET.tp_dt == 'Emissão' %}selected{% endif %}>Emissão</option>
-                            <option value="Entrega" {% if request.GET.tp_dt == 'Entrega' %}selected{% endif %}>Entrega</option>
+                            <option value="Entrega" {% if request.GET.tp_dt == 'Entrega' %}selected{% endif %}>Efetivação</option>
                             <option value="Todos" {% if request.GET.tp_dt == 'Todos' %}selected{% endif %}>Todas</option>
                         </select>
                     </div>
@@ -109,7 +109,7 @@
                         <th scope="col" style="text-align: justify; width: 20%;">Fornecedor</th>
                         <th scope="col" style="text-align: justify; width: 10%;">Filial</th>
                         <th scope="col" style="text-align: justify; width: 7%;">Dt. Emissão</th>
-                        <th scope="col" style="align-items: center; width: 7%;">Dt. Entrega</th>
+                        <th scope="col" style="align-items: center; width: 7%;">Dt. Efetiv.</th>
                         <th scope="col" style="align-items: center; width: 7%;">Vl. Total</th>
                         <th scope="col" style="align-items: center; width: 6%;">Tipo</th>
                     </tr>

@@ -8,5 +8,5 @@ urlpatterns = [
     path("att/<int:id>/", views.att_usuario, name='att-usuario'),
     path("del/<int:id>/", views.del_usuario, name='del-usuario'),
     path('ajax/permissao/', views.checar_permissao, name='checar_permissao'),
-
+    path('lista_ajax/', views.lista_usuarios_ajax, name='lista-usuarios-ajax'),
 ]

@@ -7,7 +7,8 @@ class RegraProdutoForm(forms.ModelForm):
     codigo = forms.CharField(label="Cód. Identificador", widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase', 'placeholder': 'Ex: MOTOR_PESO, LAMINA_M2'}))
     descricao = forms.CharField(label="Descrição", widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase', 'placeholder': 'Descrição da regra'}))
     ativo = forms.ChoiceField(label='Ativo', choices=[(True, 'Sim'), (False, 'Não')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
-    tipo_regra = forms.ChoiceField(label='Tipo Regra', required=False, choices=[('', ''), ('qtd', 'Quantidade (múltiplos produtos)'),('peso', 'Por Peso (máx)'), ('simples', 'Valor Simples')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
+    tipo = forms.ChoiceField(label='Tipo Regra', choices=[('QTD', 'Cálculo de Quantidade'),('SELECAO', 'Seleção Automática')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
+    tipo_regra = forms.ChoiceField(label='Tipo Regra', required=False, choices=[('qtd', 'Quantidade (múltiplos produtos)'),('peso', 'Por Peso (máx)'), ('simples', 'Valor Simples')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
     produto = forms.ModelChoiceField(queryset=Produto.objects.none(), required=False, widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Produto')
     class Meta:
         model = RegraProduto

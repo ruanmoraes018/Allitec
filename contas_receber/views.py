@@ -3,6 +3,7 @@ from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from core.pagamentos.fluxo import gerar_pagamento_conta_receber
+from util.parse_decimal import parse_decimal
 from .models import ContaReceber, ContaReceberBaixaForma
 from .forms import ContaReceberForm
 import unicodedata
@@ -151,6 +152,7 @@ def add_conta_receber(request):
             try:
                 cr = form.save(commit=False)
                 cr.vinc_emp = request.user.empresa
+                cr.valor = parse_decimal(request.POST.get('valor'))
                 cr.data_emissao = datetime.now().date()
                 cr.save()
                 cid = str(cr.id)
@@ -188,6 +190,7 @@ def att_conta_receber(request, id):
         if form.is_valid():
 
             cr.data_emissao = dt_o
+            cr.valor = parse_decimal(request.POST.get('valor'))
             cr.save()
             next_url = request.POST.get('next') or request.GET.get('next')
             cid = str(cr.id)
@@ -216,41 +219,6 @@ def del_conta_receber(request, id):
     cr.delete()
     messages.success(request, 'Conta à Receber deletada com sucesso!')
     return redirect('/contas_receber/lista/')
-
-def aplicar_pagamento(self, valor, forma_pgto):
-    from decimal import Decimal
-    ContaReceberBaixaForma.objects.create(
-        vinc_emp=self.vinc_emp,
-        conta_receber=self,
-        forma_pgto=forma_pgto,
-        valor=valor
-    )
-    self.valor_pago += valor
-    if self.saldo > 0:
-        restante = self.saldo
-        ContaReceber.objects.create(
-            vinc_emp=self.vinc_emp,
-            vinc_fil=self.vinc_fil,
-            orcamento=self.orcamento,
-            pedido=self.pedido,
-            cliente=self.cliente,
-            forma_pgto=None,
-            num_conta=self.num_conta,
-            tp_juros=self.tp_juros,
-            tp_multa=self.tp_multa,
-            valor=restante,
-            valor_pago=Decimal('0.00'),
-            juros=self.juros,
-            multa=self.multa,
-            desconto=Decimal('0.00'),
-            data_emissao=self.data_emissao,
-            data_vencimento=self.data_vencimento,
-            situacao='Aberta'
-        )
-        self.valor_pago = self.valor + self.juros + self.multa - self.desconto
-    self.situacao = "Paga"
-    self.data_pagamento = timezone.now().date()
-    self.save()
 
 @login_required
 @transaction.atomic
@@ -301,6 +269,7 @@ def pagar_conta_receber(request, id):
         return redirect('/contas_receber/lista/')
     restante = total_titulo - total_pago
     cr.desconto = desconto_final
+    cr.valor_pago = total_pago
     cr.data_pagamento = date.today()
     cr.situacao = 'Paga'
     cr.observacao = (cr.observacao or '') + f' Baixa de R$ {total_pago:.2f}.'
@@ -313,7 +282,6 @@ def pagar_conta_receber(request, id):
             vinc_emp=request.user.empresa
         )
         cr.aplicar_pagamento(item['valor'], forma)
-    messages.success(request, 'Baixa realizada com sucesso.')
     if restante > 0:
         ContaReceber.objects.create(
             vinc_emp=cr.vinc_emp,

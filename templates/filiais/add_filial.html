@@ -83,11 +83,23 @@
                                 <div class="row" style="margin-left: -8px; margin-bottom: 10px;">
                                     <div class="col-md-2">{{ form.tb_preco|as_crispy_field }}</div>
                                     <div class="col-md-2">{{ form.vendedor|as_crispy_field }}</div>
-                                    <div class="col-md-3">{{ form.cli|as_crispy_field }}</div>
-                                    <div class="col-md-3">{{ form.tec|as_crispy_field }}</div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Multiplicador M²*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Orçamentos - Portas"></i></label>
+                                    <div class="col-md-2">{{ form.cli|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.tec|as_crispy_field }}</div>
+                                    <div class="col-md-1">
+                                        <label class="form-label">Ft. M²*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Orçamentos - Portas"></i></label>
                                         {{ form.multi_m2|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-1">
+                                        <label class="form-label">Ft. L. Crt*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="(Orçamentos - Portas) Largura de Corte Para opção Fora do Vão"></i></label>
+                                        {{ form.multi_lg_corte1|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-1">
+                                        <label class="form-label">Ft. L. Crt*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="(Orçamentos - Portas) Largura de Corte Para opção Dentro do Vão"></i></label>
+                                        {{ form.multi_lg_corte2|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-1">
+                                        <label class="form-label">Ft. L. Crt*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="(Orçamentos - Portas) Largura de Corte Para opção 1 Lado Dentro do Vão"></i></label>
+                                        {{ form.multi_lg_corte3|as_crispy_field }}
                                     </div>
                                 </div>
                             </div>
@@ -97,7 +109,8 @@
                                     <div class="col-md-2">{{ form.chave_pix|as_crispy_field }}</div>
                                     <div class="col-md-2">{{ form.banco_fil|as_crispy_field }}</div>
                                     <div class="col-md-2">{{ form.layout_contrato|as_crispy_field }}</div>
-                                    <div class="col-md-4">{{ form.beneficiario|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.beneficiario|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.agrupa_itens|as_crispy_field }}</div>
                                     <div class="col-md-4">{{ form.info_comp|as_crispy_field }}</div>
                                     <div class="col-md-4">{{ form.info_orcamento|as_crispy_field }}</div>
                                     <div class="col-md-4">{{ form.info_local|as_crispy_field }}</div>

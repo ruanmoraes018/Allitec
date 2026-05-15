@@ -1,0 +1,141 @@
+{% load custom_filters %}
+<style>
+    @page {
+        margin: 0;
+    }
+    body {
+        margin: 0;
+        padding: 0;
+    }
+    #cupom {
+        width: 100%;
+        max-width: 72mm;
+        font-family: monospace;
+        font-size: 10px;
+        margin: 0;
+        padding: 5px;
+        border: 1px dashed #000;
+    }
+
+    .center { text-align: center; }
+    .bold { font-weight: bold; }
+
+    .linha {
+        border-top: 1px dashed #000;
+        margin: 3px 0;
+    }
+
+    .flex {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .small { font-size: 11px; }
+
+    img {
+        max-width: 120px;
+        margin: 0 auto;
+        display: block;
+    }
+</style>
+
+<div id="cupom" class="bold">
+
+    <!-- LOGO -->
+    {% if request.user.filial_user.logo %}
+        <img src="{{ request.user.filial_user.logo.url }}">
+    {% endif %}
+
+    <!-- EMPRESA -->
+    <div class="center small">
+        <div>{{ request.user.filial_user.fantasia }}</div>
+        <div>CNPJ: {{ request.user.filial_user.cnpj }}</div>
+        <div>
+            {{ request.user.filial_user.endereco }}, {{ request.user.filial_user.numero }}
+        </div>
+        <div>
+            {{ request.user.filial_user.bairro_fil }} - {{ request.user.filial.cidade_fil }}/{{ request.user.filial_user.uf }}
+        </div>
+        <div>FONE: {{ request.user.filial_user.tel }}</div>
+    </div>
+
+    <div class="linha"></div>
+
+    <!-- PEDIDO -->
+    <div class="small">
+        <div><span class="bold">PEDIDO:</span> {{ pedido.id }}</div>
+        <div><span class="bold">DATA:</span> {{ pedido.dt_emi|date:"d/m/Y H:i:s" }}</div>
+        <div><span class="bold">VENDEDOR:</span> {{ pedido.nome_vend }}</div>
+        <div><span class="bold">SITUAÇÃO:</span> {{ pedido.situacao }}</div>
+    </div>
+
+    <div class="linha"></div>
+
+    <!-- CLIENTE -->
+    <div class="small">
+        <div class="bold">CLIENTE:</div>
+        <div>{{ pedido.cli.id }} - {{ pedido.nome_cli }}</div>
+    </div>
+
+    <div class="linha"></div>
+
+    <!-- ITENS -->
+    <div class="small bold center">ITENS</div>
+    <div class="linha"></div>
+
+    {% for item in pedido.itens.all %}
+        <div class="small">
+            <div class="flex">
+                <div style="float: left;">
+                    {{ item.codigo_usado|default_if_none:item.produto.id }}
+                </div>
+                <div style="float: right;">{{ item.produto.desc_prod }}</div>
+            </div>
+            <div class="flex">
+                <span>{{ item.quantidade }} {{ item.produto.unidProd }} x {{ item.vl_unit|moeda_br }}</span>
+                <span>{{ item.subtotal|moeda_br }}</span>
+            </div>
+        </div>
+    {% endfor %}
+
+    
+
+    <div class="linha"></div>
+
+    <!-- TOTAL -->
+    <div class="flex bold">
+        <span>TOTAL</span>
+        <span>R$ {{ pedido.total|moeda_br }}</span>
+    </div>
+
+    <div class="linha"></div>
+
+    <!-- PAGAMENTOS -->
+    <div class="small bold center">FORMAS DE PAGAMENTO</div>
+
+    {% for fp in pedido.formas_pgto.all %}
+        <div class="flex small">
+            <span>{{ fp.forma_pgto.descricao }}</span>
+            <span>{{ fp.valor|moeda_br }}</span>
+        </div>
+    {% empty %}
+        <div class="small">Não informado</div>
+    {% endfor %}
+
+    <div class="linha"></div>
+
+    <!-- RODAPÉ -->
+    <div class="center small">
+        {{ pedido.vinc_fil.info_comp }}
+    </div>
+    <br><br>
+    .
+
+</div>
+
+<script>
+window.onload = function () {
+    window.print();
+    window.onafterprint = () => window.close();
+};
+</script>

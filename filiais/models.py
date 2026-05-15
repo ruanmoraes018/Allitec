@@ -55,8 +55,15 @@ class Filial(models.Model):
     ft_multa = models.DecimalField(verbose_name="Fator Multa", max_digits=10, decimal_places=2, default=0, null=True, blank=True)
     ft_juros = models.DecimalField(verbose_name="Fator Juros",max_digits=10, decimal_places=2, default=0, null=True, blank=True)
     multi_m2 = models.DecimalField(verbose_name="Multiplicador M²", max_digits=10, decimal_places=2, default=1, null=True, blank=True)
+    multi_lg_corte1 = models.DecimalField(verbose_name="Multiplicador Lg. Corte (Fora do Vão)", max_digits=10, decimal_places=2, default=1, null=True, blank=True)
+    multi_lg_corte2 = models.DecimalField(verbose_name="Multiplicador Lg. Corte (Dentro do Vão)", max_digits=10, decimal_places=2, default=1, null=True, blank=True)
+    multi_lg_corte3 = models.DecimalField(verbose_name="Multiplicador Lg. Corte (1 Lado do Vão)", max_digits=10, decimal_places=2, default=1, null=True, blank=True)
     principal = models.BooleanField(default=False, verbose_name='Filial Principal')
     vinculada_a = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='filiais_secundarias', verbose_name='Filial Vinculada à')
+    agrupa_itens = models.BooleanField(
+        default=True,
+        verbose_name="Agrupar itens no pedido"
+    )
     def save(self, *args, **kwargs):
         self.cnpj = self.cnpj.upper()
         self.ie = self.ie.upper()

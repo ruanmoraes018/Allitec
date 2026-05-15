@@ -1,4 +1,6 @@
 from django import forms
+
+from util.parse_decimal import parse_decimal
 from .models import Orcamento, PortaAdicional, PortaOrcamento, PortaProduto
 from clientes.models import Cliente
 from tecnicos.models import Tecnico
@@ -32,8 +34,8 @@ class OrcamentoForm(forms.ModelForm):
     vl_p_s = forms.DecimalField(required=False, label="Valor Portão Social", max_digits=10, decimal_places=2,
         widget=forms.TextInput(attrs={"type": "number", "step":"0.01", "min": "0", 'placeholder': '0.00', 'disabled': 'disabled', 'class': 'form-control border-dark-subtle', 'style': 'color: darkgreen; font-weight: bold; background: honeydew;'})
     )
-    desconto = forms.DecimalField(required=False, max_digits=10, decimal_places=2, widget=forms.TextInput(attrs={'class': 'form-control border-dark-subtle', 'style': 'color: #2E8B57; font-weight: bold; background-color: #808080;', 'placeholder': '0.00', 'readonly': 'readonly'}))
-    acrescimo = forms.DecimalField(required=False,max_digits=10,decimal_places=2,widget=forms.TextInput(attrs={'class': 'form-control border-dark-subtle','style': 'color: #2E8B57; font-weight: bold; background-color: #808080;','placeholder': '0.00','readonly': 'readonly'}))
+    desconto = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control border-dark-subtle', 'style': 'color: #2E8B57; font-weight: bold; background-color: #808080;', 'placeholder': '0,00', 'readonly': 'readonly'}))
+    acrescimo = forms.CharField(required=False,widget=forms.TextInput(attrs={'class': 'form-control border-dark-subtle','style': 'color: #2E8B57; font-weight: bold; background-color: #808080;','placeholder': '0,00','readonly': 'readonly'}))
     dt_emi = forms.DateField(label='Dt. Emissão',input_formats=['%d/%m/%Y'],widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
     dt_ent = forms.DateField(label='Dt. Entrega',required=False,input_formats=['%d/%m/%Y'],widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
     subtotal = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle','hidden': ''}))
@@ -108,8 +110,20 @@ class OrcamentoForm(forms.ModelForm):
                 raise forms.ValidationError(f"A forma {forma.descricao} não é permitida para o plano À Vista.")
             elif tipo_plano == 'a prazo' and not (forma.gera_parcelas or forma.descricao.upper() in formas_ambas):
                 raise forms.ValidationError(f"A forma {forma.descricao} não é permitida para o plano A Prazo.")
-        return cleaned_data
+        try:
+            cleaned_data['desconto'] = parse_decimal(
+                cleaned_data.get('desconto')
+            )
+        except:
+            self.add_error('desconto', 'Valor inválido.')
 
+        try:
+            cleaned_data['acrescimo'] = parse_decimal(
+                cleaned_data.get('acrescimo')
+            )
+        except:
+            self.add_error('acrescimo', 'Valor inválido.')
+        return cleaned_data
 class PortaOrcamentoForm(forms.ModelForm):
     rolo = forms.DecimalField(localize=False)
     largura = forms.DecimalField(localize=False)

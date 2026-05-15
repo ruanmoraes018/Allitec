@@ -17,7 +17,7 @@ class UsuarioCadastroForm(forms.ModelForm):
     alterar_senha = forms.BooleanField(label="Mudar senha", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
     username = forms.CharField(label="Usuário", widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-lowercase'}))
     permissoes = forms.ModelMultipleChoiceField(queryset=Permission.objects.filter(content_type__app_label__in=['entradas', 'filiais', 'usuarios', 'clientes', 'produtos', 'orcamentos', 'tecnicos', 'tipo_cobranca', 'pedidos',
-        'bairros', 'cidades', 'estados', 'grupos', 'bancos', 'unidades', 'fornecedores', 'marcas', 'tabelas_preco', 'contas_receber' ]), widget=forms.CheckboxSelectMultiple, required=False)
+        'lancpdvs', 'pdvs', 'bairros', 'cidades', 'estados', 'grupos', 'bancos', 'unidades', 'fornecedores', 'marcas', 'tabelas_preco', 'contas_receber' ]), widget=forms.CheckboxSelectMultiple, required=False)
     first_name = forms.CharField(label="Nome do Usuário", widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
     email = forms.CharField(label="E-mail", widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-lowercase'}))
     password = forms.CharField(label="Senha*", widget=forms.PasswordInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'type': 'password'}), required=False)
@@ -35,6 +35,8 @@ class UsuarioCadastroForm(forms.ModelForm):
         else:
             self.fields['filial_user'].queryset = Filial.objects.none()
         ordem_codename = [
+            'view_caixa', 'add_caixa', 'change_caixa', 'delete_caixa',
+            'view_pdv', 'add_pdv', 'change_pdv', 'delete_pdv',
             'view_tabelapreco', 'add_tabelapreco', 'change_tabelapreco', 'delete_tabelapreco',
             'view_formapgto', 'add_formapgto', 'change_formapgto', 'delete_formapgto',
             'view_tipocobranca', 'add_tipocobranca', 'change_tipocobranca', 'delete_tipocobranca',
@@ -47,41 +49,45 @@ class UsuarioCadastroForm(forms.ModelForm):
             'view_banco', 'add_banco', 'change_banco', 'delete_banco',
             'view_filial', 'add_filial', 'change_filial', 'delete_filial',
             'view_usuario', 'add_usuario', 'change_usuario', 'delete_usuario',
-            'view_produto', 'add_produto', 'change_produto', 'clonar_produto', 'delete_produto',
+            'view_produto', 'add_produto', 'change_produto', 'clonar_produto', 'delete_produto', 'relatorio_vendas_produto',
             'view_cliente', 'add_cliente', 'change_cliente', 'delete_cliente',
             'view_fornecedor', 'add_fornecedor', 'change_fornecedor', 'delete_fornecedor',
             'view_vendedor', 'add_vendedor', 'change_vendedor', 'delete_vendedor',
-            'view_orcamento', 'add_orcamento', 'change_orcamento', 'clonar_orcamento', 'delete_orcamento', 'atribuir_desconto', 'atribuir_acrescimo', 'faturar_orcamento', 'cancelar_orcamento', 'alterar_dt_venc_orc', 'alterar_dt_fat_orc',
+            'view_orcamento', 'add_orcamento', 'change_orcamento', 'clonar_orcamento', 'delete_orcamento', 'atribuir_desconto', 'atribuir_acrescimo', 'faturar_orcamento', 'cancelar_orcamento', 'alterar_dt_venc_orc', 'alterar_dt_fat_orc', 'vender_sem_estoque_orc',
             'view_tecnico', 'add_tecnico', 'change_tecnico', 'delete_tecnico',
             'view_marca', 'add_marca', 'change_marca', 'delete_marca',
             'view_regraproduto', 'add_regraproduto', 'change_regraproduto', 'delete_regraproduto',
             'view_pedido', 'add_pedido', 'change_pedido', 'delete_pedido', 'faturar_pedido', 'cancelar_pedido', 'atribuir_desconto_ped', 'atribuir_acrescimo_ped', 'vender_sem_estoque_ped',
-            'alt_vl_ped', 'alterar_data_faturamento',
+            'alt_vl_ped', 'alterar_data_faturamento', 'relatorio_pedidos',
             'view_contareceber', 'add_contareceber', 'change_contareceber', 'delete_contareceber', 'atribuir_desconto_cr', 'baixar_cr', 'estornar_cr',
         ]
         permissoes = Permission.objects.filter(content_type__app_label__in=['formas_pgto', 'tipo_cobranca', 'entradas', 'bairros', 'cidades', 'estados', 'grupos', 'bancos', 'unidades', 'filiais', 'usuarios', 'tabelas_preco',
-            'clientes', 'fornecedores', 'vendedores', 'produtos', 'orcamentos', 'tecnicos', 'pedidos', 'marcas', 'regras_produto', 'contas_receber'])
+            'lancpdvs', 'pdvs', 'clientes', 'fornecedores', 'vendedores', 'produtos', 'orcamentos', 'tecnicos', 'pedidos', 'marcas', 'regras_produto', 'contas_receber'])
         permissoes_ordenadas = sorted(permissoes, key=lambda p: ordem_codename.index(p.codename) if p.codename in ordem_codename else len(ordem_codename))
         self.fields['permissoes'].queryset = Permission.objects.filter(id__in=[p.id for p in permissoes_ordenadas])
         self.categorias_permissoes = OrderedDict({'Complementos': ['Bairros', 'Bancos', 'Cidades', 'Estados', 'Grupos', 'Marcas', 'Unidades', 'Tabelas de Preço', 'Tipos de Cobrança', 'Formas de Pagamento', 'Regras de Produto'],
-            'Cadastros': ['Clientes', 'Filiais', 'Fornecedores', 'Produtos', 'Técnicos', 'Usuários', 'Vendedores'], 'Estoque': ['Entradas de NF/Pedidos'], 'Faturamento': ['Pedidos', 'Orçamentos'], 'Financeiro': ['Contas à Receber',],})
+            'Cadastros': ['Clientes', 'Filiais', 'Fornecedores', 'Produtos', 'Técnicos', 'Usuários', 'Vendedores', 'PDVs'], 'Estoque': ['Entradas de NF/Pedidos'], 'Faturamento': ['Pedidos', 'Caixas', 'Orçamentos'], 'Financeiro': ['Contas à Receber',],})
         grupo_permissoes = OrderedDict({'Regras de Produto': [], 'Formas de Pagamento': [], 'Tipos de Cobrança': [], 'Tabelas de Preço': [], 'Entradas de NF/Pedidos': [], 'Contas à Receber': [], 'Bairros': [], 'Cidades': [],
-            'Estados': [], 'Grupos': [], 'Bancos': [], 'Marcas': [], 'Unidades': [], 'Filiais': [], 'Fornecedores': [], 'Usuários': [], 'Produtos': [], 'Clientes': [], 'Pedidos': [], 'Orçamentos': [], 'Técnicos': [], 'Vendedores': [],})
+            'PDVs': [], 'Estados': [], 'Grupos': [], 'Bancos': [], 'Marcas': [], 'Unidades': [], 'Filiais': [], 'Fornecedores': [], 'Usuários': [], 'Produtos': [], 'Clientes': [], 'Pedidos': [], 'Orçamentos': [], 'Caixas': [], 'Técnicos': [], 'Vendedores': [],})
         # Permissões por App
+        pdvs_perms = ['view_pdv', 'add_pdv', 'change_pdv', 'delete_pdv']
+        caixa_perms = ['view_caixa', 'add_caixa', 'change_caixa', 'delete_caixa']
         entradas_perms = ['view_entrada', 'add_entrada', 'change_entrada', 'delete_entrada', 'efetivar_entrada', 'cancelar_entrada']
         fornecedores_perms = ['view_fornecedor', 'add_fornecedor', 'change_fornecedor', 'delete_fornecedor']
         vendedores_perms = ['view_vendedor', 'add_vendedor', 'change_vendedor', 'delete_vendedor']
-        produtos_perms = ['view_produto', 'add_produto', 'change_produto', 'delete_produto', 'clonar_produto']
+        produtos_perms = ['view_produto', 'add_produto', 'change_produto', 'delete_produto', 'clonar_produto', 'relatorio_vendas_produto']
         formas_perms = ['view_formapgto', 'add_formapgto', 'change_formapgto', 'delete_formapgto']
         tabelas_perms = ['view_tabelapreco', 'add_tabelapreco', 'change_tabelapreco', 'delete_tabelapreco']
         marcas_perms = ['view_marca', 'add_marca', 'change_marca', 'delete_marca']
         regras_perms = ['view_regraproduto', 'add_regraproduto', 'change_regraproduto', 'delete_regraproduto']
-        orcamentos_perms = ['view_orcamento', 'add_orcamento', 'change_orcamento', 'clonar_orcamento', 'delete_orcamento', 'atribuir_desconto', 'atribuir_acrescimo', 'faturar_orcamento', 'cancelar_orcamento', 'alterar_dt_venc_orc', 'alterar_dt_fat_orc',]
+        orcamentos_perms = ['view_orcamento', 'add_orcamento', 'change_orcamento', 'clonar_orcamento', 'delete_orcamento', 'atribuir_desconto', 'atribuir_acrescimo', 'faturar_orcamento', 'cancelar_orcamento', 'alterar_dt_venc_orc', 'alterar_dt_fat_orc', 'vender_sem_estoque_orc']
         pedidos_perms = ['view_pedido', 'add_pedido', 'change_pedido', 'clonar_pedido', 'delete_pedido', 'atribuir_desconto_ped', 'atribuir_acrescimo_ped', 'faturar_pedido',
-                         'cancelar_pedido', 'vender_sem_estoque_ped', 'alt_vl_ped', 'alterar_data_faturamento']
+                         'cancelar_pedido', 'vender_sem_estoque_ped', 'alt_vl_ped', 'alterar_data_faturamento', 'relatorio_pedidos']
         cr_perms = ['view_contareceber', 'add_contareceber', 'change_contareceber', 'delete_contareceber', 'atribuir_desconto_cr', 'baixar_cr', 'estornar_cr',]
         for perm in permissoes_ordenadas:
             if 'bairro' in perm.codename: grupo_permissoes['Bairros'].append(perm)
+            elif perm.codename in caixa_perms: grupo_permissoes['Caixas'].append(perm)
+            elif perm.codename in pdvs_perms: grupo_permissoes['PDVs'].append(perm)
             elif perm.codename in pedidos_perms: grupo_permissoes['Pedidos'].append(perm)
             elif perm.codename in formas_perms: grupo_permissoes['Formas de Pagamento'].append(perm)
             elif perm.codename in tabelas_perms: grupo_permissoes['Tabelas de Preço'].append(perm)

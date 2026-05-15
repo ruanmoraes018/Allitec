@@ -209,7 +209,7 @@
                                         <a href="{% url 'lista-empresas' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Empresas</a>
                                     </div>
                                 </div>
-                            {% elif perm_view_filial or perm_view_usuario or perm_view_produtos or perm_view_clientes or perm_view_tecnicos or perm_view_fornecedores or perm_view_vendedores %}
+                            {% elif perm_view_pdv or perm_view_filial or perm_view_usuario or perm_view_produtos or perm_view_clientes or perm_view_tecnicos or perm_view_fornecedores or perm_view_vendedores %}
                                 <a class="btn btn-dark w-100 text-start" data-bs-toggle="collapse" href="#guiaCadastros" role="button" aria-expanded="false" aria-controls="guiaCadastros">
                                     <i class="fa-solid fa-box-archive"></i> Cadastros
                                 </a>
@@ -235,6 +235,9 @@
                                         {% endif %}
                                         {% if perm_view_vendedores %}
                                             <a href="{% url 'lista-vendedores' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Vendedores</a>
+                                        {% endif %}
+                                        {% if perm_view_pdv %}
+                                            <a href="{% url 'lista-pdvs' %}" class="btn btn-dark w-100 mb-1 lista-funcao">PDVs</a>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -264,15 +267,20 @@
                                         {% endif %}
                                     </div>
                                 </div>
-                            {% elif perm_view_orcamentos or perm_view_pedidos %}
-                                <a class="btn btn-dark w-100 text-start" data-bs-toggle="collapse" href="#guiaFaturamentos" role="button" aria-expanded="false" aria-controls="guiaFaturamentos">
+                            {% elif perm_view_caixa or perm_view_orcamentos or perm_view_pedido %}
+                                <a class="btn btn-dark w-100 text-start" data-bs-toggle="collapse" href="#guiaFaturamentos">
                                     <i class="fa-solid fa-calculator"></i> Faturamento
                                 </a>
                                 <div class="collapse" id="guiaFaturamentos">
                                     <div class="p-2">
-                                        {% if perm_view_orcamentos or perm_view_pedidos %}
-                                            <a href="{% url 'lista-pedidos' %}" class="btn btn-dark w-100 lista-funcao">Pedidos</a>
-                                            <a href="{% url 'lista-orcamentos' %}" class="btn btn-dark w-100 lista-funcao">Orçamentos - Portas</a>
+                                        {% if perm_view_pedido %}
+                                            <a href="{% url 'lista-pedidos' %}" class="btn btn-dark w-100">Pedidos</a>
+                                        {% endif %}
+                                        {% if perm_view_caixa %}
+                                            <a href="{% url 'lista-lancamentos' %}" class="btn btn-dark w-100">Lançamentos de Caixa</a>
+                                        {% endif %}
+                                        {% if perm_view_orcamentos %}
+                                            <a href="{% url 'lista-orcamentos' %}" class="btn btn-dark w-100">Orçamentos - Portas</a>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -296,21 +304,20 @@
                                     </div>
                                 </div>
                             {% endif %}
+                            {% if not request.user.is_superuser and perm_relatorio_pedidos %}
+                                <a class="btn btn-dark w-100 text-start" data-bs-toggle="collapse" href="#guiaRelatorios" role="button" aria-expanded="false" aria-controls="guiaRelatorios">
+                                    <i class="fa-solid fa-building-columns"></i> Relatórios
+                                </a>
+                                <div class="collapse" id="guiaRelatorios">
+                                    <div class="p-2">
+                                        <a href="{% url 'lista-relatorios' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Relatórios</a>
+                                    </div>
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
             </div>
-            <!--<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">-->
-            <!--    <div class="modal-dialog modal-dialog-centered">-->
-            <!--        <div class="modal border-0 d-flex align-items-center">-->
-            <!--            <div class="modal-body text-center">-->
-            <!--                <div class="spinner-border text-dark spinner-lg" role="status" style="width: 3rem; height: 3rem;">-->
-            <!--                    <span class="visually-hidden">Carregando...</span>-->
-            <!--                </div>-->
-            <!--            </div>-->
-            <!--        </div>-->
-            <!--    </div>-->
-            <!--</div>-->
             <div id="loadingOverlay" class="loading-overlay" hidden>
                 <div class="loading-box">
                     <img src="{% static 'img/favicon.png' %}" alt="Carregando" class="loading-logo">
@@ -361,7 +368,7 @@
         <!-- jQuery Mask -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js" integrity="sha512-pHVGpX7F/27yZ0ISY+VVjyULApbDlD0/X0rgGbTqCE7WFW5MezNTWG/dnhtbBuICzsd0WQPgpE4REBLv+UqChw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         <!-- Scripts personalizados -->
-        <script src="{% static 'js/scripts.js' %}"></script>
+        <script src="{% static 'js/scripts.js' %}" defer></script>
         <script>
             document.addEventListener("DOMContentLoaded", function(){
                 const el = document.getElementById('popup-inadimplencia');

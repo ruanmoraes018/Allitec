@@ -11,7 +11,7 @@ import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
 import json
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from django.views.decorators.http import require_POST
 from openpyxl import Workbook
 from django.http import HttpResponse
@@ -194,6 +194,28 @@ def regras_js(request):
     }
     return JsonResponse(data)
 
+def parse_decimal_br(valor):
+    if valor is None:
+        return Decimal('0')
+
+    if isinstance(valor, (int, float, Decimal)):
+        return Decimal(str(valor))
+
+    valor = str(valor).strip()
+
+    if ',' in valor and '.' in valor:
+        if valor.rfind(',') > valor.rfind('.'):
+            valor = valor.replace('.', '').replace(',', '.')
+        else:
+            valor = valor.replace(',', '')
+    elif ',' in valor:
+        valor = valor.replace(',', '.')
+
+    try:
+        return Decimal(valor)
+    except (InvalidOperation, ValueError):
+        return Decimal('0')
+    
 @require_POST
 @login_required
 def aplicar_regras_porta(request):
@@ -272,7 +294,7 @@ def calcular_expressao_segura(expr, contexto):
             return OPERADORES[type(node.op)](_eval(node.operand))
         elif isinstance(node, ast.Name):  # variável
             if node.id in contexto:
-                return contexto[node.id]
+                return float(parse_decimal_br(contexto[node.id]))
             raise ValueError(f"Variável '{node.id}' não encontrada")
         else:
             raise TypeError(node)
@@ -302,11 +324,11 @@ def aplicar_regra_selecao(regra, contexto):
         valor_base = contexto.get('peso')  # 👉 aqui está o segredo
 
         if 'min' in condicoes:
-            if valor_base is None or float(valor_base) < float(condicoes['min']):
+            if valor_base is None or parse_decimal_br(valor_base) < parse_decimal_br(condicoes['min']):
                 atende = False
 
         if 'max' in condicoes:
-            if valor_base is None or float(valor_base) > float(condicoes['max']):
+            if valor_base is None or parse_decimal_br(valor_base) > parse_decimal_br(condicoes['max']):
                 atende = False
 
         # 🔥 valida tem_pintura

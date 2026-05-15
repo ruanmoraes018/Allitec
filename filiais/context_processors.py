@@ -28,6 +28,16 @@ def user_permissions(request):
             'perm_add_mensalidade': 'mensalidades.add_mensalidade' in permissoes,
             'perm_change_mensalidade': 'mensalidades.change_mensalidade' in permissoes,
             'perm_delete_mensalidade': 'mensalidades.delete_mensalidade' in permissoes,
+            # Caixas
+            'perm_view_caixa': 'lancpdvs.view_caixa' in permissoes,
+            'perm_add_caixa': 'lancpdvs.add_caixa' in permissoes,
+            'perm_change_caixa': 'lancpdvs.change_caixa' in permissoes,
+            'perm_delete_caixa': 'lancpdvs.delete_caixa' in permissoes,
+            # PDVs
+            'perm_view_pdv': 'pdvs.view_pdv' in permissoes,
+            'perm_add_pdv': 'pdvs.add_pdv' in permissoes,
+            'perm_change_pdv': 'pdvs.change_pdv' in permissoes,
+            'perm_delete_pdv': 'pdvs.delete_pdv' in permissoes,
             # Filiais
             'perm_view_filial': 'filiais.view_filial' in permissoes,
             'perm_add_filial': 'filiais.add_filial' in permissoes,
@@ -44,6 +54,7 @@ def user_permissions(request):
             'perm_change_produto': 'produtos.change_produto' in permissoes,
             'perm_clonar_produto': 'produtos.clonar_produto' in permissoes,
             'perm_delete_produto': 'produtos.delete_produto' in permissoes,
+            'perm_relatorio_vendas_produto': 'produtos.relatorio_vendas_produto' in permissoes,
             # Clientes
             'perm_view_clientes': 'clientes.view_cliente' in permissoes,
             'perm_add_cliente': 'clientes.add_cliente' in permissoes,
@@ -71,6 +82,7 @@ def user_permissions(request):
             'perm_atribuir_acrescimo': 'orcamentos.atribuir_acrescimo' in permissoes,
             'perm_alterar_dt_venc_orc': 'orcamentos.alterar_dt_venc_orc' in permissoes,
             'perm_alterar_dt_fat_orc': 'orcamentos.alterar_dt_fat_orc' in permissoes,
+            'perm_vender_sem_estoque_orc': 'orcamentos.vender_sem_estoque_orc' in permissoes,
             # Técnicos
             'perm_view_tecnicos': 'tecnicos.view_tecnico' in permissoes,
             'perm_add_tecnico': 'tecnicos.add_tecnico' in permissoes,
@@ -133,6 +145,7 @@ def user_permissions(request):
             'perm_clonar_pedido': 'pedidos.clonar_pedido' in permissoes,
             'perm_vender_sem_estoque_ped': 'pedidos.vender_sem_estoque_ped' in permissoes,
             'perm_alt_vl_ped': 'pedidos.alt_vl_ped' in permissoes,
+            'perm_relatorio_pedidos': 'pedidos.relatorio_pedidos' in permissoes,
             'perm_alterar_data_faturamento': 'pedidos.alterar_data_faturamento' in permissoes,
             #Marcas
             'perm_view_marcas': 'marcas.view_marca' in permissoes,

@@ -140,6 +140,7 @@ class Orcamento(models.Model):
             ("clonar_orcamento", "Pode clonar orçamento"), ("faturar_orcamento", "Pode faturar orçamento"), ("cancelar_orcamento", "Pode cancelar orçamento"),
             ("atribuir_desconto", "Pode atribuir descontos em orçamento"), ("atribuir_acrescimo", "Pode atribuir acréscimo em orçamento"),
             ("alterar_dt_venc_orc", "Pode alterar a data de vencimento na fatura de orçamento"), ("alterar_dt_fat_orc", "Pode alterar a data de faturamento na fatura de orçamento"),
+            ("vender_sem_estoque_orc", "Pode vender sem estoque em orçamentos"),
         ]
 # 🔥 NOVO MODELO — uma porta pertence a um orçamento
 class PortaOrcamento(models.Model):
