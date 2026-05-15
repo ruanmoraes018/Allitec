@@ -101,6 +101,18 @@ def add_empresa(request):
                 nova_empresa.logo = 'media/default_logo.png'
             nova_empresa.save()
             if nova_empresa.gerar_filial is True:
+                novo_bairro, created = Bairro.objects.get_or_create(
+                    nome_bairro=nova_empresa.bairro_emp,
+                    vinc_emp=nova_empresa
+                )
+                nova_cidade, created = Cidade.objects.get_or_create(
+                    nome_cidade=nova_empresa.cidade_emp,
+                    vinc_emp=nova_empresa
+                )
+                novo_estado, created = Estado.objects.get_or_create(
+                    nome_estado=nova_empresa.uf_emp,
+                    vinc_emp=nova_empresa
+                )
                 nova_filial, created = Filial.objects.get_or_create(
                     situacao='Ativa', cnpj=nova_empresa.cnpj, ie=nova_empresa.ie, razao_social=nova_empresa.razao_social,
                     fantasia=nova_empresa.fantasia, endereco=nova_empresa.endereco, cep=nova_empresa.cep, numero=nova_empresa.numero,
@@ -118,25 +130,13 @@ def add_empresa(request):
                     cep='.', numero='.', bairro=nova_empresa.bairro_emp, complem='.', cidade=nova_empresa.cidade_emp, uf=nova_empresa.uf_emp,
                     tel='.', email='.', vinc_emp=nova_empresa
                 )
-                novo_bairro, created = Bairro.objects.get_or_create(
-                    nome_bairro=nova_empresa.bairro_emp,
-                    vinc_emp=nova_empresa
-                )
-                nova_cidade, created = Cidade.objects.get_or_create(
-                    nome_cidade=nova_empresa.cidade_emp,
-                    vinc_emp=nova_empresa
-                )
-                novo_estado, created = Estado.objects.get_or_create(
-                    nome_estado=nova_empresa.uf_emp,
-                    vinc_emp=nova_empresa
-                )
                 if created:
-                    nova_filial.save()
-                    novo_cliente.save()
-                    novo_tecnico.save()
                     novo_bairro.save()
                     nova_cidade.save()
                     novo_estado.save()
+                    nova_filial.save()
+                    novo_cliente.save()
+                    novo_tecnico.save()
                     print("Nova filial cadastrada")
                     print("Novo cliente cadastrado")
                     print("Novo técnico cadastrado")
