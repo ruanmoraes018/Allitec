@@ -4657,7 +4657,7 @@ $(document).ready(function() {
 
                 setTimeout(() => {
                     btnAdd.click();
-                }, 100);
+                }, 500);
             });
         });
         // ✅ CONFIRMAR (CAIXA + PEDIDO)
