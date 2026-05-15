@@ -127,20 +127,19 @@ class Empresa(models.Model):
         self.email_adm = self.email_adm.lower()
         self.fantasia_normalizado = remove_accents(self.fantasia).lower()
         self.fantasia = self.fantasia_normalizado.upper()
-        if self.logo and self.logo.name != 'media/default_logo.png':  # Ignorar o redimensionamento da logo padrão
-            # Abrir a imagem da logo
-            img = Image.open(self.logo)
-
-            # Definir o tamanho desejado para a logo
-            max_size = (300, 300)  # Redimensionar para 300x300 (ajustável)
-
-            # Redimensionar a imagem mantendo a proporção
+        if self.logo and self.logo.name != 'default_logo.png':
+            img = Image.open(self.logo.path)
+            if img.mode in ('RGBA', 'P'):
+                img = img.convert('RGB')
+            max_size = (300, 300)
             img.thumbnail(max_size)
-
-            # Salvar a nova imagem redimensionada em um arquivo temporário
             img_io = BytesIO()
-            img.save(img_io, format='PNG')  # Salve no formato desejado, aqui 'PNG'
-            img_content = ContentFile(img_io.getvalue(), name=f'{self.id}.png')
+            img.save(img_io, format='PNG', quality=90)
+            novo_nome = f'logo_{self.pk}.png'
+            self.logo.save(novo_nome, ContentFile(img_io.getvalue()), save=False)
+            logo_alterada = True
+        if logo_alterada:
+            super().save(update_fields=['logo'])
         super(Empresa, self).save(*args, **kwargs)
 
     def __str__(self):
