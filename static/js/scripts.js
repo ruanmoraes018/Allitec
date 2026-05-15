@@ -4534,6 +4534,7 @@ $(document).ready(function() {
                 toast(`${ic_amarelo} Valor informado inválido!`, cor_amarelo);
                 return;
             }
+            iniciarLoading();
             const $tbody = $modal.find('.table-formas tbody');
             const jaExiste = $tbody.find('tr').filter(function () {
                 return $(this).data('forma') == formaId;
@@ -4586,6 +4587,7 @@ $(document).ready(function() {
             $modal.find('.diasPgto').val(30);
             $modal.find('.campos-parcela').addClass('d-none');
             $select.val('').trigger('change');
+            fecharLoading();
         });
         // ❌ REMOVE FORMA
         $(document).on('click', '.btn-remove-forma', function () {
