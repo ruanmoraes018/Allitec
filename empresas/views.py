@@ -122,12 +122,12 @@ def add_empresa(request):
                 )
                 novo_cliente, created = Cliente.objects.get_or_create(
                     situacao='Ativo', pessoa="Física", cpf_cnpj='.', ie='.', razao_social='CONSUMIDOR', fantasia='CONSUMIDOR', endereco='.',
-                    cep='.', numero='.', bairro=nova_empresa.bairro_emp, complem='.', cidade=nova_empresa.cidade_emp, uf=nova_empresa.uf_emp,
+                    cep='.', numero='.', bairro=novo_bairro, complem='.', cidade=nova_cidade, uf=novo_estado,
                     tel='.', email='.', vinc_emp=nova_empresa
                 )
                 novo_tecnico, created = Tecnico.objects.get_or_create(
                     situacao='Ativo', pessoa="Física", cpf_cnpj='.', ie='.', razao_social='CONSUMIDOR', fantasia='CONSUMIDOR', endereco='.',
-                    cep='.', numero='.', bairro=nova_empresa.bairro_emp, complem='.', cidade=nova_empresa.cidade_emp, uf=nova_empresa.uf_emp,
+                    cep='.', numero='.', bairro=novo_bairro, complem='.', cidade=nova_cidade, uf=novo_estado,
                     tel='.', email='.', vinc_emp=nova_empresa
                 )
                 if created:
