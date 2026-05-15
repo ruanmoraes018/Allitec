@@ -4635,6 +4635,7 @@ $(document).ready(function() {
             }
         });
         $(document).on('shown.bs.modal', '.modal-pagamento', function () {
+            iniciarLoading();
             let modal = $(this);
 
             if (modal.find('.table-formas tbody tr').length > 0) return;
@@ -4659,6 +4660,7 @@ $(document).ready(function() {
                     btnAdd.click();
                 }, 500);
             });
+            fecharLoading();
         });
         // ✅ CONFIRMAR (CAIXA + PEDIDO)
         $(document).on('click', '.btn-confirmar-pedido', function (e) {
