@@ -1,4 +1,6 @@
 from django import forms
+
+from util.parse_decimal import parse_decimal
 from .models import Empresa
 
 class EmpresaForm(forms.ModelForm):
@@ -41,9 +43,9 @@ class EmpresaForm(forms.ModelForm):
 
     tp_calc_multa = forms.ChoiceField(label="Tp. Cálculo Multa", choices=[('Percentual', 'Percentual'), ('Valor', 'Valor')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
 
-    ft_juros = forms.DecimalField(label='Fator Juros', max_digits=10, decimal_places=2, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase text-end fw-bold'}))
+    ft_juros = forms.CharField(label='Fator Juros', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase text-end fw-bold'}))
 
-    ft_multa = forms.DecimalField(label='Fator Multa', max_digits=10, decimal_places=2, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase text-end fw-bold'}))
+    ft_multa = forms.CharField(label='Fator Multa', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase text-end fw-bold'}))
 
     class Meta:
         model = Empresa
@@ -52,3 +54,18 @@ class EmpresaForm(forms.ModelForm):
             'logo', 'nome', 'cpf', 'orgao', 'dt_nasc', 'endereco_adm', 'cep_adm', 'numero_adm', 'bairro_adm', 'cidade_adm', 'uf_adm', 'principal',
             'tel_adm', 'email_adm', 'dia_venc', 'qtd_filial', 'qtd_usuarios', 'tp_calc_juros', 'tp_calc_multa', 'ft_juros', 'ft_multa'
         )
+    def clean(self):
+        cleaned_data = super().clean()
+        try:
+            cleaned_data['ft_juros'] = parse_decimal(
+                cleaned_data.get('ft_juros')
+            )
+        except:
+            self.add_error('ft_juros', 'Valor inválido.')
+        try:
+            cleaned_data['ft_multa'] = parse_decimal(
+                cleaned_data.get('ft_multa')
+            )
+        except:
+            self.add_error('ft_multa', 'Valor inválido.')
+        return cleaned_data
