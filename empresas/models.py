@@ -127,18 +127,30 @@ class Empresa(models.Model):
         self.email_adm = self.email_adm.lower()
         self.fantasia_normalizado = remove_accents(self.fantasia).lower()
         self.fantasia = self.fantasia_normalizado.upper()
+        # salva primeiro para garantir PK e arquivo
+        super().save(*args, **kwargs)
+
+        # processa logo
         if self.logo and self.logo.name != 'default_logo.png':
-            img = Image.open(self.logo.path)
+
+            img = Image.open(self.logo)
+
             if img.mode in ('RGBA', 'P'):
                 img = img.convert('RGB')
-            max_size = (300, 300)
-            img.thumbnail(max_size)
+
+            img.thumbnail((300, 300))
+
             img_io = BytesIO()
             img.save(img_io, format='PNG', quality=90)
+
             novo_nome = f'logo_{self.pk}.png'
-            self.logo.save(novo_nome, ContentFile(img_io.getvalue()), save=False)
-            logo_alterada = True
-        if logo_alterada:
+
+            self.logo.save(
+                novo_nome,
+                ContentFile(img_io.getvalue()),
+                save=False
+            )
+
             super().save(update_fields=['logo'])
         super(Empresa, self).save(*args, **kwargs)
 
