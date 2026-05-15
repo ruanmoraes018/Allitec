@@ -1,4 +1,6 @@
 from django import forms
+
+from util.parse_decimal import parse_decimal
 from .models import Contrato
 from empresas.models import Empresa
 
@@ -24,10 +26,8 @@ class ContratoForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
     qtd_meses = forms.CharField(label='Qtd. Meses',
         widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase', 'type': 'number'}))
-    valor_mensalidade = forms.DecimalField(
-        label='Vl. Parcela',
-        max_digits=10,  # Defina conforme o modelo
-        decimal_places=2,  # Defina conforme o modelo
+    valor_mensalidade = forms.CharField(
+        label='Vl. Parcela', # Defina conforme o modelo
         widget=forms.TextInput(attrs={
             'class': 'form-control form-control-sm border-dark-subtle text-uppercase',
             'placeholder': '0,00', 'style': 'background-color: #2E8B57; color: white; font-weight: bold;'
@@ -45,3 +45,13 @@ class ContratoForm(forms.ModelForm):
     class Meta:
         model = Contrato
         exclude = ('created_at', 'updated_at', 'status')
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        try:
+            cleaned_data['valor_mensalidade'] = parse_decimal(
+                cleaned_data.get('valor_mensalidade')
+            )
+        except:
+            self.add_error('valor_mensalidade', 'Valor inválido.')
+        return cleaned_data
