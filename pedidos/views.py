@@ -720,13 +720,26 @@ def gerar_pagamento_pedido(request, pedido_id):
 
 @login_required
 def status_pagamento_pedido(request, pedido_id):
-    pedido = get_object_or_404(Pedido, id=pedido_id, vinc_emp=request.user.empresa)
+    pedido = get_object_or_404(
+        Pedido,
+        id=pedido_id,
+        vinc_emp=request.user.empresa
+    )
     status_anterior = pedido.status_pagamento
-    pedido.atualizar_status_pagamento()
+    novo_status = pedido.atualizar_status_pagamento()
     if pedido.status_pagamento != status_anterior:
         pedido.save(update_fields=["status_pagamento"])
-        print(f"✅ Status atualizado: {status_anterior} → {pedido.status_pagamento}")
-    return JsonResponse({"status": pedido.status_pagamento, "situacao": pedido.situacao})
+    # 🔥 PIX pago → fatura automaticamente
+    if (
+        novo_status == "pago"
+        and pedido.situacao == "Aberto"
+    ):
+        pedido.processar_pagamento(None)
+        pedido.refresh_from_db()
+    return JsonResponse({
+        "status": pedido.status_pagamento,
+        "situacao": pedido.situacao
+    })
 
 @login_required
 def recuperar_pix_pendente(request, pedido_id):

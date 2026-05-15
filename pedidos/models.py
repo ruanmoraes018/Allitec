@@ -50,14 +50,10 @@ class Pedido(models.Model):
             self.status_pagamento = 'pago'
             novo_status = 'pago'
         return novo_status
-    def processar_pagamento(self, pagamento):
+    def processar_pagamento(self, pagamento=None):
         self.atualizar_status_pagamento()
-
-        if self.situacao != "Faturado":
+        if self.status_pagamento == "pago" and self.situacao != "Faturado":
             finalizar_pedido(self)
-        else:
-            self.status_pagamento = "pago"
-            self.save(update_fields=["status_pagamento"])
     def save(self, *args, **kwargs):
         self.nome_cli = self.cli.fantasia
         self.fantasia_fil = self.vinc_fil.fantasia
