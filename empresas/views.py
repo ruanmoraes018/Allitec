@@ -116,8 +116,8 @@ def add_empresa(request):
                 nova_filial, created = Filial.objects.get_or_create(
                     situacao='Ativa', cnpj=nova_empresa.cnpj, ie=nova_empresa.ie, razao_social=nova_empresa.razao_social,
                     fantasia=nova_empresa.fantasia, endereco=nova_empresa.endereco, cep=nova_empresa.cep, numero=nova_empresa.numero,
-                    bairro_fil=novo_bairro.id, complem=nova_empresa.complem, cidade_fil=nova_cidade.id,
-                    uf=novo_estado.id, tel=nova_empresa.tel, email=nova_empresa.email, fantasia_normalizado=nova_empresa.fantasia_normalizado,
+                    bairro_fil=novo_bairro, complem=nova_empresa.complem, cidade_fil=nova_cidade,
+                    uf=novo_estado, tel=nova_empresa.tel, email=nova_empresa.email, fantasia_normalizado=nova_empresa.fantasia_normalizado,
                     principal=True, logo=nova_empresa.logo, vinc_emp=nova_empresa
                 )
                 novo_cliente, created = Cliente.objects.get_or_create(
