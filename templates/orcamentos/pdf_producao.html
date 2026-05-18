@@ -4,7 +4,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Ordem de Produção - Porta de Enrolar - {{ o.id }}</title>
+    <title>Ordem de Produção - Porta de Enrolar - {{ o.codigo }}</title>
     <style>
         @page {size: A4; margin: 12mm 10mm 12mm 10mm;
             @bottom-center { content: "Página " counter(page) " de " counter(pages); font-size: 10px; font-weight: bold; }
@@ -48,7 +48,7 @@
                 <td class="label">Empresa</td>
                 <td>{{ o.fantasia_emp }}</td>
                 <td class="label">Nº OP / Ref.</td>
-                <td>{{ o.id }}</td>
+                <td>{{ o.codigo }}</td>
                 <td class="label">Dt. Emissão</td>
                 <td>{{ o.dt_emi|date:"d/m/Y H:i" }}</td>
             </tr>
@@ -136,7 +136,7 @@
                 </tr>
                 {% for p in pt.produtos.all %}
                 <tr>
-                    <td class="center">{{ p.produto.id }}</td>
+                    <td class="center">{{ p.produto.codigo }}</td>
                     <td colspan="2">{{ p.produto.desc_prod }}</td>
                     <td class="center">{{ p.quantidade }} {{ p.produto.unidProd }}</td>
                     <td class="center">Produção</td>
@@ -145,7 +145,7 @@
                 {% endfor %}
                 {% for a in pt.adicionais.all %}
                 <tr>
-                    <td class="center">{{ a.produto.id }}</td>
+                    <td class="center">{{ a.produto.codigo }}</td>
                     <td colspan="2">{{ a.produto.desc_prod }} {% if a.lado == 'E' %}<strong>(Lado Esquerdo)</strong>{% elif a.lado == 'D' %}<strong>(Lado Direito)</strong>{% elif a.lado == 'C' %}<strong>(Centro)</strong>{% endif %}</td>
                     <td class="center">{{ a.quantidade }} {{ a.produto.unidProd }}</td>
                     <td class="center">Adicional</td>

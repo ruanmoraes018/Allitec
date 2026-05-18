@@ -1,5 +1,4 @@
 from django import forms
-
 from util.parse_decimal import parse_decimal
 from .models import Orcamento, PortaAdicional, PortaOrcamento, PortaProduto
 from clientes.models import Cliente
@@ -27,13 +26,10 @@ class OrcamentoForm(forms.ModelForm):
             ('', ''), ('Preto', 'Preto'), ('Branco', 'Branco'),('Amarelo', 'Amarelo'), ('Vermelho', 'Vermelho'),('Azul Claro', 'Azul Claro'), ('Cinza Claro', 'Cinza Claro'),
             ('Cinza Grafite', 'Cinza Grafite'), ('Cinza Chumbo', 'Cinza Chumbo'), ('Chumbo', 'Chumbo'), ('Verde', 'Verde'),('Bege', 'Bege'), ('Bege Areia', 'Bege Areia'),('Marrom', 'Marrom'), ('Marrom Café', 'Marrom Café'),
             ('Laranja', 'Laranja'), ('Azul Royal', 'Azul Royal'), ('Azul Marinho', 'Azul Marinho'), ('Azul Pepsi', 'Azul Pepsi'), ('Verde Musgo', 'Verde Musgo'),('Verde Bandeira', 'Verde Bandeira'), ('Vinho', 'Vinho'), ('Prata', 'Prata'),
-        ],
-        required=False, widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'})
+        ], required=False, widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'})
     )
     obs_form_pgto = forms.CharField(label='Observações', required=False, widget=forms.Textarea(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase', 'rows': 2}))
-    vl_p_s = forms.DecimalField(required=False, label="Valor Portão Social", max_digits=10, decimal_places=2,
-        widget=forms.TextInput(attrs={"type": "number", "step":"0.01", "min": "0", 'placeholder': '0.00', 'disabled': 'disabled', 'class': 'form-control border-dark-subtle', 'style': 'color: darkgreen; font-weight: bold; background: honeydew;'})
-    )
+    vl_p_s = forms.DecimalField(required=False, label="Valor Portão Social", max_digits=10, decimal_places=2, widget=forms.TextInput(attrs={"type": "number", "step":"0.01", "min": "0", 'placeholder': '0.00', 'disabled': 'disabled', 'class': 'form-control border-dark-subtle', 'style': 'color: darkgreen; font-weight: bold; background: honeydew;'}))
     desconto = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control border-dark-subtle', 'style': 'color: #2E8B57; font-weight: bold; background-color: #808080;', 'placeholder': '0,00', 'readonly': 'readonly'}))
     acrescimo = forms.CharField(required=False,widget=forms.TextInput(attrs={'class': 'form-control border-dark-subtle','style': 'color: #2E8B57; font-weight: bold; background-color: #808080;','placeholder': '0,00','readonly': 'readonly'}))
     dt_emi = forms.DateField(label='Dt. Emissão',input_formats=['%d/%m/%Y'],widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
@@ -51,12 +47,7 @@ class OrcamentoForm(forms.ModelForm):
         # Inicializa crispy-forms (opcional, se você usa layout personalizado)
         self.helper = FormHelper()
         self.helper.form_tag = False
-        self.helper.layout = Layout(
-            Field('cli', wrapper_class=''),             # remove mb-3
-            Field('fornecedor', wrapper_class=''),      # remove mb-3
-            Field('tabela_preco', wrapper_class=''),   # remove mb-3
-            Field('obs_cli', wrapper_class=''),
-        )
+        self.helper.layout = Layout(Field('cli', wrapper_class=''), Field('fornecedor', wrapper_class=''), Field('tabela_preco', wrapper_class=''), Field('obs_cli', wrapper_class=''),)
         if empresa:
             self.fields['cli'].queryset = Cliente.objects.filter(vinc_emp=empresa)
             self.fields['vinc_fil'].queryset = Filial.objects.filter(vinc_emp=empresa)
@@ -75,30 +66,21 @@ class OrcamentoForm(forms.ModelForm):
                 tipo_plano = getattr(tabela, 'tipo', '').lower()
                 formas_ambas = ['DINHEIRO', 'CRÉDITO', 'DÉBITO', 'PIX']
                 if tipo_plano == 'a vista':
-                    qs_formas = qs_formas.filter(
-                        models.Q(tipo__iexact='A vista') | models.Q(descricao__in=formas_ambas)
-                    )
+                    qs_formas = qs_formas.filter(models.Q(tipo__iexact='A vista') | models.Q(descricao__in=formas_ambas))
                 else:
-                    qs_formas = qs_formas.filter(
-                        models.Q(gera_parcelas=True) | models.Q(descricao__in=formas_ambas)
-                    )
+                    qs_formas = qs_formas.filter(models.Q(gera_parcelas=True) | models.Q(descricao__in=formas_ambas))
             self.fields['formas_pgto'].queryset = qs_formas.distinct()
         # --- Inicializa campos derivados com segurança ---
         self.initial['nome_cli'] = getattr(getattr(self.instance, 'cli', None), 'fantasia', '')
         self.initial['nome_solicitante'] = getattr(getattr(self.instance, 'solicitante', None), 'nome', '')
         # --- Formata datas se houver instância existente ---
         if getattr(self.instance, 'pk', None):
-            if getattr(self.instance, 'dt_emi', None):
-                self.initial['dt_emi'] = self.instance.dt_emi.strftime('%d/%m/%Y')
-            if getattr(self.instance, 'dt_ent', None):
-                self.initial['dt_ent'] = self.instance.dt_ent.strftime('%d/%m/%Y')
-
+            if getattr(self.instance, 'dt_emi', None): self.initial['dt_emi'] = self.instance.dt_emi.strftime('%d/%m/%Y')
+            if getattr(self.instance, 'dt_ent', None): self.initial['dt_ent'] = self.instance.dt_ent.strftime('%d/%m/%Y')
     def clean_obs_cli(self):
         return self.cleaned_data['obs_cli'].upper()
-
     def clean_obs_form_pgto(self):
         return self.cleaned_data['obs_form_pgto'].upper()
-
     def clean(self):
         cleaned_data = super().clean()
         forma = cleaned_data.get('formas_pgto')
@@ -106,23 +88,12 @@ class OrcamentoForm(forms.ModelForm):
         if forma and tabela:
             tipo_plano = tabela.tipo.lower()
             formas_ambas = ['DINHEIRO', 'CRÉDITO', 'DÉBITO', 'PIX']
-            if tipo_plano == 'a vista' and not (forma.tipo.lower() == 'a vista' or forma.descricao.upper() in formas_ambas):
-                raise forms.ValidationError(f"A forma {forma.descricao} não é permitida para o plano À Vista.")
-            elif tipo_plano == 'a prazo' and not (forma.gera_parcelas or forma.descricao.upper() in formas_ambas):
-                raise forms.ValidationError(f"A forma {forma.descricao} não é permitida para o plano A Prazo.")
-        try:
-            cleaned_data['desconto'] = parse_decimal(
-                cleaned_data.get('desconto')
-            )
-        except:
-            self.add_error('desconto', 'Valor inválido.')
-
-        try:
-            cleaned_data['acrescimo'] = parse_decimal(
-                cleaned_data.get('acrescimo')
-            )
-        except:
-            self.add_error('acrescimo', 'Valor inválido.')
+            if tipo_plano == 'a vista' and not (forma.tipo.lower() == 'a vista' or forma.descricao.upper() in formas_ambas): raise forms.ValidationError(f"A forma {forma.descricao} não é permitida para o plano À Vista.")
+            elif tipo_plano == 'a prazo' and not (forma.gera_parcelas or forma.descricao.upper() in formas_ambas): raise forms.ValidationError(f"A forma {forma.descricao} não é permitida para o plano A Prazo.")
+        try: cleaned_data['desconto'] = parse_decimal(cleaned_data.get('desconto'))
+        except: self.add_error('desconto', 'Valor inválido.')
+        try: cleaned_data['acrescimo'] = parse_decimal(cleaned_data.get('acrescimo'))
+        except: self.add_error('acrescimo', 'Valor inválido.')
         return cleaned_data
 class PortaOrcamentoForm(forms.ModelForm):
     rolo = forms.DecimalField(localize=False)

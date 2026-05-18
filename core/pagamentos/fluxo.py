@@ -6,119 +6,64 @@ from django.contrib.contenttypes.models import ContentType
 def gerar_pagamentos_caixa(caixa):
     pagamentos_gerados = []
     # 🔥 pega só entradas de venda (ignora sangria, suprimento, etc.)
-    movimentos = caixa.movimentos.filter(
-        tipo='Entrada',
-        categoria='Venda'
-    )
+    movimentos = caixa.movimentos.filter(tipo='Entrada', categoria='Venda')
     # 🔥 agrupa por forma de pagamento
     resumo = {}
     for mov in movimentos:
         forma = mov.forma_pagamento
         if forma.id not in resumo:
-            resumo[forma.id] = {
-                "forma": forma,
-                "valor": Decimal("0")
-            }
+            resumo[forma.id] = {"forma": forma, "valor": Decimal("0")}
         resumo[forma.id]["valor"] += mov.valor
     # 🔥 gera pagamento só das formas com gateway
     for item in resumo.values():
         forma = item["forma"]
         valor = item["valor"]
         gateway = (forma.gateway or "").strip().lower()
-        if gateway in ["", "nenhum", "none"]:
-            continue
+        if gateway in ["", "nenhum", "none"]: continue
         try:
             service = PagamentoService(forma)
-            result = service.gerar_pagamento(
-                valor=valor,
-                descricao=f"Venda Caixa {caixa.id}",
-                email=None,
-                external_reference=str(caixa.id)
-            )
-            if not result:
-                continue
+            result = service.gerar_pagamento(valor=valor, descricao=f"Venda Caixa {caixa.codigo}", email=None, external_reference=str(caixa.codigo))
+            if not result: continue
             txid = result.get("id")
             qr_code = result.get("qr_code")
-            if not txid or not qr_code:
-                continue
+            if not txid or not qr_code: continue
             pagamento = Pagamento.objects.create(
-                vinc_emp=caixa.vinc_emp,
-                content_type=ContentType.objects.get_for_model(caixa),
-                object_id=caixa.id,
-                forma_pgto=forma,
-                valor=valor,
-                txid=txid,
-                qr_code=qr_code,
-                qr_base64=result.get("qr_base64"),
-                gateway=forma.gateway,
-                status="pendente"
+                vinc_emp=caixa.vinc_emp, content_type=ContentType.objects.get_for_model(caixa), object_id=caixa.codigo, forma_pgto=forma, valor=valor, txid=txid, qr_code=qr_code,
+                qr_base64=result.get("qr_base64"), gateway=forma.gateway, status="pendente"
             )
-            pagamentos_gerados.append({
-                "txid": pagamento.txid,
-                "qr_code": pagamento.qr_code,
-                "qr_base64": pagamento.qr_base64,
-                "valor": str(pagamento.valor)
-            })
-        except Exception:
-            continue
+            pagamentos_gerados.append({"txid": pagamento.txid, "qr_code": pagamento.qr_code, "qr_base64": pagamento.qr_base64, "valor": str(pagamento.valor)})
+        except Exception: continue
     return pagamentos_gerados
 
 def gerar_pagamentos_pedido(pedido):
     pagamentos_gerados = []
     for forma in pedido.formas_pgto.all():
         gateway = (forma.forma_pgto.gateway or "").strip().lower()
-        if gateway in ["nenhum", "", "none"]:
-            continue
+        if gateway in ["nenhum", "", "none"]: continue
         try:
             service = PagamentoService(forma.forma_pgto)
-            result = service.gerar_pagamento(valor=forma.valor, descricao=f"Pedido {pedido.id}", email=getattr(pedido.cli, "email", None), external_reference=str(pedido.id))
-            if not result:
-                continue
+            result = service.gerar_pagamento(valor=forma.valor, descricao=f"Pedido {pedido.codigo}", email=getattr(pedido.cli, "email", None), external_reference=str(pedido.codigo))
+            if not result: continue
             txid = result.get("id")
             qr_code = result.get("qr_code")
-            if not txid or not qr_code:
-                continue
+            if not txid or not qr_code: continue
             pagamento = Pagamento.objects.create(
-                vinc_emp=pedido.vinc_emp,
-                content_type=ContentType.objects.get_for_model(pedido),
-                object_id=pedido.id,
-                forma_pgto=forma.forma_pgto,
-                valor=Decimal(str(forma.valor)),
-                txid=txid,
-                qr_code=qr_code,
-                qr_base64=result.get("qr_base64"),
-                gateway=forma.forma_pgto.gateway,
-                status="pendente"
+                vinc_emp=pedido.vinc_emp, content_type=ContentType.objects.get_for_model(pedido), object_id=pedido.codigo, forma_pgto=forma.forma_pgto, valor=Decimal(str(forma.valor)),
+                txid=txid, qr_code=qr_code, qr_base64=result.get("qr_base64"), gateway=forma.forma_pgto.gateway, status="pendente"
             )
             pagamentos_gerados.append({"txid": pagamento.txid, "qr_code": pagamento.qr_code, "qr_base64": result.get("qr_base64"), "valor": str(pagamento.valor)})
-        except Exception as e:
-            continue
+        except Exception as e: continue
     return pagamentos_gerados
 
 def gerar_pagamento_conta_receber(conta, forma, valor):
     gateway = (forma.gateway or "").strip().lower()
-    if gateway in ["", "nenhum", "none"]:
-        return None
+    if gateway in ["", "nenhum", "none"]: return None
     service = PagamentoService(forma)
-    result = service.gerar_pagamento(
-        valor=valor,
-        descricao=f"Conta {conta.num_conta}",
-        email=getattr(conta.cliente, "email", None),
-        external_reference=str(conta.id)
-    )
-    if not result:
-        return None
+    result = service.gerar_pagamento(valor=valor, descricao=f"Conta {conta.num_conta}", email=getattr(conta.cliente, "email", None), external_reference=str(conta.id))
+    if not result: return None
     pagamento = Pagamento.objects.create(
-        content_type=ContentType.objects.get_for_model(conta),
-        object_id=conta.id,
-        vinc_emp=conta.vinc_emp,
-        forma_pgto=forma,
-        valor=valor,
-        txid=result.get("id"),
-        qr_code=result.get("qr_code"),
-        qr_base64=result.get("qr_base64"),
-        gateway=forma.gateway,
-        status="pendente"
+        content_type=ContentType.objects.get_for_model(conta), object_id=conta.codigo, vinc_emp=conta.vinc_emp, forma_pgto=forma, valor=valor, txid=result.get("id"),
+        qr_code=result.get("qr_code"), qr_base64=result.get("qr_base64"), gateway=forma.gateway, status="pendente"
     )
     return pagamento
 
@@ -126,40 +71,20 @@ def gerar_pagamentos_orcamento(orcamento):
     pagamentos_gerados = []
     for forma in orcamento.formas_pgto.all():
         gateway = (forma.formas_pgto.gateway or "").strip().lower()
-        if gateway in ["", "nenhum", "none"]:
-            continue
+        if gateway in ["", "nenhum", "none"]: continue
         try:
             service = PagamentoService(forma.formas_pgto)
-            result = service.gerar_pagamento(
-                valor=forma.valor,
-                descricao=f"Orçamento {orcamento.id}",
-                email=getattr(orcamento.cli, "email", None),
-                external_reference=str(orcamento.id)
+            result = service.gerar_pagamento(valor=forma.valor, descricao=f"Orçamento {orcamento.codigo}", email=getattr(orcamento.cli, "email", None), 
+                external_reference=str(orcamento.codigo)
             )
-            if not result:
-                continue
+            if not result: continue
             txid = result.get("id")
             qr_code = result.get("qr_code")
-            if not txid or not qr_code:
-                continue
+            if not txid or not qr_code: continue
             pagamento = Pagamento.objects.create(
-                vinc_emp=orcamento.vinc_emp,
-                content_type=ContentType.objects.get_for_model(orcamento),
-                object_id=orcamento.id,
-                forma_pgto=forma.formas_pgto,
-                valor=Decimal(str(forma.valor)),
-                txid=txid,
-                qr_code=qr_code,
-                qr_base64=result.get("qr_base64"),
-                gateway=forma.formas_pgto.gateway,
-                status="pendente"
+                vinc_emp=orcamento.vinc_emp, content_type=ContentType.objects.get_for_model(orcamento), object_id=orcamento.codigo, forma_pgto=forma.formas_pgto, valor=Decimal(str(forma.valor)),
+                txid=txid, qr_code=qr_code, qr_base64=result.get("qr_base64"), gateway=forma.formas_pgto.gateway, status="pendente"
             )
-            pagamentos_gerados.append({
-                "txid": pagamento.txid,
-                "qr_code": pagamento.qr_code,
-                "qr_base64": pagamento.qr_base64,
-                "valor": str(pagamento.valor)
-            })
-        except Exception:
-            continue
+            pagamentos_gerados.append({"txid": pagamento.txid, "qr_code": pagamento.qr_code, "qr_base64": pagamento.qr_base64, "valor": str(pagamento.valor)})
+        except Exception: continue
     return pagamentos_gerados

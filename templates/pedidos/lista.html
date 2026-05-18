@@ -29,7 +29,7 @@
                     <select class="form-control" id="id_filial_user" name="fil">
                         <option value="">Selecione uma filial</option>
                         {% for f in filiais %}
-                            <option value="{{ f.id }}" {% if request.GET.fil == f.id|stringformat:"s" %}selected{% endif %}>{{ f.fantasia }}</option>
+                            <option value="{{ f.codigo }}" {% if request.GET.fil == f.codigo|stringformat:"s" %}selected{% endif %}>{{ f.fantasia }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -38,7 +38,7 @@
                     <select class="form-control" id="cliente" name="cl">
                         <option value="">Selecione um cliente</option>
                         {% for cliente in clientes %}
-                            <option value="{{ cliente.id }}" {% if request.GET.cl == cliente.id|stringformat:"s" %}selected{% endif %}>{{ cliente.fantasia }}</option>
+                            <option value="{{ cliente.codigo }}" {% if request.GET.cl == cliente.codigo|stringformat:"s" %}selected{% endif %}>{{ cliente.fantasia }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -47,7 +47,7 @@
                     <select class="form-control" id="vendedor" name="vend">
                         <option value="">Selecione um vendedor</option>
                         {% for v in vendedores %}
-                            <option value="{{ v.id }}" {% if request.GET.vend == v.id|stringformat:"s" %}selected{% endif %}>{{ v.fantasia }}</option>
+                            <option value="{{ v.codigo }}" {% if request.GET.vend == v.codigo|stringformat:"s" %}selected{% endif %}>{{ v.fantasia }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -123,59 +123,59 @@
                         <tr>
                             <td data-label="Opções:" class="mobile-2col">
                                 <div style="text-align: left;">
-                                    <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#menuModal{{ pedido.id }}" title="Opções">
+                                    <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#menuModal{{ pedido.codigo }}" title="Opções">
                                         <i class="fa-solid fa-bars"></i>
                                     </button>
                                 </div>
                                 <!-- Modal de opções da pedido -->
-                                <div class="modal fade modal-sm" id="menuModal{{ pedido.id }}" data-orcamento-id="{{ pedido.id }}" tabindex="-1" aria-labelledby="menuModalLabel{{ pedido.id }}" aria-hidden="true">
+                                <div class="modal fade modal-sm" id="menuModal{{ pedido.codigo }}" data-orcamento-id="{{ pedido.codigo }}" tabindex="-1" aria-labelledby="menuModalLabel{{ pedido.codigo }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
-                                            <div class="modal-header titulo-modal"><h5 class="modal-title fw-bold mx-auto" id="menuModalLabel{{ pedido.id }}">Opções - {{ pedido.id }}</h5></div>
+                                            <div class="modal-header titulo-modal"><h5 class="modal-title fw-bold mx-auto" id="menuModalLabel{{ pedido.codigo }}">Opções - {{ pedido.codigo }}</h5></div>
                                             <div class="modal-body p-2">
-                                                <a href="{% url 'att-pedido' pedido.id %}?next={{ request.get_full_path|urlencode }}" data-permissao="pedidos.change_pedido" data-msg-negado="Seu usuário não pode editar pedidos!" class="btn btn-light w-100 text-start menu-opcao op-editar border border-secondary btn-permissao" >
+                                                <a href="{% url 'att-pedido' pedido.codigo %}?next={{ request.get_full_path|urlencode }}" data-permissao="pedidos.change_pedido" data-msg-negado="Seu usuário não pode editar pedidos!" class="btn btn-light w-100 text-start menu-opcao op-editar border border-secondary btn-permissao" >
                                                     <i class="fas fa-edit"></i> Editar
                                                 </a>
-                                                <a href="{% url 'clonar-pedido' pedido.id %}?next={{ request.get_full_path|urlencode }}" data-permissao="pedidos.clonar_pedido" data-msg-negado="Seu usuário não pode clonar pedidos!" class="btn btn-light w-100 text-start menu-opcao op-clonar border border-secondary btn-permissao">
+                                                <a href="{% url 'clonar-pedido' pedido.codigo %}?next={{ request.get_full_path|urlencode }}" data-permissao="pedidos.clonar_pedido" data-msg-negado="Seu usuário não pode clonar pedidos!" class="btn btn-light w-100 text-start menu-opcao op-clonar border border-secondary btn-permissao">
                                                     <i class="fa-solid fa-clone"></i> Clonar
                                                 </a>
                                                 {% if pedido.situacao == 'Aberto' %}
-                                                <button class="btn btn-light w-100 text-start menu-opcao op-deletar btn-delete border border-secondary btn-permissao" data-orcamento-id="{{ pedido.id }}" data-permissao="pedidos.delete_pedido" data-msg-negado="Seu usuário não pode deletar pedidos!">
+                                                <button class="btn btn-light w-100 text-start menu-opcao op-deletar btn-delete border border-secondary btn-permissao" data-orcamento-id="{{ pedido.codigo }}" data-permissao="pedidos.delete_pedido" data-msg-negado="Seu usuário não pode deletar pedidos!">
                                                     <i class="fas fa-trash"></i> Deletar
                                                 </button>
-                                                <button class="btn btn-light w-100 text-start menu-opcao op-faturar btn-faturar border border-secondary btn-permissao" data-id="{{ pedido.id }}" data-permissao="pedidos.faturar_pedido" data-msg-negado="Seu usuário não pode faturar pedidos!">
+                                                <button class="btn btn-light w-100 text-start menu-opcao op-faturar btn-faturar border border-secondary btn-permissao" data-id="{{ pedido.codigo }}" data-permissao="pedidos.faturar_pedido" data-msg-negado="Seu usuário não pode faturar pedidos!">
                                                     <i class="fa-solid fa-money-bill"></i> Faturar
                                                 </button>
                                                 {% endif %}
-                                                <button class="btn btn-light w-100 text-start menu-opcao op-detalhe-pedido border border-secondary" data-id="{{ pedido.id }}" data-bs-toggle="modal" data-bs-target="#infoEntModalP{{ pedido.id }}">
+                                                <button class="btn btn-light w-100 text-start menu-opcao op-detalhe-pedido border border-secondary" data-id="{{ pedido.codigo }}" data-bs-toggle="modal" data-bs-target="#infoEntModalP{{ pedido.codigo }}">
                                                     <i class="fa-solid fa-circle-info"></i> Detalhes
                                                 </button>
                                                 {% if pedido.situacao == 'Faturado' %}
-                                                <button class="btn btn-light w-100 text-start menu-opcao op-cancelar border border-secondary btn-permissao" data-permissao="pedidos.cancelar_pedido" data-msg-negado="Seu usuário não pode cancelar pedidos!" data-collapse="#colCancelar{{ pedido.id }}">
+                                                <button class="btn btn-light w-100 text-start menu-opcao op-cancelar border border-secondary btn-permissao" data-permissao="pedidos.cancelar_pedido" data-msg-negado="Seu usuário não pode cancelar pedidos!" data-collapse="#colCancelar{{ pedido.codigo }}">
                                                     <i class="fa-solid fa-circle-xmark"></i> Cancelar
                                                 </button>
-                                                <div class="collapse" id="colCancelar{{ pedido.id }}">
+                                                <div class="collapse" id="colCancelar{{ pedido.codigo }}">
                                                     <div class="card" style="margin: 0;">
                                                         <div class="card-body">
                                                             <label class="form-label fw-bold">Motivo do cancelamento</label>
-                                                            <textarea id="motivoCancelamento{{ pedido.id }}" class="form-control form-control-sm border-dark-subtle text-uppercase" rows="2" required></textarea>
+                                                            <textarea id="motivoCancelamento{{ pedido.codigo }}" class="form-control form-control-sm border-dark-subtle text-uppercase" rows="2" required></textarea>
                                                             <div class="mt-3 d-flex justify-content-end gap-2">
-                                                                <button type="button" class="btn btn-danger btn-sm btn-abrir-modal-pedido" data-orcamento-id="{{ pedido.id }}" data-bs-target="#modalConfirmarCancelamento{{ pedido.id }}">
+                                                                <button type="button" class="btn btn-danger btn-sm btn-abrir-modal-pedido" data-orcamento-id="{{ pedido.codigo }}" data-bs-target="#modalConfirmarCancelamento{{ pedido.codigo }}">
                                                                     Cancelar pedido
                                                                 </button>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="modal fade" id="modalConfirmarCancelamento{{ pedido.id }}" tabindex="-1" aria-hidden="true">
+                                                <div class="modal fade" id="modalConfirmarCancelamento{{ pedido.codigo }}" tabindex="-1" aria-hidden="true">
                                                     <div class="modal-dialog modal-dialog-centered">
                                                         <div class="modal-content">
                                                             <div class="modal-header titulo-modal">
                                                                 <h5 class="modal-title"><i class="fa-regular fa-circle-question"></i>Confirmação</h5>
                                                             </div>
-                                                            <div class="modal-body"><p class="mb-2">Você confirma o CANCELAMENTO DO PEDIDO <strong>{{ pedido.id }}</strong>?</p></div>
+                                                            <div class="modal-body"><p class="mb-2">Você confirma o CANCELAMENTO DO PEDIDO <strong>{{ pedido.codigo }}</strong>?</p></div>
                                                             <div class="modal-footer">
-                                                                <button type="button" class="btn btn-primary btn-confirmar btn-confirmar-canc-pedido" data-orcamento-id="{{ pedido.id }}" disabled><u>S</u>im <span class="contador">3</span></button>
+                                                                <button type="button" class="btn btn-primary btn-confirmar btn-confirmar-canc-pedido" data-orcamento-id="{{ pedido.codigo }}" disabled><u>S</u>im <span class="contador">3</span></button>
                                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
                                                             </div>
                                                         </div>
@@ -191,15 +191,15 @@
                                 </div>
                                 {% if pedido.situacao == 'Aberto' %}
                                     <!-- Modal ÚNICO para cada cliente -->
-                                    <div class="modal fade" id="modal-{{ pedido.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ pedido.id }}" aria-hidden="true">
+                                    <div class="modal fade" id="modal-{{ pedido.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ pedido.codigo }}" aria-hidden="true">
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
                                                 <div class="modal-header titulo-modal">
-                                                    <h5 class="modal-title" id="modalTitle-{{ pedido.id }}"> <i class="fa-regular fa-circle-question"></i> Confirmação! </h5>
+                                                    <h5 class="modal-title" id="modalTitle-{{ pedido.codigo }}"> <i class="fa-regular fa-circle-question"></i> Confirmação! </h5>
                                                 </div>
-                                                <div class="modal-body"> <p>Você confirma a EXCLUSÃO DO PEDIDO <strong>{{ pedido.id }}</strong>?</p> </div>
+                                                <div class="modal-body"> <p>Você confirma a EXCLUSÃO DO PEDIDO <strong>{{ pedido.codigo }}</strong>?</p> </div>
                                                 <div class="modal-footer">
-                                                    <form method="post" action="{% url 'del-pedido' pedido.id %}" id="form-del-{{ pedido.id }}">
+                                                    <form method="post" action="{% url 'del-pedido' pedido.codigo %}" id="form-del-{{ pedido.codigo }}">
                                                         {% csrf_token %}
                                                         <button type="submit" class="btn btn-primary btn-confirmar" disabled><u>S</u>im <span class="contador">3</span></button>
                                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
@@ -209,11 +209,11 @@
                                         </div>
                                     </div>
                                 {% endif %}
-                                <div class="modal fade modal-pagamento modal-faturar-pedido" data-tipo="pedido" id="faturarModalP-{{ pedido.id }}" tabindex="-1" aria-hidden="true" data-pedido-id="{{ pedido.id }}"  data-total="{{ pedido.total }}" data-num-pedido="{{ pedido.id }}">
+                                <div class="modal fade modal-pagamento modal-faturar-pedido" data-tipo="pedido" id="faturarModalP-{{ pedido.codigo }}" tabindex="-1" aria-hidden="true" data-pedido-id="{{ pedido.codigo }}"  data-total="{{ pedido.total }}" data-num-pedido="{{ pedido.codigo }}">
                                     <div class="modal-dialog modal-dialog-centered modal-lg">
                                         <div class="modal-content">
                                             <div class="modal-header bg-success text-white" style="max-height: 30px;">
-                                                <h5 class="modal-title"><i class="fa-solid fa-money-bill"></i> Faturar Pedido {{ pedido.id }}</h5>
+                                                <h5 class="modal-title"><i class="fa-solid fa-money-bill"></i> Faturar Pedido {{ pedido.codigo }}</h5>
                                             </div>
                                             <div class="modal-body">
                                                 <!-- CLIENTE -->
@@ -251,7 +251,7 @@
                                                         <select class="form-select forma-pgto">
                                                             <option value="">Selecione</option>
                                                             {% for f in formas_pgto %}
-                                                                <option value="{{ f.id }}" data-gera="{{ f.gera_parcelas|yesno:'1,0' }}">
+                                                                <option value="{{ f.codigo }}" data-gera="{{ f.gera_parcelas|yesno:'1,0' }}">
                                                                     {{ f.descricao }}
                                                                 </option>
                                                             {% endfor %}
@@ -286,7 +286,7 @@
                                                 </table>
                                                 <!-- PREVIEW -->
                                                 <h6 class="fw-bold mt-3 d-none preview-title">Parcelas</h6>
-                                                <table class="table table-bordered d-none preview-table" id="previewPedido-{{ pedido.id }}">
+                                                <table class="table table-bordered d-none preview-table" id="previewPedido-{{ pedido.codigo }}">
                                                     <thead class="table-dark">
                                                         <tr>
                                                             <th>Nº</th><th>Valor</th><th>Vencimento</th><th style="width:50px;">Ações</th>
@@ -301,10 +301,10 @@
                                                 </div>
                                             </div>
                                             <div class="modal-footer">
-                                                <form method="post" action="{% url 'faturar-pedido' pedido.id %}">
+                                                <form method="post" action="{% url 'faturar-pedido' pedido.codigo %}">
                                                     {% csrf_token %}
-                                                    <input type="hidden" name="dados_pagamento" id="dadosPagamento-{{ pedido.id }}">
-                                                    <input type="hidden" name="parcelas_json" id="parcelasJson-{{ pedido.id }}">
+                                                    <input type="hidden" name="dados_pagamento" id="dadosPagamento-{{ pedido.codigo }}">
+                                                    <input type="hidden" name="parcelas_json" id="parcelasJson-{{ pedido.codigo }}">
                                                     <button type="submit" class="btn btn-success btn-sm btn-confirmar-pedido">Faturar</button>
                                                     <button type="button" class="btn btn-secondary btn-sm btn-canc-fat-pedido" data-bs-dismiss="modal">Cancelar</button>
                                                 </form>
@@ -349,8 +349,8 @@
                                     </div>
                                 </div>
                             </td>
-                            <td data-label="Nº Pedido:" class="mobile-2col" style="align-items: center;">{{ pedido.id }}</td>
-                            <td class="icon-cell mx-auto mobile-2col" data-label=""><i class="fa-solid fa-circle-info" id="icone-pedido" data-id="{{ pedido.id }}" style="cursor: pointer;" title="Detalhes do Pedido"></i></td>
+                            <td data-label="Nº Pedido:" class="mobile-2col" style="align-items: center;">{{ pedido.codigo }}</td>
+                            <td class="icon-cell mx-auto mobile-2col" data-label=""><i class="fa-solid fa-circle-info" id="icone-pedido" data-id="{{ pedido.codigo }}" style="cursor: pointer;" title="Detalhes do Pedido"></i></td>
                             <td data-label="Situação:" class="mobile-2col" style="text-align: center;">
                                 {% if pedido.situacao == 'Aberto' %}
                                     <div style="background-color: #005eff; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">

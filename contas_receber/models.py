@@ -2,8 +2,10 @@ from django.db import models
 from decimal import Decimal
 from datetime import date
 from django.utils import timezone
+from django.db import transaction
 
 class ContaReceber(models.Model):
+    codigo = models.PositiveIntegerField(blank=True, null=True)
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
     vinc_fil = models.ForeignKey('filiais.Filial', on_delete=models.SET_NULL, null=True)
     SITUACAO = [('Aberta', 'Aberta'), ('Paga', 'Paga')]
@@ -36,9 +38,17 @@ class ContaReceber(models.Model):
             ("baixar_cr", "Pode realizar baixa em contas à pagar"),
             ("estornar_cr", "Pode realizar estorno em contas à pagar"),
         ]
+        constraints = [models.UniqueConstraint(fields=['codigo', 'vinc_emp'], name='unique_codigo_conta_receber_empresa')]
     def save(self, *args, **kwargs):
-        self.num_conta = self.num_conta.upper()
-        super(ContaReceber, self).save(*args, **kwargs)
+        if self.vinc_emp and not self.codigo:
+            with transaction.atomic():
+                ult = (ContaReceber.objects.select_for_update().filter(vinc_emp=self.vinc_emp).aggregate(models.Max('codigo'))['codigo__max'] or 0)
+                self.codigo = ult + 1
+                self.num_conta = self.num_conta.strip().upper()
+                super().save(*args, **kwargs)
+        else:
+            self.num_conta = self.num_conta.strip().upper()
+            super().save(*args, **kwargs)
     @property
     def saldo(self):
         """Quanto ainda falta pagar"""
@@ -46,34 +56,24 @@ class ContaReceber(models.Model):
         return total_corrigido - self.valor_pago
     @property
     def esta_vencido(self):
-        if self.situacao == 'Paga':
-            return False
+        if self.situacao == 'Paga': return False
         return date.today() > self.data_vencimento
     @property
     def dias_atraso(self):
-        if not self.esta_vencido:
-            return 0
+        if not self.esta_vencido: return 0
         return (date.today() - self.data_vencimento).days
     @property
     def valor_juros(self):
-        if self.dias_atraso <= 0:
-            return Decimal('0.00')
-        if not self.juros:
-            return Decimal('0.00')
-        if self.tp_juros == 'Percentual':
-            return (self.valor * (self.juros / Decimal('100')) * self.dias_atraso)
-        else:
-            return self.juros * self.dias_atraso
+        if self.dias_atraso <= 0: return Decimal('0.00')
+        if not self.juros: return Decimal('0.00')
+        if self.tp_juros == 'Percentual': return (self.valor * (self.juros / Decimal('100')) * self.dias_atraso)
+        else: return self.juros * self.dias_atraso
     @property
     def valor_multa(self):
-        if self.dias_atraso <= 0:
-            return Decimal('0.00')
-        if not self.multa:
-            return Decimal('0.00')
-        if self.tp_multa == 'Percentual':
-            return self.valor * (self.multa / Decimal('100'))
-        else:
-            return self.multa
+        if self.dias_atraso <= 0: return Decimal('0.00')
+        if not self.multa: return Decimal('0.00')
+        if self.tp_multa == 'Percentual': return self.valor * (self.multa / Decimal('100'))
+        else: return self.multa
     @property
     def valor_total(self):
         return self.valor + self.valor_multa + self.valor_juros
@@ -81,48 +81,23 @@ class ContaReceber(models.Model):
         return f"{self.num_conta}"
 
     def processar_pagamento(self, pagamento):
-        ContaReceberBaixaForma.objects.create(
-            vinc_emp=self.vinc_emp,
-            conta_receber=self,
-            forma_pgto=pagamento.forma_pgto,
-            valor=pagamento.valor
-        )
+        ContaReceberBaixaForma.objects.create(vinc_emp=self.vinc_emp, conta_receber=self, forma_pgto=pagamento.forma_pgto, valor=pagamento.valor)
         self.valor_pago += pagamento.valor
         if self.saldo <= 0:
             self.situacao = "Paga"
             self.data_pagamento = timezone.now().date()
         if self.saldo > 0:
             ContaReceber.objects.create(
-                vinc_emp=self.vinc_emp,
-                vinc_fil=self.vinc_fil,
-                orcamento=self.orcamento,
-                pedido=self.pedido,
-                cliente=self.cliente,
-                forma_pgto=None,
-                num_conta=self.num_conta,
-                tp_juros=self.tp_juros,
-                tp_multa=self.tp_multa,
-                valor=self.saldo,
-                valor_pago=Decimal('0.00'),
-                juros=self.juros,
-                multa=self.multa,
-                desconto=Decimal('0.00'),
-                data_emissao=self.data_emissao,
-                data_vencimento=self.data_vencimento,
-                situacao='Aberta',
-                obs_internas=f'Saldo remanescente do título {self.num_conta}'
+                vinc_emp=self.vinc_emp, vinc_fil=self.vinc_fil, orcamento=self.orcamento, pedido=self.pedido, cliente=self.cliente, forma_pgto=None, num_conta=self.num_conta,
+                tp_juros=self.tp_juros, tp_multa=self.tp_multa, valor=self.saldo, valor_pago=Decimal('0.00'), juros=self.juros, multa=self.multa, desconto=Decimal('0.00'),
+                data_emissao=self.data_emissao, data_vencimento=self.data_vencimento, situacao='Aberta', obs_internas=f'Saldo remanescente do título {self.num_conta}'
             )
             self.valor_pago = self.valor + self.juros + self.multa - self.desconto
             self.situacao = "Paga"
             self.data_pagamento = timezone.now().date()
         self.save()
     def aplicar_pagamento(self, valor, forma_pgto):
-        ContaReceberBaixaForma.objects.create(
-            vinc_emp=self.vinc_emp,
-            conta_receber=self,
-            forma_pgto=forma_pgto,
-            valor=valor
-        )
+        ContaReceberBaixaForma.objects.create(vinc_emp=self.vinc_emp, conta_receber=self, forma_pgto=forma_pgto, valor=valor)
         self.valor_pago += valor
         self.save()
 class ContaReceberBaixaForma(models.Model):

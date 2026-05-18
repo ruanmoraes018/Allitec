@@ -37,7 +37,7 @@
                         <div class="form-section" id="clientes">
                             <div class="row" style="margin-left: -8px;">
                                 <input type="hidden" name="next" value="{{ request.GET.next }}">
-                                <div class="col-md-1">{{ form.id|as_crispy_field }}</div>
+                                <div class="col-md-1">{{ form.codigo|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.vinc_fil|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.fornecedor|as_crispy_field }}</div>
                                 <div class="col-md-3">{{ form.solicitante|as_crispy_field }}</div>
@@ -233,8 +233,8 @@
                                                         </thead>
                                                         <tbody>
                                                             {% for pprod in pt.produtos.all %}
-                                                                <tr data-porta="{{ pt.numero }}" data-item-id="{{ pprod.produto.id }}" {% if pprod.regra_origem %}data-regra-origem="{{ pprod.regra_origem }}"{% endif %}>
-                                                                    <td data-label="Código:" class="td-cod mobile-full">{{ pprod.produto.id }}</td>
+                                                                <tr data-porta="{{ pt.numero }}" data-item-id="{{ pprod.produto.codigo }}" {% if pprod.regra_origem %}data-regra-origem="{{ pprod.regra_origem }}"{% endif %}>
+                                                                    <td data-label="Código:" class="td-cod mobile-full">{{ pprod.produto.codigo }}</td>
                                                                     <td data-label="Descrição:" class="td-desc mobile-full">{{ pprod.produto.desc_prod }}</td>
                                                                     <td data-label="Unidade:" class="td-unid mobile-full">{{ pprod.produto.unidProd }}</td>
                                                                     <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">{{ pprod.produto.vl_compra }}</td>
@@ -333,8 +333,8 @@
                                                         </thead>
                                                         <tbody>
                                                             {% for adc in pt.adicionais.all %}
-                                                            <tr data-porta="{{ pt.numero }}" data-item-id="{{ adc.produto.id }}" {% if adc.regra_origem %} data-regra-origem="{{ adc.regra_origem }}" {% endif %}>
-                                                                <td data-label="Código:" class="td-cod mobile-full">{{ adc.produto.id }}</td>
+                                                            <tr data-porta="{{ pt.numero }}" data-item-id="{{ adc.produto.codigo }}" {% if adc.regra_origem %} data-regra-origem="{{ adc.regra_origem }}" {% endif %}>
+                                                                <td data-label="Código:" class="td-cod mobile-full">{{ adc.produto.codigo }}</td>
                                                                 <td data-label="Descrição:" class="td-desc mobile-full">{{ adc.produto.desc_prod }}</td>
                                                                 <td data-label="Unidade:" class="td-unid mobile-full">{{ adc.produto.unidProd }}</td>
                                                                 <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">{{ adc.produto.vl_compra }}</td>
@@ -390,7 +390,7 @@
                                     <label for="id_desconto" class="form-label">Desconto (-)</label>
                                     <div class="input-group">
                                         <input type="text" step="0.01" placeholder="0,00" min="0.01" class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly" id="id_desconto" name="desconto" value="{{ form.desconto.value }}" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao" data-permissao="orcamentos.atribuir_desconto" data-acao="atribuir_desconto" id="btnDesconto" data-modulo="Orçamentos" data-registro-id="{{ orcamento.id }}" data-registro-desc="Clonagem do Orçamento nº {{ orcamento.id }} - {{ orcamento.nome_cli }}">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao" data-permissao="orcamentos.atribuir_desconto" data-acao="atribuir_desconto" id="btnDesconto" data-modulo="Orçamentos" data-registro-id="{{ orcamento.codigo }}" data-registro-desc="Clonagem do Orçamento nº {{ orcamento.codigo }} - {{ orcamento.nome_cli }}">
                                             <i class="fa-solid fa-pen-to-square"></i>
                                         </button>
                                     </div>
@@ -401,7 +401,7 @@
                                     <div class="input-group">
                                         <input type="text" step="0.01" placeholder="0,00" min="0.01"
                                             class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly" id="id_acrescimo" name="acrescimo" value="{{ form.acrescimo.value }}" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao" data-permissao="orcamentos.atribuir_acrescimo" data-acao="atribuir_acrescimo" id="btnAcrescimo" data-modulo="Orçamentos" data-registro-id="{{ orcamento.id }}" data-registro-desc="Clonagem do Orçamento nº {{ orcamento.id }} - {{ orcamento.nome_cli }}">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao" data-permissao="orcamentos.atribuir_acrescimo" data-acao="atribuir_acrescimo" id="btnAcrescimo" data-modulo="Orçamentos" data-registro-id="{{ orcamento.codigo }}" data-registro-desc="Clonagem do Orçamento nº {{ orcamento.codigo }} - {{ orcamento.nome_cli }}">
                                             <i class="fa-solid fa-pen-to-square"></i>
                                         </button>
                                     </div>
@@ -418,7 +418,7 @@
                                         <tbody>
                                             {% for forma in orcamento.formas_pgto.all %}
                                                 <tr
-                                                    data-forma-id="{{ forma.formas_pgto.id }}"
+                                                    data-forma-id="{{ forma.formas_pgto.codigo }}"
                                                     data-valor="{{ forma.valor }}"
                                                     data-parcelas="{{ forma.parcelas|default:1 }}"
                                                     data-dias="{{ forma.dias_intervalo|default:0 }}"

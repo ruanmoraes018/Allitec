@@ -23,50 +23,32 @@ def lista_marcas(request):
     reg = request.GET.get('reg', '10')
     empresa = request.user.empresa
     marcas = Marca.objects.filter(vinc_emp=empresa)
-
     if tp == 'desc' and s:
         norm_s = remove_accents(s).lower()
         marcas = marcas.filter(nome_marca__icontains=norm_s).order_by('nome_marca')
     elif tp == 'cod' and s:
-        try:
-            marcas = marcas.filter(id__iexact=s).order_by('nome_marca')
-        except ValueError:
-            marcas = Marca.objects.none()
-
-    if reg == 'todos':
-        num_pagina = marcas.count() or 1
+        try: marcas = marcas.filter(codigo__iexact=s).order_by('nome_marca')
+        except ValueError: marcas = Marca.objects.none()
+    if reg == 'todos': num_pagina = marcas.count() or 1
     else:
-        try:
-            num_pagina = int(reg) if int(reg) > 0 else 1
-        except ValueError:
-            num_pagina = 10  # Valor padrão
-
+        try: num_pagina = int(reg) if int(reg) > 0 else 1
+        except ValueError: num_pagina = 10  # Valor padrão
     paginator = Paginator(marcas, num_pagina)
     page = request.GET.get('page')
     marcas = paginator.get_page(page)
-
-    return render(request, 'marcas/lista.html', {
-        'marcas': marcas,
-        's': s,
-        'tp': tp,
-        'reg': reg,
-    })
+    return render(request, 'marcas/lista.html', {'marcas': marcas, 's': s, 'tp': tp, 'reg': reg,})
 
 @login_required
 def lista_marcas_ajax(request):
     termo_busca = request.GET.get('term') or request.GET.get('q') or ''
     empresa = request.user.empresa
     try:
-        if termo_busca.isdigit():
-            condicao_busca = Q(nome_marca__icontains=termo_busca) | Q(id=termo_busca)
-        else:
-            condicao_busca = Q(nome_marca__icontains=termo_busca)
+        if termo_busca.isdigit(): condicao_busca = Q(nome_marca__icontains=termo_busca) | Q(codigo=termo_busca)
+        else: condicao_busca = Q(nome_marca__icontains=termo_busca)
         marcas = Marca.objects.filter(condicao_busca & Q(vinc_emp=empresa))[:20]
-        results = [{'id': marca.id, 'text': f"{marca.nome_marca.upper()}"} for marca in marcas]
+        results = [{'id': marca.codigo, 'text': f"{marca.nome_marca.upper()}"} for marca in marcas]
         return JsonResponse({'results': results})
-    except Exception as e:
-        print(f"Erro na busca AJAX: {e}")
-        return JsonResponse({'results': [], 'error': str(e)})
+    except Exception as e: return JsonResponse({'results': [], 'error': str(e)})
 
 @login_required
 def add_marca(request):
@@ -80,14 +62,12 @@ def add_marca(request):
             b.vinc_emp = request.user.empresa
             b.save()
             messages.success(request, 'Marca adicionada com sucesso!')
-            bai = str(b.id)
+            bai = str(b.codigo)
             return redirect('/marcas/lista/?tp=cod&s=' + bai)
         else:
             error_messages = []
             for field in form:
-                if field.errors:
-                    for error in field.errors:
-                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'marcas/add.html', {'form': form, 'error_messages': error_messages})
     else: form = MarcaForm()
     return render(request, 'marcas/add.html', {'form': form})
@@ -99,19 +79,12 @@ def add_marca_ajax(request):
     if not nome:
         return JsonResponse({'erro': 'Nome vazio'}, status=400)
     empresa = request.user.empresa
-    marca, criada = Marca.objects.get_or_create(
-        nome_marca=nome,
-        vinc_emp=empresa
-    )
-    return JsonResponse({
-        'id': marca.id,
-        'nome': marca.nome_marca,
-        'criada': criada
-    })
+    marca, criada = Marca.objects.get_or_create(nome_marca=nome, vinc_emp=empresa)
+    return JsonResponse({'id': marca.codigo, 'nome': marca.nome_marca, 'criada': criada})
 
 @login_required
-def att_marca(request, id):
-    b = get_object_or_404(Marca, pk=id, vinc_emp=request.user.empresa)
+def att_marca(request, codigo):
+    b = get_object_or_404(Marca, codigo=codigo, vinc_emp=request.user.empresa)
     form = MarcaForm(instance=b)
     if not request.user.has_perm('marcas.change_marca'):
         messages.info(request, 'Você não tem permissão para editar marcas.')
@@ -121,28 +94,23 @@ def att_marca(request, id):
         if form.is_valid():
             b.save()
             next_url = request.POST.get('next') or request.GET.get('next')
-            bai = str(b.id)
+            bai = str(b.codigo)
             messages.success(request, 'Marca atualizada com sucesso!')
-            if next_url:
-                return redirect(next_url)
-            else:
-                return redirect('/marcas/lista/?tp=cod&s=' + bai)
+            if next_url: return redirect(next_url)
+            else: return redirect('/marcas/lista/?tp=cod&s=' + bai)
         else:
             error_messages = []
             for field in form:
-                if field.errors:
-                    for error in field.errors:
-                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'marcas/att.html', {'form': form, 'b': b, 'error_messages': error_messages})
-    else:
-        return render(request, 'marcas/att.html', {'form': form, 'b': b})
+    else: return render(request, 'marcas/att.html', {'form': form, 'b': b})
 
 @login_required
-def del_marca(request, id):
+def del_marca(request, codigo):
     if not request.user.has_perm('marcas.delete_marca'):
         messages.info(request, 'Você não tem permissão para deletar marcas.')
         return redirect('/marcas/lista/')
-    b = get_object_or_404(Marca, pk=id, vinc_emp=request.user.empresa)
+    b = get_object_or_404(Marca, codigo=codigo, vinc_emp=request.user.empresa)
     b.delete()
     messages.success(request, 'Marca deletada com sucesso!')
     return redirect('/marcas/lista/')

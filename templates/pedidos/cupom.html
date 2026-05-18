@@ -63,7 +63,7 @@
 
     <!-- PEDIDO -->
     <div class="small">
-        <div><span class="bold">PEDIDO:</span> {{ pedido.id }}</div>
+        <div><span class="bold">PEDIDO:</span> {{ pedido.codigo }}</div>
         <div><span class="bold">DATA:</span> {{ pedido.dt_emi|date:"d/m/Y H:i:s" }}</div>
         <div><span class="bold">VENDEDOR:</span> {{ pedido.nome_vend }}</div>
         <div><span class="bold">SITUAÇÃO:</span> {{ pedido.situacao }}</div>
@@ -74,7 +74,7 @@
     <!-- CLIENTE -->
     <div class="small">
         <div class="bold">CLIENTE:</div>
-        <div>{{ pedido.cli.id }} - {{ pedido.nome_cli }}</div>
+        <div>{{ pedido.cli.codigo }} - {{ pedido.nome_cli }}</div>
     </div>
 
     <div class="linha"></div>
@@ -87,7 +87,7 @@
         <div class="small">
             <div class="flex">
                 <div style="float: left;">
-                    {{ item.codigo_usado|default_if_none:item.produto.id }}
+                    {{ item.codigo_usado|default_if_none:item.produto.codigo }}
                 </div>
                 <div style="float: right;">{{ item.produto.desc_prod }}</div>
             </div>

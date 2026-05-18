@@ -6,17 +6,12 @@ class EmpresaCaseInsensitiveBackend(ModelBackend):
         UserModel = get_user_model()
         if username is None or password is None:
             return None
-
         # Filtra pelo usuário ignorando maiúsculas/minúsculas + empresa
         query = {"username__iexact": username}
-        if empresa_id:
-            query["empresa_id"] = empresa_id
-
+        if empresa_id: query["empresa_id"] = empresa_id
         try:
             user = UserModel.objects.get(**query)
-        except UserModel.DoesNotExist:
-            return None
+        except UserModel.DoesNotExist: return None
         else:
-            if user.check_password(password) and self.user_can_authenticate(user):
-                return user
+            if user.check_password(password) and self.user_can_authenticate(user): return user
         return None

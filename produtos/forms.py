@@ -4,7 +4,6 @@ from unidades.models import Unidade
 from marcas.models import Marca
 from grupos.models import Grupo
 from util.parse_decimal import parse_decimal, format_decimal_br
-
 class ProdutoForm(forms.ModelForm):
     situacao = forms.ChoiceField(label='Situação', choices=[('Ativo', 'Ativo'), ('Inativo', 'Inativo')], widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
     tp_prod = forms.ChoiceField(label='', required=False, choices=[('Principal', 'Principal'), ('Adicional', 'Adicional')], widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
@@ -19,40 +18,23 @@ class ProdutoForm(forms.ModelForm):
 
     class Meta:
         model = Produto
-        fields = (
-            'situacao', 'tp_prod', 'desc_prod', 'grupo', 'marca',
-            'unidProd', 'vl_compra', 'estoque_prod', 'lista_orc', 'especifico'
-        )
+        fields = ('situacao', 'tp_prod', 'desc_prod', 'grupo', 'marca', 'unidProd', 'vl_compra', 'estoque_prod', 'lista_orc', 'especifico')
 
     def __init__(self, *args, empresa=None, **kwargs):
         super().__init__(*args, **kwargs)
-
         if empresa:
             self.fields['unidProd'].queryset = Unidade.objects.filter(vinc_emp=empresa)
             self.fields['marca'].queryset = Marca.objects.filter(vinc_emp=empresa)
             self.fields['grupo'].queryset = Grupo.objects.filter(vinc_emp=empresa)
-
         if self.instance and self.instance.pk:
             self.initial['vl_compra'] = format_decimal_br(self.instance.vl_compra)
             self.initial['estoque_prod'] = format_decimal_br(self.instance.estoque_prod)
-
     def clean(self):
         cleaned_data = super().clean()
-
-        try:
-            cleaned_data['vl_compra'] = parse_decimal(
-                cleaned_data.get('vl_compra')
-            )
-        except:
-            self.add_error('vl_compra', 'Valor inválido.')
-
-        try:
-            cleaned_data['estoque_prod'] = parse_decimal(
-                cleaned_data.get('estoque_prod')
-            )
-        except:
-            self.add_error('estoque_prod', 'Valor inválido.')
-
+        try: cleaned_data['vl_compra'] = parse_decimal(cleaned_data.get('vl_compra'))
+        except: self.add_error('vl_compra', 'Valor inválido.')
+        try: cleaned_data['estoque_prod'] = parse_decimal(cleaned_data.get('estoque_prod'))
+        except: self.add_error('estoque_prod', 'Valor inválido.')
         return cleaned_data
 class ProdutoTabelaForm(forms.ModelForm):
     vl_prod = forms.DecimalField(localize=False)

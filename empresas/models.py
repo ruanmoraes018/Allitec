@@ -8,25 +8,9 @@ def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
     return ''.join([c for c in nfkd_form if not unicodedata.combining(c)])
 
-
 class Empresa(models.Model):
-    situacao = models.CharField(
-        max_length=10,
-        verbose_name="Situação",
-        choices=[
-            ('Ativa', 'Ativa'),
-            ('Inativa', 'Inativa')
-        ]
-    )
-    principal = models.CharField(
-        max_length=10,
-        verbose_name="Principal?",
-        choices=[
-            ('Sim', 'Sim'),
-            ('Não', 'Não')
-        ],
-        default="Não"
-    )
+    situacao = models.CharField(max_length=10, verbose_name="Situação", choices=[('Ativa', 'Ativa'), ('Inativa', 'Inativa')])
+    principal = models.CharField(max_length=10, verbose_name="Principal?", choices=[('Sim', 'Sim'), ('Não', 'Não')], default="Não")
     senha_portal = models.CharField(max_length=128, default="0000")
     cnpj = models.CharField(max_length=20, verbose_name='CNPJ')
     ie = models.CharField(max_length=20, verbose_name='IE')
@@ -55,48 +39,17 @@ class Empresa(models.Model):
     tel_adm = models.CharField(max_length=15, verbose_name='Fone')
     email_adm = models.EmailField(max_length=40, verbose_name='E-mail')
     logo = models.FileField(upload_to='logo/', null=True, blank=True, default='default_logo.png')
-    DIA_VENC_CHOICES = [
-        ('05', '05'), ('10', '10'), ('15', '15'),
-        ('20', '20'), ('25', '25'), ('30', '30')
-    ]
-    dia_venc = models.CharField(
-        max_length=10,
-        choices=DIA_VENC_CHOICES,
-        default='05'
-    )
-    dt_criacao = models.DateField(
-        verbose_name='Data de Registro',
-        auto_now_add=True
-    )
+    DIA_VENC_CHOICES = [('05', '05'), ('10', '10'), ('15', '15'), ('20', '20'), ('25', '25'), ('30', '30')]
+    dia_venc = models.CharField(max_length=10, choices=DIA_VENC_CHOICES, default='05')
+    dt_criacao = models.DateField(verbose_name='Data de Registro', auto_now_add=True)
     dt_inativacao = models.DateField(verbose_name='Data de Inativação', blank=True, null=True)
-
     qtd_filial = models.PositiveIntegerField(default=1, verbose_name='Quantidade de Filiais Ativas')
     qtd_usuarios = models.PositiveIntegerField(default=1, verbose_name='Quantidade de Usuários Ativos')
-
     # Função de Juros e Multa
-    tp_calc_juros = models.CharField(
-        max_length=15,
-        verbose_name="Tp. Cálculo Juros",
-        choices=[
-            ('Percentual', 'Percentual'),
-            ('Valor', 'Valor')
-        ],
-        default="Percentual"
-    )
-
-    tp_calc_multa = models.CharField(
-        max_length=15,
-        verbose_name="Tp. Cálculo Multa",
-        choices=[
-            ('Percentual', 'Percentual'),
-            ('Valor', 'Valor')
-        ],
-        default="Percentual"
-    )
-
+    tp_calc_juros = models.CharField(max_length=15, verbose_name="Tp. Cálculo Juros", choices=[('Percentual', 'Percentual'), ('Valor', 'Valor')], default="Percentual")
+    tp_calc_multa = models.CharField(max_length=15, verbose_name="Tp. Cálculo Multa", choices=[('Percentual', 'Percentual'), ('Valor', 'Valor')], default="Percentual")
     ft_multa = models.DecimalField(verbose_name="Fator Multa", max_digits=10, decimal_places=2, default=0, null=True, blank=True)
     ft_juros = models.DecimalField(verbose_name="Fator Juros",max_digits=10, decimal_places=2, default=0, null=True, blank=True)
-
     gerar_filial = models.BooleanField(default=False, verbose_name='Gerar Filial?')
     # vinculada_a = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='filiais_secundarias', verbose_name='Filial Vinculada à')
     def save(self, *args, **kwargs):
@@ -129,33 +82,18 @@ class Empresa(models.Model):
         self.fantasia = self.fantasia_normalizado.upper()
         # salva primeiro para garantir PK e arquivo
         super().save(*args, **kwargs)
-
         # processa logo
         if self.logo and self.logo.name != 'default_logo.png':
-
             img = Image.open(self.logo)
-
-            if img.mode in ('RGBA', 'P'):
-                img = img.convert('RGB')
-
+            if img.mode in ('RGBA', 'P'): img = img.convert('RGB')
             img.thumbnail((300, 300))
-
             img_io = BytesIO()
             img.save(img_io, format='PNG', quality=90)
-
             novo_nome = f'logo_{self.pk}.png'
-
-            self.logo.save(
-                novo_nome,
-                ContentFile(img_io.getvalue()),
-                save=False
-            )
-
+            self.logo.save(novo_nome, ContentFile(img_io.getvalue()), save=False)
             super().save(update_fields=['logo'])
         super(Empresa, self).save(*args, **kwargs)
-
     def __str__(self):
         return f"{self.fantasia.upper()}"
-
     class Meta:
         verbose_name_plural = "Empresas"

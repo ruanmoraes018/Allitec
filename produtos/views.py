@@ -42,39 +42,36 @@ def lista_produtos(request):
     empresa = request.user.empresa
     produtos_qs = Produto.objects.filter(vinc_emp=empresa)
     if ordem == '0': produtos_qs = produtos_qs.order_by('desc_prod')
-    elif ordem == '1': produtos_qs = produtos_qs.order_by('id')
+    elif ordem == '1': produtos_qs = produtos_qs.order_by('codigo')
     else: produtos_qs = produtos_qs.order_by(ordem)
     if tp == 'desc' and s:
         norm_s = remove_accents(s).lower()
         produtos_qs = produtos_qs.filter(desc_normalizado__icontains=norm_s)
     elif tp == 'cod':
         if s:
-            try: produtos_qs = produtos_qs.filter(id__iexact=s)
+            try: produtos_qs = produtos_qs.filter(codigo__iexact=s)
             except ValueError:  produtos_qs = Produto.objects.none()
     if tp_produto in ['Principal', 'Adicional']: produtos_qs = produtos_qs.filter(tp_prod__exact=tp_produto)
     if sit == '1': produtos_qs = produtos_qs.filter(situacao='Ativo')
     elif sit == '2': produtos_qs = produtos_qs.filter(situacao='Inativo')
-    if grupo: produtos_qs = produtos_qs.filter(grupo_id=grupo)
-    if marca: produtos_qs = produtos_qs.filter(marca_id=marca)
-    if unid: produtos_qs = produtos_qs.filter(unidProd_id=unid)
-    if reg == 'todos':
-        num_pagina = produtos_qs.count() or 1
+    if grupo: produtos_qs = produtos_qs.filter(grupo_codigo=grupo)
+    if marca: produtos_qs = produtos_qs.filter(marca_codigo=marca)
+    if unid: produtos_qs = produtos_qs.filter(unidProd_codigo=unid)
+    if reg == 'todos': num_pagina = produtos_qs.count() or 1
     else:
-        try:
-            num_pagina = int(reg) if int(reg) > 0 else 10
-        except ValueError:
-            num_pagina = 10
+        try: num_pagina = int(reg) if int(reg) > 0 else 10
+        except ValueError: num_pagina = 10
     paginator = Paginator(produtos_qs, num_pagina)
     page = request.GET.get('page')
     produtos_qs = paginator.get_page(page)
-    produtos_ids = [p.id for p in produtos_qs]
+    produtos_ids = [p.codigo for p in produtos_qs]
     tabelas_map = {}
     if produtos_ids:
-        tabelas = (ProdutoTabela.objects.filter(produto_id__in=produtos_ids, produto__vinc_emp=empresa).select_related('tabela'))
+        tabelas = (ProdutoTabela.objects.filter(produto_codigo__in=produtos_ids, produto__vinc_emp=empresa).select_related('tabela'))
         for tab in tabelas:
-            tabelas_map.setdefault(tab.produto_id, []).append({"id": tab.id, "descricao": tab.tabela.descricao if tab.tabela else str(tab), "vl_prod": float(tab.vl_prod)})
+            tabelas_map.setdefault(tab.produto_codigo, []).append({"id": tab.codigo, "descricao": tab.tabela.descricao if tab.tabela else str(tab), "vl_prod": float(tab.vl_prod)})
     for p in produtos_qs:
-        p.tab_conv = tabelas_map.get(p.id, [])
+        p.tab_conv = tabelas_map.get(p.codigo, [])
     return render(request, 'produtos/lista.html', {'produtos': produtos_qs, 's': s, 'tp': tp, 'sit': sit, 'ordem': ordem, 'marca': marca, 'marcas': Marca.objects.filter(vinc_emp=empresa), 'grupo': grupo, 'grupos': Grupo.objects.filter(vinc_emp=empresa), 'unidades': Unidade.objects.filter(vinc_emp=empresa), 'unid': unid, 'reg': reg, 'tp_produto': tp_produto})
 
 @login_required
@@ -82,32 +79,15 @@ def lista_produtos(request):
 def precos_tabela_lote(request):
     try:
         data = json.loads(request.body)
-
         tabela_id = data.get('tabela_id')
         produtos = data.get('produtos', [])
-
-        if not tabela_id or not produtos:
-            return JsonResponse({"precos": {}})
-
+        if not tabela_id or not produtos: return JsonResponse({"precos": {}})
         # 🔥 BUSCA TODOS DE UMA VEZ
-        precos_qs = ProdutoTabela.objects.filter(
-            tabela_id=tabela_id,
-            produto_id__in=produtos
-        ).values('produto_id', 'vl_prod')
-
-        # 🔥 MONTA MAPA {produto_id: preco}
-        mapa = {
-            str(p['produto_id']): float(p['vl_prod'])
-            for p in precos_qs
-        }
-
+        precos_qs = ProdutoTabela.objects.filter(tabela_codigo=tabela_id, produto_codigo__in=produtos).values('produto_codigo', 'vl_prod')
+        # 🔥 MONTA MAPA {produto_codigo: preco}
+        mapa = {str(p['produto_codigo']): float(p['vl_prod']) for p in precos_qs}
         return JsonResponse({"precos": mapa})
-
-    except Exception as e:
-        return JsonResponse({
-            "erro": str(e),
-            "precos": {}
-        }, status=500)
+    except Exception as e: return JsonResponse({"erro": str(e), "precos": {}}, status=500)
     
 @login_required
 def att_prod_lote(request):
@@ -123,7 +103,7 @@ def att_prod_lote(request):
         marca_id = request.POST.get('marca1')
         situacao = request.POST.get('situacao1')
         empresa = request.user.empresa
-        produtos = Produto.objects.filter(id__in=produtos_ids, vinc_emp=empresa)
+        produtos = Produto.objects.filter(codigo__in=produtos_ids, vinc_emp=empresa)
         if not produtos.exists():
             messages.info(request, 'Nenhum produto selecionado.')
             return redirect('/produtos/lista/')
@@ -131,12 +111,9 @@ def att_prod_lote(request):
         gp = None
         unidade = None
         marca = None
-        if switch_grupo == 'on' and grupo_id:
-            gp = Grupo.objects.filter(id=grupo_id, vinc_emp=empresa).first()
-        if switch_unidade == 'on' and unidade_id:
-            unidade = Unidade.objects.filter(id=unidade_id, vinc_emp=empresa).first()
-        if switch_marca == 'on' and marca_id:
-            marca = Marca.objects.filter(id=marca_id, vinc_emp=empresa).first()
+        if switch_grupo == 'on' and grupo_id: gp = Grupo.objects.filter(codigo=grupo_id, vinc_emp=empresa).first()
+        if switch_unidade == 'on' and unidade_id: unidade = Unidade.objects.filter(codigo=unidade_id, vinc_emp=empresa).first()
+        if switch_marca == 'on' and marca_id: marca = Marca.objects.filter(codigo=marca_id, vinc_emp=empresa).first()
         for produto in produtos:
             if switch_grupo == 'on' and grupo_id and gp:
                 produto.grupo = gp
@@ -154,13 +131,9 @@ def att_prod_lote(request):
                 produto.situacao = situacao
                 alguma_alteracao = True
             produto.save()
-        if alguma_alteracao:
-            messages.success(request, 'Campos atualizados com sucesso!')
-        else:
-            messages.info(request, 'Nenhuma alteração realizada.')
-    else:
-        messages.info(request, 'Nenhuma alteração realizada.')
-
+        if alguma_alteracao: messages.success(request, 'Campos atualizados com sucesso!')
+        else: messages.info(request, 'Nenhuma alteração realizada.')
+    else: messages.info(request, 'Nenhuma alteração realizada.')
     return redirect('/produtos/lista/')
 
 @login_required
@@ -171,18 +144,16 @@ def att_preco_lote(request):
         tp_atrib = request.POST.get('tp-atrib')  # 0 = Margem, 1 = Valor
         campo_1 = request.POST.get('campo_1', '').replace(',', '.').strip()
         campo_2 = request.POST.get('campo_2', '').replace(',', '.').strip()
-        produtos = Produto.objects.filter(id__in=produtos_ids, vinc_emp=request.user.empresa)
+        produtos = Produto.objects.filter(codigo__in=produtos_ids, vinc_emp=request.user.empresa)
         if not produtos.exists():
             messages.info(request, 'Nenhum produto selecionado.')
             return redirect('/produtos/lista/')
-        try:
-            tabela = TabelaPreco.objects.get(id=tabela_id, vinc_emp=request.user.empresa)
+        try: tabela = TabelaPreco.objects.get(codigo=tabela_id, vinc_emp=request.user.empresa)
         except TabelaPreco.DoesNotExist:
             messages.error(request, 'Tabela de preço não encontrada.')
             return redirect('/produtos/lista/')
         try:
             val_1 = Decimal(campo_1 or '0')
-            val_2 = Decimal(campo_2 or '0')
         except InvalidOperation:
             messages.error(request, "Os valores informados são inválidos.")
             return redirect('/produtos/lista/')
@@ -218,16 +189,14 @@ def att_tb_preco_lote(request):
         campo_1 = Decimal(str(body.get('campo_1') or 0))
         campo_2 = Decimal(str(body.get('campo_2') or 0))
         produtos_req = body.get('produtos', [])
-        if not tabela_id:
-            return JsonResponse({'ok': False, 'msg': 'Selecione uma tabela de preço.'})
-        if not produtos_req:
-            return JsonResponse({'ok': False, 'msg': 'Nenhum produto foi selecionado.'})
-        tabela = TabelaPreco.objects.get(id=tabela_id, vinc_emp=empresa)
+        if not tabela_id: return JsonResponse({'ok': False, 'msg': 'Selecione uma tabela de preço.'})
+        if not produtos_req: return JsonResponse({'ok': False, 'msg': 'Nenhum produto foi selecionado.'})
+        tabela = TabelaPreco.objects.get(codigo=tabela_id, vinc_emp=empresa)
         valores_ret = {}
         for item in produtos_req:
             pid = item.get('id')
             base_calculo = Decimal(str(item.get('base_calculo') or 0))
-            produto = Produto.objects.get(id=pid, vinc_emp=empresa)
+            produto = Produto.objects.get(codigo=pid, vinc_emp=empresa)
             margem = Decimal('0.00')
             valor = Decimal('0.00')
             if tipo == "0":  # margem
@@ -235,37 +204,17 @@ def att_tb_preco_lote(request):
                 valor = base_calculo * (Decimal('1.00') + (margem / Decimal('100.00')))
             elif tipo == "1":  # valor
                 valor = campo_2
-                if base_calculo > 0:
-                    margem = ((valor - base_calculo) / base_calculo) * Decimal('100.00')
-                else:
-                    margem = Decimal('0.00')
+                if base_calculo > 0: margem = ((valor - base_calculo) / base_calculo) * Decimal('100.00')
+                else: margem = Decimal('0.00')
             else:
                 return JsonResponse({'ok': False, 'msg': 'Tipo de atribuição inválido.'})
-            ProdutoTabela.objects.update_or_create(
-                produto=produto,
-                tabela=tabela,
-                defaults={
-                    'vl_prod': valor,
-                    'margem': margem,
-                }
-            )
-            valores_ret[str(pid)] = {
-                'vl_prod': float(valor),
-                'margem': float(margem),
-            }
-        return JsonResponse({
-            'ok': True,
-            'tabela_nome': getattr(tabela, 'descricao', str(tabela)),
-            'valores': valores_ret,
-        })
-    except TabelaPreco.DoesNotExist:
-        return JsonResponse({'ok': False, 'msg': 'Tabela de preço não encontrada.'})
-    except Produto.DoesNotExist:
-        return JsonResponse({'ok': False, 'msg': 'Um dos produtos não foi encontrado.'})
-    except (InvalidOperation, ValueError, TypeError) as e:
-        return JsonResponse({'ok': False, 'msg': f'Erro nos valores enviados: {e}'})
-    except Exception as e:
-        return JsonResponse({'ok': False, 'msg': str(e)})
+            ProdutoTabela.objects.update_or_create(produto=produto, tabela=tabela, defaults={'vl_prod': valor, 'margem': margem,})
+            valores_ret[str(pid)] = {'vl_prod': float(valor), 'margem': float(margem),}
+        return JsonResponse({'ok': True, 'tabela_nome': getattr(tabela, 'descricao', str(tabela)), 'valores': valores_ret,})
+    except TabelaPreco.DoesNotExist: return JsonResponse({'ok': False, 'msg': 'Tabela de preço não encontrada.'})
+    except Produto.DoesNotExist: return JsonResponse({'ok': False, 'msg': 'Um dos produtos não foi encontrado.'})
+    except (InvalidOperation, ValueError, TypeError) as e: return JsonResponse({'ok': False, 'msg': f'Erro nos valores enviados: {e}'})
+    except Exception as e: return JsonResponse({'ok': False, 'msg': str(e)})
 
 @login_required
 def lista_produtos_ajax(request):
@@ -273,16 +222,12 @@ def lista_produtos_ajax(request):
     empresa = request.user.empresa
     try:
         filtros = Q(situacao__iexact='Ativo')
-        if termo_busca.isdigit():
-            condicao_busca = Q(desc_prod__icontains=termo_busca) | Q(id=termo_busca) | Q(desc_normalizado__icontains=termo_busca) | Q(codigos__codigo__icontains=termo_busca)
-        else:
-            condicao_busca = Q(desc_prod__icontains=termo_busca) | Q(desc_normalizado__icontains=termo_busca)
+        if termo_busca.isdigit(): condicao_busca = Q(desc_prod__icontains=termo_busca) | Q(codigo=termo_busca) | Q(desc_normalizado__icontains=termo_busca) | Q(codigos__codigo__icontains=termo_busca)
+        else: condicao_busca = Q(desc_prod__icontains=termo_busca) | Q(desc_normalizado__icontains=termo_busca)
         produtos = Produto.objects.filter(filtros & condicao_busca & Q(vinc_emp=empresa))[:20]
-        results = [{'id': produto.id, 'text': f"{produto.id} - {produto.desc_prod.upper()}", 'desc_prod': produto.desc_prod} for produto in produtos]
+        results = [{'id': produto.codigo, 'text': f"{produto.codigo} - {produto.desc_prod.upper()}", 'desc_prod': produto.desc_prod} for produto in produtos]
         return JsonResponse({'results': results})
-    except Exception as e:
-        print(f"Erro na busca AJAX: {e}")
-        return JsonResponse({'results': [], 'error': str(e)})
+    except Exception as e: return JsonResponse({'results': [], 'error': str(e)})
 
 @login_required
 def buscar_produtos(request):
@@ -290,7 +235,6 @@ def buscar_produtos(request):
     filtro = request.GET.get('tp', 'desc')  # desc | cod
     tp_produto = request.GET.get('tp_prod', '')  # Principal | Adicional | ''
     tabela_id = request.GET.get('tabela_id')
-    auto = request.GET.get('auto') == '1'
     produtos = Produto.objects.none()
     empresa = request.user.empresa
     if filtro == 'desc':
@@ -298,20 +242,16 @@ def buscar_produtos(request):
         produtos = Produto.objects.filter(vinc_emp=empresa, lista_orc=True).filter(Q(desc_prod__icontains=termo) | Q(desc_normalizado__icontains=norm_termo))
         if tp_produto: produtos = produtos.filter(tp_prod__icontains=tp_produto)
     elif filtro == 'cod' and termo:
-        produtos = Produto.objects.filter(vinc_emp=empresa, situacao="Ativo").filter(Q(id=int(termo)) if termo.isdigit() else Q(pk__isnull=False))
-        if termo.isdigit():
-            produtos = Produto.objects.filter(vinc_emp=empresa, situacao="Ativo").filter(Q(id=int(termo)) | Q(codigos__codigo__iexact=termo)).distinct()
-        else:
-            produtos = Produto.objects.filter(vinc_emp=empresa, situacao="Ativo",codigos__codigo__iexact=termo).distinct()
-        if tp_produto:
-            produtos = produtos.filter(tp_prod__icontains=tp_produto)
-    produtos = (produtos.select_related('unidProd', 'grupo').order_by('id'))
+        produtos = Produto.objects.filter(vinc_emp=empresa, situacao="Ativo").filter(Q(codigo=int(termo)) if termo.isdigit() else Q(pk__isnull=False))
+        if termo.isdigit(): produtos = Produto.objects.filter(vinc_emp=empresa, situacao="Ativo").filter(Q(codigo=int(termo)) | Q(codigos__codigo__iexact=termo)).distinct()
+        else: produtos = Produto.objects.filter(vinc_emp=empresa, situacao="Ativo",codigos__codigo__iexact=termo).distinct()
+        if tp_produto: produtos = produtos.filter(tp_prod__icontains=tp_produto)
+    produtos = (produtos.select_related('unidProd', 'grupo').order_by('codigo'))
     data = []
     for prod in produtos:
         tabela = None
-        if tabela_id:
-            tabela = ProdutoTabela.objects.filter(produto=prod, tabela_id=tabela_id, tabela__vinc_emp=empresa).first()
-        data.append({'id': prod.id, 'desc_prod': prod.desc_prod, 'unidProd': prod.unidProd.nome_unidade if prod.unidProd else '', 'grupo': prod.grupo.nome_grupo if prod.grupo else '', 'estoque_prod': getattr(prod, 'estoque_prod', None), 'vl_compra': prod.vl_compra, 'vl_prod': float(tabela.vl_prod) if tabela else None, 'tp_prod': prod.tp_prod, 'especifico': prod.especifico if prod.especifico else ''})
+        if tabela_id: tabela = ProdutoTabela.objects.filter(produto=prod, tabela_codigo=tabela_id, tabela__vinc_emp=empresa).first()
+        data.append({'id': prod.codigo, 'desc_prod': prod.desc_prod, 'unidProd': prod.unidProd.nome_unidade if prod.unidProd else '', 'grupo': prod.grupo.nome_grupo if prod.grupo else '', 'estoque_prod': getattr(prod, 'estoque_prod', None), 'vl_compra': prod.vl_compra, 'vl_prod': float(tabela.vl_prod) if tabela else None, 'tp_prod': prod.tp_prod, 'especifico': prod.especifico if prod.especifico else ''})
     return JsonResponse({'produtos': data})
 
 @login_required
@@ -325,7 +265,6 @@ def buscar_produtos_ent(request):
     unid_produto = request.GET.get('unid_prod', '')
     num_pagina = request.GET.get('num_pag', '10')
     page = request.GET.get('page', 1)
-
     if filtro == 'desc':
         norm_termo = remove_accents(termo).lower()
         produtos = Produto.objects.filter(vinc_emp=empresa, situacao="Ativo").filter(Q(desc_prod__icontains=termo) | Q(desc_normalizado__icontains=norm_termo))
@@ -333,21 +272,18 @@ def buscar_produtos_ent(request):
         if marc_produto: produtos = produtos.filter(marca=marc_produto)
         if gp_produto: produtos = produtos.filter(grupo=gp_produto)
         if unid_produto: produtos = produtos.filter(unidProd=unid_produto)
-        produtos = produtos.order_by('id')
+        produtos = produtos.order_by('codigo')
     elif filtro == 'cod':
         if termo:
-            produtos = Produto.objects.filter(vinc_emp=empresa, situacao="Ativo").filter(Q(id=int(termo)) if termo.isdigit() else Q(pk__isnull=False))
-            if termo.isdigit():
-                produtos = Produto.objects.filter(vinc_emp=empresa, situacao="Ativo").filter(Q(id=int(termo)) | Q(codigos__codigo__iexact=termo)).distinct()
-            else:
-                produtos = Produto.objects.filter(vinc_emp=empresa, situacao="Ativo",codigos__codigo__iexact=termo).distinct()
+            produtos = Produto.objects.filter(vinc_emp=empresa, situacao="Ativo").filter(Q(codigo=int(termo)) if termo.isdigit() else Q(pk__isnull=False))
+            if termo.isdigit(): produtos = Produto.objects.filter(vinc_emp=empresa, situacao="Ativo").filter(Q(codigo=int(termo)) | Q(codigos__codigo__iexact=termo)).distinct()
+            else: produtos = Produto.objects.filter(vinc_emp=empresa, situacao="Ativo",codigos__codigo__iexact=termo).distinct()
             if tp_produto: produtos = produtos.filter(tp_prod=tp_produto)
             if marc_produto: produtos = produtos.filter(marca=marc_produto)
             if gp_produto: produtos = produtos.filter(grupo=gp_produto)
             if unid_produto: produtos = produtos.filter(unidProd=unid_produto)
-            produtos = produtos.order_by('id')
-        else:
-            produtos = Produto.objects.none()
+            produtos = produtos.order_by('codigo')
+        else: produtos = Produto.objects.none()
     else: produtos = Produto.objects.none()
     if num_pagina == 'todos': qtd_pag = produtos.count() or 1
     else:
@@ -362,7 +298,7 @@ def buscar_produtos_ent(request):
         vl_prod = 0
         if tabela and tabela.vl_prod is not None: vl_prod = float(tabela.vl_prod)
         data.append({
-            'id': prod.id, 'desc_prod': prod.desc_prod, 'unidProd': prod.unidProd.nome_unidade if prod.unidProd else '', 'marca': prod.marca.nome_marca if prod.marca else '', 'grupo': prod.grupo.nome_grupo if prod.grupo else '',
+            'id': prod.codigo, 'desc_prod': prod.desc_prod, 'unidProd': prod.unidProd.nome_unidade if prod.unidProd else '', 'marca': prod.marca.nome_marca if prod.marca else '', 'grupo': prod.grupo.nome_grupo if prod.grupo else '',
             'estoque_prod': getattr(prod, 'estoque_prod', None), 'vl_compra': vl_compra, 'vl_prod': vl_prod, 'tp_prod': prod.tp_prod,
         })
     return JsonResponse({'produtos': data, 'page': produtos_page.number, 'num_pages': paginator.num_pages, 'has_next': produtos_page.has_next(), 'has_prev': produtos_page.has_previous()})
@@ -370,82 +306,43 @@ def buscar_produtos_ent(request):
 @login_required
 def buscar_tabelas_produto_ajax(request):
     produto_id = request.GET.get('produto_id')
-    if not produto_id:
-        return JsonResponse({'ok': False, 'msg': 'Produto não informado.'}, status=400)
-
+    if not produto_id: return JsonResponse({'ok': False, 'msg': 'Produto não informado.'}, status=400)
     try:
-        produto = Produto.objects.get(pk=produto_id, vinc_emp=request.user.empresa)
-
-        tabelas = ProdutoTabela.objects.filter(
-            produto=produto,
-            tabela__vinc_emp=request.user.empresa
-        ).select_related('tabela').order_by('tabela__descricao')
-
+        produto = Produto.objects.get(codigo=produto_id, vinc_emp=request.user.empresa)
+        tabelas = ProdutoTabela.objects.filter(produto=produto, tabela__vinc_emp=request.user.empresa).select_related('tabela').order_by('tabela__descricao')
         data = []
         for item in tabelas:
-            data.append({
-                'tabela_id': item.tabela_id,
-                'tabela_nome': item.tabela.descricao,
-                'margem': f"{item.margem:.2f}",
-                'valor': f"{item.vl_prod:.2f}",
-            })
-
+            data.append({'tabela_id': item.tabela_codigo, 'tabela_nome': item.tabela.descricao, 'margem': f"{item.margem:.2f}", 'valor': f"{item.vl_prod:.2f}",})
         return JsonResponse({'ok': True, 'tabelas': data})
-
-    except Produto.DoesNotExist:
-        return JsonResponse({'ok': False, 'msg': 'Produto não encontrado.'}, status=404)
+    except Produto.DoesNotExist: return JsonResponse({'ok': False, 'msg': 'Produto não encontrado.'}, status=404)
 
 @login_required
 @require_POST
 @transaction.atomic
 def salvar_tabelas_produto_ajax(request):
-    if not request.user.has_perm('produtos.change_produto'):
-        return JsonResponse({'ok': False, 'msg': 'Você não tem permissão para alterar produtos.'}, status=403)
+    if not request.user.has_perm('produtos.change_produto'): return JsonResponse({'ok': False, 'msg': 'Você não tem permissão para alterar produtos.'}, status=403)
     try:
         body = json.loads(request.body or '{}')
         produto_id = body.get('produto_id')
         tabelas = body.get('tabelas', [])
-        if not produto_id:
-            return JsonResponse({'ok': False, 'msg': 'Produto não informado.'}, status=400)
-        produto = Produto.objects.get(pk=produto_id, vinc_emp=request.user.empresa)
+        if not produto_id: return JsonResponse({'ok': False, 'msg': 'Produto não informado.'}, status=400)
+        produto = Produto.objects.get(codigo=produto_id, vinc_emp=request.user.empresa)
         tabelas_ids_recebidas = []
         for tab in tabelas:
             tabela_id = tab.get('tabela_id')
-            if not tabela_id:
-                continue
-            tabela = TabelaPreco.objects.filter(
-                pk=tabela_id,
-                vinc_emp=request.user.empresa
-            ).first()
-            if not tabela:
-                continue
-            try:
-                vl_prod = parse_decimal(str(tab.get('valor', '0')))
-            except Exception:
-                vl_prod = Decimal('0.00')
-            try:
-                margem = parse_decimal(str(tab.get('margem', '0')))
-            except Exception:
-                margem = Decimal('0.00')
-            ProdutoTabela.objects.update_or_create(
-                produto=produto,
-                tabela=tabela,
-                defaults={
-                    'vl_prod': vl_prod,
-                    'margem': margem
-                }
-            )
-            tabelas_ids_recebidas.append(tabela.id)
-        ProdutoTabela.objects.filter(
-            produto=produto
-        ).exclude(
-            tabela_id__in=tabelas_ids_recebidas
-        ).delete()
+            if not tabela_id: continue
+            tabela = TabelaPreco.objects.filter(codigo=tabela_id, vinc_emp=request.user.empresa).first()
+            if not tabela: continue
+            try: vl_prod = parse_decimal(str(tab.get('valor', '0')))
+            except Exception: vl_prod = Decimal('0.00')
+            try: margem = parse_decimal(str(tab.get('margem', '0')))
+            except Exception: margem = Decimal('0.00')
+            ProdutoTabela.objects.update_or_create(produto=produto, tabela=tabela, defaults={'vl_prod': vl_prod, 'margem': margem})
+            tabelas_ids_recebidas.append(tabela.codigo)
+        ProdutoTabela.objects.filter(produto=produto).exclude(tabela_codigo__in=tabelas_ids_recebidas).delete()
         return JsonResponse({'ok': True, 'msg': 'Tabelas do produto salvas com sucesso.'})
-    except Produto.DoesNotExist:
-        return JsonResponse({'ok': False, 'msg': 'Produto não encontrado.'}, status=404)
-    except Exception as e:
-        return JsonResponse({'ok': False, 'msg': str(e)}, status=500)
+    except Produto.DoesNotExist: return JsonResponse({'ok': False, 'msg': 'Produto não encontrado.'}, status=404)
+    except Exception as e: return JsonResponse({'ok': False, 'msg': str(e)}, status=500)
 
 @login_required
 @transaction.atomic
@@ -468,12 +365,9 @@ def add_produto(request):
                 return render(request, 'produtos/add_produto.html', {'form': form, 'error_messages': error_messages})
             p = form.save(commit=False)
             # Validação extra de segurança para multiempresa
-            if p.unidProd and p.unidProd.vinc_emp != empresa:
-                return HttpResponseForbidden()
-            if p.grupo and p.grupo.vinc_emp != empresa:
-                return HttpResponseForbidden()
-            if p.marca and p.marca.vinc_emp != empresa:
-                return HttpResponseForbidden()
+            if p.unidProd and p.unidProd.vinc_emp != empresa: return HttpResponseForbidden()
+            if p.grupo and p.grupo.vinc_emp != empresa: return HttpResponseForbidden()
+            if p.marca and p.marca.vinc_emp != empresa: return HttpResponseForbidden()
             p.vinc_emp = empresa
             p.lista_orc = lista_orc
             p.save()
@@ -483,28 +377,21 @@ def add_produto(request):
                     m = re.match(r"tab_preco\[(\d+)\]\[(\w+)\]", key)
                     if m:
                         idx, campo = m.groups()
-                        if idx not in tab_preco_dict:
-                            tab_preco_dict[idx] = {}
+                        if idx not in tab_preco_dict: tab_preco_dict[idx] = {}
                         tab_preco_dict[idx][campo] = value
             for dados in tab_preco_dict.values():
                 tabela_id = dados.get("tabela")
                 margem = dados.get("margem")
                 vl_prod = dados.get("vl_prod")
-                if not tabela_id or not vl_prod:
-                    continue
-                try:
-                    tabela = TabelaPreco.objects.get(pk=tabela_id, vinc_emp=empresa)
+                if not tabela_id or not vl_prod: continue
+                try: tabela = TabelaPreco.objects.get(codigo=tabela_id, vinc_emp=empresa)
                 except TabelaPreco.DoesNotExist:
                     messages.warning(request, f"Tabela {tabela_id} não encontrada.")
                     continue
-                try:
-                    vl_prod_decimal = parse_decimal(vl_prod)
-                except Exception:
-                    vl_prod_decimal = Decimal('0.00')
-                try:
-                    margem_decimal = parse_decimal(margem)
-                except Exception:
-                    margem_decimal = Decimal('0.00')
+                try: vl_prod_decimal = parse_decimal(vl_prod)
+                except Exception: vl_prod_decimal = Decimal('0.00')
+                try: margem_decimal = parse_decimal(margem)
+                except Exception: margem_decimal = Decimal('0.00')
                 ProdutoTabela.objects.create(produto=p, tabela=tabela, vl_prod=vl_prod_decimal, margem=margem_decimal)
             cod_sec_dict = {}
             for key, value in request.POST.items():
@@ -512,8 +399,7 @@ def add_produto(request):
                     m = re.match(r"codigo\[(\d+)\]\[(\w+)\]", key)
                     if m:
                         idx, campo = m.groups()
-                        if idx not in cod_sec_dict:
-                            cod_sec_dict[idx] = {}
+                        if idx not in cod_sec_dict: cod_sec_dict[idx] = {}
                         cod_sec_dict[idx][campo] = value
             for dados in cod_sec_dict.values():
                 codigo = dados.get("codigo", "").strip()
@@ -525,20 +411,16 @@ def add_produto(request):
                     continue
                 CodigoProduto.objects.create(produto=p, codigo=codigo, vinc_emp=empresa)
             messages.success(request, 'Produto adicionado com sucesso!')
-            return redirect(f'/produtos/lista/?tp=cod&s={p.id}')
-    except ObjectDoesNotExist:
-        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
-    except IntegrityError as e:
-        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}")
-    except DatabaseError as e:
-        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco de dados: {str(e)}")
-    except Exception as e:
-        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+            return redirect(f'/produtos/lista/?tp=cod&s={p.codigo}')
+    except ObjectDoesNotExist: error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}")
+    except DatabaseError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco de dados: {str(e)}")
+    except Exception as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return render(request, 'produtos/add_produto.html', {'form': form, 'error_messages': error_messages})
 
 @login_required
 @transaction.atomic
-def att_produto(request, id):
+def att_produto(request, codigo):
     error_messages = []
     empresa = request.user.empresa
     form = None
@@ -549,7 +431,7 @@ def att_produto(request, id):
         messages.info(request, 'Você não tem permissão para editar produtos.')
         return redirect('/produtos/lista/')
     try:
-        p = get_object_or_404(Produto, pk=id, vinc_emp=empresa)
+        p = get_object_or_404(Produto, codigo=codigo, vinc_emp=empresa)
         if request.method == "POST":
             form = ProdutoForm(request.POST, instance=p, empresa=empresa)
             lista_orc = request.POST.get('lista_orc') == 'on'
@@ -576,82 +458,60 @@ def att_produto(request, id):
                     m = re.match(r"tab_preco\[(\d+)\]\[(\w+)\]", key)
                     if m:
                         idx, campo = m.groups()
-                        if idx not in tab_preco_dict:
-                            tab_preco_dict[idx] = {}
+                        if idx not in tab_preco_dict: tab_preco_dict[idx] = {}
                         tab_preco_dict[idx][campo] = value
             tab_preco_ids = []
             for dados in tab_preco_dict.values():
                 tabela_id = dados.get("tabela")
                 margem = dados.get("margem")
                 vl_prod = dados.get("vl_prod")
-                if not tabela_id or not vl_prod:
-                    continue
-                try:
-                    tabela = TabelaPreco.objects.get(pk=tabela_id, vinc_emp=empresa)
+                if not tabela_id or not vl_prod: continue
+                try: tabela = TabelaPreco.objects.get(codigo=tabela_id, vinc_emp=empresa)
                 except TabelaPreco.DoesNotExist:
                     messages.warning(request, f"Tabela {tabela_id} não encontrada.")
                     continue
                 vl_prod_decimal = parse_decimal(vl_prod)
                 margem_decimal = parse_decimal(margem)
-                ep, created = ProdutoTabela.objects.update_or_create(
-                    produto=p,
-                    tabela=tabela,
-                    defaults={
-                        'vl_prod': vl_prod_decimal,
-                        'margem': margem_decimal
-                    }
-                )
-                tab_preco_ids.append(ep.id)
+                ep, _ = ProdutoTabela.objects.update_or_create(produto=p, tabela=tabela, defaults={'vl_prod': vl_prod_decimal, 'margem': margem_decimal})
+                tab_preco_ids.append(ep.codigo)
             # Remove tabelas antigas não reenviadas, somente da empresa atual
-            ProdutoTabela.objects.filter(
-                produto=p,
-                tabela__vinc_emp=empresa
-            ).exclude(id__in=tab_preco_ids).delete()
+            ProdutoTabela.objects.filter(produto=p, tabela__vinc_emp=empresa).exclude(codigo__in=tab_preco_ids).delete()
             cod_sec_dict = {}
             for key, value in request.POST.items():
                 if key.startswith("codigo["):
                     m = re.match(r"codigo\[(\d+)\]\[(\w+)\]", key)
                     if m:
                         idx, campo = m.groups()
-                        if idx not in cod_sec_dict:
-                            cod_sec_dict[idx] = {}
+                        if idx not in cod_sec_dict: cod_sec_dict[idx] = {}
                         cod_sec_dict[idx][campo] = value
             cod_sec_ids = []
             for dados in cod_sec_dict.values():
                 codigo = dados.get("codigo", "").strip()
-                if not codigo:
-                    continue
+                if not codigo: continue
                 # Verifica se já existe em outro produto da MESMA empresa
                 if CodigoProduto.objects.filter(codigo=codigo, produto__vinc_emp=empresa).exclude(produto=p).exists():
                     messages.warning(request, f"O código '{codigo}' já está vinculado a outro produto desta empresa.")
                     continue
-                ep, created = CodigoProduto.objects.get_or_create(produto=p, codigo=codigo, vinc_emp=empresa)
-                cod_sec_ids.append(ep.id)
+                ep, _ = CodigoProduto.objects.get_or_create(produto=p, codigo=codigo, vinc_emp=empresa)
+                cod_sec_ids.append(ep.codigo)
             # Remove códigos antigos não reenviados
-            CodigoProduto.objects.filter(produto=p).exclude(id__in=cod_sec_ids).delete()
+            CodigoProduto.objects.filter(produto=p).exclude(codigo__in=cod_sec_ids).delete()
             messages.success(request, 'Produto atualizado com sucesso!')
             next_url = request.POST.get('next') or request.GET.get('next')
-            if next_url:
-                return redirect(next_url)
-            else:
-                return redirect(f'/produtos/lista/?tp=cod&s={p.id}')
-        else:
-            form = ProdutoForm(instance=p, empresa=empresa)
+            if next_url: return redirect(next_url)
+            else: return redirect(f'/produtos/lista/?tp=cod&s={p.codigo}')
+        else: form = ProdutoForm(instance=p, empresa=empresa)
         todas_tabelas = TabelaPreco.objects.filter(vinc_emp=empresa)
         prod_tabelas = p.produtotabela_set.select_related('tabela').filter(tabela__vinc_emp=empresa)
-    except ObjectDoesNotExist:
-        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
-    except IntegrityError as e:
-        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}")
-    except DatabaseError as e:
-        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
-    except Exception as e:
-        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    except ObjectDoesNotExist: error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}")
+    except DatabaseError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except Exception as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return render(request, 'produtos/att_produto.html', {'form': form, 'p': p, 'tabelas': todas_tabelas, 'prod_tabelas': prod_tabelas, 'codigos': p.codigos.all() if p else [], 'error_messages': error_messages})
 
 @login_required
 @transaction.atomic
-def clonar_produto(request, id):
+def clonar_produto(request, codigo):
     error_messages = []
     empresa = request.user.empresa
     form = None
@@ -662,22 +522,17 @@ def clonar_produto(request, id):
         messages.info(request, 'Você não tem permissão para clonar produtos.')
         return redirect('/produtos/lista/')
     try:
-        p = get_object_or_404(Produto, pk=id, vinc_emp=empresa)
+        p = get_object_or_404(Produto, codigo=codigo, vinc_emp=empresa)
         if request.method == 'POST':
             post_data = request.POST.copy()
-            if not post_data.get('estoque_prod', '').strip():
-                post_data['estoque_prod'] = '0.00'
+            if not post_data.get('estoque_prod', '').strip(): post_data['estoque_prod'] = '0.00'
             form = ProdutoForm(post_data, empresa=empresa)
             lista_orc = post_data.get('lista_orc') == 'on'
             if form.is_valid():
                 novo_produto = form.save(commit=False)
-
-                if novo_produto.unidProd and novo_produto.unidProd.vinc_emp != empresa:
-                    return HttpResponseForbidden()
-                if novo_produto.grupo and novo_produto.grupo.vinc_emp != empresa:
-                    return HttpResponseForbidden()
-                if novo_produto.marca and novo_produto.marca.vinc_emp != empresa:
-                    return HttpResponseForbidden()
+                if novo_produto.unidProd and novo_produto.unidProd.vinc_emp != empresa: return HttpResponseForbidden()
+                if novo_produto.grupo and novo_produto.grupo.vinc_emp != empresa: return HttpResponseForbidden()
+                if novo_produto.marca and novo_produto.marca.vinc_emp != empresa: return HttpResponseForbidden()
                 novo_produto.vinc_emp = empresa
                 novo_produto.lista_orc = lista_orc
                 novo_produto.estoque_prod = Decimal('0.00')
@@ -688,25 +543,22 @@ def clonar_produto(request, id):
                         m = re.match(r"tab_preco\[(\d+)\]\[(\w+)\]", key)
                         if m:
                             idx, campo = m.groups()
-                            if idx not in tab_preco_dict:
-                                tab_preco_dict[idx] = {}
+                            if idx not in tab_preco_dict: tab_preco_dict[idx] = {}
                             tab_preco_dict[idx][campo] = value
                 tab_preco_ids = []
                 for dados in tab_preco_dict.values():
                     tabela_id = dados.get("tabela")
                     margem = dados.get("margem")
                     vl_prod = dados.get("vl_prod")
-                    if not tabela_id or not vl_prod:
-                        continue
-                    try:
-                        tabela = TabelaPreco.objects.get(pk=tabela_id, vinc_emp=empresa)
+                    if not tabela_id or not vl_prod: continue
+                    try: tabela = TabelaPreco.objects.get(codigo=tabela_id, vinc_emp=empresa)
                     except TabelaPreco.DoesNotExist:
                         messages.warning(request, f"Tabela {tabela_id} não encontrada.")
                         continue
                     vl_prod_decimal = parse_decimal(vl_prod)
                     margem_decimal = parse_decimal(margem)
                     ep = ProdutoTabela.objects.create(produto=novo_produto, tabela=tabela, vl_prod=vl_prod_decimal, margem=margem_decimal)
-                    tab_preco_ids.append(ep.id)
+                    tab_preco_ids.append(ep.codigo)
                 # Se nenhuma tabela foi enviada via POST, clona as existentes do produto original
                 if not tab_preco_ids:
                     for tabela_antiga in p.produtotabela_set.select_related('tabela').filter(tabela__vinc_emp=empresa):
@@ -717,13 +569,11 @@ def clonar_produto(request, id):
                         m = re.match(r"codigo\[(\d+)\]\[(\w+)\]", key)
                         if m:
                             idx, campo = m.groups()
-                            if idx not in cod_sec_dict:
-                                cod_sec_dict[idx] = {}
+                            if idx not in cod_sec_dict: cod_sec_dict[idx] = {}
                             cod_sec_dict[idx][campo] = value
                 for dados in cod_sec_dict.values():
                     codigo = dados.get("codigo", "").strip()
-                    if not codigo:
-                        continue
+                    if not codigo: continue
                     # Verifica se já existe esse código em outro produto da mesma empresa
                     if CodigoProduto.objects.filter(codigo=codigo, produto__vinc_emp=empresa).exists():
                         messages.warning(request, f"O código '{codigo}' já está vinculado a outro produto desta empresa.")
@@ -731,12 +581,10 @@ def clonar_produto(request, id):
                     # Cria o código somente se ele foi informado manualmente no clone
                     CodigoProduto.objects.create(produto=novo_produto, codigo=codigo, vinc_emp=empresa)
                 messages.success(request, 'Produto clonado com sucesso!')
-                return redirect(f'/produtos/lista/?tp=cod&s={novo_produto.id}')
+                return redirect(f'/produtos/lista/?tp=cod&s={novo_produto.codigo}')
             else:
                 for field in form:
-                    if field.errors:
-                        for error in field.errors:
-                            error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+                    if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
                 todas_tabelas = TabelaPreco.objects.filter(vinc_emp=empresa)
                 prod_tabelas = p.produtotabela_set.select_related('tabela').filter(tabela__vinc_emp=empresa)
                 return render(request, 'produtos/clonar.html', {'form': form, 'p': p, 'tabelas': todas_tabelas, 'prod_tabelas': prod_tabelas, 'codigos': p.codigos.all(), 'error_messages': error_messages})
@@ -745,23 +593,19 @@ def clonar_produto(request, id):
             form.fields['estoque_prod'].initial = 0.00
         todas_tabelas = TabelaPreco.objects.filter(vinc_emp=empresa)
         prod_tabelas = p.produtotabela_set.select_related('tabela').filter(tabela__vinc_emp=empresa)
-    except ObjectDoesNotExist:
-        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
-    except IntegrityError as e:
-        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}")
-    except DatabaseError as e:
-        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
-    except Exception as e:
-        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    except ObjectDoesNotExist: error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}")
+    except DatabaseError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except Exception as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return render(request, 'produtos/clonar.html', {'form': form, 'p': p, 'tabelas': todas_tabelas, 'prod_tabelas': prod_tabelas, 'codigos': p.codigos.all() if p else [], 'error_messages': error_messages})
 
 @login_required
-def del_produto(request, id):
+def del_produto(request, codigo):
     if not request.user.has_perm('produtos.delete_produto'):
         messages.info(request, 'Você não tem permissão para deletar produtos.')
         return redirect('lista-produtos')
     if request.method == "POST":
-        p = get_object_or_404(Produto, pk=id, vinc_emp=request.user.empresa)
+        p = get_object_or_404(Produto, codigo=codigo, vinc_emp=request.user.empresa)
         p.delete()
         transaction.commit()
         connection.close()

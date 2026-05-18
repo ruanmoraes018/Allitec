@@ -12,7 +12,6 @@ from clientes.models import Cliente
 from tecnicos.models import Tecnico
 from tabelas_preco.models import TabelaPreco
 from vendedores.models import Vendedor
-
 Usuario = get_user_model()
 
 class EmpresaLoginForm(forms.Form):
@@ -24,17 +23,13 @@ class EmpresaLoginForm(forms.Form):
         empresa_login = cleaned_data.get("empresa_login")
         username = cleaned_data.get("username")
         password = cleaned_data.get("password")
-        if not all([empresa_login, username, password]):
-            return cleaned_data
+        if not all([empresa_login, username, password]): return cleaned_data
         try:
             empresa = Empresa.objects.filter(id=empresa_login, situacao='Ativa', contrato__situacao='Ativo').distinct().first()
-            if not empresa:
-                raise forms.ValidationError("Empresa não encontrada, inativa ou sem contrato ativo.")
-        except Empresa.DoesNotExist:
-            raise forms.ValidationError("Empresa não encontrada ou inativa.")
+            if not empresa: raise forms.ValidationError("Empresa não encontrada, inativa ou sem contrato ativo.")
+        except Empresa.DoesNotExist: raise forms.ValidationError("Empresa não encontrada ou inativa.")
         user = authenticate(request=self.request if hasattr(self, 'request') else None, username=username.strip().lower(), password=password, empresa_id=empresa.id)
-        if user is None:
-            raise forms.ValidationError("Usuário, senha ou empresa incorretos.")
+        if user is None: raise forms.ValidationError("Usuário, senha ou empresa incorretos.")
         cleaned_data["user"] = user
         cleaned_data["empresa_login"] = empresa
         return cleaned_data
@@ -68,61 +63,34 @@ class FilialForm(forms.ModelForm):
     layout_contrato = forms.ChoiceField(label="Layout Contrato", choices=[('Layout 1', 'Layout 1'), ('Layout 2', 'Layout 2')], widget=forms.Select(attrs={'class': f'{s}'}))
     tp_calc_juros = forms.ChoiceField(label="Tp. Cálculo Juros", choices=[('Percentual', 'Percentual'), ('Valor', 'Valor')], widget=forms.Select(attrs={'class': f'{s}'}))
     tp_calc_multa = forms.ChoiceField(label="Tp. Cálculo Multa", choices=[('Percentual', 'Percentual'), ('Valor', 'Valor')], widget=forms.Select(attrs={'class': f'{s}'}))
-    ft_juros = forms.CharField(
-        label='Fator Juros',
-        widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'})
-    )
-    ft_multa = forms.CharField(
-        label='Fator Multa',
-        widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'})
-    )
+    ft_juros = forms.CharField(label='Fator Juros', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
+    ft_multa = forms.CharField(label='Fator Multa', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
     max_parcelas = forms.DecimalField(label='', max_digits=10, decimal_places=2, widget=forms.TextInput(attrs={'type': 'number', 'class': f'{c} text-end fw-bold'}))
     max_dias_intervalo = forms.DecimalField(label='', max_digits=10, decimal_places=2, widget=forms.TextInput(attrs={'type': 'number', 'class': f'{c} text-end fw-bold'}))
     cli = forms.ModelChoiceField(queryset=Cliente.objects.none(), widget=forms.Select(attrs={'class': f'{s} text-uppercase'}), label='Cliente Padrão')
     tec = forms.ModelChoiceField(queryset=Tecnico.objects.none(), widget=forms.Select(attrs={'class': f'{s} text-uppercase'}), label='Técnico Padrão')
     tb_preco = forms.ModelChoiceField(queryset=TabelaPreco.objects.none(), widget=forms.Select(attrs={'class': f'{s} text-uppercase'}), label='Tabela de Preço Padrão')
     vendedor = forms.ModelChoiceField(queryset=Vendedor.objects.none(), widget=forms.Select(attrs={'class': f'{s} text-uppercase'}), label='Vendedor Padrão')
-    multi_m2 = forms.CharField(
-        label='',
-        widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'})
-    )
-    multi_lg_corte1 = forms.CharField(
-        label='',
-        widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'})
-    )
-    multi_lg_corte2 = forms.CharField(
-        label='',
-        widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'})
-    )
-    multi_lg_corte3 = forms.CharField(
-        label='',
-        widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'})
-    )
+    multi_m2 = forms.CharField(label='', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
+    multi_lg_corte1 = forms.CharField(label='', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
+    multi_lg_corte2 = forms.CharField(label='', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
+    multi_lg_corte3 = forms.CharField(label='', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
     agrupa_itens = forms.ChoiceField(label="Agrupar Itens", choices=[(True, 'Sim'), (False, 'Não')], widget=forms.Select(attrs={'class': f'{s}'}))
-    
     def _parse_decimal(self, valor):
-        if valor in [None, '']:
-            return Decimal('0.00')
+        if valor in [None, '']: return Decimal('0.00')
         valor = str(valor).strip()
-        # remove milhar e converte decimal BR
         valor = valor.replace('.', '').replace(',', '.')
         return Decimal(valor)
-    
     def clean_multi_m2(self):
         return self._parse_decimal(self.cleaned_data['multi_m2'])
-
     def clean_multi_lg_corte1(self):
         return self._parse_decimal(self.cleaned_data['multi_lg_corte1'])
-
     def clean_multi_lg_corte2(self):
         return self._parse_decimal(self.cleaned_data['multi_lg_corte2'])
-
     def clean_multi_lg_corte3(self):
         return self._parse_decimal(self.cleaned_data['multi_lg_corte3'])
-
     def clean_ft_juros(self):
         return self._parse_decimal(self.cleaned_data['ft_juros'])
-
     def clean_ft_multa(self):
         return self._parse_decimal(self.cleaned_data['ft_multa'])
     class Meta:
@@ -132,7 +100,6 @@ class FilialForm(forms.ModelForm):
             'beneficiario', 'info_orcamento', 'layout_contrato', 'info_local', 'tp_calc_juros', 'tp_calc_multa', 'ft_juros', 'ft_multa', 'max_parcelas', 'cli', 'tec', 'vendedor', 'tb_preco', 'max_dias_intervalo', 'vendedor', 
             'multi_m2', 'agrupa_itens', 'multi_lg_corte1', 'multi_lg_corte2', 'multi_lg_corte3'
         )
-
     def __init__(self, *args, empresa=None, **kwargs):
         super().__init__(*args, **kwargs)
         if empresa:
@@ -144,23 +111,12 @@ class FilialForm(forms.ModelForm):
             self.fields['tec'].queryset = Tecnico.objects.filter(vinc_emp=empresa)
             self.fields['tb_preco'].queryset = TabelaPreco.objects.filter(vinc_emp=empresa)
             self.fields['vendedor'].queryset = Vendedor.objects.filter(vinc_emp=empresa)
-
         if getattr(self.instance, 'pk', None):
             if getattr(self.instance, 'dt_criacao', None):
                 self.initial['dt_criacao'] = self.instance.dt_criacao.strftime('%d/%m/%Y')
-    
-        campos_decimais = [
-            'multi_m2',
-            'multi_lg_corte1',
-            'multi_lg_corte2',
-            'multi_lg_corte3',
-            'ft_juros',
-            'ft_multa'
-        ]
-
+        campos_decimais = ['multi_m2', 'multi_lg_corte1', 'multi_lg_corte2', 'multi_lg_corte3', 'ft_juros', 'ft_multa']
         for campo in campos_decimais:
             valor = getattr(self.instance, campo, None)
-
             if valor is not None:
                 self.fields[campo].initial = f"{valor:.2f}".replace('.', ',')
 

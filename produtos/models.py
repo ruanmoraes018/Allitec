@@ -5,8 +5,10 @@ from marcas.models import Marca
 from unidades.models import Unidade
 from tabelas_preco.models import TabelaPreco
 from django.core.exceptions import ValidationError
+from django.db import transaction
 
 class Produto(models.Model):
+    codigo = models.PositiveIntegerField(blank=True, null=True)
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
     grupo = models.ForeignKey(Grupo, on_delete=models.SET_NULL, null=True)
     marca = models.ForeignKey(Marca, on_delete=models.SET_NULL, null=True)
@@ -39,10 +41,15 @@ class Produto(models.Model):
     especifico = models.CharField(verbose_name='Produto Específico', null=True, blank=True, max_length=50, choices=[('', ''), ('Portinhola', 'Portinhola'), ('Alçapão', 'Alçapão'), ('Coluna Removível', 'Coluna Removível'), ('Serviço/Transporte', 'Serviço/Transporte'),], default='')
 
     def save(self, *args, **kwargs):
-        self.desc_prod = self.desc_prod.upper()
-        self.desc_normalizado = unidecode(self.desc_prod).lower()
-        super(Produto, self).save(*args, **kwargs)
-
+        if self.vinc_emp and not self.codigo:
+            with transaction.atomic():
+                ult = (Produto.objects.select_for_update().filter(vinc_emp=self.vinc_emp).aggregate(models.Max('codigo'))['codigo__max'] or 0)
+                self.codigo = ult + 1
+                self.desc_prod = self.desc_prod.strip().upper()
+                super().save(*args, **kwargs)
+        else:
+            self.desc_prod = self.desc_prod.strip().upper()
+            super().save(*args, **kwargs)
     def __str__(self):
         return f"{self.desc_prod}"
 
@@ -51,6 +58,9 @@ class Produto(models.Model):
         permissions = [
             ("clonar_produto", "Pode clonar produtos"),
             ("relatorio_vendas_produto", "Pode acessar relatório de vendas de pedidos.")
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=['codigo', 'vinc_emp'], name='unique_codigo_produto_empresa')
         ]
 
 class ProdutoTabela(models.Model):

@@ -64,23 +64,23 @@
                     {% for unidade in unidades %}
                         <tr>
                             <td data-label="Opções:" class="mobile-2col">
-                                <a href="{% url 'att-unidade' unidade.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
+                                <a href="{% url 'att-unidade' unidade.codigo %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
                                   data-permissao="unidades.change_unidade"
                                   data-msg-negado="Seu usuário não pode editar unidades!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                                 <span>
                                     <i class="fas fa-trash btn-permissao"
                                        title="Deletar unidade"
-                                       data-bs-target="#modal-{{ unidade.id }}"
+                                       data-bs-target="#modal-{{ unidade.codigo }}"
                                        data-permissao="unidades.delete_unidade"
                                        data-msg-negado="Seu usuário não pode deletar unidades!">
                                     </i>
                                 </span>
                                 <!-- Modal ÚNICO para cada unidade -->
-                                <div class="modal fade" id="modal-{{ unidade.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ unidade.id }}" aria-hidden="true">
+                                <div class="modal fade" id="modal-{{ unidade.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ unidade.codigo }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header titulo-modal">
-                                                <h1 class="modal-title fs-5" id="modalLabel-{{ unidade.id }}">
+                                                <h1 class="modal-title fs-5" id="modalLabel-{{ unidade.codigo }}">
                                                     <i class="fa-regular fa-circle-question"></i> Confirmação!
                                                 </h1>
                                             </div>
@@ -88,7 +88,7 @@
                                                 <p>Você confirma a EXCLUSÃO DA UNIDADE <strong>{{ unidade.nome_unidade }}</strong>?</p>
                                             </div>
                                             <div class="modal-footer">
-                                                <form method="post" action="{% url 'del-unidade' unidade.id %}" class="form-excluir">
+                                                <form method="post" action="{% url 'del-unidade' unidade.codigo %}" class="form-excluir">
                                                     {% csrf_token %}
                                                     <button type="submit" class="btn btn-primary btn-confirmar" disabled>
                                                         <u>S</u>im <span class="contador">3</span>
@@ -102,7 +102,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ unidade.id }}</td>
+                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ unidade.codigo }}</td>
                             <td data-label="Descrição:" class="mobile-full text-uppercase" style="align-items: center;">{{ unidade.nome_unidade }}</td>
                         </tr>
                     {% empty %}

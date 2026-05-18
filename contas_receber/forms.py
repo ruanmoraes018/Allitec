@@ -19,38 +19,20 @@ class ContaReceberForm(forms.ModelForm):
     class Meta:
         model = ContaReceber
         exclude = ('vinc_emp', 'situacao', 'valor_pago', 'orcamento', 'pedido', 'forma_pgto', 'desconto', 'data_emissao')
-        widgets = {
-            'data_vencimento': forms.TextInput(attrs={
-                'class': 'form-control form-control-sm border-dark-subtle',
-            }),
-        }
+        widgets = {'data_vencimento': forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle',}),}
     def __init__(self, *args, empresa=None, **kwargs):
         super().__init__(*args, **kwargs)
         if empresa:
             self.fields['vinc_fil'].queryset = Filial.objects.filter(vinc_emp=empresa)
             self.fields['cliente'].queryset = Cliente.objects.filter(vinc_emp=empresa)
-
         if self.instance and self.instance.pk:
-            if self.instance.data_vencimento:
-                self.initial['data_vencimento'] = self.instance.data_vencimento.strftime('%d/%m/%Y')
+            if self.instance.data_vencimento: self.initial['data_vencimento'] = self.instance.data_vencimento.strftime('%d/%m/%Y')
     def clean(self):
         cleaned_data = super().clean()
-        try:
-            cleaned_data['valor'] = parse_decimal(
-                cleaned_data.get('valor')
-            )
-        except:
-            self.add_error('valor', 'Valor inválido.')
-        try:
-            cleaned_data['multa'] = parse_decimal(
-                cleaned_data.get('multa')
-            )
-        except:
-            self.add_error('multa', 'Valor inválido.')
-        try:
-            cleaned_data['juros'] = parse_decimal(
-                cleaned_data.get('juros')
-            )
-        except:
-            self.add_error('juros', 'Valor inválido.')
+        try: cleaned_data['valor'] = parse_decimal(cleaned_data.get('valor'))
+        except: self.add_error('valor', 'Valor inválido.')
+        try: cleaned_data['multa'] = parse_decimal(cleaned_data.get('multa'))
+        except: self.add_error('multa', 'Valor inválido.')
+        try: cleaned_data['juros'] = parse_decimal(cleaned_data.get('juros'))
+        except: self.add_error('juros', 'Valor inválido.')
         return cleaned_data

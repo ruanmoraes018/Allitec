@@ -34,7 +34,7 @@
                     <select class="form-select form-select-sm" id="vinc_emp" name="fil">
                         <option value="">Selecione uma filial</option>
                         {% for f in filiais %}
-                            <option value="{{ f.id }}" {% if request.GET.fil == f.id|stringformat:"s" %}selected{% endif %}>{{ f }}</option>
+                            <option value="{{ f.codigo }}" {% if request.GET.fil == f.codigo|stringformat:"s" %}selected{% endif %}>{{ f }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -43,7 +43,7 @@
                     <select class="form-select form-select-sm" id="usuario" name="user1">
                         <option value="">Selecione um usuário</option>
                         {% for u in usuarios %}
-                            <option value="{{ u.id }}" {% if request.GET.user1 == u.id|stringformat:"s" %}selected{% endif %}>{{ u }}</option>
+                            <option value="{{ u.codigo }}" {% if request.GET.user1 == u.codigo|stringformat:"s" %}selected{% endif %}>{{ u }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -93,23 +93,23 @@
                     {% for c in caixas %}
                         <tr>
                             <td data-label="Opções:" class="mobile-2col">
-                                <a href="{% url 'att-lancamento' c.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
+                                <a href="{% url 'att-lancamento' c.codigo %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
                                   data-permissao="lancpdvs.change_caixa"
                                   data-msg-negado="Seu usuário não pode editar caixas!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                                 <span>
                                     <i class="fas fa-trash btn-permissao"
                                        title="Deletar caixa"
-                                       data-bs-target="#modal-{{ c.id }}"
+                                       data-bs-target="#modal-{{ c.codigo }}"
                                        data-permissao="lancpdvs.delete_caixa"
                                        data-msg-negado="Seu usuário não pode deletar caixas!">
                                     </i>
                                 </span>
                                 <!-- Modal ÚNICO para cada banco -->
-                                <div class="modal fade" id="modal-{{ c.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ c.id }}" aria-hidden="true">
+                                <div class="modal fade" id="modal-{{ c.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ c.codigo }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header titulo-modal">
-                                                <h1 class="modal-title fs-5" id="modalLabel-{{ c.id }}">
+                                                <h1 class="modal-title fs-5" id="modalLabel-{{ c.codigo }}">
                                                     <i class="fa-regular fa-circle-question"></i> Confirmação!
                                                 </h1>
                                             </div>
@@ -117,7 +117,7 @@
                                                 <p>Você confirma a EXCLUSÃO DO CAIXA <strong>{{ c.terminal.nome }}</strong>?</p>
                                             </div>
                                             <div class="modal-footer">
-                                                <form method="post" action="{% url 'del-lancamento' c.id %}" class="form-excluir">
+                                                <form method="post" action="{% url 'del-lancamento' c.codigo %}" class="form-excluir">
                                                     {% csrf_token %}
                                                     <button type="submit" class="btn btn-primary btn-confirmar" disabled>
                                                         <u>S</u>im <span class="contador">3</span>
@@ -132,7 +132,7 @@
                                 </div>
                                 
                             </td>
-                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ c.id }}</td>
+                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ c.codigo }}</td>
                             <td data-label="Situação:" class="mobile-2col" style="text-align: center;">
                                 {% if c.situacao == 'Ativo' %}
                                     <div style="background-color: blue; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">

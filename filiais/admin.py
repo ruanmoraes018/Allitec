@@ -5,7 +5,7 @@ from bancos.models import Banco
 from produtos.models import Produto, ProdutoTabela, CodigoProduto
 from clientes.models import Cliente
 from tecnicos.models import Tecnico
-from orcamentos.models import Orcamento, PortaOrcamento, PortaProduto, PortaAdicional, OrcamentoFormaPgto
+from orcamentos.models import Orcamento, PortaOrcamento, PortaProduto, PortaAdicional
 from grupos.models import Grupo
 from bairros.models import Bairro
 from cidades.models import Cidade
@@ -42,12 +42,6 @@ class BancoInline(admin.TabularInline):
     extra = 0
     fields = ('nome_banco', 'cod_banco')
     show_change_link = True
-
-# class OrcamentoInline(admin.TabularInline):
-#     model = Orcamento
-#     extra = 0
-#     fields = ('num_orcamento', 'cli', 'situacao', 'dt_emi', 'desconto')
-#     show_change_link = True
 
 class RegraInline(admin.TabularInline):
     model = RegraProduto
@@ -150,7 +144,6 @@ class EntradaProdutoInline(admin.TabularInline):
     extra = 0
     fields = ('produto', 'quantidade', 'preco_unitario')
     show_change_link = True
-
 # Admin para Empresa - só filiais inline
 @admin.register(Empresa)
 class EmpresaAdmin(admin.ModelAdmin):
@@ -159,9 +152,7 @@ class EmpresaAdmin(admin.ModelAdmin):
     inlines = [FilialInline, MensalidadeInline, BancoInline, ClienteInline, TecnicoInline, ProdutoInline, BairroInline, CidadeInline, EstadoInline,
                 GrupoInline, FormaPgtoInline, EntradaInline, PedidoInline, MarcaInline, TabelaPrecoInline, RegraInline
     ]
-
 # Inlines para os modelos relacionados à Filial
-
 class UsuarioInline(admin.StackedInline):
     model = Usuario
     extra = 0
@@ -169,69 +160,36 @@ class UsuarioInline(admin.StackedInline):
     show_change_link = True
     filter_horizontal = ('groups', 'user_permissions')  # <-- ajuda a selecionar
     fieldsets = (
-        (None, {
-            'fields': ('first_name', 'username', 'password', 'empresa', 'filial_user')
-        }),
+        (None, {'fields': ('first_name', 'username', 'password', 'empresa', 'filial_user')}),
         ('Permissões', {
-            'fields': (
-                'is_active',
-                'is_staff',
-                'is_superuser',
-                'groups',
-                'user_permissions',
-            ),
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions',),
         }),
     )
-
 @admin.register(Produto)
 class ProdutoAdmin(admin.ModelAdmin):
-    search_fields = (
-        'desc_prod',
-        'id',
-    )
-
+    search_fields = ('desc_prod', 'id',)
 @admin.register(Cidade)
 class CidadeAdmin(admin.ModelAdmin):
-    search_fields = (
-        'nome_cidade',
-        'vinc_emp',
-    )
+    search_fields = ('nome_cidade', 'vinc_emp',)
 
 @admin.register(Bairro)
 class BairroAdmin(admin.ModelAdmin):
-    search_fields = (
-        'nome_bairro',
-        'vinc_emp',
-    )
+    search_fields = ('nome_bairro', 'vinc_emp',)
 
 @admin.register(Entrada)
 class EntradaAdmin(admin.ModelAdmin):
     list_display = ('fornecedor', 'numeracao', 'dt_emi', 'total', 'vinc_emp')
-    search_fields = (
-        'fornecedor',
-        'numeracao',
-        'dt_emi',
-        'total'
-    )
+    search_fields = ('fornecedor', 'numeracao', 'dt_emi', 'total')
 
 @admin.register(Contrato)
 class ContratoAdmin(admin.ModelAdmin):
-    search_fields = (
-        'id',
-        'empresa',
-        'situacao',
-        'dt_inicio',
-        'dt_exp'
-    )
-
+    search_fields = ('id', 'empresa', 'situacao', 'dt_inicio', 'dt_exp')
 # Admin para Filial - com todos os inlines dos modelos vinculados a ela
 @admin.register(Filial)
 class FilialAdmin(admin.ModelAdmin):
     list_display = ('id', 'fantasia', 'cnpj', 'cidade_fil', 'uf')
     search_fields = ('fantasia', 'cnpj')
-    inlines = [
-         UsuarioInline,
-    ]
+    inlines = [UsuarioInline,]
 
 class PortaProdutoInline(admin.TabularInline):
     model = PortaProduto
@@ -251,99 +209,50 @@ class PortaOrcamentoInline(admin.StackedInline):
     show_change_link = True
     inlines = []  # Django não suporta inline dentro de inline nativamente
 
-
 @admin.register(PortaOrcamento)
 class PortaOrcamentoAdmin(admin.ModelAdmin):
-
     list_display = ('orcamento', 'numero', 'largura', 'altura')
     inlines = [PortaProdutoInline, PortaAdicionalInline]
 
 @admin.register(Orcamento)
 class OrcamentoAdmin(admin.ModelAdmin):
-
     list_display = ('num_orcamento', 'cli', 'situacao', 'subtotal', 'total')
-
-    inlines = [
-        PortaOrcamentoInline,
-    ]
-
-    readonly_fields = (
-        'json_portas',
-        'json_formas_pgto',
-    )
-
+    inlines = [PortaOrcamentoInline,]
+    readonly_fields = ('json_portas', 'json_formas_pgto',)
     fieldsets = (
         ('Dados do Orçamento', {
-            'fields': (
-                'num_orcamento',
-                'cli',
-                'situacao',
-                'subtotal',
-                'desconto',
-                'acrescimo',
-                'total',
-            )
+            'fields': ('num_orcamento', 'cli', 'situacao', 'subtotal', 'desconto', 'acrescimo', 'total',)
         }),
-        ('🔍 DEBUG – Portas (JSON)', {
-            'fields': ('json_portas',),
-        }),
-        ('💳 DEBUG – Formas de Pagamento (JSON)', {
-            'fields': ('json_formas_pgto',),
-        }),
+        ('🔍 DEBUG – Portas (JSON)', {'fields': ('json_portas',),}),
+        ('💳 DEBUG – Formas de Pagamento (JSON)', {'fields': ('json_formas_pgto',),}),
     )
-
     def json_portas(self, obj):
         import json
         from django.utils.html import format_html
-
         portas = []
         for porta in obj.portas.all():
             portas.append({
-                "porta": porta.numero,
-                "largura": str(porta.largura),
-                "altura": str(porta.altura),
-                "produtos": [
+                "porta": porta.numero, "largura": str(porta.largura), "altura": str(porta.altura), "produtos": [
                     {
-                        "id": pp.produto.id,
-                        "descricao": pp.produto.desc_prod,
-                        "qtd": str(pp.quantidade),
-                        "subtotal": str(pp.subtotal),
+                        "id": pp.produto.codigo, "descricao": pp.produto.desc_prod, "qtd": str(pp.quantidade), "subtotal": str(pp.subtotal),
                     }
                     for pp in porta.produtos.all()
                 ],
                 "adicionais": [
                     {
-                        "id": ad.produto.id,
-                        "descricao": ad.produto.desc_prod,
-                        "qtd": str(ad.quantidade),
-                        "subtotal": str(ad.subtotal),
+                        "id": ad.produto.codigo, "descricao": ad.produto.desc_prod, "qtd": str(ad.quantidade), "subtotal": str(ad.subtotal),
                     }
                     for ad in porta.adicionais.all()
                 ],
             })
-
-        return format_html(
-            "<pre style='white-space: pre-wrap'>{}</pre>",
-            json.dumps(portas, indent=2, ensure_ascii=False)
-        )
-
+        return format_html("<pre style='white-space: pre-wrap'>{}</pre>", json.dumps(portas, indent=2, ensure_ascii=False))
     json_portas.short_description = "Portas / Produtos / Adicionais (JSON)"
-
     def json_formas_pgto(self, obj):
         import json
         from django.utils.html import format_html
-
         dados = [
-            {
-                "forma": fp.formas_pgto.descricao,
-                "valor": str(fp.valor),
-            }
+            {"forma": fp.formas_pgto.descricao, "valor": str(fp.valor),}
             for fp in obj.formas_pgto.all()
         ]
-
-        return format_html(
-            "<pre style='white-space: pre-wrap'>{}</pre>",
-            json.dumps(dados, indent=2, ensure_ascii=False)
-        )
-
+        return format_html("<pre style='white-space: pre-wrap'>{}</pre>", json.dumps(dados, indent=2, ensure_ascii=False)) 
     json_formas_pgto.short_description = "Formas de Pagamento (JSON)"

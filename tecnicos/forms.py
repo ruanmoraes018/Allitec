@@ -17,9 +17,7 @@ class TecnicoForm(forms.ModelForm):
     email = forms.CharField(label='E-mail', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-lowercase'}))
     class Meta:
         model = Tecnico
-        fields = (
-            'situacao', 'nome', 'cep', 'endereco', 'numero', 'bairro', 'cidade', 'uf', 'tel', 'email'
-        )
+        fields = ('situacao', 'nome', 'cep', 'endereco', 'numero', 'bairro', 'cidade', 'uf', 'tel', 'email')
     def __init__(self, *args, empresa=None, **kwargs):
         super().__init__(*args, **kwargs)
         if empresa:

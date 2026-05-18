@@ -25,7 +25,7 @@
                     <select class="form-select form-select-sm" id="vinc_emp" name="fil">
                         <option value="">Selecione uma filial</option>
                         {% for f in filiais %}
-                            <option value="{{ f.id }}" {% if request.GET.fil == f.id|stringformat:"s" %}selected{% endif %}>{{ f }}</option>
+                            <option value="{{ f.codigo }}" {% if request.GET.fil == f.codigo|stringformat:"s" %}selected{% endif %}>{{ f }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -38,7 +38,7 @@
                     <select class="form-select form-select-sm" id="fornecedor" name="forn">
                         <option value="">Selecione um fornecedor</option>
                         {% for fn in fornecedores %}
-                            <option value="{{ fn.id }}" {% if request.GET.forn == fn.id|stringformat:"s" %}selected{% endif %}>{{ fn }}</option>
+                            <option value="{{ fn.codigo }}" {% if request.GET.forn == fn.codigo|stringformat:"s" %}selected{% endif %}>{{ fn }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -119,45 +119,45 @@
                         <tr>
                             <td data-label="Opções:" class="mobile-2col">
                                 <div style="text-align: center;">
-                                    <button type="button" data-bs-toggle="modal" data-bs-target="#menuModal{{ entrada.id }}" class="btn btn-dark btn-sm">
+                                    <button type="button" data-bs-toggle="modal" data-bs-target="#menuModal{{ entrada.codigo }}" class="btn btn-dark btn-sm">
                                         <span>
                                             <i class="fa-solid fa-bars" style="font-size: 18px; color: white;" title="Menu de Opções"></i>
                                         </span>
                                     </button>
                                 </div>
                                 <!-- Modal de opções da entrada -->
-                                <div class="modal fade modal-sm" id="menuModal{{ entrada.id }}" tabindex="-1" aria-labelledby="menuModalLabel{{ entrada.id }}" aria-hidden="true">
+                                <div class="modal fade modal-sm" id="menuModal{{ entrada.codigo }}" tabindex="-1" aria-labelledby="menuModalLabel{{ entrada.codigo }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header" style="background-color: #191919;">
                                                 <div class="d-flex justify-content-center w-100" style="margin-left: 50px;">
-                                                    <h1 class="modal-title fs-5 text-center" id="menuModalLabel{{ entrada.id }}" style="color: white;">
+                                                    <h1 class="modal-title fs-5 text-center" id="menuModalLabel{{ entrada.codigo }}" style="color: white;">
                                                         <i class="fa-brands fa-square-letterboxd"></i> <strong>Opções - {{ entrada.numeracao }}</strong>
                                                     </h1>
                                                 </div>
                                             </div>
                                             <div class="modal-body d-grid gap-2">
-                                                <a href="{% url 'att-entrada' entrada.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="entradas.change_entrada" data-msg-negado="Seu usuário não pode editar entradas de NF/Pedidos!">
-                                                    <button class="btn btn-outline-dark" type="button" id="botoes-modal" data-id="{{ entrada.id }}">
+                                                <a href="{% url 'att-entrada' entrada.codigo %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="entradas.change_entrada" data-msg-negado="Seu usuário não pode editar entradas de NF/Pedidos!">
+                                                    <button class="btn btn-outline-dark" type="button" id="botoes-modal" data-id="{{ entrada.codigo }}">
                                                         <span><i class="fas fa-edit" title="Editar Orçamento"></i></span>
                                                         <strong style="color: #13c43f; font-size: 20px;">EDITAR</strong>
                                                     </button>
                                                 </a>
                                                 {% if entrada.situacao == 'Pendente' %}
                                                     <!-- Botão de Deletar -->
-                                                    <button class="btn btn-outline-dark btn-delete" type="button" data-orcamento-id="{{ entrada.id }}">
+                                                    <button class="btn btn-outline-dark btn-delete" type="button" data-orcamento-id="{{ entrada.codigo }}">
                                                         <span><i class="fas fa-trash"></i></span>
                                                         <strong style="color: #db1e47; font-size: 20px;">DELETAR</strong>
                                                     </button>
                                                 {% else %}
-                                                    <a href="{% url 'del-entrada' entrada.id %}?next={{ request.get_full_path|urlencode }}">
-                                                        <button class="btn btn-outline-dark btn-delete" type="button" data-orcamento-id="{{ entrada.id }}" data-bs-dismiss="modal">
+                                                    <a href="{% url 'del-entrada' entrada.codigo %}?next={{ request.get_full_path|urlencode }}">
+                                                        <button class="btn btn-outline-dark btn-delete" type="button" data-orcamento-id="{{ entrada.codigo }}" data-bs-dismiss="modal">
                                                             <span><i class="fas fa-trash"></i></span>
                                                             <strong style="color: #db1e47; font-size: 20px;">DELETAR</strong>
                                                         </button>
                                                     </a>
                                                 {% endif %}
-                                                <button class="btn btn-outline-dark" type="button" data-bs-toggle="modal" data-bs-target="#infoEntModal{{ entrada.id }}">
+                                                <button class="btn btn-outline-dark" type="button" data-bs-toggle="modal" data-bs-target="#infoEntModal{{ entrada.codigo }}">
                                                     <span><i class="fa-solid fa-circle-info"></i></span>
                                                     <strong style="color: #ff8800; font-size: 20px;">DETALHES</strong>
                                                 </button>
@@ -169,7 +169,7 @@
 
                                                     <div class="collapse" id="btnCancelar">
                                                         <div class="card card-body">
-                                                            <form method="post" action="{% url 'cancelar-entrada' entrada.id %}">
+                                                            <form method="post" action="{% url 'cancelar-entrada' entrada.codigo %}">
                                                                 {% csrf_token %}
                                                                 <div style="margin-bottom: 5px;">
                                                                     <label for="id_motivo" class="form-label">Motivo do Cancelamento*</label>
@@ -188,10 +188,10 @@
                                                     <button class="btn btn-outline-dark btn-faturar btn-permissao"
                                                         type="button"
                                                         data-bs-toggle="modal"
-                                                        data-bs-target="#efetivarModal-{{ entrada.id }}"
+                                                        data-bs-target="#efetivarModal-{{ entrada.codigo }}"
                                                         data-permissao="entradas.efetivar_entrada"
                                                         data-msg-negado="Seu usuário não pode efetivar entradas de NF/Pedidos!"
-                                                        data-orcamento-id="{{ entrada.id }}"
+                                                        data-orcamento-id="{{ entrada.codigo }}"
                                                         id="doc-botao">
                                                         <span><i class="fa-solid fa-money-bill" title="Efetivar Entrada"></i></span>
                                                         <strong style="color: #3CB371; font-size: 20px;">EFETIVAR</strong>
@@ -206,11 +206,11 @@
                                 </div>
                                 {% if entrada.situacao == 'Pendente' %}
                                     <!-- Modal ÚNICO para cada cliente -->
-                                    <div class="modal fade" id="modal-{{ entrada.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ entrada.id }}" aria-hidden="true">
+                                    <div class="modal fade" id="modal-{{ entrada.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ entrada.codigo }}" aria-hidden="true">
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
                                                 <div class="modal-header titulo-modal">
-                                                    <h1 class="modal-title fs-5" id="modalTitle-{{ entrada.id }}">
+                                                    <h1 class="modal-title fs-5" id="modalTitle-{{ entrada.codigo }}">
                                                         <i class="fa-regular fa-circle-question"></i> Confirmação!
                                                     </h1>
 
@@ -219,7 +219,7 @@
                                                     <p>Você confirma a EXCLUSÃO DE {{ entrada.tipo }} <strong>({{ entrada.fornecedor.fantasia }} - {{ entrada.numeracao }})</strong>?</p>
                                                 </div>
                                                 <div class="modal-footer">
-                                                    <form method="post" action="{% url 'del-entrada' entrada.id %}" class="form-excluir">
+                                                    <form method="post" action="{% url 'del-entrada' entrada.codigo %}" class="form-excluir">
                                                         {% csrf_token %}
                                                         <button type="submit" class="btn btn-primary btn-confirmar" disabled>
                                                             <u>S</u>im <span class="contador">3</span>
@@ -233,7 +233,7 @@
                                         </div>
                                     </div>
                                 {% endif %}
-                                <div class="modal fade" id="efetivarModal-{{ entrada.id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal fade" id="efetivarModal-{{ entrada.codigo }}" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered modal-lg">
                                         <div class="modal-content">
                                             <div class="modal-header titulo-modal">
@@ -308,11 +308,11 @@
                                                 <!--</table>-->
                                             </div>
                                             <div class="modal-footer">
-                                                <form method="post" action="{% url 'efetivar-entrada' entrada.id %}">
+                                                <form method="post" action="{% url 'efetivar-entrada' entrada.codigo %}">
                                                     {% csrf_token %}
                                                     <button type="submit"
                                                             class="btn btn-success"
-                                                            data-id="{{ entrada.id }}"
+                                                            data-id="{{ entrada.codigo }}"
                                                             data-bs-toggle="modal"
                                                             data-bs-target="#loadingModal">
                                                         Confirmar
@@ -323,17 +323,17 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="modal fade" id="infoEntModal{{ entrada.id }}" tabindex="-1" aria-labelledby="infoEntModalLabel{{ entrada.id }}" aria-hidden="true">
+                                <div class="modal fade" id="infoEntModal{{ entrada.codigo }}" tabindex="-1" aria-labelledby="infoEntModalLabel{{ entrada.codigo }}" aria-hidden="true">
                                     <div class="modal-dialog modal-lg">
                                         <div class="modal-content">
                                             <div class="modal-header titulo-modal">
-                                                <h1 class="modal-title fs-5" id="infoEntModalLabel{{ entrada.id }}"><i class="fa-solid fa-circle-info text-white" style="float: none;"></i> Detalhes - Entrada {{ entrada.tipo }} - Nº {{ entrada.numeracao }}</h1>
+                                                <h1 class="modal-title fs-5" id="infoEntModalLabel{{ entrada.codigo }}"><i class="fa-solid fa-circle-info text-white" style="float: none;"></i> Detalhes - Entrada {{ entrada.tipo }} - Nº {{ entrada.numeracao }}</h1>
                                             </div>
                                             <div class="modal-body">
                                                 <div class="row g-3">
                                                     <div class="col-md-6">
                                                         <label class="form-label">Fornecedor:</label>
-                                                        <input class="form-control fw-bold" type="text" value="{{ entrada.fornecedor.id }} - {{ entrada.fornecedor.fantasia }}" disabled readonly>
+                                                        <input class="form-control fw-bold" type="text" value="{{ entrada.fornecedor.codigo }} - {{ entrada.fornecedor.fantasia }}" disabled readonly>
                                                     </div>
                                                     <div class="col-md-2">
                                                         <label class="form-label">Nº {{ entrada.tipo }}:</label>
@@ -363,7 +363,7 @@
                                                                 <tbody>
                                                                     {% for item in entrada.itens.all %}
                                                                         <tr>
-                                                                            <td>{{ item.produto.id }}</td>
+                                                                            <td>{{ item.produto.codigo }}</td>
                                                                             <td>{{ item.produto.desc_prod }}</td>
                                                                             <td>{{ item.quantidade }}</td>
                                                                             <td>{{ item.preco_unitario }}</td>
@@ -389,7 +389,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td data-label="" class="mobile-2col" style="text-align: center;"><i class="fa-solid fa-circle-info" style="font-size: 25px; margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#infoEntModal{{ entrada.id }}"></i></td>
+                            <td data-label="" class="mobile-2col" style="text-align: center;"><i class="fa-solid fa-circle-info" style="font-size: 25px; margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#infoEntModal{{ entrada.codigo }}"></i></td>
                             <td data-label="Nº:" class="mobile-2col" style="align-items: center;">{{ entrada.numeracao }}</td>
                             <td data-label="Situação:" class="mobile-2col" style="text-align: center;">
                                 {% if entrada.situacao == 'Pendente' %}    

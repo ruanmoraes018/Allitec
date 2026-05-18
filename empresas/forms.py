@@ -1,5 +1,4 @@
 from django import forms
-
 from util.parse_decimal import parse_decimal
 from .models import Empresa
 
@@ -20,9 +19,7 @@ class EmpresaForm(forms.ModelForm):
     numero = forms.CharField(label='Nº', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
     tel = forms.CharField(label="Fone", max_length=20, widget=forms.TextInput(attrs={'maxlength': '20', 'class': 'form-control form-control-sm border-dark-subtle'}))
     email = forms.CharField(label='E-mail', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-lowercase'}))
-
     gerar_filial = forms.BooleanField(required=False, label="Gerar Filial?", widget=forms.CheckboxInput())
-
     nome = forms.CharField(label='Nome do Responsável', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
     cpf = forms.CharField(label='CPF', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
     orgao = forms.CharField(label='Órgão Emissor', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
@@ -35,37 +32,24 @@ class EmpresaForm(forms.ModelForm):
     uf_adm = forms.CharField(label="UF", widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
     tel_adm = forms.CharField(label="Fone", widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
     email_adm = forms.CharField(label="E-mail", widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-lowercase'}))
-
     qtd_filial = forms.IntegerField(label='Quantidade de Filiais', min_value=1, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-lowercase'}))
     qtd_usuarios = forms.IntegerField(label='Quantidade de Usuários', min_value=1, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-lowercase'}))
-
     tp_calc_juros = forms.ChoiceField(label="Tp. Cálculo Juros", choices=[('Percentual', 'Percentual'), ('Valor', 'Valor')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
-
     tp_calc_multa = forms.ChoiceField(label="Tp. Cálculo Multa", choices=[('Percentual', 'Percentual'), ('Valor', 'Valor')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
-
     ft_juros = forms.CharField(label='Fator Juros', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase text-end fw-bold'}))
-
     ft_multa = forms.CharField(label='Fator Multa', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase text-end fw-bold'}))
 
     class Meta:
         model = Empresa
         fields = (
-            'situacao', 'gerar_filial', 'cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro_emp', 'cidade_emp', 'uf_emp', 'tel', 'email',
-            'logo', 'nome', 'cpf', 'orgao', 'dt_nasc', 'endereco_adm', 'cep_adm', 'numero_adm', 'bairro_adm', 'cidade_adm', 'uf_adm', 'principal',
-            'tel_adm', 'email_adm', 'dia_venc', 'qtd_filial', 'qtd_usuarios', 'tp_calc_juros', 'tp_calc_multa', 'ft_juros', 'ft_multa'
+            'situacao', 'gerar_filial', 'cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro_emp', 'cidade_emp', 'uf_emp', 'tel', 'email', 'logo', 'nome', 'cpf',
+            'orgao', 'dt_nasc', 'endereco_adm', 'cep_adm', 'numero_adm', 'bairro_adm', 'cidade_adm', 'uf_adm', 'principal', 'tel_adm', 'email_adm', 'dia_venc', 'qtd_filial', 'qtd_usuarios',
+            'tp_calc_juros', 'tp_calc_multa', 'ft_juros', 'ft_multa'
         )
     def clean(self):
         cleaned_data = super().clean()
-        try:
-            cleaned_data['ft_juros'] = parse_decimal(
-                cleaned_data.get('ft_juros')
-            )
-        except:
-            self.add_error('ft_juros', 'Valor inválido.')
-        try:
-            cleaned_data['ft_multa'] = parse_decimal(
-                cleaned_data.get('ft_multa')
-            )
-        except:
-            self.add_error('ft_multa', 'Valor inválido.')
+        try: cleaned_data['ft_juros'] = parse_decimal(cleaned_data.get('ft_juros'))
+        except: self.add_error('ft_juros', 'Valor inválido.')
+        try: cleaned_data['ft_multa'] = parse_decimal(cleaned_data.get('ft_multa'))
+        except: self.add_error('ft_multa', 'Valor inválido.')
         return cleaned_data

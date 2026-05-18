@@ -34,14 +34,13 @@ def buscar_empresa(request):
     id_empresa = request.GET.get("id_empresa")
     try:
         empresa = Empresa.objects.get(id=id_empresa, principal="Sim")
-        if empresa.situacao == "Inativa":  # Ajuste conforme o nome real do campo
-            return JsonResponse({"success": False, "warning": "ID de empresa sem contrato ativo!"})
+        if empresa.situacao == "Inativa": return JsonResponse({"success": False, "warning": "ID de empresa sem contrato ativo!"})
         return JsonResponse({"success": True, "fantasia": empresa.fantasia})
-    except Empresa.DoesNotExist:
-        return JsonResponse({"success": False})
+    except Empresa.DoesNotExist: return JsonResponse({"success": False})
 
 @login_required
 @verifica_permissao('filiais.view_usuario')
+@login_required
 def lista_usuarios(request):
     s = request.GET.get('s')
     tp = request.GET.get('tp')
@@ -50,88 +49,56 @@ def lista_usuarios(request):
     dt_fim = request.GET.get('dt_fim')
     p_dt = request.GET.get('p_dt')
     reg = request.GET.get('reg', '10')
-
     empresa = request.user.empresa
     filial_user = request.user.filial_user
-
-    if filial_user is None:
-        usuarios = Usuario.objects.none()
-
+    if filial_user is None: usuarios = Usuario.objects.none()
     else:
-        filial_principal = filial_user if filial_user.principal else filial_user.vinculada_a
-
-        filiais_ids = Filial.objects.filter(
-            vinc_emp=empresa
-        ).filter(
-            Q(id=filial_principal.id) | Q(vinculada_a=filial_principal)
-        ).values_list('id', flat=True)
-
-        usuarios = Usuario.objects.filter(
-            empresa=empresa,
-            filial_user_id__in=filiais_ids
-        ).select_related('filial_user')
-
-    # Busca por descrição
+        filial_principal = (
+            filial_user
+            if filial_user.principal
+            else filial_user.vinculada_a
+        )
+        filiais_ids = (Filial.objects.filter(vinc_emp=empresa).filter(Q(codigo=filial_principal.codigo) | Q(vinculada_a=filial_principal)).values_list('id', flat=True))
+        usuarios = (Usuario.objects.filter(empresa=empresa, filial_user_id__in=filiais_ids).select_related('filial_user'))
+    # BUSCA POR DESCRIÇÃO
     if tp == 'desc' and s:
         usuarios = usuarios.filter(first_name__icontains=s).order_by('first_name')
-
-    # Busca por código
+    # BUSCA POR CÓDIGO LOCAL
     elif tp == 'cod' and s:
-        usuarios = usuarios.filter(id__icontains=s).order_by('id')
-
-    # Filtro por data
+        usuarios = usuarios.filter(codigo_local__icontains=s).order_by('codigo_local')
+    else: usuarios = usuarios.order_by('codigo_local')
+    # FILTRO POR DATA
     if p_dt == 'Sim' and dt_ini and dt_fim:
         try:
             dt_ini_dt = datetime.strptime(dt_ini, '%d/%m/%Y').date()
             dt_fim_dt = datetime.strptime(dt_fim, '%d/%m/%Y').date()
             usuarios = usuarios.filter(date_joined__range=(dt_ini_dt, dt_fim_dt))
-        except ValueError:
-            usuarios = Usuario.objects.none()
-
-    # Situação
+        except ValueError: usuarios = Usuario.objects.none()
+    # SITUAÇÃO
     if f_s and f_s.lower() != 'todos':
-        if f_s.lower() == 'true':
-            usuarios = usuarios.filter(is_active=True)
-        elif f_s.lower() == 'false':
-            usuarios = usuarios.filter(is_active=False)
-
-    # Paginação
-    if reg == 'todos':
-        num_pagina = usuarios.count() or 1
+        if f_s.lower() == 'true': usuarios = usuarios.filter(is_active=True)
+        elif f_s.lower() == 'false': usuarios = usuarios.filter(is_active=False)
+    # PAGINAÇÃO
+    if reg == 'todos': num_pagina = usuarios.count() or 1
     else:
-        try:
-            num_pagina = int(reg)
-        except ValueError:
-            num_pagina = 10
-
+        try: num_pagina = int(reg)
+        except ValueError: num_pagina = 10
     paginator = Paginator(usuarios, num_pagina)
     page = request.GET.get('page')
     usuarios = paginator.get_page(page)
-
-    return render(request, 'usuarios/lista.html', {
-        'usuarios': usuarios,
-        's': s,
-        'tp': tp,
-        'dt_ini': dt_ini,
-        'dt_fim': dt_fim,
-        'p_dt': p_dt,
-        'reg': reg
-    })
+    return render(request, 'usuarios/lista.html', {'usuarios': usuarios, 's': s, 'tp': tp, 'dt_ini': dt_ini, 'dt_fim': dt_fim, 'p_dt': p_dt, 'reg': reg, 'f_s': f_s})
 
 @login_required
 def lista_usuarios_ajax(request):
     termo_busca = request.GET.get('term') or request.GET.get('q') or ''
     empresa = request.user.empresa
     try:
-        if termo_busca.isdigit():
-            condicao_busca = Q(first_name__icontains=termo_busca) | Q(codigo_local=termo_busca)
-        else:
-            condicao_busca = Q(first_name__icontains=termo_busca)
+        if termo_busca.isdigit(): condicao_busca = Q(first_name__icontains=termo_busca) | Q(codigo_local=termo_busca)
+        else: condicao_busca = Q(first_name__icontains=termo_busca)
         usuarios = Usuario.objects.filter(condicao_busca & Q(empresa=empresa))[:20]
         results = [{'id': p.codigo_local, 'text': f"{p.first_name.upper()}"} for p in usuarios]
         return JsonResponse({'results': results})
     except Exception as e:
-        print(f"Erro na busca AJAX: {e}")
         return JsonResponse({'results': [], 'error': str(e)})
 
 def agrupar_permissoes_por_grupo(permissoes):
@@ -171,24 +138,21 @@ def add_usuario(request):
             novo_user.senha_liberacao = senha_liberacao
             novo_user.save()
             permissoes = form.cleaned_data.get('permissoes')
-            if permissoes:
-                novo_user.user_permissions.set(permissoes)
+            if permissoes: novo_user.user_permissions.set(permissoes)
             messages.success(request, 'Usuário cadastrado com sucesso.')
             return redirect('/usuarios/lista/')
         else:
             messages.error(request, 'Erro ao cadastrar usuário.')
             permissoes_selecionadas = form.cleaned_data.get('permissoes', [])
             for grupo, permissoes in permissoes_por_grupo.items():
-                if all(perm in permissoes_selecionadas for perm in permissoes):
-                    grupos_marcados.append(slugify(grupo))
-    else:
-        form = UsuarioCadastroForm(empresa=request.user.empresa)
+                if all(perm in permissoes_selecionadas for perm in permissoes): grupos_marcados.append(slugify(grupo))
+    else: form = UsuarioCadastroForm(empresa=request.user.empresa)
     context = {'form': form, 'filial': filial, 'permissoes_por_grupo': permissoes_por_grupo, 'grupos_marcados': grupos_marcados}
     return render(request, 'usuarios/add_usuario.html', context)
 
 @login_required
-def att_usuario(request, id):
-    usuario = get_object_or_404(Usuario, pk=id, empresa=request.user.empresa)
+def att_usuario(request, codigo_local):
+    usuario = get_object_or_404(Usuario, codigo_local=codigo_local, empresa=request.user.empresa)
     if not request.user.has_perm('filiais.change_usuario'):
         messages.info(request, 'Você não tem permissão para editar usuários.')
         return redirect('/usuarios/lista/')
@@ -205,35 +169,30 @@ def att_usuario(request, id):
             user.first_name = request.POST.get('first_name')
             user.save()
             permissoes = form.cleaned_data.get('permissoes')
-            if permissoes is not None:
-                user.user_permissions.set(permissoes)
+            if permissoes is not None: user.user_permissions.set(permissoes)
             usuario.gerar_senha_lib = gerar_senha_lib
             usuario.senha_liberacao = senha_liberacao
             usuario.save()
             next_url = request.POST.get('next') or request.GET.get('next')
             messages.success(request, 'Usuário atualizado com sucesso.')
-            if next_url:
-                return redirect(next_url)
-            else:
-                return redirect(f'/usuarios/lista/?tp=cod&s={usuario.id}')
+            if next_url: return redirect(next_url)
+            else: return redirect(f'/usuarios/lista/?tp=cod&s={usuario.codigo_local}')
         else:
             messages.error(request, 'Erro ao atualizar usuário.')
             permissoes_selecionadas = form.cleaned_data.get('permissoes', [])
             for grupo, permissoes in permissoes_por_grupo.items():
-                if all(perm in permissoes_selecionadas for perm in permissoes):
-                    grupos_marcados.append(slugify(grupo))
+                if all(perm in permissoes_selecionadas for perm in permissoes): grupos_marcados.append(slugify(grupo))
     else:
         permissao_ids = list(usuario.user_permissions.values_list('id', flat=True))
         form = UsuarioCadastroForm(instance=usuario, initial={'permissoes': permissao_ids}, empresa=request.user.empresa)
         for grupo, permissoes in permissoes_por_grupo.items():
-            if all(perm.id in permissao_ids for perm in permissoes):
-                grupos_marcados.append(slugify(grupo))
+            if all(perm.id in permissao_ids for perm in permissoes): grupos_marcados.append(slugify(grupo))
     context = {'form': form, 'usuario': usuario, 'filial': filial, 'permissoes_por_grupo': permissoes_por_grupo, 'grupos_marcados': grupos_marcados}
     return render(request, 'usuarios/att_usuario.html', context)
 
 @login_required
-def del_usuario(request, id):
-    usuario = get_object_or_404(Usuario, pk=id, empresa=request.user.empresa)
+def del_usuario(request, codigo_local):
+    usuario = get_object_or_404(Usuario, codigo_local=codigo_local, empresa=request.user.empresa)
     if not request.user.has_perm('filiais.delete_usuario'):
         messages.info(request, 'Você não tem permissão para deletar usuários.')
         return redirect('/usuarios/lista/')

@@ -64,23 +64,23 @@
                     {% for tp_cobranca in tp_cobrancas %}
                         <tr>
                             <td data-label="Opções:" class="mobile-2col">
-                                <a href="{% url 'att-tp_cobranca' tp_cobranca.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
+                                <a href="{% url 'att-tp_cobranca' tp_cobranca.codigo %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
                                   data-permissao="tipo_cobranca.change_tipocobranca"
                                   data-msg-negado="Seu usuário não pode editar tipos de cobrança!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                                 <span>
                                     <i class="fas fa-trash btn-permissao"
                                        title="Deletar tipo de cobrança"
-                                       data-bs-target="#modal-{{ tp_cobranca.id }}"
+                                       data-bs-target="#modal-{{ tp_cobranca.codigo }}"
                                        data-permissao="tipo_cobranca.delete_tipocobranca"
                                        data-msg-negado="Seu usuário não pode deletar tipos de cobrança!">
                                     </i>
                                 </span>
                                 <!-- Modal ÚNICO para cada tp_cobranca -->
-                                <div class="modal fade" id="modal-{{ tp_cobranca.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ tp_cobranca.id }}" aria-hidden="true">
+                                <div class="modal fade" id="modal-{{ tp_cobranca.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ tp_cobranca.codigo }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header titulo-modal">
-                                                <h1 class="modal-title fs-5" id="modalLabel-{{ tp_cobranca.id }}">
+                                                <h1 class="modal-title fs-5" id="modalLabel-{{ tp_cobranca.codigo }}">
                                                     <i class="fa-regular fa-circle-question"></i> Confirmação!
                                                 </h1>
                                             </div>
@@ -88,7 +88,7 @@
                                                 <p>Você confirma a EXCLUSÃO DO TIPO DE COBRANÇA <strong>{{ tp_cobranca.descricao }}</strong>?</p>
                                             </div>
                                             <div class="modal-footer">
-                                                <form method="post" action="{% url 'del-tp_cobranca' tp_cobranca.id %}" class="form-excluir">
+                                                <form method="post" action="{% url 'del-tp_cobranca' tp_cobranca.codigo %}" class="form-excluir">
                                                     {% csrf_token %}
                                                     <button type="submit" class="btn btn-primary btn-confirmar" disabled>
                                                         <u>S</u>im <span class="contador">3</span>
@@ -103,7 +103,7 @@
                                 </div>
                                 
                             </td>
-                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ tp_cobranca.id }}</td>
+                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ tp_cobranca.codigo }}</td>
                             <td data-label="Descrição:" class="mobile-2col text-uppercase" style="align-items: center;">{{ tp_cobranca.descricao }}</td>
                         </tr>
                     {% empty %}

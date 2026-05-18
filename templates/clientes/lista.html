@@ -104,23 +104,23 @@
                     {% for cliente in clientes %}
                         <tr>
                             <td data-label="Opções:" class="mobile-2col">
-                                <a href="{% url 'att-cliente' cliente.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
+                                <a href="{% url 'att-cliente' cliente.codigo %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
                                   data-permissao="clientes.change_cliente"
                                   data-msg-negado="Seu usuário não pode editar clientes!"><span><i class="fas fa-edit" title="Editar cliente"></i></span></a>
                                 <span>
                                     <i class="fas fa-trash btn-permissao"
                                        title="Deletar cliente"
-                                       data-bs-target="#modal-{{ cliente.id }}"
+                                       data-bs-target="#modal-{{ cliente.codigo }}"
                                        data-permissao="clientes.delete_cliente"
                                        data-msg-negado="Seu usuário não pode deletar clientes!">
                                     </i>
                                 </span>
                                 <!-- Modal ÚNICO para cada cliente -->
-                                <div class="modal fade" id="modal-{{ cliente.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ cliente.id }}" aria-hidden="true">
+                                <div class="modal fade" id="modal-{{ cliente.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ cliente.codigo }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header titulo-modal">
-                                                <h1 class="modal-title fs-5" id="modalLabel-{{ cliente.id }}">
+                                                <h1 class="modal-title fs-5" id="modalLabel-{{ cliente.codigo }}">
                                                     <i class="fa-regular fa-circle-question"></i> Confirmação!
                                                 </h1>
                                             </div>
@@ -128,7 +128,7 @@
                                                 <p>Você confirma a EXCLUSÃO DO CLIENTE <strong>{{ cliente.fantasia }}</strong>?</p>
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-primary btn-confirmar" data-url="{% url 'del-cliente' cliente.id %}" disabled>
+                                                <button type="button" class="btn btn-primary btn-confirmar" data-url="{% url 'del-cliente' cliente.codigo %}" disabled>
                                                     <u>S</u>im <span class="contador">3</span>
                                                 </button>
                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
@@ -137,7 +137,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ cliente.id }}</td>
+                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ cliente.codigo }}</td>
                             <td data-label="Situação:" class="mobile-2col" style="text-align: center; padding: 5px;">
                                 {% if cliente.situacao == 'Ativo' %}
                                     <div style="background-color: #2c2c2c; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">

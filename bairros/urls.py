@@ -5,6 +5,6 @@ urlpatterns = [
     path("lista_ajax/", views.lista_bairros_ajax, name='lista_ajax_bairros'),
     path("add/", views.add_bairro, name='add-bairro'),
     path('add-ajax/', views.add_bairro_ajax, name='add-bairro-ajax'),
-    path("att/<int:id>/", views.att_bairro, name='att-bairro'),
-    path("del/<int:id>/", views.del_bairro, name='del-bairro'),
+    path("att/<int:codigo>/", views.att_bairro, name='att-bairro'),
+    path("del/<int:codigo>/", views.del_bairro, name='del-bairro'),
 ]

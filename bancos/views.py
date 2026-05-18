@@ -26,43 +26,28 @@ def lista_bancos(request):
         norm_s = remove_accents(s).lower()
         bancos = bancos.filter(banco_normalizado__icontains=norm_s).order_by('nome_banco')
     elif tp == 'cod' and s:
-        try:
-            bancos = bancos.filter(id__iexact=s).order_by('nome_banco')
-        except ValueError:
-            bancos = Banco.objects.none()
-    if reg == 'todos':
-        num_pagina = bancos.count() or 1
+        try: bancos = bancos.filter(codigo__iexact=s).order_by('nome_banco')
+        except ValueError: bancos = Banco.objects.none()
+    if reg == 'todos': num_pagina = bancos.count() or 1
     else:
-        try:
-            num_pagina = int(reg) if int(reg) > 0 else 1
-        except ValueError:
-            num_pagina = 10  # Valor padrão
-
+        try: num_pagina = int(reg) if int(reg) > 0 else 1
+        except ValueError: num_pagina = 10  # Valor padrão
     paginator = Paginator(bancos, num_pagina)
     page = request.GET.get('page')
     bancos = paginator.get_page(page)
-
-    return render(request, 'bancos/lista.html', {
-        'bancos': bancos,
-        's': s,
-        'tp': tp,
-        'reg': reg,
-    })
+    return render(request, 'bancos/lista.html', {'bancos': bancos, 's': s, 'tp': tp, 'reg': reg,})
 
 @login_required
 def lista_bancos_ajax(request):
     termo_busca = request.GET.get('term') or request.GET.get('q') or ''
     empresa = request.user.empresa
     try:
-        if termo_busca.isdigit():
-            condicao_busca = Q(nome_banco__icontains=termo_busca) | Q(id=termo_busca)
-        else:
-            condicao_busca = Q(nome_banco__icontains=termo_busca)
+        if termo_busca.isdigit(): condicao_busca = Q(nome_banco__icontains=termo_busca) | Q(codigo=termo_busca)
+        else: condicao_busca = Q(nome_banco__icontains=termo_busca)
         bancos = Banco.objects.filter(condicao_busca & Q(vinc_emp=empresa))[:20]
-        results = [{'id': banco.id, 'text': f"{banco.id} - {banco.nome_banco.upper()}"} for banco in bancos]
+        results = [{'id': banco.codigo, 'text': f"{banco.codigo} - {banco.nome_banco.upper()}"} for banco in bancos]
         return JsonResponse({'results': results})
     except Exception as e:
-        print(f"Erro na busca AJAX: {e}")
         return JsonResponse({'results': [], 'error': str(e)})
     
 @login_required
@@ -77,21 +62,19 @@ def add_banco(request):
             b.vinc_emp = request.user.empresa
             b.save()
             messages.success(request, 'Banco adicionado com sucesso!')
-            bank = str(b.id)
+            bank = str(b.codigo)
             return redirect('/bancos/lista/?tp=cod&s=' + bank)
         else:
             error_messages = []
             for field in form:
-                if field.errors:
-                    for error in field.errors:
-                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'bancos/add.html', {'form': form, 'error_messages': error_messages})
     else: form = BancoForm()
     return render(request, 'bancos/add.html', {'form': form})
 
 @login_required
-def att_banco(request, id):
-    b = get_object_or_404(Banco, pk=id, vinc_emp=request.user.empresa)
+def att_banco(request, codigo):
+    b = get_object_or_404(Banco, codigo=codigo, vinc_emp=request.user.empresa)
     form = BancoForm(instance=b)
     if not request.user.has_perm('bancos.change_banco'):
         messages.info(request, 'Você não tem permissão para editar bancos.')
@@ -101,28 +84,23 @@ def att_banco(request, id):
         if form.is_valid():
             b.save()
             next_url = request.POST.get('next') or request.GET.get('next')
-            bank = str(b.id)
+            bank = str(b.codigo)
             messages.success(request, 'Banco atualizado com sucesso!')
-            if next_url:
-                return redirect(next_url)
-            else:
-                return redirect('/bancos/lista/?tp=cod&s=' + bank)
+            if next_url: return redirect(next_url)
+            else: return redirect('/bancos/lista/?tp=cod&s=' + bank)
         else:
             error_messages = []
             for field in form:
-                if field.errors:
-                    for error in field.errors:
-                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'bancos/att.html', {'form': form, 'b': b, 'error_messages': error_messages})
-    else:
-        return render(request, 'bancos/att.html', {'form': form, 'b': b})
+    else: return render(request, 'bancos/att.html', {'form': form, 'b': b})
 
 @login_required
-def del_banco(request, id):
+def del_banco(request, codigo):
     if not request.user.has_perm('bancos.delete_banco'):
         messages.info(request, 'Você não tem permissão para deletar bancos.')
         return redirect('/bancos/lista/')
-    b = get_object_or_404(Banco, pk=id, vinc_emp=request.user.empresa)
+    b = get_object_or_404(Banco, codigo=codigo, vinc_emp=request.user.empresa)
     b.delete()
     messages.success(request, 'Banco deletado com sucesso!')
     return redirect('/bancos/lista/')

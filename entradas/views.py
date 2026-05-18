@@ -62,8 +62,8 @@ def lista_entradas(request):
     # Filtro por situação
     if f_s and f_s != 'Todos': entradas = entradas.filter(situacao=f_s)
     # Filtro por cliente
-    if forn: entradas = entradas.filter(fornecedor_id=forn)
-    if fil: entradas = entradas.filter(vinc_fil_id=fil)
+    if forn: entradas = entradas.filter(fornecedor_codigo=forn)
+    if fil: entradas = entradas.filter(vinc_fil_codigo=fil)
     fornecedores = Fornecedor.objects.filter(vinc_emp=request.user.empresa)
     filiais = Filial.objects.filter(vinc_emp=request.user.empresa)
     # Paginação
@@ -77,26 +77,24 @@ def lista_entradas(request):
     return render(request, 'entradas/lista.html', {'entradas': entradas, 's': s, 'forn': forn, 'fil': fil, 'fornecedores': fornecedores, 'filiais': filiais, 'dt_ini': dt_ini, 'dt_fim': dt_fim, 'p_dt': por_dt, 'tp_dt': tp_dt, 'reg': reg})
 
 @login_required
-def entradas_por_produto(request, produto_id):
-    entradas = EntradaProduto.objects.filter(produto_id=produto_id).select_related('entrada', 'entrada__fornecedor')
+def entradas_por_produto(request, produto_codigo):
+    entradas = EntradaProduto.objects.filter(produto_codigo=produto_codigo).select_related('entrada', 'entrada__fornecedor')
     data = []
     for ep in entradas:
         entrada = ep.entrada
-        data.append({'entrada_id': entrada.id, 'data': entrada.dt_ent.strftime('%d/%m/%Y') if entrada.dt_ent else '', 'fornecedor': str(entrada.fornecedor), 'quantidade': float(ep.quantidade), 'valor_unitario': float(ep.preco_unitario), 'total_entrada': float(entrada.total)})
+        data.append({'entrada_id': entrada.codigo, 'data': entrada.dt_ent.strftime('%d/%m/%Y') if entrada.dt_ent else '', 'fornecedor': str(entrada.fornecedor), 'quantidade': float(ep.quantidade), 'valor_unitario': float(ep.preco_unitario), 'total_entrada': float(entrada.total)})
     return JsonResponse({'entradas': data})
 
 def somente_numeros(valor):
     return re.sub(r'\D', '', str(valor or ''))
 
 def text(node, path, ns=None, default=''):
-    if node is None:
-        return default
+    if node is None: return default
     el = node.find(path, ns or {})
     return el.text.strip() if el is not None and el.text else default
 
 def formatar_decimal_en(valor):
-    if valor is None:
-        return "0.00"
+    if valor is None: return "0.00"
     return f"{float(valor):.2f}"
 
 def parse_nfe_xml(xml_file):
@@ -104,8 +102,7 @@ def parse_nfe_xml(xml_file):
     root = tree.getroot()
     ns = {'nfe': 'http://www.portalfiscal.inf.br/nfe'}
     infNFe = root.find('.//nfe:infNFe', ns)
-    if infNFe is None:
-        raise ValueError('XML inválido: infNFe não encontrada.')
+    if infNFe is None: raise ValueError('XML inválido: infNFe não encontrada.')
     ide = infNFe.find('nfe:ide', ns)
     emit = infNFe.find('nfe:emit', ns)
     total = infNFe.find('nfe:total/nfe:ICMSTot', ns)
@@ -115,12 +112,10 @@ def parse_nfe_xml(xml_file):
         'fornecedor': {'cnpj': somente_numeros(text(emit, 'nfe:CNPJ', ns)), 'cpf': somente_numeros(text(emit, 'nfe:CPF', ns)), 'nome': text(emit, 'nfe:xNome', ns),
             'fantasia': text(emit, 'nfe:xFant', ns), 'ie': text(emit, 'nfe:IE', ns),}, 'total_nota': parse_decimal(text(total, 'nfe:vNF', ns)), 'itens': []
     }
-    if 'Id' in infNFe.attrib:
-        dados['chave'] = infNFe.attrib['Id'].replace('NFe', '')
+    if 'Id' in infNFe.attrib: dados['chave'] = infNFe.attrib['Id'].replace('NFe', '')
     for det in infNFe.findall('nfe:det', ns):
         prod = det.find('nfe:prod', ns)
-        if prod is None:
-            continue
+        if prod is None: continue
         item = {
             'codigo_fornecedor': text(prod, 'nfe:cProd', ns), 'ean': text(prod, 'nfe:cEAN', ns), 'descricao': text(prod, 'nfe:xProd', ns), 'ncm': text(prod, 'nfe:NCM', ns),
             'cfop': text(prod, 'nfe:CFOP', ns), 'unidade': text(prod, 'nfe:uCom', ns), 'quantidade': parse_decimal(text(prod, 'nfe:qCom', ns)), 'valor_unitario': parse_decimal(text(prod, 'nfe:vUnCom', ns)),
@@ -130,46 +125,36 @@ def parse_nfe_xml(xml_file):
     return dados
 
 def parse_data_xml_para_input(data_str):
-    if not data_str:
-        return ''
+    if not data_str: return ''
     try:
-        if 'T' in data_str:
-            return datetime.fromisoformat(data_str[:19]).date().isoformat()
+        if 'T' in data_str: return datetime.fromisoformat(data_str[:19]).date().isoformat()
         return datetime.strptime(data_str[:10], '%Y-%m-%d').date().isoformat()
-    except Exception:
-        return ''
+    except Exception: return ''
 
 def to_decimal(valor, default="0.00"):
-    try:
-        return Decimal(str(valor or default).replace(",", "."))
-    except (InvalidOperation, ValueError, TypeError):
-        return Decimal(default)
+    try: return Decimal(str(valor or default).replace(",", "."))
+    except (InvalidOperation, ValueError, TypeError): return Decimal(default)
 
 def formatar_data_br(data_iso):
-    if not data_iso:
-        return ""
+    if not data_iso: return ""
     try:
         dt = datetime.fromisoformat(data_iso.replace("Z", "+00:00"))
         return dt.strftime("%d/%m/%Y %H:%M")
-    except:
-        return ""
+    except: return ""
 
 def formatar_data_input(data_iso):
-    if not data_iso:
-        return ""
+    if not data_iso: return ""
     try:
         dt = datetime.fromisoformat(data_iso.replace("Z", "+00:00"))
         return dt.strftime("%Y-%m-%d")
-    except:
-        return ""
+    except: return ""
 
 @login_required
 @require_POST
 def ler_xml_entrada(request):
     empresa = request.user.empresa
     arquivo = request.FILES.get("xml")
-    if not arquivo:
-        return JsonResponse({"ok": False, "erro": "Arquivo XML não enviado."}, status=400)
+    if not arquivo: return JsonResponse({"ok": False, "erro": "Arquivo XML não enviado."}, status=400)
     try:
         tree = ET.parse(arquivo)
         root = tree.getroot()
@@ -186,8 +171,7 @@ def ler_xml_entrada(request):
         itens_payload = []
         for det in root.findall(".//nfe:det", ns):
             prod = det.find("nfe:prod", ns)
-            if prod is None:
-                continue
+            if prod is None: continue
             codigo_fornecedor = get_text(prod, "nfe:cProd", ns)
             descricao = get_text(prod, "nfe:xProd", ns)
             unidade = get_text(prod, "nfe:uCom", ns)
@@ -203,12 +187,10 @@ def ler_xml_entrada(request):
             produto_vinculado = None
             if fornecedor and codigo_fornecedor:
                 vinculo = ProdutoFornecedor.objects.filter(vinc_emp=empresa, fornecedor=fornecedor, codigo_fornecedor=codigo_fornecedor).select_related("produto").first()
-                if vinculo:
-                    produto_vinculado = vinculo.produto
+                if vinculo: produto_vinculado = vinculo.produto
             if not produto_vinculado and ean and ean not in ["SEM GTIN", "SEMGTIN"]:
                 cod_obj = CodigoProduto.objects.filter(vinc_emp=empresa, codigo=ean).select_related("produto").first()
-                if cod_obj:
-                    produto_vinculado = cod_obj.produto
+                if cod_obj: produto_vinculado = cod_obj.produto
             candidatos_ids = set()
             if ean and ean not in ["SEM GTIN", "SEMGTIN"]:
                 candidatos_ids.update(CodigoProduto.objects.filter(vinc_emp=empresa, codigo=ean).values_list("produto_id", flat=True))
@@ -219,7 +201,7 @@ def ler_xml_entrada(request):
             itens_payload.append({
                 "codigo_fornecedor": codigo_fornecedor, "descricao": descricao, "unidade": unidade, "ncm": ncm, "cfop": cfop, "cest": cest, "info_adicional": info_adicional, "ean": ean, "quantidade": formatar_decimal_en(quantidade),
                 "valor_unitario": formatar_decimal_en(valor_unitario), "desconto": formatar_decimal_en(desconto), "subtotal": formatar_decimal_en(subtotal),
-                "produto_vinculado": {"id": produto_vinculado.id, "descricao": produto_vinculado.desc_prod} if produto_vinculado else None, "candidatos": candidatos,
+                "produto_vinculado": {"id": produto_vinculado.codigo, "descricao": produto_vinculado.desc_prod} if produto_vinculado else None, "candidatos": candidatos,
             })
         return JsonResponse({
             "ok": True,
@@ -228,36 +210,30 @@ def ler_xml_entrada(request):
                     infNFe.attrib.get("Id", "").replace("NFe", "") if infNFe is not None else ""
                 ), "total": formatar_decimal_en(valor_total_nota),
             },
-            "fornecedor": {"id": fornecedor.id if fornecedor else None, "existe": bool(fornecedor), "cpf_cnpj": fornecedor_doc, "razao_social": get_text(emit, "nfe:xNome", ns), "fantasia": get_text(emit, "nfe:xFant", ns),
+            "fornecedor": {"id": fornecedor.codigo if fornecedor else None, "existe": bool(fornecedor), "cpf_cnpj": fornecedor_doc, "razao_social": get_text(emit, "nfe:xNome", ns), "fantasia": get_text(emit, "nfe:xFant", ns),
                 "ie": get_text(emit, "nfe:IE", ns),
             }, "itens": itens_payload
         })
-    except Exception as e:
-        return JsonResponse({"ok": False, "erro": f"Erro ao ler XML: {str(e)}"}, status=400)
+    except Exception as e: return JsonResponse({"ok": False, "erro": f"Erro ao ler XML: {str(e)}"}, status=400)
 
 def get_text(node, path, ns, default=""):
     el = node.find(path, ns)
     return el.text.strip() if el is not None and el.text else default
 
 def get_or_create_estado(empresa, uf_sigla):
-    if not uf_sigla:
-        return None
+    if not uf_sigla: return None
     return Estado.objects.filter(vinc_emp=empresa, nome_estado__iexact=uf_sigla).first()
 
 def get_or_create_cidade(empresa, nome_cidade):
-    if not nome_cidade:
-        return None
+    if not nome_cidade: return None
     cidade = Cidade.objects.filter(vinc_emp=empresa, nome_cidade__iexact=nome_cidade).first()
-    if cidade:
-        return cidade
+    if cidade: return cidade
     return Cidade.objects.create(vinc_emp=empresa, nome_cidade=nome_cidade.upper())
 
 def get_or_create_bairro(empresa, nome_bairro):
-    if not nome_bairro:
-        return None
+    if not nome_bairro: return None
     bairro = Bairro.objects.filter(vinc_emp=empresa, nome_bairro__iexact=nome_bairro).first()
-    if bairro:
-        return bairro
+    if bairro: return bairro
     return Bairro.objects.create(vinc_emp=empresa, nome_bairro=nome_bairro.upper())
 
 @login_required
@@ -266,8 +242,7 @@ def get_or_create_bairro(empresa, nome_bairro):
 def criar_fornecedor_por_xml(request):
     empresa = request.user.empresa
     arquivo = request.FILES.get("xml")
-    if not arquivo:
-        return JsonResponse({"ok": False, "erro": "XML não enviado."}, status=400)
+    if not arquivo: return JsonResponse({"ok": False, "erro": "XML não enviado."}, status=400)
     try:
         tree = ET.parse(arquivo)
         root = tree.getroot()
@@ -285,30 +260,25 @@ def criar_fornecedor_por_xml(request):
         estado_nome = get_text(ender, "nfe:UF", ns)
         cep = somente_numeros(get_text(ender, "nfe:CEP", ns))
         tel = somente_numeros(get_text(ender, "nfe:fone", ns))
-        if not cpf_cnpj or not razao_social:
-            return JsonResponse({"ok": False, "erro": "XML sem CNPJ/CPF ou razão social do fornecedor."}, status=400)
+        if not cpf_cnpj or not razao_social: return JsonResponse({"ok": False, "erro": "XML sem CNPJ/CPF ou razão social do fornecedor."}, status=400)
         fornecedor = Fornecedor.objects.filter(vinc_emp=empresa, cpf_cnpj=cpf_cnpj).first()
-        if fornecedor:
-            return JsonResponse({"ok": True, "fornecedor": {"id": fornecedor.id, "nome": fornecedor.razao_social or fornecedor.fantasia, "ja_existia": True}})
+        if fornecedor: return JsonResponse({"ok": True, "fornecedor": {"id": fornecedor.codigo, "nome": fornecedor.razao_social or fornecedor.fantasia, "ja_existia": True}})
         estado = get_or_create_estado(empresa, estado_nome)
         cidade = get_or_create_cidade(empresa, cidade_nome)
         bairro = get_or_create_bairro(empresa, bairro_nome)
         fornecedor = Fornecedor.objects.create(vinc_emp=empresa, situacao="Ativo", pessoa="Jurídica" if len(cpf_cnpj) == 14 else "Física", cpf_cnpj=cpf_cnpj, ie=ie or None, razao_social=razao_social, fantasia=fantasia,
             endereco=endereco or "NÃO INFORMADO", cep=cep or "00000000", numero=numero, bairro=bairro, cidade=cidade, uf=estado, complem="", tel=tel or "00000000000", email="sememail@fornecedor.local", dt_reg=date.today()
         )
-        return JsonResponse({"ok": True, "fornecedor": {"id": fornecedor.id, "nome": fornecedor.razao_social or fornecedor.fantasia, "ja_existia": False}})
-    except Exception as e:
-        return JsonResponse({"ok": False, "erro": f"Erro ao criar fornecedor: {str(e)}"}, status=400)
+        return JsonResponse({"ok": True, "fornecedor": {"id": fornecedor.codigo, "nome": fornecedor.razao_social or fornecedor.fantasia, "ja_existia": False}})
+    except Exception as e: return JsonResponse({"ok": False, "erro": f"Erro ao criar fornecedor: {str(e)}"}, status=400)
 
 @login_required
 @require_POST
 @transaction.atomic
 def criar_produto_por_xml(request):
     empresa = request.user.empresa
-    try:
-        body = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    try: body = json.loads(request.body)
+    except json.JSONDecodeError: return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
     fornecedor_id = body.get("fornecedor_id")
     produto_existente_id = body.get("produto_existente_id")
     grupo_id = body.get("grupo_id")
@@ -321,60 +291,42 @@ def criar_produto_por_xml(request):
     codigo_fornecedor = (body.get("codigo_fornecedor", "") or "").strip()
     descricao_fornecedor = (body.get("descricao_fornecedor", "") or descricao).strip()
     fornecedor = None
-    if fornecedor_id:
-        fornecedor = Fornecedor.objects.filter(id=fornecedor_id, vinc_emp=empresa).first()
+    if fornecedor_id: fornecedor = Fornecedor.objects.filter(codigo=fornecedor_id, vinc_emp=empresa).first()
     grupo = None
-    if grupo_id:
-        grupo = Grupo.objects.filter(id=grupo_id, vinc_emp=empresa).first()
+    if grupo_id: grupo = Grupo.objects.filter(codigo=grupo_id, vinc_emp=empresa).first()
     marca = None
-    if marca_id:
-        marca = Marca.objects.filter(id=marca_id, vinc_emp=empresa).first()
+    if marca_id: marca = Marca.objects.filter(codigo=marca_id, vinc_emp=empresa).first()
     unidade = None
-    if unidade_id:
-        unidade = Unidade.objects.filter(id=unidade_id, vinc_emp=empresa).first()
-    if not descricao and not produto_existente_id:
-        return JsonResponse({"ok": False, "erro": "Descrição do produto obrigatória."}, status=400)
+    if unidade_id: unidade = Unidade.objects.filter(codigo=unidade_id, vinc_emp=empresa).first()
+    if not descricao and not produto_existente_id: return JsonResponse({"ok": False, "erro": "Descrição do produto obrigatória."}, status=400)
     if produto_existente_id:
-        try:
-            produto = Produto.objects.get(id=produto_existente_id, vinc_emp=empresa)
-        except Produto.DoesNotExist:
-            return JsonResponse({"ok": False, "erro": "Produto selecionado não encontrado."}, status=404)
-        if ean and ean not in ["SEM GTIN", "SEMGTIN"]:
-            CodigoProduto.objects.get_or_create(vinc_emp=empresa, codigo=ean, defaults={"produto": produto})
-        if fornecedor and codigo_fornecedor:
-            ProdutoFornecedor.objects.update_or_create(vinc_emp=empresa, fornecedor=fornecedor, codigo_fornecedor=codigo_fornecedor, defaults={"produto": produto, "descricao_fornecedor": descricao_fornecedor})
-        return JsonResponse({"ok": True, "produto": {"id": produto.id, "descricao": produto.desc_prod, "ja_existia": True,} })
+        try: produto = Produto.objects.get(codigo=produto_existente_id, vinc_emp=empresa)
+        except Produto.DoesNotExist: return JsonResponse({"ok": False, "erro": "Produto selecionado não encontrado."}, status=404)
+        if ean and ean not in ["SEM GTIN", "SEMGTIN"]: CodigoProduto.objects.get_or_create(vinc_emp=empresa, codigo=ean, defaults={"produto": produto})
+        if fornecedor and codigo_fornecedor: ProdutoFornecedor.objects.update_or_create(vinc_emp=empresa, fornecedor=fornecedor, codigo_fornecedor=codigo_fornecedor, defaults={"produto": produto, "descricao_fornecedor": descricao_fornecedor})
+        return JsonResponse({"ok": True, "produto": {"id": produto.codigo, "descricao": produto.desc_prod, "ja_existia": True,} })
     produto = None
     if ean and ean not in ["SEM GTIN", "SEMGTIN"]:
         codigo_obj = CodigoProduto.objects.filter(vinc_emp=empresa, codigo=ean).select_related("produto").first()
-        if codigo_obj:
-            produto = codigo_obj.produto
+        if codigo_obj: produto = codigo_obj.produto
     if not produto:
         produto = Produto.objects.create(vinc_emp=empresa, desc_prod=descricao, grupo=grupo, unidProd=unidade, marca=marca, tp_prod=tp_prod if tp_prod in ["Principal", "Adicional"] else "Principal",
             situacao="Ativo", vl_compra=Decimal("0.00"), estoque_prod=Decimal("0.00"))
         ja_existia = False
-    else:
-        ja_existia = True
-    if ean and ean not in ["SEM GTIN", "SEMGTIN"]:
-        CodigoProduto.objects.get_or_create(vinc_emp=empresa, codigo=ean, defaults={"produto": produto})
-    if fornecedor and codigo_fornecedor:
-        ProdutoFornecedor.objects.update_or_create(vinc_emp=empresa, fornecedor=fornecedor, codigo_fornecedor=codigo_fornecedor,
-            defaults={"produto": produto, "descricao_fornecedor": descricao_fornecedor}
-        )
-    return JsonResponse({"ok": True, "produto": {"id": produto.id, "descricao": produto.desc_prod, "ja_existia": ja_existia,}})
+    else: ja_existia = True
+    if ean and ean not in ["SEM GTIN", "SEMGTIN"]: CodigoProduto.objects.get_or_create(vinc_emp=empresa, codigo=ean, defaults={"produto": produto})
+    if fornecedor and codigo_fornecedor: ProdutoFornecedor.objects.update_or_create(vinc_emp=empresa, fornecedor=fornecedor, codigo_fornecedor=codigo_fornecedor, defaults={"produto": produto, "descricao_fornecedor": descricao_fornecedor})
+    return JsonResponse({"ok": True, "produto": {"id": produto.codigo, "descricao": produto.desc_prod, "ja_existia": ja_existia,}})
 
 @login_required
 @require_POST
 @transaction.atomic
 def criar_produtos_em_massa(request):
     empresa = request.user.empresa
-    try:
-        body = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    try: body = json.loads(request.body)
+    except json.JSONDecodeError: return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
     produtos = body.get("produtos", [])
-    if not produtos:
-        return JsonResponse({"ok": False, "erro": "Nenhum produto enviado."}, status=400)
+    if not produtos: return JsonResponse({"ok": False, "erro": "Nenhum produto enviado."}, status=400)
     resultados = []
     for item in produtos:
         fornecedor_id = item.get("fornecedor_id")
@@ -386,16 +338,15 @@ def criar_produtos_em_massa(request):
         ean = (item.get("ean") or "").strip()
         codigo_fornecedor = (item.get("codigo_fornecedor") or "").strip()
         descricao_fornecedor = (item.get("descricao_fornecedor") or descricao).strip()
-        fornecedor = Fornecedor.objects.filter(id=fornecedor_id, vinc_emp=empresa).first() if fornecedor_id else None
-        grupo = Grupo.objects.filter(id=grupo_id, vinc_emp=empresa).first() if grupo_id else None
-        marca = Marca.objects.filter(id=marca_id, vinc_emp=empresa).first() if marca_id else None
-        unidade = Unidade.objects.filter(id=unidade_id, vinc_emp=empresa).first() if unidade_id else None
+        fornecedor = Fornecedor.objects.filter(codigo=fornecedor_id, vinc_emp=empresa).first() if fornecedor_id else None
+        grupo = Grupo.objects.filter(codigo=grupo_id, vinc_emp=empresa).first() if grupo_id else None
+        marca = Marca.objects.filter(codigo=marca_id, vinc_emp=empresa).first() if marca_id else None
+        unidade = Unidade.objects.filter(codigo=unidade_id, vinc_emp=empresa).first() if unidade_id else None
         produto = None
         # 🔎 tenta achar pelo EAN
         if ean and ean not in ["SEM GTIN", "SEMGTIN"]:
             codigo_obj = CodigoProduto.objects.filter(vinc_emp=empresa, codigo=ean).select_related("produto").first()
-            if codigo_obj:
-                produto = codigo_obj.produto
+            if codigo_obj: produto = codigo_obj.produto
         # 🆕 cria produto se não existir
         if not produto:
             produto = Produto.objects.create(vinc_emp=empresa, desc_prod=descricao, grupo=grupo, unidProd=unidade, marca=marca,
@@ -404,13 +355,10 @@ def criar_produtos_em_massa(request):
         else:
             ja_existia = True
         # 🔗 EAN
-        if ean and ean not in ["SEM GTIN", "SEMGTIN"]:
-            CodigoProduto.objects.get_or_create(vinc_emp=empresa, codigo=ean, defaults={"produto": produto})
+        if ean and ean not in ["SEM GTIN", "SEMGTIN"]: CodigoProduto.objects.get_or_create(vinc_emp=empresa, codigo=ean, defaults={"produto": produto})
         # 🔗 fornecedor
-        if fornecedor and codigo_fornecedor:
-            ProdutoFornecedor.objects.update_or_create(vinc_emp=empresa, fornecedor=fornecedor, codigo_fornecedor=codigo_fornecedor,
-                defaults={"produto": produto, "descricao_fornecedor": descricao_fornecedor})
-        resultados.append({"idx": item.get("idx"), "produto": {"id": produto.id, "descricao": produto.desc_prod, "ja_existia": ja_existia}})
+        if fornecedor and codigo_fornecedor: ProdutoFornecedor.objects.update_or_create(vinc_emp=empresa, fornecedor=fornecedor, codigo_fornecedor=codigo_fornecedor, defaults={"produto": produto, "descricao_fornecedor": descricao_fornecedor})
+        resultados.append({"idx": item.get("idx"), "produto": {"id": produto.codigo, "descricao": produto.desc_prod, "ja_existia": ja_existia}})
     return JsonResponse({"ok": True, "resultados": resultados})
 
 def montar_produtos_post(post_data):
@@ -420,15 +368,12 @@ def montar_produtos_post(post_data):
         m_tab = re.match(r"^produtos\[(\d+)\]\[tabelas\]\[(\d+)\]\[(tabela_id|tabela_nome|margem|valor)\]$", key)
         if m_prod:
             idx, campo = m_prod.groups()
-            if idx not in produtos_dict:
-                produtos_dict[idx] = {"tabelas": {}}
+            if idx not in produtos_dict: produtos_dict[idx] = {"tabelas": {}}
             produtos_dict[idx][campo] = value
         elif m_tab:
             idx, tab_idx, campo = m_tab.groups()
-            if idx not in produtos_dict:
-                produtos_dict[idx] = {"tabelas": {}}
-            if tab_idx not in produtos_dict[idx]["tabelas"]:
-                produtos_dict[idx]["tabelas"][tab_idx] = {}
+            if idx not in produtos_dict: produtos_dict[idx] = {"tabelas": {}}
+            if tab_idx not in produtos_dict[idx]["tabelas"]: produtos_dict[idx]["tabelas"][tab_idx] = {}
             produtos_dict[idx]["tabelas"][tab_idx][campo] = value
     return produtos_dict
 
@@ -447,16 +392,13 @@ def add_entrada(request):
                 error_messages = [f"Campo ({field.label}) é obrigatório!" for field in form if field.errors]
                 return render(request, 'entradas/add.html', {'form': form, 'error_messages': error_messages})
             entrada = form.save(commit=False)
-            if entrada.fornecedor and entrada.fornecedor.vinc_emp != request.user.empresa:
-                return HttpResponseForbidden()
-            if entrada.vinc_fil and entrada.vinc_fil.vinc_emp != request.user.empresa:
-                return HttpResponseForbidden()
+            if entrada.fornecedor and entrada.fornecedor.vinc_emp != request.user.empresa: return HttpResponseForbidden()
+            if entrada.vinc_fil and entrada.vinc_fil.vinc_emp != request.user.empresa: return HttpResponseForbidden()
             entrada.vinc_emp = request.user.empresa
             entrada.save()
             produtos_dict = montar_produtos_post(request.POST)
             for dados in produtos_dict.values():
-                try:
-                    produto = Produto.objects.get(pk=dados.get("codigo"), vinc_emp=request.user.empresa)
+                try: produto = Produto.objects.get(pk=dados.get("codigo"), vinc_emp=request.user.empresa)
                 except Produto.DoesNotExist:
                     messages.warning(request, f"Produto {dados.get('produto')} não encontrado e foi ignorado.")
                     continue
@@ -465,21 +407,15 @@ def add_entrada(request):
                 )
                 for tab in dados.get("tabelas", {}).values():
                     tabela_id = tab.get("tabela_id")
-                    if not tabela_id:
-                        continue
-                    try:
-                        tabela = TabelaPreco.objects.get(pk=tabela_id, vinc_emp=request.user.empresa)
+                    if not tabela_id: continue
+                    try: tabela = TabelaPreco.objects.get(codigo=tabela_id, vinc_emp=request.user.empresa)
                     except TabelaPreco.DoesNotExist:
                         messages.warning(request, f"Tabela {tabela_id} não encontrada para o produto {dados.get('produto')}.")
                         continue
-                    try:
-                        valor = parse_decimal(tab.get("valor"))
-                    except Exception:
-                        valor = Decimal('0.00')
-                    try:
-                        margem = parse_decimal(tab.get("margem"))
-                    except Exception:
-                        margem = Decimal('0.00')
+                    try: valor = parse_decimal(tab.get("valor"))
+                    except Exception: valor = Decimal('0.00')
+                    try: margem = parse_decimal(tab.get("margem"))
+                    except Exception: margem = Decimal('0.00')
                     EntradaProdutoTabela.objects.create(entrada_produto=ep, tabela_preco=tabela, margem=margem, valor=valor)
                     ProdutoTabela.objects.update_or_create(produto=produto, tabela=tabela, defaults={"vl_prod": valor, "margem": margem})
             entrada.total = entrada.atualizar_total()
@@ -487,21 +423,17 @@ def add_entrada(request):
             messages.success(request, f'Registro de {entrada.tipo} - {entrada.numeracao} realizado com sucesso!')
             return redirect(f'/entradas/lista/?tp=numeracao&s={entrada.numeracao}')
         form = EntradaForm(empresa=request.user.empresa, user=request.user)
-    except ObjectDoesNotExist:
-        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
-    except IntegrityError as e:
-        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}")
-    except DatabaseError as e:
-        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco de dados: {str(e)}")
-    except Exception as e:
-        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    except ObjectDoesNotExist: error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}")
+    except DatabaseError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco de dados: {str(e)}")
+    except Exception as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return render(request, "entradas/add.html", {"form": form, "error_messages": error_messages})
 
 @login_required
 @transaction.atomic
-def att_entrada(request, id):
+def att_entrada(request, codigo):
     error_messages = []
-    entrada = get_object_or_404(Entrada, pk=id, vinc_emp=request.user.empresa)
+    entrada = get_object_or_404(Entrada, codigo=codigo, vinc_emp=request.user.empresa)
     if not request.user.has_perm('entradas.change_entrada'):
         messages.info(request, 'Você não tem permissão para editar entradas de NF/Pedidos.')
         return redirect('/entradas/lista/')
@@ -518,83 +450,56 @@ def att_entrada(request, id):
                 error_messages = [f"Campo ({field.label}) é obrigatório!" for field in form if field.errors]
                 return render(request, "entradas/att.html", {"form": form, "entrada": entrada, "error_messages": error_messages})
             entrada = form.save(commit=False)
-            if entrada.fornecedor and entrada.fornecedor.vinc_emp != request.user.empresa:
-                return HttpResponseForbidden()
-            if entrada.vinc_fil and entrada.vinc_fil.vinc_emp != request.user.empresa:
-                return HttpResponseForbidden()
+            if entrada.fornecedor and entrada.fornecedor.vinc_emp != request.user.empresa: return HttpResponseForbidden()
+            if entrada.vinc_fil and entrada.vinc_fil.vinc_emp != request.user.empresa: return HttpResponseForbidden()
             entrada.vinc_emp = request.user.empresa
             entrada.save()
             next_url = request.POST.get('next') or request.GET.get('next')
             produtos_dict = montar_produtos_post(request.POST)
             itens_ids_mantidos = []
             for dados in produtos_dict.values():
-                try:
-                    produto = Produto.objects.get(pk=dados.get("codigo"), vinc_emp=request.user.empresa)
+                try: produto = Produto.objects.get(codigo=dados.get("codigo"), vinc_emp=request.user.empresa)
                 except Produto.DoesNotExist:
                     messages.warning(request, f"Produto {dados.get('produto')} não encontrado e foi ignorado.")
                     continue
                 ep, _ = EntradaProduto.objects.update_or_create(
-                    entrada=entrada,
-                    produto=produto,
+                    entrada=entrada, produto=produto,
                     defaults={
-                        "quantidade": parse_decimal(dados.get("quantidade")),
-                        "preco_unitario": parse_decimal(dados.get("preco_unitario")),
-                        "desconto": parse_decimal(dados.get("desconto"))
-                    }
-                )
-                itens_ids_mantidos.append(ep.id)
+                        "quantidade": parse_decimal(dados.get("quantidade")), "preco_unitario": parse_decimal(dados.get("preco_unitario")), "desconto": parse_decimal(dados.get("desconto"))})
+                itens_ids_mantidos.append(ep.codigo)
                 tab_ids_mantidas = []
                 for tab in dados.get("tabelas", {}).values():
                     tabela_id = tab.get("tabela_id")
-                    if not tabela_id:
-                        continue
-                    try:
-                        tabela = TabelaPreco.objects.get(pk=tabela_id, vinc_emp=request.user.empresa)
+                    if not tabela_id: continue
+                    try: tabela = TabelaPreco.objects.get(codigo=tabela_id, vinc_emp=request.user.empresa)
                     except TabelaPreco.DoesNotExist:
                         messages.warning(request, f"Tabela {tabela_id} não encontrada para o produto {dados.get('produto')}.")
                         continue
-                    try:
-                        valor = parse_decimal(tab.get("valor"))
-                    except Exception:
-                        valor = Decimal('0.00')
-                    try:
-                        margem = parse_decimal(tab.get("margem"))
-                    except Exception:
-                        margem = Decimal('0.00')
-                    ept, _ = EntradaProdutoTabela.objects.update_or_create(
-                        entrada_produto=ep,
-                        tabela_preco=tabela,
-                        defaults={
-                            "margem": margem,
-                            "valor": valor
-                        }
-                    )
-                    tab_ids_mantidas.append(ept.id)
+                    try: valor = parse_decimal(tab.get("valor"))
+                    except Exception: valor = Decimal('0.00')
+                    try: margem = parse_decimal(tab.get("margem"))
+                    except Exception: margem = Decimal('0.00')
+                    ept, _ = EntradaProdutoTabela.objects.update_or_create(entrada_produto=ep, tabela_preco=tabela, defaults={"margem": margem, "valor": valor})
+                    tab_ids_mantidas.append(ept.codigo)
                     ProdutoTabela.objects.update_or_create(produto=produto, tabela=tabela, defaults={"vl_prod": valor, "margem": margem})
-                EntradaProdutoTabela.objects.filter(entrada_produto=ep, tabela_preco__vinc_emp=request.user.empresa).exclude(id__in=tab_ids_mantidas).delete()
-            EntradaProdutoTabela.objects.filter(entrada_produto__entrada=entrada, entrada_produto__produto__vinc_emp=request.user.empresa).exclude(entrada_produto_id__in=itens_ids_mantidos).delete()
-            EntradaProduto.objects.filter(entrada=entrada, produto__vinc_emp=request.user.empresa).exclude(id__in=itens_ids_mantidos).delete()
+                EntradaProdutoTabela.objects.filter(entrada_produto=ep, tabela_preco__vinc_emp=request.user.empresa).exclude(codigo__in=tab_ids_mantidas).delete()
+            EntradaProdutoTabela.objects.filter(entrada_produto__entrada=entrada, entrada_produto__produto__vinc_emp=request.user.empresa).exclude(entrada_produto_codigo__in=itens_ids_mantidos).delete()
+            EntradaProduto.objects.filter(entrada=entrada, produto__vinc_emp=request.user.empresa).exclude(codigo__in=itens_ids_mantidos).delete()
             entrada.total = entrada.atualizar_total()
             entrada.save(update_fields=["total"])
             messages.success(request, f'Registro de {entrada.tipo} - {entrada.numeracao} atualizado com sucesso!')
-            if next_url:
-                return redirect(next_url)
-            else:
-                return redirect(f'/entradas/lista/?tp=numeracao&s={entrada.numeracao}')
+            if next_url: return redirect(next_url)
+            else: return redirect(f'/entradas/lista/?tp=numeracao&s={entrada.numeracao}')
         form = EntradaForm(instance=entrada, empresa=request.user.empresa, user=request.user)
-    except ObjectDoesNotExist:
-        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
-    except IntegrityError as e:
-        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}")
-    except DatabaseError as e:
-        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco de dados: {str(e)}")
-    except Exception as e:
-        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    except ObjectDoesNotExist: error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}")
+    except DatabaseError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco de dados: {str(e)}")
+    except Exception as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return render(request, "entradas/att.html", {"form": form, "entrada": entrada, "produtos": entrada.itens.all(), "error_messages": error_messages})
 
 @login_required
-def del_entrada(request, id):
-    entrada = get_object_or_404(Entrada, pk=id, vinc_emp=request.user.empresa)
+def del_entrada(request, codigo):
+    entrada = get_object_or_404(Entrada, codigo=codigo, vinc_emp=request.user.empresa)
     if not request.user.has_perm('entradas.delete_entrada'):
         messages.info(request, 'Você não tem permissão para deletar entradas de NF/Pedidos.')
         return redirect('/entradas/lista/')
@@ -613,8 +518,8 @@ def del_entrada(request, id):
 
 @require_POST
 @login_required
-def efetivar_entrada(request, id):
-    entrada = get_object_or_404(Entrada, pk=id, vinc_emp=request.user.empresa)
+def efetivar_entrada(request, codigo):
+    entrada = get_object_or_404(Entrada, codigo=codigo, vinc_emp=request.user.empresa)
     if not request.user.has_perm('entradas.efetivar_entrada'):
         messages.info(request, 'Você não tem permissão para efetivar entradas de NF/Pedidos.')
         return redirect('/entradas/lista/')
@@ -628,14 +533,13 @@ def efetivar_entrada(request, id):
                 produto.vl_compra = str(item.preco_unitario)  # já que vl_compra é CharField
                 produto.save(update_fields=["estoque_prod", "vl_compra"])
             messages.success(request, f'Registro de {entrada.tipo} - {entrada.numeracao} efetivado com sucesso!')
-        else:
-            messages.warning(request, f'Entrada {entrada.numeracao} já foi efetivada antes.')
+        else: messages.warning(request, f'Entrada {entrada.numeracao} já foi efetivada antes.')
         return redirect(f'/entradas/lista/?tp=numeracao&s={entrada.numeracao}')
 
 @require_POST
 @login_required
-def cancelar_entrada(request, id):
-    entrada = get_object_or_404(Entrada, pk=id, vinc_emp=request.user.empresa)
+def cancelar_entrada(request, codigo):
+    entrada = get_object_or_404(Entrada, codigo=codigo, vinc_emp=request.user.empresa)
     if not request.user.has_perm('entradas.cancelar_entrada'):
         messages.info(request, 'Você não tem permissão para cancelar entradas de NF/Pedidos.')
         return redirect('/entradas/lista/')
@@ -649,6 +553,5 @@ def cancelar_entrada(request, id):
                 produto.vl_compra = str(item.preco_unitario)  # já que vl_compra é CharField
                 produto.save(update_fields=["estoque_prod", "vl_compra"])
             messages.success(request, f'Registro de {entrada.tipo} - {entrada.numeracao} cancelado com sucesso!')
-        else:
-            messages.warning(request, f'Entrada {entrada.numeracao} já foi cancelada antes.')
+        else: messages.warning(request, f'Entrada {entrada.numeracao} já foi cancelada antes.')
         return redirect(f'/entradas/lista/?tp=numeracao&s={entrada.numeracao}')

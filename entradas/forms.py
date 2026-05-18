@@ -31,32 +31,16 @@ class EntradaForm(forms.ModelForm):
         if empresa:
             self.fields['fornecedor'].queryset = Fornecedor.objects.filter(vinc_emp=empresa)
             self.fields['vinc_fil'].queryset = Filial.objects.filter(vinc_emp=empresa)
-            if not self.instance.pk and user and user.filial_user:
-                self.fields['vinc_fil'].initial = user.filial_user.pk
+            if not self.instance.pk and user and user.filial_user: self.fields['vinc_fil'].initial = user.filial_user.pk
         if self.instance and self.instance.pk:
-            if self.instance.dt_emi:
-                self.initial['dt_emi'] = self.instance.dt_emi.strftime('%d/%m/%Y')
-            if self.instance.dt_ent:
-                self.initial['dt_ent'] = self.instance.dt_ent.strftime('%d/%m/%Y')
-
+            if self.instance.dt_emi: self.initial['dt_emi'] = self.instance.dt_emi.strftime('%d/%m/%Y')
+            if self.instance.dt_ent: self.initial['dt_ent'] = self.instance.dt_ent.strftime('%d/%m/%Y')
     def clean_obs(self):
         return self.cleaned_data['obs'].upper()
-    
     def clean(self):
         cleaned_data = super().clean()
-
-        try:
-            cleaned_data['frete'] = parse_decimal(
-                cleaned_data.get('frete')
-            )
-        except:
-            self.add_error('frete', 'Valor inválido.')
+        try: cleaned_data['frete'] = parse_decimal(cleaned_data.get('frete'))
+        except: self.add_error('frete', 'Valor inválido.')
         return cleaned_data
 
-EntradaProdutoFormSet = inlineformset_factory(
-    Entrada,
-    EntradaProduto,
-    fields=["produto", "quantidade", "preco_unitario", "desconto"],
-    extra=1,
-    can_delete=True
-)
+EntradaProdutoFormSet = inlineformset_factory(Entrada, EntradaProduto, fields=["produto", "quantidade", "preco_unitario", "desconto"], extra=1, can_delete=True)

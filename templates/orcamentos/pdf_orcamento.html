@@ -31,7 +31,7 @@
     </style>
     <head>
         <meta charset="UTF-8">
-        <title>Orçamento Porta Enrolar - {{ o.id }}</title>
+        <title>Orçamento Porta Enrolar - {{ o.codigo }}</title>
     </head>
     <body>
         <header class="page-header">
@@ -53,7 +53,7 @@
                     <tr>
                         <td style="font-size: 10px; text-align: justify;"><strong>CNPJ: {{ o.vinc_fil.cnpj }} |</strong> <span><strong>FONE: {{ o.vinc_fil.tel }}</strong></span></td>
                         <td style="background-color: gray;"><strong>Nº ORÇAMENTO</strong></td>
-                        <td>{{o.id}}</td>
+                        <td>{{o.codigo}}</td>
                     </tr>
                     <tr>
                         <td style="font-size: 10px; text-align: justify;"><strong>END: {{o.vinc_fil.endereco}}, Nº: {{o.vinc_fil.numero}} - BAIRRO: {{o.vinc_fil.bairro_fil}}</strong></td>
@@ -212,7 +212,7 @@
                     <tbody>
                         {% for p in pt.produtos.all %}
                         <tr>
-                            <td colspan="1"><strong>{{ p.produto.id }}</strong></td>
+                            <td colspan="1"><strong>{{ p.produto.codigo }}</strong></td>
                             <td colspan="2"><strong>{{ p.produto.desc_prod }}</strong></td>
                             <td colspan="1"><strong>{{ p.produto.unidProd }}</strong></td>
                             <td colspan="1"><strong>R$ {{ p.valor_unitario|moeda_br }}</strong></td>
@@ -229,7 +229,7 @@
                     <tbody>
                         {% for a in pt.adicionais.all %}
                         <tr>
-                            <td colspan="1"><strong>{{ a.produto.id }}</strong></td>
+                            <td colspan="1"><strong>{{ a.produto.codigo }}</strong></td>
                             <td colspan="2"><strong>{{ a.produto.desc_prod }}</strong></td>
                             <td colspan="1"><strong>{{ a.produto.unidProd }}</strong></td>
                             <td colspan="1"><strong>R$ {{ a.valor_unitario|moeda_br }}</strong></td>

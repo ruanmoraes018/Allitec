@@ -154,23 +154,16 @@ $(document).ready(function() {
         const temVirgula = s.includes(',');
         const temPonto = s.includes('.');
         if (temVirgula && temPonto) {
-            if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
-                s = s.replace(/\./g, '').replace(',', '.');
-            } else {
-                s = s.replace(/,/g, '');
-            }
-        } else if (temVirgula) {
-            s = s.replace(',', '.');
-        }
+            if (s.lastIndexOf(',') > s.lastIndexOf('.')) {s = s.replace(/\./g, '').replace(',', '.');} 
+            else {s = s.replace(/,/g, '');}
+        } 
+        else if (temVirgula) {s = s.replace(',', '.');}
         const num = parseFloat(s);
         return isNaN(num) ? 0 : num;
     }
     function formatBR(valor, casas = 2) {
         const num = parseBR(valor);
-        return num.toLocaleString('pt-BR', {
-            minimumFractionDigits: casas,
-            maximumFractionDigits: casas
-        });
+        return num.toLocaleString('pt-BR', {minimumFractionDigits: casas, maximumFractionDigits: casas});
     }
     function formatInputBR(valor, casas = 2) {
         const num = parseBR(valor);
@@ -179,30 +172,18 @@ $(document).ready(function() {
     function aplicarMascaraMoney(input) {
         if (!input) return;
         let valor = '';
-        if (typeof input === 'object' && input.value !== undefined) {
-            valor = input.value;
-        } 
-        else {
-            valor = String(input);
-        }
+        if (typeof input === 'object' && input.value !== undefined) {valor = input.value;} 
+        else {valor = String(input);}
         valor = valor.replace(/\D/g, '');
         if (!valor) {
-            if (typeof input === 'object' && input.value !== undefined) {
-                input.value = '0,00';
-            }
+            if (typeof input === 'object' && input.value !== undefined) {input.value = '0,00';}
             return '0,00';
         }
         let num = parseInt(valor, 10) / 100;
-        let formatado = num.toLocaleString('pt-BR', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        });
-        if (typeof input === 'object' && input.value !== undefined) {
-            input.value = formatado;
-        }
+        let formatado = num.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        if (typeof input === 'object' && input.value !== undefined) {input.value = formatado;}
         return formatado;
     }
-    
     // Teste para Abertura de Caixa
     $(function () {
         const $container = $('#formas-container');
@@ -212,12 +193,7 @@ $(document).ready(function() {
             $container.append(`
                 <div class="col-md-3 mb-2">
                     <label>${f.descricao}</label>
-                    <input 
-                        type="text"
-                        name="forma_${f.id}" 
-                        class="form-control form-control-sm text-end fw-bold money"
-                        value="0,00"
-                    >
+                    <input type="text" name="forma_${f.codigo}" class="form-control form-control-sm text-end fw-bold money" value="0,00">
                 </div>
             `);
         });

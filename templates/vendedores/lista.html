@@ -104,18 +104,18 @@
                         <tr>
 
                             <td data-label="Opções:" class="mobile-2col">
-                                <a href="{% url 'att-vendedor' vendedor.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
+                                <a href="{% url 'att-vendedor' vendedor.codigo %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
                                   data-permissao="vendedores.change_vendedor"
                                   data-msg-negado="Seu usuário não pode editar vendedores!"><span><i class="fas fa-edit" title="Editar vendedor"></i></span></a>
                                 <span>
-                                    <i class="fas fa-trash" title="Deletar" data-bs-toggle="modal" data-bs-target="#modal-{{ vendedor.id }}"></i>
+                                    <i class="fas fa-trash" title="Deletar" data-bs-toggle="modal" data-bs-target="#modal-{{ vendedor.codigo }}"></i>
                                 </span>
                                 <!-- Modal ÚNICO para cada vendedor -->
-                                <div class="modal fade" id="modal-{{ vendedor.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ vendedor.id }}" aria-hidden="true">
+                                <div class="modal fade" id="modal-{{ vendedor.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ vendedor.codigo }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header titulo-modal">
-                                                <h1 class="modal-title fs-5" id="modalLabel-{{ vendedor.id }}">
+                                                <h1 class="modal-title fs-5" id="modalLabel-{{ vendedor.codigo }}">
                                                     <i class="fa-regular fa-circle-question"></i> Confirmação!
                                                 </h1>
                                             </div>
@@ -123,7 +123,7 @@
                                                 <p>Você confirma a EXCLUSÃO DO VENDEDOR <strong>{{ vendedor.fantasia }}</strong>?</p>
                                             </div>
                                             <div class="modal-footer">
-                                                <form method="post" action="{% url 'del-vendedor' vendedor.id %}" class="form-excluir">
+                                                <form method="post" action="{% url 'del-vendedor' vendedor.codigo %}" class="form-excluir">
                                                     {% csrf_token %}
                                                     <button type="submit" class="btn btn-primary btn-confirmar" disabled>
                                                         <u>S</u>im <span class="contador">3</span>
@@ -137,7 +137,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ vendedor.id }}</td>
+                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ vendedor.codigo }}</td>
                             <td data-label="Situação:" class="mobile-2col" style="text-align: center; padding: 5px;">
                                 {% if vendedor.situacao == 'Ativo' %}
                                     <div style="background-color: #2c2c2c; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">

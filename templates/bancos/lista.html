@@ -65,23 +65,23 @@
                     {% for banco in bancos %}
                         <tr>
                             <td data-label="Opções:" class="mobile-2col">
-                                <a href="{% url 'att-banco' banco.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
+                                <a href="{% url 'att-banco' banco.codigo %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
                                   data-permissao="bancos.change_banco"
                                   data-msg-negado="Seu usuário não pode editar bancos!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                                 <span>
                                     <i class="fas fa-trash btn-permissao"
                                        title="Deletar banco"
-                                       data-bs-target="#modal-{{ banco.id }}"
+                                       data-bs-target="#modal-{{ banco.codigo }}"
                                        data-permissao="bancos.delete_banco"
                                        data-msg-negado="Seu usuário não pode deletar bancos!">
                                     </i>
                                 </span>
                                 <!-- Modal ÚNICO para cada banco -->
-                                <div class="modal fade" id="modal-{{ banco.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ banco.id }}" aria-hidden="true">
+                                <div class="modal fade" id="modal-{{ banco.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ banco.codigo }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header titulo-modal">
-                                                <h1 class="modal-title fs-5" id="modalLabel-{{ banco.id }}">
+                                                <h1 class="modal-title fs-5" id="modalLabel-{{ banco.codigo }}">
                                                     <i class="fa-regular fa-circle-question"></i> Confirmação!
                                                 </h1>
                                             </div>
@@ -89,7 +89,7 @@
                                                 <p>Você confirma a EXCLUSÃO DO BANCO <strong>{{ banco.nome_banco }}</strong>?</p>
                                             </div>
                                             <div class="modal-footer">
-                                                <form method="post" action="{% url 'del-banco' banco.id %}" class="form-excluir">
+                                                <form method="post" action="{% url 'del-banco' banco.codigo %}" class="form-excluir">
                                                     {% csrf_token %}
                                                     <button type="submit" class="btn btn-primary btn-confirmar" disabled>
                                                         <u>S</u>im <span class="contador">3</span>
@@ -104,7 +104,7 @@
                                 </div>
                                 
                             </td>
-                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ banco.id }}</td>
+                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ banco.codigo }}</td>
                             <td data-label="Descrição:" class="mobile-2col text-uppercase" style="align-items: center;">{{ banco.nome_banco }}</td>
                             <td data-label="Código Banco:" class="mobile-2col" style="align-items: center;">{{ banco.cod_banco }}</td>
                         </tr>

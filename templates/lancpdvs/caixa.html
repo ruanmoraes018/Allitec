@@ -102,7 +102,7 @@
                             data-acao="atribuir_acrescimo_ped" data-msg-negado="Seu usuário não pode aplicar acréscimos em Caixas!">
                             <i class="fa-solid fa-brazilian-real-sign"></i> Aplicar Acréscimo
                         </button>
-                        <button class="btn btn-light w-100 text-start menu-caixa border border-secondary btnMovi" style="color: #ff8800;" data-caixa-id="{{ caixa.id }}" data-bs-target="#modalMovCaixa" data-bs-toggle="modal">
+                        <button class="btn btn-light w-100 text-start menu-caixa border border-secondary btnMovi" style="color: #ff8800;" data-caixa-id="{{ caixa.codigo }}" data-bs-target="#modalMovCaixa" data-bs-toggle="modal">
                             <i class="fa-solid fa-arrows-turn-to-dots"></i> Movimentação
                         </button>
                         <button class="btn btn-light w-100 text-start menu-opcao op-faturar border border-secondary" data-bs-target="#mdDadosVenda" data-bs-toggle="modal">
@@ -225,7 +225,7 @@
                             <select id="dadosCliente" class="form-select form-select-sm">
                                 <option value="">Selecione um cliente</option>
                                 {% for c in clientes %}
-                                    <option value="{{ c.id }}">{{ c.fantasia }}</option>
+                                    <option value="{{ c.codigo }}">{{ c.fantasia }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -234,7 +234,7 @@
                             <select id="dadosVendedor" class="form-select form-select-sm">
                                 <option value="">Selecione um vendedor</option>
                                 {% for v in vendedores %}
-                                    <option value="{{ v.id }}">{{ v.fantasia }}</option>
+                                    <option value="{{ v.codigo }}">{{ v.fantasia }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -243,7 +243,7 @@
                             <select id="dadosTabelaPrecos" class="form-select form-select-sm">
                                 <option value="">Selecione uma tabela</option>
                                 {% for t in tabelas_precos %}
-                                    <option value="{{ t.id }}">{{ t.descricao }}</option>
+                                    <option value="{{ t.codigo }}">{{ t.descricao }}</option>
                                 {% endfor %}
                             </select>
                         </div>    
@@ -255,7 +255,7 @@
                 </div>
             </div>
         </div>
-        <div class="modal modal-pagamento" data-tipo="caixa" data-id="0" data-total="0" data-forma-padrao-id="{{ forma_padrao.id }}" data-forma-padrao-text="{{ forma_padrao.descricao }}">
+        <div class="modal modal-pagamento" data-tipo="caixa" data-id="0" data-total="0" data-forma-padrao-id="{{ forma_padrao.codigo }}" data-forma-padrao-text="{{ forma_padrao.descricao }}">
                     <div class="modal-header bg-success text-white" style="max-height: 30px;">
                         <h5><i class="fa-solid fa-money-bill" style="font-size: 16px;"></i> Finalizar Venda</h5>
                     </div>
@@ -277,7 +277,7 @@
                                 <label class="form-label fw-bold">Forma de Pagamento:</label>
                                 <select class="form-select forma-pgto">
                                     {% for f in formas_pgto %}
-                                        <option value="{{ f.id }}" data-padrao="{{ fp.forma_padrao }}">{{ f.descricao }}</option>
+                                        <option value="{{ f.codigo }}" data-padrao="{{ fp.forma_padrao }}">{{ f.descricao }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -587,7 +587,7 @@
     </div>
 </div>
 <script>
-    const FILIAL_ID = "{{ caixa.vinc_fil.id|escapejs }}";
-    const CAIXA_ID = "{{ caixa.id|escapejs }}";
+    const FILIAL_ID = "{{ caixa.vinc_fil.codigo|escapejs }}";
+    const CAIXA_ID = "{{ caixa.codigo|escapejs }}";
 </script>
 {% endblock %}

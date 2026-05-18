@@ -5,8 +5,10 @@ from produtos.models import Produto
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from pedidos.services import finalizar_pedido
+from django.db import transaction
 
 class Pedido(models.Model):
+    codigo = models.PositiveIntegerField(blank=True, null=True)
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
     vinc_fil = models.ForeignKey('filiais.Filial', on_delete=models.PROTECT)
     caixa = models.ForeignKey('lancpdvs.Caixa', on_delete=models.PROTECT, null=True, blank=True)
@@ -55,10 +57,19 @@ class Pedido(models.Model):
         if self.status_pagamento == "pago" and self.situacao != "Faturado":
             finalizar_pedido(self)
     def save(self, *args, **kwargs):
-        self.nome_cli = self.cli.fantasia
-        self.fantasia_fil = self.vinc_fil.fantasia
-        self.nome_vend = self.vendedor.fantasia
-        super().save(*args, **kwargs)
+        if self.vinc_emp and not self.codigo:
+            with transaction.atomic():
+                ult = (Pedido.objects.select_for_update().filter(vinc_emp=self.vinc_emp).aggregate(models.Max('codigo'))['codigo__max'] or 0)
+                self.codigo = ult + 1
+                self.nome_cli = getattr(self.cli, 'fantasia', '').strip().upper()
+                self.nome_vend = getattr(self.vendedor, 'fantasia', '').strip().upper()
+                self.fantasia_fil = getattr(self.vinc_fil, 'fantasia', '').strip().upper()
+                super().save(*args, **kwargs)
+        else:
+            self.nome_cli = getattr(self.cli, 'fantasia', '').strip().upper()
+            self.nome_vend = getattr(self.vendedor, 'fantasia', '').strip().upper()
+            self.fantasia_fil = getattr(self.vinc_fil, 'fantasia', '').strip().upper()
+            super().save(*args, **kwargs)
     @property
     def formas_convertidas(self):
         return [{"descricao": fp.forma_pgto.descricao, "valor": fp.valor} for fp in self.formas_pgto.select_related("forma_pgto").all()]
@@ -74,6 +85,9 @@ class Pedido(models.Model):
             ("alt_vl_ped", "Pode alterar valor de produtos em pedidos"),
             ("alterar_data_faturamento", "Pode alterar data de faturamento"),
             ("relatorio_pedidos", "Pode acessar relatório de pedidos"),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=['codigo', 'vinc_emp'], name='unique_codigo_pedido_empresa')
         ]
 
 class PedidoProduto(models.Model):

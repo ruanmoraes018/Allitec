@@ -6,50 +6,39 @@ from tecnicos.models import Tecnico
 import unicodedata
 from django.utils import timezone
 from django.conf import settings
+from django.db import transaction
 
 class SolicitacaoPermissao(models.Model):
+    codigo = models.PositiveIntegerField(blank=True, null=True)
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE, related_name='solicitacoes_permissao')
-    solicitante = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name="solicitacoes_criadas"
-    )
-    autorizado_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="solicitacoes_autorizadas"
-    )
+    solicitante = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="solicitacoes_criadas")
+    autorizado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="solicitacoes_autorizadas")
     acao = models.CharField(max_length=100)
-    status = models.CharField(
-        max_length=20,
-        choices=[
-            ('Pendente', 'Pendente'),
-            ('Aprovada', 'Aprovada'),
-            ('Negada', 'Negada'),
-            ('Expirada', 'Expirada')
-        ],
-        default='Pendente'
-    )
+    status = models.CharField(max_length=20, choices=[('Pendente', 'Pendente'), ('Aprovada', 'Aprovada'), ('Negada', 'Negada'), ('Expirada', 'Expirada')], default='Pendente')
     criado_em = models.DateTimeField(auto_now_add=True)
     expira_em = models.DateTimeField()
-
     def esta_ativa(self):
         return self.status == 'Pendente' and timezone.now() < self.expira_em
-
     def save(self, *args, **kwargs):
-        if not self.vinc_emp_id:
-            if self.solicitante and getattr(self.solicitante, 'empresa', None):
-                self.vinc_emp = self.solicitante.empresa
-        super().save(*args, **kwargs)
+        if self.vinc_emp and not self.codigo:
+            with transaction.atomic():
+                ult = (Orcamento.objects.select_for_update().filter(vinc_emp=self.vinc_emp).aggregate(models.Max('codigo'))['codigo__max'] or 0)
+                self.codigo = ult + 1
+                if not self.vinc_emp_id:
+                    if self.solicitante and getattr(self.solicitante, 'empresa', None):
+                        self.vinc_emp = self.solicitante.empresa
+                super().save(*args, **kwargs)
+        else:
+            if not self.vinc_emp_id:
+                if self.solicitante and getattr(self.solicitante, 'empresa', None): self.vinc_emp = self.solicitante.empresa
+            super().save(*args, **kwargs)
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
     return ''.join([c for c in nfkd_form if not unicodedata.combining(c)])
 
 class Orcamento(models.Model):
+    codigo = models.PositiveIntegerField(blank=True, null=True)
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
     vinc_fil = models.ForeignKey('filiais.Filial', on_delete=models.PROTECT, null=True, db_index=True)
     tabela_preco = models.ForeignKey('tabelas_preco.TabelaPreco', on_delete=models.PROTECT, null=True, blank=True)
@@ -62,16 +51,7 @@ class Orcamento(models.Model):
     nome_fornecedor = models.CharField(max_length=255, blank=True)
     situacao = models.CharField(max_length=10, choices=[('Aberto', 'Aberto'), ('Faturado', 'Faturado'), ('Cancelado', 'Cancelado')], default='Aberto', db_index=True)
     status = models.CharField(max_length=15, choices=[('Em Produção', 'Em Produção'), ('Embalada', 'Embalada'), ('Entregue', 'Entregue'), ('Instalada', 'Instalada')], default='Em Produção', db_index=True)
-    status_pagamento = models.CharField(
-        max_length=15,
-        choices=[
-            ('Pendente', 'Pendente'),
-            ('Parcial', 'Parcial'),
-            ('Pago', 'Pago'),
-        ],
-        default='Pendente',
-        db_index=True
-    )
+    status_pagamento = models.CharField( max_length=15, choices=[('Pendente', 'Pendente'), ('Parcial', 'Parcial'), ('Pago', 'Pago'),], default='Pendente', db_index=True)
     num_orcamento = models.CharField(max_length=25, db_index=True)
     obs_cli = models.TextField(default="", blank=True)
     pintura = models.CharField(max_length=5, choices=[('Sim', 'Sim'), ('Não', 'Não')], default='Sim')
@@ -100,23 +80,12 @@ class Orcamento(models.Model):
     def atualizar_status_pagamento(self):
         from pedidos.models import Pagamento
         from django.contrib.contenttypes.models import ContentType
-
         ct = ContentType.objects.get_for_model(self)
-
-        pagamentos = Pagamento.objects.filter(
-            content_type=ct,
-            object_id=self.id
-        )
-
-        if not pagamentos.exists():
-            self.status_pagamento = 'Pendente'
-        elif all(p.status == 'approved' for p in pagamentos):
-            self.status_pagamento = 'Pago'
-        elif any(p.status == 'approved' for p in pagamentos):
-            self.status_pagamento = 'Parcial'
-        else:
-            self.status_pagamento = 'Pendente'
-
+        pagamentos = Pagamento.objects.filter(content_type=ct, object_id=self.id)
+        if not pagamentos.exists(): self.status_pagamento = 'Pendente'
+        elif all(p.status == 'approved' for p in pagamentos): self.status_pagamento = 'Pago'
+        elif any(p.status == 'approved' for p in pagamentos): self.status_pagamento = 'Parcial'
+        else: self.status_pagamento = 'Pendente'
         self.save(update_fields=['status_pagamento'])
     def atualizar_subtotal(self):
         subtotal = Decimal("0.00")
@@ -126,13 +95,22 @@ class Orcamento(models.Model):
         self.subtotal = subtotal
         self.total = subtotal - (self.desconto or Decimal("0.00")) + (self.acrescimo or Decimal("0.00"))
         return self.subtotal
-
     def save(self, *args, **kwargs):
-        self.nome_solicitante = getattr(self.solicitante, 'nome', '')
-        self.nome_cli = getattr(self.cli, 'fantasia', '')
-        self.nome_fornecedor = getattr(self.fornecedor, 'fantasia', '')
-        self.fantasia_emp = getattr(self.vinc_fil, 'fantasia', '').upper()
-        super().save(*args, **kwargs)
+        if self.vinc_emp and not self.codigo:
+            with transaction.atomic():
+                ult = (Orcamento.objects.select_for_update().filter(vinc_emp=self.vinc_emp).aggregate(models.Max('codigo'))['codigo__max'] or 0)
+                self.codigo = ult + 1
+                self.nome_solicitante = getattr(self.solicitante, 'nome', '').strip().upper()
+                self.nome_cli = getattr(self.cli, 'fantasia', '').strip().upper()
+                self.nome_fornecedor = getattr(self.fornecedor, 'fantasia', '').strip().upper()
+                self.fantasia_emp = getattr(self.vinc_fil, 'fantasia', '').strip().upper()
+                super().save(*args, **kwargs)
+        else:
+            self.nome_solicitante = getattr(self.solicitante, 'nome', '').strip().upper()
+            self.nome_cli = getattr(self.cli, 'fantasia', '').strip().upper()
+            self.nome_fornecedor = getattr(self.fornecedor, 'fantasia', '').strip().upper()
+            self.fantasia_emp = getattr(self.vinc_fil, 'fantasia', '').strip().upper()
+            super().save(*args, **kwargs)
 
     class Meta:
         verbose_name_plural = "Orçamentos"
@@ -142,6 +120,7 @@ class Orcamento(models.Model):
             ("alterar_dt_venc_orc", "Pode alterar a data de vencimento na fatura de orçamento"), ("alterar_dt_fat_orc", "Pode alterar a data de faturamento na fatura de orçamento"),
             ("vender_sem_estoque_orc", "Pode vender sem estoque em orçamentos"),
         ]
+        constraints = [models.UniqueConstraint(fields=['codigo', 'vinc_emp'], name='unique_codigo_orcamento_empresa')]
 # 🔥 NOVO MODELO — uma porta pertence a um orçamento
 class PortaOrcamento(models.Model):
     orcamento = models.ForeignKey(Orcamento, on_delete=models.CASCADE, related_name="portas")
@@ -170,23 +149,18 @@ class PortaProduto(models.Model):
     valor_unitario = models.DecimalField(max_digits=10, decimal_places=2)
     valor_total = models.DecimalField(max_digits=10, decimal_places=2)
     regra_origem = models.CharField(max_length=50, null=True, blank=True)
-
     @property
     def subtotalP(self):
         return self.valor_total or Decimal("0.00")
-
     @property
     def totCompraP(self):
         try:
             vl = self.produto.vl_compra
-            if vl in (None, ""):
-                return Decimal("0.00")
-
+            if vl in (None, ""): return Decimal("0.00")
             vl = str(vl).replace(",", ".").strip()
             return Decimal(vl) * (self.quantidade or Decimal("0"))
         except InvalidOperation:
             return Decimal("0.00")
-
     def __str__(self):
         return f"Porta {self.porta.numero} - {self.produto.desc_prod}"
 
@@ -197,29 +171,19 @@ class PortaAdicional(models.Model):
     valor_unitario = models.DecimalField(max_digits=10, decimal_places=2)
     valor_total = models.DecimalField(max_digits=10, decimal_places=2)
     regra_origem = models.CharField(max_length=50, null=True, blank=True)
-    LADO_CHOICES = (
-        ('', '---------'),
-        ('E', 'Esquerdo'),
-        ('D', 'Direito'),
-        ('C', 'Centro'),
-    )
+    LADO_CHOICES = (('', '---------'), ('E', 'Esquerdo'), ('D', 'Direito'), ('C', 'Centro'),)
     lado = models.CharField(max_length=1, choices=LADO_CHOICES, blank=True, default='')
-
     @property
     def subtotalA(self):
         return self.valor_total or Decimal("0.00")
-
     @property
     def totCompraA(self):
         try:
             vl = self.produto.vl_compra
-            if vl in (None, ""):
-                return Decimal("0.00")
+            if vl in (None, ""): return Decimal("0.00")
             vl = str(vl).replace(",", ".").strip()
             return Decimal(vl) * (self.quantidade or Decimal("0"))
-        except InvalidOperation:
-            return Decimal("0.00")
-
+        except InvalidOperation: return Decimal("0.00")
     def __str__(self):
         return f"(Adicional) Porta {self.porta.numero} - {self.produto.desc_prod}"
 
@@ -229,9 +193,7 @@ class OrcamentoFormaPgto(models.Model):
     valor = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     parcelas = models.PositiveIntegerField(default=1)
     dias_intervalo = models.PositiveIntegerField(default=0)
-
     class Meta:
         constraints = [models.UniqueConstraint(fields=["orcamento", "formas_pgto"], name="uniq_orc_formapgto")]
-
     def __str__(self):
         return f"{self.orcamento.id} - {self.formas_pgto.descricao}"

@@ -6,6 +6,4 @@ class BancoForm(forms.ModelForm):
     cod_banco = forms.CharField(label='Cód. Banco', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
     class Meta:
         model = Banco
-        fields = (
-            'nome_banco', 'cod_banco'
-        )
+        fields = ('nome_banco', 'cod_banco')

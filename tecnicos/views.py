@@ -7,14 +7,7 @@ from .models import Tecnico
 from .forms import TecnicoForm
 import unicodedata
 from django.http import JsonResponse
-from filiais.models import Usuario
-import json
-from django.http import HttpResponse
-import os
-from django.conf import settings
 from util.permissoes import verifica_permissao
-import ast
-from django.db.models.functions import Concat, Substr
 from django.db.models import Q
 
 def remove_accents(input_str):
@@ -37,54 +30,35 @@ def lista_tecnicos(request):
         norm_s = remove_accents(s).lower()
         tecnicos = tecnicos.filter(nome__icontains=norm_s).order_by('nome')
     elif tp == 'cod' and s:
-        try:
-            tecnicos = tecnicos.filter(id__iexact=s).order_by('nome')
-        except ValueError:
-            tecnicos = Tecnico.objects.none()
+        try: tecnicos = tecnicos.filter(codigo__iexact=s).order_by('nome')
+        except ValueError: tecnicos = Tecnico.objects.none()
     if p_dt == 'Sim' and dt_ini and dt_fim:
         try:
             dt_ini_dt = datetime.strptime(dt_ini, '%d/%m/%Y').date()
             dt_fim_dt = datetime.strptime(dt_fim, '%d/%m/%Y').date()
             tecnicos = tecnicos.filter(dt_reg__range=(dt_ini_dt, dt_fim_dt))
-        except ValueError:
-            tecnicos = Tecnico.objects.none()
-    if f_s in ['Ativo', 'Inativo']:
-        tecnicos = tecnicos.filter(situacao=f_s).order_by('nome')
-    if reg == 'todos':
-            num_pagina = tecnicos.count() or 1  # Mostra todas as filials
+        except ValueError: tecnicos = Tecnico.objects.none()
+    if f_s in ['Ativo', 'Inativo']: tecnicos = tecnicos.filter(situacao=f_s).order_by('nome')
+    if reg == 'todos': num_pagina = tecnicos.count() or 1  # Mostra todas as filials
     else:
-        try:
-            num_pagina = int(reg)
-        except ValueError:
-            num_pagina = 10
+        try: num_pagina = int(reg)
+        except ValueError: num_pagina = 10
     paginator = Paginator(tecnicos, num_pagina)
     page = request.GET.get('page')
     tecnicos = paginator.get_page(page)
-    return render(request, 'tecnicos/lista.html', {
-        'tecnicos': tecnicos,
-        's': s,
-        'tp': tp,
-        'dt_ini': dt_ini,
-        'dt_fim': dt_fim,
-        'p_dt': p_dt,
-        'reg': reg,
-    })
+    return render(request, 'tecnicos/lista.html', {'tecnicos': tecnicos, 's': s, 'tp': tp, 'dt_ini': dt_ini, 'dt_fim': dt_fim, 'p_dt': p_dt, 'reg': reg,})
 
 @login_required
 def lista_tecnicos_ajax(request):
     termo_busca = request.GET.get('term') or request.GET.get('q') or ''
     empresa = request.user.empresa
     try:
-        if termo_busca.isdigit():
-            condicao_busca = Q(nome__icontains=termo_busca) | Q(id=termo_busca)
-        else:
-            condicao_busca = Q(nome__icontains=termo_busca)
+        if termo_busca.isdigit(): condicao_busca = Q(nome__icontains=termo_busca) | Q(codigo=termo_busca)
+        else: condicao_busca = Q(nome__icontains=termo_busca)
         tecnicos = Tecnico.objects.filter(condicao_busca & Q(vinc_emp=empresa))[:20]
-        results = [{'id': tecnico.id, 'text': f"{tecnico.nome.upper()}"} for tecnico in tecnicos]
+        results = [{'id': tecnico.codigo, 'text': f"{tecnico.nome.upper()}"} for tecnico in tecnicos]
         return JsonResponse({'results': results})
-    except Exception as e:
-        print(f"Erro na busca AJAX: {e}")
-        return JsonResponse({'results': [], 'error': str(e)})
+    except Exception as e: return JsonResponse({'results': [], 'error': str(e)})
 
 @login_required
 def add_tecnico(request):
@@ -98,21 +72,19 @@ def add_tecnico(request):
             t.vinc_emp = request.user.empresa
             t.save()
             messages.success(request, 'Técnico adicionado com sucesso!')
-            tec = str(t.id)
+            tec = str(t.codigo)
             return redirect('/tecnicos/lista/?tp=cod&s=' + tec)
         else:
             error_messages = []
             for field in form:
-                if field.errors:
-                    for error in field.errors:
-                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'tecnicos/add-tecnico.html', {'form': form, 'error_messages': error_messages})
     else: form = TecnicoForm(empresa=request.user.empresa)
     return render(request, 'tecnicos/add-tecnico.html', {'form': form})
 
 @login_required
-def att_tecnico(request, id):
-    tec = get_object_or_404(Tecnico, pk=id, vinc_emp=request.user.empresa)
+def att_tecnico(request, codigo):
+    tec = get_object_or_404(Tecnico, codigo=codigo, vinc_emp=request.user.empresa)
     form = TecnicoForm(instance=tec, empresa=request.user.empresa)
     if not request.user.has_perm('tecnicos.change_tecnico'):
         messages.info(request, 'Você não tem permissão para editar técnicos.')
@@ -122,30 +94,26 @@ def att_tecnico(request, id):
         if form.is_valid():
             tec = form.save(commit=False)
             tec.save()
-            t = str(tec.id)
+            t = str(tec.codigo)
             messages.success(request, 'Técnico atualizado com sucesso!')
             next_url = request.POST.get('next') or request.GET.get('next')
-            if next_url:
-                return redirect(next_url)
-            else:
-                return redirect('/tecnicos/lista/?tp=cod&s=' + t)
+            if next_url: return redirect(next_url)
+            else: return redirect('/tecnicos/lista/?tp=cod&s=' + t)
         else:
             error_messages = []
             for field in form:
-                if field.errors:
-                    for error in field.errors:
-                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'tecnicos/att-tecnico.html', {'form': form, 'tec': tec, 'error_messages': error_messages})
     else:
         form = TecnicoForm(instance=tec, empresa=request.user.empresa)
         return render(request, 'tecnicos/att-tecnico.html', {'form': form, 'tec': tec})
 
 @login_required
-def del_tecnico(request, id):
+def del_tecnico(request, codigo):
     if not request.user.has_perm('tecnicos.delete_tecnico'):
         messages.info(request, 'Você não tem permissão para deletar técnicos.')
         return redirect('/tecnicos/lista/')
-    tec = get_object_or_404(Tecnico, pk=id, vinc_emp=request.user.empresa)
+    tec = get_object_or_404(Tecnico, codigo=codigo, vinc_emp=request.user.empresa)
     tec.delete()
     messages.success(request, 'Técnico deletado com sucesso!')
     return redirect('/tecnicos/lista/')

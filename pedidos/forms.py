@@ -38,10 +38,8 @@ class PedidoForm(forms.ModelForm):
                 self.fields['vendedor'].initial = user.filial_user.vendedor.pk
         # Formatar os valores se o form está sendo carregado com uma instância
         if self.instance and self.instance.pk:
-            if self.instance.dt_emi:
-                self.initial['dt_emi'] = self.instance.dt_emi.strftime('%d/%m/%Y')
+            if self.instance.dt_emi: self.initial['dt_emi'] = self.instance.dt_emi.strftime('%d/%m/%Y')
 
     def clean_obs(self):
         return self.cleaned_data['obs'].upper()
-
 PedidoProdutoFormSet = inlineformset_factory(Pedido, PedidoProduto, fields=["produto", "quantidade", "desc_acres"], extra=1, can_delete=True)

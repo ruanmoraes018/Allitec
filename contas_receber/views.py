@@ -38,40 +38,28 @@ def lista_contas_receber(request):
     if not dt_ini and not dt_fim and not por_dt:
         hoje = date.today()
         primeiro_dia = hoje.replace(day=1)
-        if hoje.month == 12:
-            ultimo_dia = hoje.replace(year=hoje.year + 1, month=1, day=1) - timedelta(days=1)
-        else:
-            ultimo_dia = hoje.replace(month=hoje.month + 1, day=1) - timedelta(days=1)
+        if hoje.month == 12: ultimo_dia = hoje.replace(year=hoje.year + 1, month=1, day=1) - timedelta(days=1)
+        else: ultimo_dia = hoje.replace(month=hoje.month + 1, day=1) - timedelta(days=1)
         contas_receber = contas_receber.filter(situacao='Aberta', data_vencimento__range=(primeiro_dia, ultimo_dia))
         dt_ini = primeiro_dia.strftime('%d/%m/%Y')
         dt_fim = ultimo_dia.strftime('%d/%m/%Y')
         por_dt = 'Sim'
         sit = 'Aberta'
-    if sit in ['Aberta', 'Paga']:
-        contas_receber = contas_receber.filter(situacao=sit)
+    if sit in ['Aberta', 'Paga']: contas_receber = contas_receber.filter(situacao=sit)
     if por_dt == 'Sim' and dt_ini and dt_fim:
         try:
             dt_ini_dt = datetime.strptime(dt_ini, '%d/%m/%Y').date()
             dt_fim_dt = datetime.strptime(dt_fim, '%d/%m/%Y').date()
-            if list_p == 'dt_v':
-                contas_receber = contas_receber.filter(data_vencimento__range=(dt_ini_dt, dt_fim_dt))
-            elif list_p == 'dt_e':
-                contas_receber = contas_receber.filter(data_emissao__date__range=(dt_ini_dt, dt_fim_dt))
-            elif list_p == 'dt_p':
-                contas_receber = contas_receber.filter(data_pagamento__range=(dt_ini_dt, dt_fim_dt))
-        except ValueError:
-            contas_receber = ContaReceber.objects.none()
-    if fil:
-        contas_receber = contas_receber.filter(vinc_fil_id=fil)
-    if cli:
-        contas_receber = contas_receber.filter(cliente_id=cli)
-    if reg == 'todos':
-        num_pagina = contas_receber.count() or 1
+            if list_p == 'dt_v': contas_receber = contas_receber.filter(data_vencimento__range=(dt_ini_dt, dt_fim_dt))
+            elif list_p == 'dt_e': contas_receber = contas_receber.filter(data_emissao__date__range=(dt_ini_dt, dt_fim_dt))
+            elif list_p == 'dt_p': contas_receber = contas_receber.filter(data_pagamento__range=(dt_ini_dt, dt_fim_dt))
+        except ValueError: contas_receber = ContaReceber.objects.none()
+    if fil: contas_receber = contas_receber.filter(vinc_fil_codigo=fil)
+    if cli: contas_receber = contas_receber.filter(cliente_codigo=cli)
+    if reg == 'todos': num_pagina = contas_receber.count() or 1
     else:
-        try:
-            num_pagina = int(reg) if int(reg) > 0 else 10
-        except ValueError:
-            num_pagina = 10
+        try: num_pagina = int(reg) if int(reg) > 0 else 10
+        except ValueError: num_pagina = 10
     contas_receber = contas_receber.order_by(ordem)
     paginator = Paginator(contas_receber, num_pagina)
     page = request.GET.get('page')
@@ -87,58 +75,25 @@ def lista_contas_receber(request):
 def lista_contas_receber_ajax(request):
     term = request.GET.get('term', '')
     contas_receber = ContaReceber.objects.filter(vinc_fil__fantasia=term, vinc_emp=request.user.empresa)
-    data = {'contas_receber': [{'id': cr.id, 'filial': cr.vinc_fil.fantasia, 'cliente': cr.cliente.fantasia} for cr in contas_receber]}
+    data = {'contas_receber': [{'id': cr.codigo, 'filial': cr.vinc_fil.fantasia, 'cliente': cr.cliente.fantasia} for cr in contas_receber]}
     return JsonResponse(data)
 
 @login_required
-def detalhes_conta_receber_ajax(request, id):
+def detalhes_conta_receber_ajax(request, codigo):
     try:
-        cr = get_object_or_404(
-            ContaReceber.objects.select_related(
-                'cliente',
-                'vinc_fil',
-                'forma_pgto',
-                'pedido',
-                'orcamento'
-            ).prefetch_related('formas_baixa__forma_pgto'),
-            pk=id,
-            vinc_emp=request.user.empresa
-        )
-
+        cr = get_object_or_404(ContaReceber.objects.select_related('cliente', 'vinc_fil', 'forma_pgto', 'pedido', 'orcamento').prefetch_related('formas_baixa__forma_pgto'), codigo=codigo, vinc_emp=request.user.empresa)
         formas = []
         for i, f in enumerate(cr.formas_baixa.all(), start=1):
-            formas.append({
-                "item": f"{i:03}",
-                "forma": f.forma_pgto.descricao,
-                "valor": str(f.valor)
-            })
-
+            formas.append({"item": f"{i:03}", "forma": f.forma_pgto.descricao, "valor": str(f.valor)})
         data = {
-            "id": cr.id,
-            "num_conta": cr.num_conta,
-            "cliente": cr.cliente.fantasia,
-            "filial": cr.vinc_fil.fantasia if cr.vinc_fil else "",
-            "data_emissao": cr.data_emissao.strftime("%d/%m/%Y") if cr.data_emissao else "",
-            "data_vencimento": cr.data_vencimento.strftime("%d/%m/%Y") if cr.data_vencimento else "",
-            "data_pagamento": cr.data_pagamento.strftime("%d/%m/%Y") if cr.data_pagamento else "",
-            "situacao": cr.situacao,
-            "valor": str(cr.valor),
-            "juros": str(cr.valor_juros),
-            "multa": str(cr.valor_multa),
-            "desconto": str(cr.desconto),
-            "total": str(cr.valor_total),
-            "saldo": str(cr.saldo),
-            "dias_atraso": cr.dias_atraso,
-            "vencido": cr.esta_vencido,
-            "formas": formas,
-            "obs": cr.observacao or "",
-            "obs_internas": cr.obs_internas or "",
+            "id": cr.codigo, "num_conta": cr.num_conta, "cliente": cr.cliente.fantasia, "filial": cr.vinc_fil.fantasia if cr.vinc_fil else "",
+            "data_emissao": cr.data_emissao.strftime("%d/%m/%Y") if cr.data_emissao else "", "data_vencimento": cr.data_vencimento.strftime("%d/%m/%Y") if cr.data_vencimento else "",
+            "data_pagamento": cr.data_pagamento.strftime("%d/%m/%Y") if cr.data_pagamento else "", "situacao": cr.situacao, "valor": str(cr.valor), "juros": str(cr.valor_juros),
+            "multa": str(cr.valor_multa), "desconto": str(cr.desconto), "total": str(cr.valor_total), "saldo": str(cr.saldo), "dias_atraso": cr.dias_atraso,
+            "vencido": cr.esta_vencido, "formas": formas, "obs": cr.observacao or "", "obs_internas": cr.obs_internas or "",
         }
-
         return JsonResponse(data)
-
-    except ContaReceber.DoesNotExist:
-        return JsonResponse({'error': 'Conta não encontrada'}, status=404)
+    except ContaReceber.DoesNotExist: return JsonResponse({'error': 'Conta não encontrada'}, status=404)
 
 @login_required
 def add_conta_receber(request):
@@ -155,31 +110,25 @@ def add_conta_receber(request):
                 cr.valor = parse_decimal(request.POST.get('valor'))
                 cr.data_emissao = datetime.now().date()
                 cr.save()
-                cid = str(cr.id)
+                cid = str(cr.codigo)
                 messages.success(request, 'Conta à Receber gerada com sucesso!')
                 return redirect('/contas_receber/lista/?tp=cod&s=' + cid)
-            except ObjectDoesNotExist:
-                error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+            except ObjectDoesNotExist: error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
             except IntegrityError as e:
                 detalhe = str(e)
-                if hasattr(e, '__cause__') and e.__cause__:
-                    detalhe = str(e.__cause__)
+                if hasattr(e, '__cause__') and e.__cause__: detalhe = str(e.__cause__)
                 error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
-            except DatabaseError as e:
-                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
-            except Exception as e:
-                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+            except DatabaseError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+            except Exception as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
         else:
             for field in form:
-                for error in field.errors:
-                    error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
-    else:
-        form = ContaReceberForm(empresa=request.user.empresa)
+                for error in field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+    else: form = ContaReceberForm(empresa=request.user.empresa)
     return render(request, 'contas_receber/add.html', {'form': form, 'error_messages': error_messages})
 
 @login_required
-def att_conta_receber(request, id):
-    cr = get_object_or_404(ContaReceber, pk=id, vinc_emp=request.user.empresa)
+def att_conta_receber(request, codigo):
+    cr = get_object_or_404(ContaReceber, codigo=codigo, vinc_emp=request.user.empresa)
     form = ContaReceberForm(instance=cr, empresa=request.user.empresa)
     if not request.user.has_perm('contas_receber.change_contareceber'):
         messages.info(request, 'Você não tem permissão para editar contas à receber.')
@@ -188,42 +137,37 @@ def att_conta_receber(request, id):
         dt_o = cr.data_emissao
         form = ContaReceberForm(request.POST, instance=cr, empresa=request.user.empresa)
         if form.is_valid():
-
             cr.data_emissao = dt_o
             cr.valor = parse_decimal(request.POST.get('valor'))
             cr.save()
             next_url = request.POST.get('next') or request.GET.get('next')
-            cid = str(cr.id)
+            cid = str(cr.codigo)
             messages.success(request, 'Conta à Receber atualizada com sucesso!')
-            if next_url:
-                return redirect(next_url)
-            else:
-                return redirect('/contas_receber/lista/?tp=cod&s=' + cid)
+            if next_url: return redirect(next_url)
+            else: return redirect('/contas_receber/lista/?tp=cod&s=' + cid)
         else:
             error_messages = []
             for field in form:
-                if field.errors:
-                    for error in field.errors:
-                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'contas_receber/att.html', {'form': form, 'cr': cr, 'error_messages': error_messages})
     else:
         form = ContaReceberForm(instance=cr, empresa=request.user.empresa)
         return render(request, 'contas_receber/att.html', {'form': form, 'cr': cr})
 
 @login_required
-def del_conta_receber(request, id):
+def del_conta_receber(request, codigo):
     if not request.user.has_perm('contas_receber.delete_contareceber'):
         messages.info(request, 'Você não tem permissão para deletar contas à receber.')
         return redirect('/contas_receber/lista/')
-    cr = get_object_or_404(ContaReceber, pk=id, vinc_emp=request.user.empresa)
+    cr = get_object_or_404(ContaReceber, codigo=codigo, vinc_emp=request.user.empresa)
     cr.delete()
     messages.success(request, 'Conta à Receber deletada com sucesso!')
     return redirect('/contas_receber/lista/')
 
 @login_required
 @transaction.atomic
-def pagar_conta_receber(request, id):
-    cr = get_object_or_404(ContaReceber, pk=id, vinc_emp=request.user.empresa)
+def pagar_conta_receber(request, codigo):
+    cr = get_object_or_404(ContaReceber, codigo=codigo, vinc_emp=request.user.empresa)
     if cr.situacao == 'Paga':
         messages.warning(request, 'Conta à Receber já está paga.')
         return redirect('/contas_receber/lista/')
@@ -233,11 +177,9 @@ def pagar_conta_receber(request, id):
     def dec(v):
         try:
             v = str(v or '0').strip()
-            if ',' in v:
-                v = v.replace('.', '').replace(',', '.')
+            if ',' in v: v = v.replace('.', '').replace(',', '.')
             return Decimal(v)
-        except:
-            return Decimal('0.00')
+        except: return Decimal('0.00')
     juros_final = dec(request.POST.get('juros'))
     multa_final = dec(request.POST.get('multa'))
     desconto_final = dec(request.POST.get('desconto'))
@@ -250,12 +192,8 @@ def pagar_conta_receber(request, id):
     total_pago = Decimal('0.00')
     for forma_id, valor_raw in zip(forma_ids, forma_valores_raw):
         valor = dec(valor_raw)
-        if valor <= 0:
-            continue
-        formas_processadas.append({
-            'forma_id': forma_id,
-            'valor': valor,
-        })
+        if valor <= 0: continue
+        formas_processadas.append({'forma_id': forma_id,'valor': valor,})
         total_pago += valor
     if not formas_processadas:
         messages.warning(request, 'Nenhum valor válido foi informado para a baixa.')
@@ -273,47 +211,24 @@ def pagar_conta_receber(request, id):
     cr.data_pagamento = date.today()
     cr.situacao = 'Paga'
     cr.observacao = (cr.observacao or '') + f' Baixa de R$ {total_pago:.2f}.'
-    if len(formas_processadas) == 1:
-        cr.forma_pgto_id = formas_processadas[0]['forma_id']
+    if len(formas_processadas) == 1: cr.forma_pgto_codigo = formas_processadas[0]['forma_id']
     cr.save()
     for item in formas_processadas:
-        forma = FormaPgto.objects.get(
-            id=item['forma_id'],
-            vinc_emp=request.user.empresa
-        )
+        forma = FormaPgto.objects.get(codigo=item['forma_id'], vinc_emp=request.user.empresa)
         cr.aplicar_pagamento(item['valor'], forma)
     if restante > 0:
         ContaReceber.objects.create(
-            vinc_emp=cr.vinc_emp,
-            vinc_fil=cr.vinc_fil,
-            orcamento=cr.orcamento,
-            pedido=cr.pedido,
-            cliente=cr.cliente,
-            forma_pgto=None,
-            num_conta=cr.num_conta,  # 🔥 mantém igual
-            tp_juros=cr.tp_juros,
-            tp_multa=cr.tp_multa,
-            valor=restante,
-            valor_pago=Decimal('0.00'),
-            juros=cr.juros,
-            multa=cr.multa,
-            desconto=Decimal('0.00'),
-            data_emissao=cr.data_emissao,
-            data_vencimento=cr.data_vencimento,
-            situacao='Aberta',
-            obs_internas=f'Saldo remanescente do título {cr.num_conta}, pago dia {cr.data_pagamento.strftime("%d/%m/%Y")}.'
+            vinc_emp=cr.vinc_emp, vinc_fil=cr.vinc_fil, orcamento=cr.orcamento, pedido=cr.pedido, cliente=cr.cliente, forma_pgto=None, num_conta=cr.num_conta, tp_juros=cr.tp_juros,
+            tp_multa=cr.tp_multa, valor=restante, valor_pago=Decimal('0.00'), juros=cr.juros, multa=cr.multa, desconto=Decimal('0.00'), data_emissao=cr.data_emissao,
+            data_vencimento=cr.data_vencimento, situacao='Aberta', obs_internas=f'Saldo remanescente do título {cr.num_conta}, pago dia {cr.data_pagamento.strftime("%d/%m/%Y")}.'
         )
-        messages.success(
-            request,
-            f'Baixa parcial realizada. Saldo restante: R$ {restante:.2f}.'
-        )
-    else:
-        messages.success(request, 'Baixa realizada com sucesso.')
+        messages.success(request, f'Baixa parcial realizada. Saldo restante: R$ {restante:.2f}.')
+    else: messages.success(request, 'Baixa realizada com sucesso.')
     return redirect('/contas_receber/lista/')
 
 @login_required
-def estornar_conta_receber(request, id):
-    cr = get_object_or_404(ContaReceber, pk=id, vinc_emp=request.user.empresa)
+def estornar_conta_receber(request, codigo):
+    cr = get_object_or_404(ContaReceber, codigo=codigo, vinc_emp=request.user.empresa)
     if cr.situacao == 'Aberta':
         messages.warning(request, 'Contas à Receber Abertas não podem ser estornadas!')
         return redirect('/contas_receber/lista/')
@@ -323,83 +238,45 @@ def estornar_conta_receber(request, id):
         messages.success(request, 'Estorno da Conta à Receber realizada com sucesso!')
         return redirect('/contas_receber/lista/')
 
-
 import json
 
 @login_required
 def gerar_pix_conta_receber(request, conta_id):
-    conta = get_object_or_404(
-        ContaReceber,
-        pk=conta_id,
-        vinc_emp=request.user.empresa
-    )
-    if conta.situacao == "Paga":
-        return JsonResponse({"erro": "Conta já paga"})
+    conta = get_object_or_404(ContaReceber, codigo=conta_id, vinc_emp=request.user.empresa)
+    if conta.situacao == "Paga": return JsonResponse({"erro": "Conta já paga"})
     formas_json = request.POST.get("formas", "[]")
-    try:
-        formas = json.loads(formas_json)
-    except:
-        return JsonResponse({"erro": "Formato inválido de formas"})
-    if not formas:
-        return JsonResponse({"erro": "Nenhuma forma enviada"})
+    try: formas = json.loads(formas_json)
+    except: return JsonResponse({"erro": "Formato inválido de formas"})
+    if not formas: return JsonResponse({"erro": "Nenhuma forma enviada"})
     total = Decimal('0.00')
     forma_pix = None
     for f in formas:
         valor = Decimal(str(f.get("valor", 0)))
         forma_id = f.get("forma_id")
-        if valor <= 0 or not forma_id:
-            continue
-        forma = FormaPgto.objects.filter(
-            id=forma_id,
-            vinc_emp=request.user.empresa
-        ).first()
-        if not forma:
-            continue
+        if valor <= 0 or not forma_id: continue
+        forma = FormaPgto.objects.filter(codigo=forma_id, vinc_emp=request.user.empresa).first()
+        if not forma: continue
         total += valor
-        if (forma.gateway or "").strip().lower() not in ["", "nenhum", "none"]:
-            forma_pix = forma
-    if not forma_pix:
-        return JsonResponse({"erro": "Nenhuma forma com gateway encontrada"})
-    if total <= 0:
-        return JsonResponse({"erro": "Valor inválido"})
+        if (forma.gateway or "").strip().lower() not in ["", "nenhum", "none"]: forma_pix = forma
+    if not forma_pix: return JsonResponse({"erro": "Nenhuma forma com gateway encontrada"})
+    if total <= 0: return JsonResponse({"erro": "Valor inválido"})
     pagamento = gerar_pagamento_conta_receber(conta, forma_pix, total)
-    if not pagamento:
-        return JsonResponse({"erro": "Falha ao gerar PIX"})
-    return JsonResponse({
-        "txid": pagamento.txid,
-        "qr_code": pagamento.qr_code,
-        "qr_base64": pagamento.qr_base64,
-        "valor": str(total)
-    })
+    if not pagamento: return JsonResponse({"erro": "Falha ao gerar PIX"})
+    return JsonResponse({"txid": pagamento.txid, "qr_code": pagamento.qr_code, "qr_base64": pagamento.qr_base64, "valor": str(total)})
 
 from django.utils import timezone
 from django.db.models import Sum
 
 @login_required
 def status_pagamento_conta(request, conta_id):
-    conta = get_object_or_404(
-        ContaReceber,
-        id=conta_id,
-        vinc_emp=request.user.empresa
-    )
-    total_pago = conta.formas_baixa.aggregate(
-        total=Sum('valor')
-    )['total'] or Decimal('0.00')
+    conta = get_object_or_404(ContaReceber, codigo=conta_id, vinc_emp=request.user.empresa)
+    total_pago = conta.formas_baixa.aggregate(total=Sum('valor'))['total'] or Decimal('0.00')
     conta.valor_pago = total_pago
     if conta.saldo <= 0 and conta.valor_pago > 0:
         conta.situacao = "Paga"
-        if not conta.data_pagamento:
-            conta.data_pagamento = timezone.now().date()
+        if not conta.data_pagamento: conta.data_pagamento = timezone.now().date()
     conta.save(update_fields=["valor_pago", "situacao", "data_pagamento"])
     total = conta.valor + conta.juros + conta.multa - conta.desconto
-
     parcial = conta.valor_pago > 0 and conta.valor_pago < total
     restante = total - conta.valor_pago
-    return JsonResponse({
-        "status": conta.situacao,
-        "saldo": str(conta.saldo),
-        "valor_pago": str(conta.valor_pago),
-        "pago": conta.situacao == "Paga",
-        "parcial": parcial,
-        "restante": str(restante)
-    })
+    return JsonResponse({"status": conta.situacao, "saldo": str(conta.saldo), "valor_pago": str(conta.valor_pago), "pago": conta.situacao == "Paga", "parcial": parcial, "restante": str(restante)})

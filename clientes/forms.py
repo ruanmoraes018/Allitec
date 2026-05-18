@@ -28,7 +28,6 @@ class ClienteForm(forms.ModelForm):
         fields = (
             'somente_avista', 'situacao', 'pessoa', 'cpf_cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro', 'complem', 'cidade', 'uf', 'tel', 'email', 'vinc_fil'
         )
-
     def __init__(self, *args, empresa=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         if empresa:

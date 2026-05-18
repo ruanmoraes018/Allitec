@@ -32,74 +32,42 @@ def lista_contratos(request):
     list_p = request.GET.get('list_p', 'dt_inicio')
     reg = request.GET.get('reg', '10')
     ordem = request.GET.get('ordem', 'empresa__fantasia')
-
     contratos = Contrato.objects.all().order_by(ordem)
-    if sit in ['Ativo', 'Suspenso', 'Cancelado']:
-        contratos = contratos.filter(situacao=sit)
+    if sit in ['Ativo', 'Suspenso', 'Cancelado']: contratos = contratos.filter(situacao=sit)
     if por_dt == 'Sim' and dt_ini and dt_fim:
         try:
-            # Converter as datas de entrada de string para date
             dt_ini_dt = datetime.strptime(dt_ini, '%d/%m/%Y').date()
             dt_fim_dt = datetime.strptime(dt_fim, '%d/%m/%Y').date()
-
-            if list_p == 'dt_inicio':
-                contratos = contratos.filter(dt_inicio__range=(dt_ini_dt, dt_fim_dt))
-            elif list_p == 'dt_criacao':
-                contratos = contratos.filter(created_at__date__range=(dt_ini_dt, dt_fim_dt))
-
-
-        except ValueError:
-            contratos = Contrato.objects.none()
-
-    if reg == 'todos':
-        num_pagina = contratos.count() or 1
+            if list_p == 'dt_inicio': contratos = contratos.filter(dt_inicio__range=(dt_ini_dt, dt_fim_dt))
+            elif list_p == 'dt_criacao': contratos = contratos.filter(created_at__date__range=(dt_ini_dt, dt_fim_dt))
+        except ValueError: contratos = Contrato.objects.none()
+    if reg == 'todos': num_pagina = contratos.count() or 1
     else:
-        try:
-            num_pagina = int(reg) if int(reg) > 0 else 1
-        except ValueError:
-            num_pagina = 10  # Valor padrão
+        try: num_pagina = int(reg) if int(reg) > 0 else 1
+        except ValueError: num_pagina = 10  # Valor padrão
     empresa_selecionada = None
     if emp:
         empresa_selecionada = Empresa.objects.filter(id=emp).first()
-
-    # Se o cliente selecionado não for compatível com os filtros, removemos ele
         if empresa_selecionada:
             contratos = contratos.filter(empresa=empresa_selecionada)
-            if (sit and empresa_selecionada.situacao != sit):
-                empresa_selecionada = None  # Empresa não será incluído na lista
-
+            if (sit and empresa_selecionada.situacao != sit): empresa_selecionada = None  # Empresa não será incluído na lista
     empresas = Empresa.objects.all()
-
     paginator = Paginator(contratos, num_pagina)
     page = request.GET.get('page')
     contratos = paginator.get_page(page)
-
-    return render(request, 'contratos/lista.html', {
-        'contratos': contratos,
-        'empresas': empresas,
-        'emp': emp,
-        'sit': sit,
-        'dt_ini': dt_ini,
-        'dt_fim': dt_fim,
-        'p_dt': por_dt,
-        'ordem': ordem,
-        'reg': reg,
-    })
+    return render(request, 'contratos/lista.html', {'contratos': contratos, 'empresas': empresas, 'emp': emp, 'sit': sit, 'dt_ini': dt_ini, 'dt_fim': dt_fim, 'p_dt': por_dt, 'ordem': ordem, 'reg': reg,})
 
 @login_required
 def lista_contratos_ajax(request):
     termo_busca = request.GET.get('term') or request.GET.get('q') or ''
     try:
         filtros = Q(situacao__iexact='Ativo')
-        if termo_busca.isdigit():
-            condicao_busca = Q(empresa__fantasia__icontains=termo_busca) | Q(id=termo_busca)
-        else:
-            condicao_busca = Q(empresa__fantasia__icontains=termo_busca)
+        if termo_busca.isdigit(): condicao_busca = Q(empresa__fantasia__icontains=termo_busca) | Q(id=termo_busca)
+        else: condicao_busca = Q(empresa__fantasia__icontains=termo_busca)
         contratos = Contrato.objects.filter(filtros & condicao_busca)[:20]
         results = [{'id': contrato.id, 'text': f"{contrato.id} - {contrato.empresa.fantasia.upper()}"} for contrato in contratos]
         return JsonResponse({'results': results})
     except Exception as e:
-        print(f"Erro na busca AJAX: {e}")
         return JsonResponse({'results': [], 'error': str(e)})
 
 @login_required
@@ -116,20 +84,14 @@ def add_contrato(request):
                 contrato.save()
                 messages.success(request, 'Contrato gerado com sucesso!')
                 return redirect('/contratos/lista/')
-            except ObjectDoesNotExist:
-                error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
-            except IntegrityError:
-                error_messages.append("<i class='fa-solid fa-xmark'></i> Erro de integridade no banco.")
-            except DatabaseError:
-                error_messages.append("<i class='fa-solid fa-xmark'></i> Erro de banco de dados.")
-            except Exception as e:
-                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+            except ObjectDoesNotExist: error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+            except IntegrityError: error_messages.append("<i class='fa-solid fa-xmark'></i> Erro de integridade no banco.")
+            except DatabaseError: error_messages.append("<i class='fa-solid fa-xmark'></i> Erro de banco de dados.")
+            except Exception as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
         else:
             for field in form:
-                for error in field.errors:
-                    error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
-    else:
-        form = ContratoForm()
+                for error in field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+    else: form = ContratoForm()
     return render(request, 'contratos/add.html', {'form': form, 'error_messages': error_messages})
 
 @login_required
@@ -146,19 +108,14 @@ def att_contrato(request, id):
             next_url = request.POST.get('next') or request.GET.get('next')
             cid = str(contrato.id)
             messages.success(request, 'Contrato atualizado com sucesso!')
-            if next_url:
-                return redirect(next_url)
-            else:
-                return redirect('/contratos/lista/?tp=cod&s=' + cid)
+            if next_url: return redirect(next_url)
+            else: return redirect('/contratos/lista/?tp=cod&s=' + cid)
         else:
             error_messages = []
             for field in form:
-                if field.errors:
-                    for error in field.errors:
-                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'contratos/att.html', {'form': form, 'contrato': contrato, 'error_messages': error_messages})
-    else:
-        return render(request, 'contratos/att.html', {'form': form, 'contrato': contrato})
+    else: return render(request, 'contratos/att.html', {'form': form, 'contrato': contrato})
 
 @login_required
 def del_contrato(request, id):
@@ -174,53 +131,34 @@ def del_contrato(request, id):
 @transaction.atomic
 def aprovar_contrato(request, id):
     contrato = get_object_or_404(Contrato, id=id)
-
     if contrato.status == 'Aprovado':
         messages.warning(request, 'Contrato já está aprovado.')
         return redirect('/contratos/lista/')
-
     empresa = contrato.empresa
     tp_juros = empresa.tp_calc_juros
     tp_multa = empresa.tp_calc_multa
     ft_juros = empresa.ft_juros
     ft_multa = empresa.ft_multa
-
     empresa_id = empresa.id
     qtd_meses = contrato.qtd_meses
     valor = contrato.valor_mensalidade
-
     vencimento_base = contrato.dt_inicio
     mensalidades = []
-
     ultima_data = None  # ← VAMOS GUARDAR AQUI
-
     for i in range(1, qtd_meses + 1):
         dt_venc = vencimento_base + relativedelta(months=i - 1)
-
         ultima_data = dt_venc  # ← SEMPRE SOBRESCREVE, NO FINAL FICA A ÚLTIMA
-
         mensalidades.append(
             Mensalidade(
-                empresa=empresa,
-                contrato=contrato,
-                dt_venc=dt_venc,
-                vl_mens=valor,
-                situacao='Aberta',
-                tp_juros=tp_juros,
-                tp_multa=tp_multa,
-                vl_juros=ft_juros,
-                vl_multa=ft_multa,
+                empresa=empresa, contrato=contrato, dt_venc=dt_venc, vl_mens=valor, situacao='Aberta', tp_juros=tp_juros, tp_multa=tp_multa, vl_juros=ft_juros, vl_multa=ft_multa,
                 num_mens=f'{contrato.id}-{empresa_id}/{i}-{qtd_meses}',
             )
         )
-
     Mensalidade.objects.bulk_create(mensalidades)
-
     # 👇 AQUI É O SEGREDO
     contrato.status = 'Aprovado'
     contrato.dt_exp = ultima_data   # salva a última mensalidade como validade
     contrato.save(update_fields=['status', 'dt_exp'])
-
     messages.success(request, 'Contrato aprovado e mensalidades geradas com sucesso!')
     return redirect(f'/contratos/lista/?tp=cod&s={contrato.id}')
 
@@ -231,17 +169,11 @@ def cancelar_contrato(request, id):
     if contrato.situacao == 'Cancelado':
         messages.warning(request, 'Contrato já está cancelado.')
         return redirect('/contratos/lista/')
-    mensalidades_abertas = Mensalidade.objects.filter(
-        contrato=contrato,
-        situacao='Aberta'
-    )
+    mensalidades_abertas = Mensalidade.objects.filter(contrato=contrato, situacao='Aberta')
     total_excluidas = mensalidades_abertas.count()
     mensalidades_abertas.delete()
     # Atualiza situação do contrato
     contrato.situacao = 'Cancelado'
     contrato.save(update_fields=['situacao'])
-    messages.success(
-        request,
-        f'Contrato cancelado com sucesso. {total_excluidas} mensalidade(s) em aberto foram excluídas.'
-    )
+    messages.success(request, f'Contrato cancelado com sucesso. {total_excluidas} mensalidade(s) em aberto foram excluídas.')
     return redirect(f'/contratos/lista/?tp=cod&s={contrato.id}')

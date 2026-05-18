@@ -96,21 +96,21 @@
                     {% for tecnico in tecnicos %}
                         <tr>
                             <td data-label="Opções:" class="mobile-2col">
-                                <a href="{% url 'att-tecnico' tecnico.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="tecnicos.change_tecnico" data-msg-negado="Seu usuário não pode editar técnicos!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
+                                <a href="{% url 'att-tecnico' tecnico.codigo %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="tecnicos.change_tecnico" data-msg-negado="Seu usuário não pode editar técnicos!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                                 <span>
                                     <i class="fas fa-trash btn-permissao"
                                        title="Deletar técnico"
-                                       data-bs-target="#modal-{{ tecnico.id }}"
+                                       data-bs-target="#modal-{{ tecnico.codigo }}"
                                        data-permissao="tecnicos.delete_tecnico"
                                        data-msg-negado="Seu usuário não pode deletar técnicos!">
                                     </i>
                                 </span>
                                 <!-- Modal ÚNICO para cada tecnico -->
-                                <div class="modal fade" id="modal-{{ tecnico.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ tecnico.id }}" aria-hidden="true">
+                                <div class="modal fade" id="modal-{{ tecnico.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ tecnico.codigo }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header titulo-modal">
-                                                <h1 class="modal-title fs-5" id="modalLabel-{{ tecnico.id }}">
+                                                <h1 class="modal-title fs-5" id="modalLabel-{{ tecnico.codigo }}">
                                                     <i class="fa-regular fa-circle-question"></i> Confirmação!
                                                 </h1>
                                             </div>
@@ -118,7 +118,7 @@
                                                 <p>Você confirma a EXCLUSÃO DO TÉCNICO <strong>{{ tecnico.nome }}</strong>?</p>
                                             </div>
                                             <div class="modal-footer">
-                                                <form method="post" action="{% url 'del-tecnico' tecnico.id %}" class="form-excluir">
+                                                <form method="post" action="{% url 'del-tecnico' tecnico.codigo %}" class="form-excluir">
                                                     {% csrf_token %}
                                                     <button type="submit" class="btn btn-primary btn-confirmar" disabled>
                                                         <u>S</u>im <span class="contador">3</span>
@@ -132,7 +132,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ tecnico.id }}</td>
+                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ tecnico.codigo }}</td>
                             <td data-label="Situação:" class="mobile-2col" style="text-align: center; padding: 5px;">
                                 {% if tecnico.situacao == 'Ativo' %}
                                     <div style="background-color: #2c2c2c; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">

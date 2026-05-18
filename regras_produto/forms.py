@@ -1,6 +1,5 @@
 from django import forms
 from .models import RegraProduto
-import ast
 from produtos.models import Produto
 
 class RegraProdutoForm(forms.ModelForm):
@@ -13,38 +12,15 @@ class RegraProdutoForm(forms.ModelForm):
     class Meta:
         model = RegraProduto
         fields = ['codigo', 'descricao', 'tipo', 'produto', 'ativo', 'tipo_regra']
-        widgets = {
-            'tipo': forms.Select(attrs={
-                'class': 'form-select form-select-sm border-dark-subtle'
-            }),
-        }
+        widgets = {'tipo': forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}),}
     def clean(self):
         cleaned_data = super().clean()
         tipo = cleaned_data.get('tipo')
-        produto = cleaned_data.get('produto')
-
-        if tipo == 'QTD':
-            # Produto agora vem via JSON
-            cleaned_data['produto'] = None
-
-        if tipo == 'SELECAO':
-            cleaned_data['produto'] = None
-
+        if tipo == 'QTD': cleaned_data['produto'] = None
+        if tipo == 'SELECAO': cleaned_data['produto'] = None
         return cleaned_data
-    
     def __init__(self, *args, empresa=None, **kwargs):
         super().__init__(*args, **kwargs)
-
-        if empresa:
-            self.fields['produto'].queryset = Produto.objects.filter(vinc_emp=empresa)
-
+        if empresa: self.fields['produto'].queryset = Produto.objects.filter(vinc_emp=empresa)
 class ImportarRegraProdutoForm(forms.Form):
-    arquivo = forms.FileField(
-        label="Planilha de Regras (.xlsx)",
-        help_text="Arquivo no formato Excel",
-        widget=forms.ClearableFileInput(attrs={
-            'type': 'file',
-            'class': 'form-control form-control-sm border-dark-subtle',
-            'accept': '.xlsx'
-        })
-    )
+    arquivo = forms.FileField(label="Planilha de Regras (.xlsx)", help_text="Arquivo no formato Excel", widget=forms.ClearableFileInput(attrs={'type': 'file', 'class': 'form-control form-control-sm border-dark-subtle', 'accept': '.xlsx'}))

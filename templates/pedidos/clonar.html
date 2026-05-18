@@ -83,7 +83,7 @@
                                                     {% for item in produtos %}
                                                         <tr data-id="{{ forloop.counter0 }}">
                                                             <td>
-                                                                {{ item.produto.id }}<input type="hidden" name="produtos[{{ forloop.counter0 }}][codigo]" value="{{ item.produto.id }}">
+                                                                {{ item.produto.codigo }}<input type="hidden" name="produtos[{{ forloop.counter0 }}][codigo]" value="{{ item.produto.codigo }}">
                                                             </td>
                                                             <td>
                                                                 {{ item.produto.desc_prod }}<input type="hidden" name="produtos[{{ forloop.counter0 }}][produto]" value="{{ item.produto.desc_prod }}">

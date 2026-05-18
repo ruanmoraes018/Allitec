@@ -8,9 +8,7 @@ class PDVForm(forms.ModelForm):
     situacao = forms.ChoiceField(label='Situação', choices=[('Ativo', 'Ativo'), ('Inativo', 'Inativo')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
     class Meta:
         model = PDV
-        fields = (
-            'nome', 'vinc_fil', 'situacao'
-        )
+        fields = ('nome', 'vinc_fil', 'situacao')
     def __init__(self, *args, empresa=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         if empresa:

@@ -52,7 +52,7 @@
                     <select class="form-select form-select-sm" id="marca" name="marc">
                         <option value="">Escolha uma marca</option>
                         {% for m in marcas %}
-                            <option value="{{ m.id }}" {% if request.GET.marc == m.id|stringformat:"s" %}selected{% endif %}>{{ m }}</option>
+                            <option value="{{ m.codigo }}" {% if request.GET.marc == m.codigo|stringformat:"s" %}selected{% endif %}>{{ m }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -61,7 +61,7 @@
                     <select class="form-select form-select-sm" id="grupo" name="gp">
                         <option value="">Escolha um grupo</option>
                         {% for g in grupos %}
-                            <option value="{{ g.id }}" {% if request.GET.gp == g.id|stringformat:"s" %}selected{% endif %}>{{ g }}</option>
+                            <option value="{{ g.codigo }}" {% if request.GET.gp == g.codigo|stringformat:"s" %}selected{% endif %}>{{ g }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -70,7 +70,7 @@
                     <select class="form-select form-select-sm" id="unidade" name="unid">
                         <option value="">Escolha uma unidade</option>
                         {% for u in unidades %}
-                            <option value="{{ u.id }}" {% if request.GET.unid == u.id|stringformat:"s" %}selected{% endif %}>{{ u }}</option>
+                            <option value="{{ u.codigo }}" {% if request.GET.unid == u.codigo|stringformat:"s" %}selected{% endif %}>{{ u }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -120,40 +120,40 @@
                 <tbody>
                     {% for produto in produtos %}
                         <tr>
-                            <td data-label="" class="mobile-3col" style="text-align: center; padding-top: 8px; cursor: pointer;" onclick="toggleTaskCheckbox(this)"><input type="checkbox" class="form-check-input task-checkbox" name="multi" value="{{ produto.id }}" onclick="event.stopPropagation(); checkIfAllSelected(); updateMassChangesButton();"></td>
+                            <td data-label="" class="mobile-3col" style="text-align: center; padding-top: 8px; cursor: pointer;" onclick="toggleTaskCheckbox(this)"><input type="checkbox" class="form-check-input task-checkbox" name="multi" value="{{ produto.codigo }}" onclick="event.stopPropagation(); checkIfAllSelected(); updateMassChangesButton();"></td>
                             <td data-label="Opções:" class="mobile-3col">
                                 <div style="text-align: center;">
-                                    <button type="button" data-bs-toggle="modal" data-bs-target="#menuModal{{ produto.id }}" class="btn btn-dark btn-sm">
+                                    <button type="button" data-bs-toggle="modal" data-bs-target="#menuModal{{ produto.codigo }}" class="btn btn-dark btn-sm">
                                         <span><i class="fa-solid fa-bars" style="font-size: 18px; color: white; margin-top: 5px;" title="Menu de Opções"></i></span>
                                     </button>
                                 </div>
                                 <!-- Modal de opções da produto -->
-                                <div class="modal fade modal-sm" id="menuModal{{ produto.id }}" tabindex="-1" aria-labelledby="menuModalLabel{{ produto.id }}">
+                                <div class="modal fade modal-sm" id="menuModal{{ produto.codigo }}" tabindex="-1" aria-labelledby="menuModalLabel{{ produto.codigo }}">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header" style="background-color: #191919;">
                                                 <div class="d-flex justify-content-center w-100">
-                                                    <h1 class="modal-title fs-5 text-center" id="menuModalLabel{{ produto.id }}" style="color: white;"><strong>{{ produto.id|stringformat:"04d" }}</strong></h1>
+                                                    <h1 class="modal-title fs-5 text-center" id="menuModalLabel{{ produto.codigo }}" style="color: white;"><strong>{{ produto.codigo|stringformat:"04d" }}</strong></h1>
                                                 </div>
                                             </div>
                                             <div class="modal-body d-grid gap-2">
-                                                <a href="{% url 'att-produto' produto.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="produtos.change_produto" data-msg-negado="Seu usuário não pode editar produtos!">
-                                                    <button class="btn btn-outline-dark" type="button" id="botoes-modal" data-id="{{ produto.id }}">
+                                                <a href="{% url 'att-produto' produto.codigo %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="produtos.change_produto" data-msg-negado="Seu usuário não pode editar produtos!">
+                                                    <button class="btn btn-outline-dark" type="button" id="botoes-modal" data-id="{{ produto.codigo }}">
                                                         <span><i class="fas fa-edit" title="Editar Produto"></i></span>
                                                         <strong style="color: #13c43f; font-size: 20px;">EDITAR</strong>
                                                     </button>
                                                 </a>
-                                                <button class="btn btn-outline-dark btn-delete" type="button" data-orcamento-id="{{ produto.id }}">
+                                                <button class="btn btn-outline-dark btn-delete" type="button" data-orcamento-id="{{ produto.codigo }}">
                                                     <span><i class="fas fa-trash"></i></span>
                                                     <strong style="color: #db1e47; font-size: 20px;">DELETAR</strong>
                                                 </button>
-                                                <a href="{% url 'clonar-produto' produto.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="produtos.clonar_produto" data-msg-negado="Seu usuário não pode clonar produtos!">
-                                                    <button class="btn btn-outline-dark" type="button" id="botoes-modal" data-id="{{ produto.id }}">
+                                                <a href="{% url 'clonar-produto' produto.codigo %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="produtos.clonar_produto" data-msg-negado="Seu usuário não pode clonar produtos!">
+                                                    <button class="btn btn-outline-dark" type="button" id="botoes-modal" data-id="{{ produto.codigo }}">
                                                         <span><i class="fa-solid fa-clone" title="Clonar"></i></span>
                                                         <strong style="color: #483D8B; font-size: 20px;">CLONAR</strong>
                                                     </button>
                                                 </a>
-                                                <button class="btn btn-outline-dark ver-entradas" type="button" data-bs-dismiss="modal" data-bs-toggle="modal" data-produto-id="{{ produto.id }}" data-bs-target="#infoEntModal{{ produto.id }}">
+                                                <button class="btn btn-outline-dark ver-entradas" type="button" data-bs-dismiss="modal" data-bs-toggle="modal" data-produto-id="{{ produto.codigo }}" data-bs-target="#infoEntModal{{ produto.codigo }}">
                                                     <span><i class="fa-solid fa-people-carry-box" style="float: right; font-size: 20px; color: #ff8800; margin-top: 5px;"></i></span>
                                                     <strong style="color: #ff8800; font-size: 20px;">FORNECEDORES</strong>
                                                 </button>
@@ -165,11 +165,11 @@
                                     </div>
                                 </div>
                                 <!-- Modal ÚNICO para cada cliente -->
-                                <div class="modal" id="modal-{{ produto.id }}" tabindex="-1" aria-labelledby="modalLabel-{{ produto.id }}">
+                                <div class="modal" id="modal-{{ produto.codigo }}" tabindex="-1" aria-labelledby="modalLabel-{{ produto.codigo }}">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header titulo-modal">
-                                                <h1 class="modal-title fs-5" id="modalLabel-{{ produto.id }}">
+                                                <h1 class="modal-title fs-5" id="modalLabel-{{ produto.codigo }}">
                                                     <i class="fa-regular fa-circle-question"></i> Confirmação!
                                                 </h1>
                                             </div>
@@ -177,7 +177,7 @@
                                                 <p>Você confirma a EXCLUSÃO DO PRODUTO <strong>{{ produto.desc_prod }}</strong>?</p>
                                             </div>
                                             <div class="modal-footer">
-                                                <form method="post" action="{% url 'del-produto' produto.id %}" class="form-excluir">
+                                                <form method="post" action="{% url 'del-produto' produto.codigo %}" class="form-excluir">
                                                     {% csrf_token %}
                                                     <button type="submit" class="btn btn-primary btn-confirmar" disabled>
                                                         <u>S</u>im <span class="contador">3</span>
@@ -190,16 +190,16 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="modal" id="infoEntModal{{ produto.id }}" tabindex="-1" aria-labelledby="infoEntModalLabel{{ produto.id }}">
+                                <div class="modal" id="infoEntModal{{ produto.codigo }}" tabindex="-1" aria-labelledby="infoEntModalLabel{{ produto.codigo }}">
                                     <div class="modal-dialog modal-lg modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header titulo-modal">
-                                                <h1 class="modal-title fs-5" id="infoEntModalLabel{{ produto.id }}"><i class="fa-solid fa-magnifying-glass"></i> Fornecedores do Produto</h1>
+                                                <h1 class="modal-title fs-5" id="infoEntModalLabel{{ produto.codigo }}"><i class="fa-solid fa-magnifying-glass"></i> Fornecedores do Produto</h1>
                                             </div>
                                             <div class="modal-body">
                                                 <div class="row g-3">
                                                     <div class="col-md-12">
-                                                        <input class="form-control fw-bold bg-primary text-center text-white" type="text" value="{{ produto.id }} - {{ produto.desc_prod }}" disabled readonly>
+                                                        <input class="form-control fw-bold bg-primary text-center text-white" type="text" value="{{ produto.codigo }} - {{ produto.desc_prod }}" disabled readonly>
                                                     </div>
                                                     <div class="col-12 mt-2">
                                                         <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
@@ -214,7 +214,7 @@
                                                                         <th>Vl. Total</th>
                                                                     </tr>
                                                                 </thead>
-                                                                <tbody id="entradasTableBody{{ produto.id }}"></tbody>
+                                                                <tbody id="entradasTableBody{{ produto.codigo }}"></tbody>
 
                                                             </table>
                                                         </div>
@@ -228,7 +228,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td data-label="Código:" class="mobile-3col" style="align-items: center;">{{ produto.id }}</td>
+                            <td data-label="Código:" class="mobile-3col" style="align-items: center;">{{ produto.codigo }}</td>
                             <td data-label="Situação:" class="mobile-2col" style="text-align: center; padding: 5px;">
                                 {% if produto.situacao == 'Ativo' %}
                                     <div style="background-color: #2c2c2c; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px;">
@@ -366,7 +366,7 @@
                                     <select id="grupo1" name="gp1" class="form-select" aria-label="Grupo">
                                         <option value="">Escolha um grupo</option>
                                         {% for grupo in grupos %}
-                                            <option value="{{ grupo.id }}">{{ grupo.nome_grupo }}</option>
+                                            <option value="{{ grupo.codigo }}">{{ grupo.nome_grupo }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
@@ -378,7 +378,7 @@
                                     <select id="marca1" name="marca1" class="form-select" aria-label="Marca">
                                         <option value="">Escolha uma marca</option>
                                         {% for marca in marcas %}
-                                            <option value="{{ marca.id }}">{{ marca.nome_marca }}</option>
+                                            <option value="{{ marca.codigo }}">{{ marca.nome_marca }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
@@ -390,7 +390,7 @@
                                     <select id="unidade1" name="unid1" class="form-select" aria-label="Unidade">
                                         <option value="">Escolha uma unidade</option>
                                         {% for unidade in unidades %}
-                                            <option value="{{ unidade.id }}">{{ unidade.nome_unidade }}</option>
+                                            <option value="{{ unidade.codigo }}">{{ unidade.nome_unidade }}</option>
                                         {% endfor %}
                                     </select>
                                     <div class="form-check form-switch" style="margin-top: 10px;">

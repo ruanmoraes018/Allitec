@@ -27,38 +27,28 @@ def lista_bairros(request):
         norm_s = remove_accents(s).lower()
         bairros = bairros.filter(nome_bairro__icontains=norm_s).order_by('nome_bairro')
     elif tp == 'cod' and s:
-        try:
-            bairros = bairros.filter(id__iexact=s).order_by('nome_bairro')
-        except ValueError:
-            bairros = Bairro.objects.none()
-    if reg == 'todos':
-        num_pagina = bairros.count() or 1
+        try: bairros = bairros.filter(codigo__iexact=s).order_by('nome_bairro')
+        except ValueError: bairros = Bairro.objects.none()
+    if reg == 'todos': num_pagina = bairros.count() or 1
     else:
-        try:
-            num_pagina = int(reg) if int(reg) > 0 else 1
-        except ValueError:
-            num_pagina = 10  # Valor padrão
+        try: num_pagina = int(reg) if int(reg) > 0 else 1
+        except ValueError: num_pagina = 10  # Valor padrão
     paginator = Paginator(bairros, num_pagina)
     page = request.GET.get('page')
     bairros = paginator.get_page(page)
-    return render(request, 'bairros/lista.html', {
-        'bairros': bairros, 's': s, 'tp': tp, 'reg': reg,
-    })
+    return render(request, 'bairros/lista.html', {'bairros': bairros, 's': s, 'tp': tp, 'reg': reg,})
 
 @login_required
 def lista_bairros_ajax(request):
     termo_busca = request.GET.get('term') or request.GET.get('q') or ''
     empresa = request.user.empresa
     try:
-        if termo_busca.isdigit():
-            condicao_busca = Q(nome_bairro__icontains=termo_busca) | Q(id=termo_busca)
-        else:
-            condicao_busca = Q(nome_bairro__icontains=termo_busca)
+        if termo_busca.isdigit(): condicao_busca = Q(nome_bairro__icontains=termo_busca) | Q(codigo=termo_busca)
+        else: condicao_busca = Q(nome_bairro__icontains=termo_busca)
         bairros = Bairro.objects.filter(condicao_busca & Q(vinc_emp=empresa))[:20]
-        results = [{'id': bairro.id, 'text': f"{bairro.nome_bairro.upper()}"} for bairro in bairros]
+        results = [{'id': bairro.codigo, 'text': f"{bairro.nome_bairro.upper()}"} for bairro in bairros]
         return JsonResponse({'results': results})
     except Exception as e:
-        print(f"Erro na busca AJAX: {e}")
         return JsonResponse({'results': [], 'error': str(e)})
 
 @login_required
@@ -73,13 +63,12 @@ def add_bairro(request):
             b.vinc_emp = request.user.empresa
             b.save()
             messages.success(request, 'Bairro adicionado com sucesso!')
-            bai = str(b.id)
+            bai = str(b.codigo)
             return redirect('/bairros/lista/?tp=cod&s=' + bai)
         else:
             error_messages = []
             for field in form:
-                if field.errors:
-                    error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'bairros/add.html', {'form': form, 'error_messages': error_messages})
     else: form = BairroForm()
     return render(request, 'bairros/add.html', {'form': form})
@@ -88,22 +77,14 @@ def add_bairro(request):
 @require_POST
 def add_bairro_ajax(request):
     nome = request.POST.get('nome', '').strip().upper()
-    if not nome:
-        return JsonResponse({'erro': 'Nome vazio'}, status=400)
+    if not nome: return JsonResponse({'erro': 'Nome vazio'}, status=400)
     empresa = request.user.empresa
-    bairro, criado = Bairro.objects.get_or_create(
-        nome_bairro=nome,
-        vinc_emp=empresa
-    )
-    return JsonResponse({
-        'id': bairro.id,
-        'nome': bairro.nome_bairro,
-        'criado': criado
-    })
+    bairro, criado = Bairro.objects.get_or_create(nome_bairro=nome, vinc_emp=empresa)
+    return JsonResponse({'id': bairro.codigo, 'nome': bairro.nome_bairro, 'criado': criado})
 
 @login_required
-def att_bairro(request, id):
-    b = get_object_or_404(Bairro, pk=id, vinc_emp=request.user.empresa)
+def att_bairro(request, codigo):
+    b = get_object_or_404(Bairro, codigo=codigo, vinc_emp=request.user.empresa)
     form = BairroForm(instance=b)
     if not request.user.has_perm('bairros.change_bairro'):
         messages.info(request, 'Você não tem permissão para editar bairros.')
@@ -113,27 +94,23 @@ def att_bairro(request, id):
         if form.is_valid():
             b.save()
             next_url = request.POST.get('next') or request.GET.get('next')
-            bai = str(b.id)
+            bai = str(b.codigo)
             messages.success(request, 'Bairro atualizado com sucesso!')
-            if next_url:
-                return redirect(next_url)
-            else:
-                return redirect('/bairros/lista/?tp=cod&s=' + bai)
+            if next_url: return redirect(next_url)
+            else: return redirect('/bairros/lista/?tp=cod&s=' + bai)
         else:
             error_messages = []
             for field in form:
-                if field.errors:
-                    error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'bairros/att.html', {'form': form, 'b': b, 'error_messages': error_messages})
-    else:
-        return render(request, 'bairros/att.html', {'form': form, 'b': b})
+    else: return render(request, 'bairros/att.html', {'form': form, 'b': b})
 
 @login_required
-def del_bairro(request, id):
+def del_bairro(request, codigo):
     if not request.user.has_perm('bairros.delete_bairro'):
         messages.info(request, 'Você não tem permissão para deletar bairros.')
         return redirect('/bairros/lista/')
-    b = get_object_or_404(Bairro, pk=id, vinc_emp=request.user.empresa)
+    b = get_object_or_404(Bairro, codigo=codigo, vinc_emp=request.user.empresa)
     b.delete()
     messages.success(request, 'Bairro deletado com sucesso!')
     return redirect('/bairros/lista/')

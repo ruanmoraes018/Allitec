@@ -28,49 +28,31 @@ def lista_pdvs(request):
         norm_s = remove_accents(s).lower()
         pdvs = pdvs.filter(nome__icontains=norm_s).order_by('nome')
     elif tp == 'cod' and s:
-        try:
-            pdvs = pdvs.filter(id__iexact=s).order_by('nome')
-        except ValueError:
-            pdvs = PDV.objects.none()
+        try: pdvs = pdvs.filter(codigo__iexact=s).order_by('nome')
+        except ValueError: pdvs = PDV.objects.none()
     if sit and sit != 'Todos': pdvs = pdvs.filter(situacao=sit)
-    if fil: pdvs = pdvs.filter(vinc_fil_id=fil)
+    if fil: pdvs = pdvs.filter(vinc_fil_codigo=fil)
     filiais = Filial.objects.filter(vinc_emp=request.user.empresa)
-    if reg == 'todos':
-        num_pagina = pdvs.count() or 1
+    if reg == 'todos': num_pagina = pdvs.count() or 1
     else:
-        try:
-            num_pagina = int(reg) if int(reg) > 0 else 1
-        except ValueError:
-            num_pagina = 10  # Valor padrão
-
+        try: num_pagina = int(reg) if int(reg) > 0 else 1
+        except ValueError: num_pagina = 10  # Valor padrão
     paginator = Paginator(pdvs, num_pagina)
     page = request.GET.get('page')
     pdvs = paginator.get_page(page)
-
-    return render(request, 'pdvs/lista.html', {
-        'pdvs': pdvs,
-        'filiais': filiais,
-        'sit': sit,
-        's': s,
-        'tp': tp,
-        'reg': reg,
-    })
+    return render(request, 'pdvs/lista.html', {'pdvs': pdvs, 'filiais': filiais, 'sit': sit, 's': s, 'tp': tp, 'reg': reg,})
 
 @login_required
 def lista_pdvs_ajax(request):
     termo_busca = request.GET.get('term') or request.GET.get('q') or ''
     empresa = request.user.empresa
     try:
-        if termo_busca.isdigit():
-            condicao_busca = Q(nome__icontains=termo_busca) | Q(id=termo_busca)
-        else:
-            condicao_busca = Q(nome__icontains=termo_busca)
+        if termo_busca.isdigit(): condicao_busca = Q(nome__icontains=termo_busca) | Q(codigo=termo_busca)
+        else: condicao_busca = Q(nome__icontains=termo_busca)
         pdvs = PDV.objects.filter(condicao_busca & Q(vinc_emp=empresa))[:20]
-        results = [{'id': p.id, 'text': f"{p.nome.upper()}"} for p in pdvs]
+        results = [{'id': p.codigo, 'text': f"{p.nome.upper()}"} for p in pdvs]
         return JsonResponse({'results': results})
-    except Exception as e:
-        print(f"Erro na busca AJAX: {e}")
-        return JsonResponse({'results': [], 'error': str(e)})
+    except Exception as e: return JsonResponse({'results': [], 'error': str(e)})
     
 @login_required
 def add_pdv(request):
@@ -84,21 +66,19 @@ def add_pdv(request):
             b.vinc_emp = request.user.empresa
             b.save()
             messages.success(request, 'PDV adicionado com sucesso!')
-            bank = str(b.id)
+            bank = str(b.codigo)
             return redirect('/pdvs/lista/?tp=cod&s=' + bank)
         else:
             error_messages = []
             for field in form:
-                if field.errors:
-                    for error in field.errors:
-                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'pdvs/add.html', {'form': form, 'error_messages': error_messages})
     else: form = PDVForm(empresa=request.user.empresa, user=request.user)
     return render(request, 'pdvs/add.html', {'form': form})
 
 @login_required
-def att_pdv(request, id):
-    b = get_object_or_404(PDV, pk=id, vinc_emp=request.user.empresa)
+def att_pdv(request, codigo):
+    b = get_object_or_404(PDV, codigo=codigo, vinc_emp=request.user.empresa)
     form = PDVForm(instance=b, empresa=request.user.empresa, user=request.user)
     if not request.user.has_perm('pdvs.change_pdv'):
         messages.info(request, 'Você não tem permissão para editar PDVs.')
@@ -108,28 +88,23 @@ def att_pdv(request, id):
         if form.is_valid():
             b.save()
             next_url = request.POST.get('next') or request.GET.get('next')
-            bank = str(b.id)
+            bank = str(b.codigo)
             messages.success(request, 'PDV atualizado com sucesso!')
-            if next_url:
-                return redirect(next_url)
-            else:
-                return redirect('/pdvs/lista/?tp=cod&s=' + bank)
+            if next_url: return redirect(next_url)
+            else: return redirect('/pdvs/lista/?tp=cod&s=' + bank)
         else:
             error_messages = []
             for field in form:
-                if field.errors:
-                    for error in field.errors:
-                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'pdvs/att.html', {'form': form, 'b': b, 'error_messages': error_messages})
-    else:
-        return render(request, 'pdvs/att.html', {'form': form, 'b': b})
+    else: return render(request, 'pdvs/att.html', {'form': form, 'b': b})
 
 @login_required
-def del_pdv(request, id):
+def del_pdv(request, codigo):
     if not request.user.has_perm('pdvs.delete_pdv'):
         messages.info(request, 'Você não tem permissão para deletar PDVs.')
         return redirect('/pdvs/lista/')
-    b = get_object_or_404(PDV, pk=id, vinc_emp=request.user.empresa)
+    b = get_object_or_404(PDV, codigo=codigo, vinc_emp=request.user.empresa)
     if b.caixamovimento_set.exists():
         messages.error(request, 'Não é possível deletar este PDV porque existem movimentos associados a ele.')
         return redirect('/pdvs/lista/')

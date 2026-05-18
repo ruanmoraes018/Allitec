@@ -156,7 +156,7 @@
                                                                     <tr data-id="{{ forloop.counter0 }}">
                                                                         <td>
                                                                             {{ item.tabela.descricao }}
-                                                                            <input type="hidden" name="tab_preco[{{ forloop.counter0 }}][tabela]" value="{{ item.tabela.id }}">
+                                                                            <input type="hidden" name="tab_preco[{{ forloop.counter0 }}][tabela]" value="{{ item.tabela.codigo }}">
                                                                         </td>
                                                                         <td>
                                                                             {{ item.margem|floatformat:2 }}

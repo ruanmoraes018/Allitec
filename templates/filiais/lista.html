@@ -91,23 +91,23 @@
                         <tr>
 
                             <td data-label="Opções:" class="mobile-2col">
-                                <a href="{% url 'att-filial' filial.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
+                                <a href="{% url 'att-filial' filial.codigo %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
                                   data-permissao="filiais.change_filial"
                                   data-msg-negado="Seu usuário não pode editar filiais!"><span><i class="fas fa-edit" title="Editar filial"></i></span></a>
                                 <span>
                                     <i class="fas fa-trash btn-permissao"
                                        title="Deletar filial"
-                                       data-bs-target="#modal-{{ filial.id }}"
+                                       data-bs-target="#modal-{{ filial.codigo }}"
                                        data-permissao="filiais.delete_filial"
                                        data-msg-negado="Seu usuário não pode deletar filiais!">
                                     </i>
                                 </span>
                                 <!-- Modal ÚNICO para cada filial -->
-                                <div class="modal fade" id="modal-{{ filial.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ filial.id }}" aria-hidden="true">
+                                <div class="modal fade" id="modal-{{ filial.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ filial.codigo }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header titulo-modal">
-                                                <h1 class="modal-title fs-5" id="modalLabel-{{ filial.id }}">
+                                                <h1 class="modal-title fs-5" id="modalLabel-{{ filial.codigo }}">
                                                     <i class="fa-regular fa-circle-question"></i> Confirmação!
                                                 </h1>
                                             </div>
@@ -119,7 +119,7 @@
                                                 </p>
                                             </div>
                                             <div class="modal-footer">
-                                                <form method="post" action="{% url 'del-filial' filial.id %}" class="form-excluir">
+                                                <form method="post" action="{% url 'del-filial' filial.codigo %}" class="form-excluir">
                                                     {% csrf_token %}
                                                     <button type="submit" class="btn btn-primary btn-confirmar" disabled>
                                                         <u>S</u>im <span class="contador">3</span>
