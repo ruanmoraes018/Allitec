@@ -54,8 +54,8 @@ def lista_contas_receber(request):
             elif list_p == 'dt_e': contas_receber = contas_receber.filter(data_emissao__date__range=(dt_ini_dt, dt_fim_dt))
             elif list_p == 'dt_p': contas_receber = contas_receber.filter(data_pagamento__range=(dt_ini_dt, dt_fim_dt))
         except ValueError: contas_receber = ContaReceber.objects.none()
-    if fil: contas_receber = contas_receber.filter(vinc_fil_codigo=fil)
-    if cli: contas_receber = contas_receber.filter(cliente_codigo=cli)
+    if fil: contas_receber = contas_receber.filter(vinc_fil__codigo=fil)
+    if cli: contas_receber = contas_receber.filter(cliente__codigo=cli)
     if reg == 'todos': num_pagina = contas_receber.count() or 1
     else:
         try: num_pagina = int(reg) if int(reg) > 0 else 10
@@ -211,7 +211,7 @@ def pagar_conta_receber(request, codigo):
     cr.data_pagamento = date.today()
     cr.situacao = 'Paga'
     cr.observacao = (cr.observacao or '') + f' Baixa de R$ {total_pago:.2f}.'
-    if len(formas_processadas) == 1: cr.forma_pgto_codigo = formas_processadas[0]['forma_id']
+    if len(formas_processadas) == 1: cr.forma_pgto__codigo = formas_processadas[0]['forma_id']
     cr.save()
     for item in formas_processadas:
         forma = FormaPgto.objects.get(codigo=item['forma_id'], vinc_emp=request.user.empresa)

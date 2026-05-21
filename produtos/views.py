@@ -54,9 +54,9 @@ def lista_produtos(request):
     if tp_produto in ['Principal', 'Adicional']: produtos_qs = produtos_qs.filter(tp_prod__exact=tp_produto)
     if sit == '1': produtos_qs = produtos_qs.filter(situacao='Ativo')
     elif sit == '2': produtos_qs = produtos_qs.filter(situacao='Inativo')
-    if grupo: produtos_qs = produtos_qs.filter(grupo_codigo=grupo)
-    if marca: produtos_qs = produtos_qs.filter(marca_codigo=marca)
-    if unid: produtos_qs = produtos_qs.filter(unidProd_codigo=unid)
+    if grupo: produtos_qs = produtos_qs.filter(grupo__codigo=grupo)
+    if marca: produtos_qs = produtos_qs.filter(marca__codigo=marca)
+    if unid: produtos_qs = produtos_qs.filter(unidProd__codigo=unid)
     if reg == 'todos': num_pagina = produtos_qs.count() or 1
     else:
         try: num_pagina = int(reg) if int(reg) > 0 else 10
@@ -67,9 +67,9 @@ def lista_produtos(request):
     produtos_ids = [p.codigo for p in produtos_qs]
     tabelas_map = {}
     if produtos_ids:
-        tabelas = (ProdutoTabela.objects.filter(produto_codigo__in=produtos_ids, produto__vinc_emp=empresa).select_related('tabela'))
+        tabelas = (ProdutoTabela.objects.filter(produto__codigo__in=produtos_ids, produto__vinc_emp=empresa).select_related('tabela'))
         for tab in tabelas:
-            tabelas_map.setdefault(tab.produto_codigo, []).append({"id": tab.codigo, "descricao": tab.tabela.descricao if tab.tabela else str(tab), "vl_prod": float(tab.vl_prod)})
+            tabelas_map.setdefault(tab.produto.codigo, []).append({"id": tab.tabela.codigo, "descricao": tab.tabela.descricao if tab.tabela else str(tab), "vl_prod": float(tab.vl_prod)})
     for p in produtos_qs:
         p.tab_conv = tabelas_map.get(p.codigo, [])
     return render(request, 'produtos/lista.html', {'produtos': produtos_qs, 's': s, 'tp': tp, 'sit': sit, 'ordem': ordem, 'marca': marca, 'marcas': Marca.objects.filter(vinc_emp=empresa), 'grupo': grupo, 'grupos': Grupo.objects.filter(vinc_emp=empresa), 'unidades': Unidade.objects.filter(vinc_emp=empresa), 'unid': unid, 'reg': reg, 'tp_produto': tp_produto})
@@ -83,12 +83,12 @@ def precos_tabela_lote(request):
         produtos = data.get('produtos', [])
         if not tabela_id or not produtos: return JsonResponse({"precos": {}})
         # 🔥 BUSCA TODOS DE UMA VEZ
-        precos_qs = ProdutoTabela.objects.filter(tabela_codigo=tabela_id, produto_codigo__in=produtos).values('produto_codigo', 'vl_prod')
+        precos_qs = ProdutoTabela.objects.filter(tabela__codigo=tabela_id, produto__codigo__in=produtos).values('produto__codigo', 'vl_prod')
         # 🔥 MONTA MAPA {produto_codigo: preco}
-        mapa = {str(p['produto_codigo']): float(p['vl_prod']) for p in precos_qs}
+        mapa = {str(p['produto__codigo']): float(p['vl_prod']) for p in precos_qs}
         return JsonResponse({"precos": mapa})
     except Exception as e: return JsonResponse({"erro": str(e), "precos": {}}, status=500)
-    
+
 @login_required
 def att_prod_lote(request):
     if request.method == "POST":
@@ -143,7 +143,6 @@ def att_preco_lote(request):
         tabela_id = request.POST.get('tb-prec')
         tp_atrib = request.POST.get('tp-atrib')  # 0 = Margem, 1 = Valor
         campo_1 = request.POST.get('campo_1', '').replace(',', '.').strip()
-        campo_2 = request.POST.get('campo_2', '').replace(',', '.').strip()
         produtos = Produto.objects.filter(codigo__in=produtos_ids, vinc_emp=request.user.empresa)
         if not produtos.exists():
             messages.info(request, 'Nenhum produto selecionado.')
@@ -250,7 +249,7 @@ def buscar_produtos(request):
     data = []
     for prod in produtos:
         tabela = None
-        if tabela_id: tabela = ProdutoTabela.objects.filter(produto=prod, tabela_codigo=tabela_id, tabela__vinc_emp=empresa).first()
+        if tabela_id: tabela = ProdutoTabela.objects.filter(produto=prod, tabela__codigo=tabela_id, tabela__vinc_emp=empresa).first()
         data.append({'id': prod.codigo, 'desc_prod': prod.desc_prod, 'unidProd': prod.unidProd.nome_unidade if prod.unidProd else '', 'grupo': prod.grupo.nome_grupo if prod.grupo else '', 'estoque_prod': getattr(prod, 'estoque_prod', None), 'vl_compra': prod.vl_compra, 'vl_prod': float(tabela.vl_prod) if tabela else None, 'tp_prod': prod.tp_prod, 'especifico': prod.especifico if prod.especifico else ''})
     return JsonResponse({'produtos': data})
 
@@ -312,7 +311,7 @@ def buscar_tabelas_produto_ajax(request):
         tabelas = ProdutoTabela.objects.filter(produto=produto, tabela__vinc_emp=request.user.empresa).select_related('tabela').order_by('tabela__descricao')
         data = []
         for item in tabelas:
-            data.append({'tabela_id': item.tabela_codigo, 'tabela_nome': item.tabela.descricao, 'margem': f"{item.margem:.2f}", 'valor': f"{item.vl_prod:.2f}",})
+            data.append({'tabela_id': item.tabela.codigo, 'tabela_nome': item.tabela.descricao, 'margem': f"{item.margem:.2f}", 'valor': f"{item.vl_prod:.2f}",})
         return JsonResponse({'ok': True, 'tabelas': data})
     except Produto.DoesNotExist: return JsonResponse({'ok': False, 'msg': 'Produto não encontrado.'}, status=404)
 
@@ -339,7 +338,7 @@ def salvar_tabelas_produto_ajax(request):
             except Exception: margem = Decimal('0.00')
             ProdutoTabela.objects.update_or_create(produto=produto, tabela=tabela, defaults={'vl_prod': vl_prod, 'margem': margem})
             tabelas_ids_recebidas.append(tabela.codigo)
-        ProdutoTabela.objects.filter(produto=produto).exclude(tabela_codigo__in=tabelas_ids_recebidas).delete()
+        ProdutoTabela.objects.filter(produto=produto).exclude(tabela__codigo__in=tabelas_ids_recebidas).delete()
         return JsonResponse({'ok': True, 'msg': 'Tabelas do produto salvas com sucesso.'})
     except Produto.DoesNotExist: return JsonResponse({'ok': False, 'msg': 'Produto não encontrado.'}, status=404)
     except Exception as e: return JsonResponse({'ok': False, 'msg': str(e)}, status=500)
@@ -473,9 +472,9 @@ def att_produto(request, codigo):
                 vl_prod_decimal = parse_decimal(vl_prod)
                 margem_decimal = parse_decimal(margem)
                 ep, _ = ProdutoTabela.objects.update_or_create(produto=p, tabela=tabela, defaults={'vl_prod': vl_prod_decimal, 'margem': margem_decimal})
-                tab_preco_ids.append(ep.codigo)
+                tab_preco_ids.append(ep.id)
             # Remove tabelas antigas não reenviadas, somente da empresa atual
-            ProdutoTabela.objects.filter(produto=p, tabela__vinc_emp=empresa).exclude(codigo__in=tab_preco_ids).delete()
+            ProdutoTabela.objects.filter(produto=p, tabela__vinc_emp=empresa).exclude(id__in=tab_preco_ids).delete()
             cod_sec_dict = {}
             for key, value in request.POST.items():
                 if key.startswith("codigo["):
@@ -493,7 +492,7 @@ def att_produto(request, codigo):
                     messages.warning(request, f"O código '{codigo}' já está vinculado a outro produto desta empresa.")
                     continue
                 ep, _ = CodigoProduto.objects.get_or_create(produto=p, codigo=codigo, vinc_emp=empresa)
-                cod_sec_ids.append(ep.codigo)
+                cod_sec_ids.append(ep.id)
             # Remove códigos antigos não reenviados
             CodigoProduto.objects.filter(produto=p).exclude(codigo__in=cod_sec_ids).delete()
             messages.success(request, 'Produto atualizado com sucesso!')
@@ -558,7 +557,7 @@ def clonar_produto(request, codigo):
                     vl_prod_decimal = parse_decimal(vl_prod)
                     margem_decimal = parse_decimal(margem)
                     ep = ProdutoTabela.objects.create(produto=novo_produto, tabela=tabela, vl_prod=vl_prod_decimal, margem=margem_decimal)
-                    tab_preco_ids.append(ep.codigo)
+                    tab_preco_ids.append(ep.id)
                 # Se nenhuma tabela foi enviada via POST, clona as existentes do produto original
                 if not tab_preco_ids:
                     for tabela_antiga in p.produtotabela_set.select_related('tabela').filter(tabela__vinc_emp=empresa):

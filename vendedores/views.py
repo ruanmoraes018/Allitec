@@ -74,33 +74,26 @@ def add_vendedor(request):
     if not request.user.has_perm('vendedores.add_vendedor'):
         messages.info(request, 'Você não tem permissão para adicionar vendedores.')
         return redirect('/vendedores/lista/')
+    empresa = request.user.empresa
+    if not empresa:
+        messages.error(request, 'Erro crítico: Seu usuário não está vinculado a nenhuma empresa cadastrada.')
+        return redirect('/vendedores/lista/')
     if request.method == 'POST':
-        form = VendedorForm(request.POST, empresa=request.user.empresa)
+        form = VendedorForm(data=request.POST, empresa=empresa)
         if form.is_valid():
-            c = form.save(commit=False)
-            bairro_id = request.POST.get('bairro')
-            cidade_id = request.POST.get('cidade')
-            estado_id = request.POST.get('uf')
-            if bairro_id:
-                try: c.bairro = Bairro.objects.get(codigo=bairro_id)
-                except Bairro.DoesNotExist: c.bairro = None
-            if cidade_id:
-                try: c.cidade = Cidade.objects.get(codigo=cidade_id)
-                except Cidade.DoesNotExist: c.cidade = None
-            if estado_id:
-                try: c.uf = Estado.objects.get(codigo=estado_id)
-                except Estado.DoesNotExist: c.uf = None
-            c.vinc_emp = request.user.empresa  # Busca a filial do usuário logado
-            c.save()
+            vendedor = form.save(commit=False)
+            vendedor.vinc_emp = empresa
+            vendedor.save()
             messages.success(request, 'Vendedor adicionado com sucesso!')
-            clie = str(c.codigo)
-            return redirect('/vendedores/lista/?tp=cod&s=' + clie)
+            return redirect(f'/vendedores/lista/?tp=cod&s={vendedor.codigo}')
         else:
             error_messages = []
             for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+                if field.errors:
+                    for error in field.errors:
+                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {error}")
             return render(request, 'vendedores/add.html', {'form': form, 'error_messages': error_messages})
-    else: form = VendedorForm(empresa=request.user.empresa)
+    else: form = VendedorForm(empresa=empresa)
     return render(request, 'vendedores/add.html', {'form': form})
 
 @verifica_alguma_permissao('vendedores.add_vendedor', 'vendedores.change_vendedor', 'vendedores.delete_vendedor')

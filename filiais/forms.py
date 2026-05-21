@@ -45,15 +45,15 @@ class FilialForm(forms.ModelForm):
     fantasia = forms.CharField(label='Fantasia', widget=forms.TextInput(attrs={'class': f'{c} text-uppercase'}))
     endereco = forms.CharField(label='Endereço', widget=forms.TextInput(attrs={'class': f'{c} text-uppercase'}))
     cep = forms.CharField(label='CEP', widget=forms.TextInput(attrs={'class': f'{c}'}))
-    bairro_fil = forms.ModelChoiceField(queryset=Bairro.objects.none(), required=False, widget=forms.Select(attrs={ 'class': f'{s} text-uppercase'}), label='Bairro')
+    bairro_fil = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Bairro')
     complem = forms.CharField(label='Complemento', required=False, widget=forms.TextInput(attrs={'class': f'{c} text-uppercase'}))
-    cidade_fil = forms.ModelChoiceField(queryset=Cidade.objects.none(), required=False, widget=forms.Select(attrs={ 'class': f'{s} text-uppercase'}), label='Cidade')
-    uf = forms.ModelChoiceField(queryset=Estado.objects.none(), required=False, widget=forms.Select(attrs={'class': f'{s} text-uppercase'}), label='Estado')
+    cidade_fil = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Cidade')
+    uf = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Estado')
     numero = forms.CharField(label='Nº', widget=forms.TextInput(attrs={'class': f'{c}'}))
     tel = forms.CharField(label="Fone", max_length=20, widget=forms.TextInput(attrs={'maxlength': '20', 'class': f'{c}'}))
     email = forms.CharField(label='E-mail', widget=forms.TextInput(attrs={'class': f'{c} text-lowercase'}))
     tp_chave = forms.ChoiceField(label="Tipo de Chave", choices=[('', ''), ('CPF', 'CPF'), ('CNPJ', 'CNPJ'), ('E-mail', 'E-mail'), ('Telefone', 'Telefone'), ('Chave Aleatória', 'Chave Aleatória')], required=False, widget=forms.Select(attrs={'class': f'{s}'}))
-    banco_fil = forms.ModelChoiceField(queryset=Banco.objects.none(), required=False, widget=forms.Select(attrs={'class': f'{s} text-uppercase'}), label='Banco')
+    banco_fil = forms.ChoiceField(required=False, widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Banco')
     beneficiario = forms.CharField(label='Beneficiário', required=False, widget=forms.TextInput(attrs={'class': f'{c} text-uppercase'}))
     chave_pix = forms.CharField(label='Chave Pix', required=False, widget=forms.TextInput(attrs={'class': f'{c} text-lowercase'}))
     dt_criacao = forms.CharField(label='Dt. Criação', required=False, widget=forms.TextInput(attrs={'class': f'{c} text-lowercase bg-secondary', 'readonly': 'readonly'}))
@@ -67,10 +67,10 @@ class FilialForm(forms.ModelForm):
     ft_multa = forms.CharField(label='Fator Multa', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
     max_parcelas = forms.DecimalField(label='', max_digits=10, decimal_places=2, widget=forms.TextInput(attrs={'type': 'number', 'class': f'{c} text-end fw-bold'}))
     max_dias_intervalo = forms.DecimalField(label='', max_digits=10, decimal_places=2, widget=forms.TextInput(attrs={'type': 'number', 'class': f'{c} text-end fw-bold'}))
-    cli = forms.ModelChoiceField(queryset=Cliente.objects.none(), widget=forms.Select(attrs={'class': f'{s} text-uppercase'}), label='Cliente Padrão')
-    tec = forms.ModelChoiceField(queryset=Tecnico.objects.none(), widget=forms.Select(attrs={'class': f'{s} text-uppercase'}), label='Técnico Padrão')
-    tb_preco = forms.ModelChoiceField(queryset=TabelaPreco.objects.none(), widget=forms.Select(attrs={'class': f'{s} text-uppercase'}), label='Tabela de Preço Padrão')
-    vendedor = forms.ModelChoiceField(queryset=Vendedor.objects.none(), widget=forms.Select(attrs={'class': f'{s} text-uppercase'}), label='Vendedor Padrão')
+    cli = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Cliente Padrão')
+    tec = forms.ChoiceField(required=False, widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Técnico Padrão')
+    tb_preco = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Tabela de Preço Padrão')
+    vendedor = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Vendedor Padrão')
     multi_m2 = forms.CharField(label='', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
     multi_lg_corte1 = forms.CharField(label='', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
     multi_lg_corte2 = forms.CharField(label='', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
@@ -97,20 +97,50 @@ class FilialForm(forms.ModelForm):
         model = Filial
         fields = (
             'situacao', 'cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro_fil', 'cidade_fil', 'uf', 'tel', 'email', 'logo', 'tp_chave', 'chave_pix', 'banco_fil', 'info_comp', 'complem',
-            'beneficiario', 'info_orcamento', 'layout_contrato', 'info_local', 'tp_calc_juros', 'tp_calc_multa', 'ft_juros', 'ft_multa', 'max_parcelas', 'cli', 'tec', 'vendedor', 'tb_preco', 'max_dias_intervalo', 'vendedor', 
+            'beneficiario', 'info_orcamento', 'layout_contrato', 'info_local', 'tp_calc_juros', 'tp_calc_multa', 'ft_juros', 'ft_multa', 'max_parcelas', 'cli', 'tec', 'vendedor', 'tb_preco', 'max_dias_intervalo', 'vendedor',
             'multi_m2', 'agrupa_itens', 'multi_lg_corte1', 'multi_lg_corte2', 'multi_lg_corte3'
         )
-    def __init__(self, *args, empresa=None, **kwargs):
+    def __init__(self, *args, **kwargs):
+        # Captura e remove a empresa dos kwargs de forma segura
+        self.empresa = kwargs.pop('empresa', None)
         super().__init__(*args, **kwargs)
-        if empresa:
-            self.fields['bairro_fil'].queryset = Bairro.objects.filter(vinc_emp=empresa)
-            self.fields['cidade_fil'].queryset = Cidade.objects.filter(vinc_emp=empresa)
-            self.fields['uf'].queryset = Estado.objects.filter(vinc_emp=empresa)
-            self.fields['banco_fil'].queryset = Banco.objects.filter(vinc_emp=empresa)
-            self.fields['cli'].queryset = Cliente.objects.filter(vinc_emp=empresa)
-            self.fields['tec'].queryset = Tecnico.objects.filter(vinc_emp=empresa)
-            self.fields['tb_preco'].queryset = TabelaPreco.objects.filter(vinc_emp=empresa)
-            self.fields['vendedor'].queryset = Vendedor.objects.filter(vinc_emp=empresa)
+        if not self.empresa and self.instance and self.instance.pk and self.instance.vinc_emp:
+            self.empresa = self.instance.vinc_emp
+        if self.empresa:
+            bairros = Bairro.objects.filter(vinc_emp=self.empresa)
+            cidades = Cidade.objects.filter(vinc_emp=self.empresa)
+            estados = Estado.objects.filter(vinc_emp=self.empresa)
+            bancos = Banco.objects.filter(vinc_emp=self.empresa)
+            clientes = Cliente.objects.filter(vinc_emp=self.empresa)
+            tecnicos = Tecnico.objects.filter(vinc_emp=self.empresa)
+            tabelas = TabelaPreco.objects.filter(vinc_emp=self.empresa)
+            vendedores = Vendedor.objects.filter(vinc_emp=self.empresa)
+            self.fields['bairro_fil'].choices = [('', 'Escolha uma opção')] + [(str(b.codigo), b.nome_bairro.upper()) for b in bairros]
+            self.fields['cidade_fil'].choices = [('', 'Escolha uma opção')] + [(str(c.codigo), c.nome_cidade.upper()) for c in cidades]
+            self.fields['uf'].choices = [('', 'Escolha uma opção')] + [(str(e.codigo), e.nome_estado.upper()) for e in estados]
+            self.fields['banco_fil'].choices = [('', 'Escolha uma opçãoo')] + [(str(b.codigo), b.nome_banco.upper()) for b in bancos]
+            self.fields['cli'].choices = [('', 'Escolha uma opção')] + [(str(c.codigo), c.fantasia.upper()) for c in clientes]
+            self.fields['tec'].choices = [('', 'Escolha uma opção')] + [(str(t.codigo), t.nome.upper()) for t in tecnicos]
+            self.fields['tb_preco'].choices = [('', 'Escolha uma opção')] + [(str(t.codigo), t.descricao.upper()) for t in tabelas]
+            self.fields['vendedor'].choices = [('', 'Escolha uma opção')] + [(str(v.codigo), v.fantasia.upper()) for v in vendedores]
+            if self.instance and self.instance.pk:
+                if self.instance.bairro_fil: self.initial['bairro_fil'] = str(self.instance.bairro_fil.codigo)
+                if self.instance.cidade_fil: self.initial['cidade_fil'] = str(self.instance.cidade_fil.codigo)
+                if self.instance.uf: self.initial['uf'] = str(self.instance.uf.codigo)
+                if self.instance.banco_fil: self.initial['banco_fil'] = str(self.instance.banco_fil.codigo)
+                if self.instance.cli: self.initial['cli'] = str(self.instance.cli.codigo)
+                if self.instance.tec: self.initial['tec'] = str(self.instance.tec.codigo)
+                if self.instance.tb_preco: self.initial['tb_preco'] = str(self.instance.tb_preco.codigo)
+                if self.instance.vendedor: self.initial['vendedor'] = str(self.instance.vendedor.codigo)
+        else:
+            self.fields['bairro_fil'].choices = [('', 'Escolha uma opção')]
+            self.fields['cidade_fil'].choices = [('', 'Escolha uma opção')]
+            self.fields['uf'].choices = [('', 'Escolha uma opção')]
+            self.fields['banco_fil'].choices = [('', 'Escolha uma opção')]
+            self.fields['cli'].choices = [('', 'Escolha uma opção')]
+            self.fields['tec'].choices = [('', 'Escolha uma opção')]
+            self.fields['tb_preco'].choices = [('', 'Escolha uma opção')]
+            self.fields['vendedor'].choices = [('', 'Escolha uma opção')]
         if getattr(self.instance, 'pk', None):
             if getattr(self.instance, 'dt_criacao', None):
                 self.initial['dt_criacao'] = self.instance.dt_criacao.strftime('%d/%m/%Y')
@@ -119,6 +149,32 @@ class FilialForm(forms.ModelForm):
             valor = getattr(self.instance, campo, None)
             if valor is not None:
                 self.fields[campo].initial = f"{valor:.2f}".replace('.', ',')
+    def clean(self):
+        cleaned_data = super().clean()
+        # Mapeamento genérico: 'nome_no_form': (ClasseDoModel, 'Nome Amigável para o Erro')
+        campos_select2 = {
+            'bairro_fil': (Bairro, 'Bairro'),
+            'cidade_fil': (Cidade, 'Cidade'),
+            'uf': (Estado, 'UF'),
+            'banco_fil': (Banco, 'Banco'),
+            'cli': (Cliente, 'Cliente Padrão'),
+            'tec': (Tecnico, 'Técnico Padrão'),
+            'tb_preco': (TabelaPreco, 'Tabela de Preço Padrão'),
+            'vendedor': (Vendedor, 'Vendedor Padrão')
+        }
+        for nome_campo, (model_classe, nome_exibicao) in campos_select2.items():
+            codigo = cleaned_data.get(nome_campo)
+            # Se o usuário preencheu o campo (não é None e nem string vazia)
+            if codigo and codigo != '':
+                try:
+                    objeto_real = model_classe.objects.get(codigo=codigo, vinc_emp=self.empresa)
+                    cleaned_data[nome_campo] = objeto_real  # Substitui pelo objeto do banco
+                except model_classe.DoesNotExist:
+                    self.add_error(nome_campo, f"{nome_exibicao} inválido(a) para esta empresa.")
+            else:
+                # ✅ CORREÇÃO: Se veio vazio ou '', força a ser None para o Django salvar como NULL
+                cleaned_data[nome_campo] = None
+        return cleaned_data
 
 class FilialReadOnlyForm(forms.ModelForm):
     class Meta:

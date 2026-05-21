@@ -109,45 +109,76 @@ def agrupar_permissoes_por_grupo(permissoes):
 
 @login_required
 def add_usuario(request):
+    # 1. Validação de Permissão de Acesso
     if not request.user.has_perm('filiais.add_usuario'):
         messages.info(request, 'Você não tem permissão para adicionar usuários.')
         return redirect('/usuarios/lista/')
     usuario_logado = request.user
+    # 2. Segurança Multi-empresa: Garante que o usuário logado possui uma empresa ativa na sessão
+    empresa_alvo = usuario_logado.empresa
+    if not empresa_alvo:
+        messages.error(request, 'Erro crítico: Seu usuário não está vinculado a nenhuma empresa cadastrada.')
+        return redirect('/usuarios/lista/')
     filial = usuario_logado.filial_user
     if not filial:
-        messages.error(request, 'Usuário não está vinculado a uma filial.')
+        messages.error(request, 'Erro: Seu usuário precisa estar vinculado a uma filial padrão para cadastrar outros usuários.')
         return redirect('/usuarios/lista/')
-    qtd_permitida = usuario_logado.empresa.qtd_usuarios
-    usuarios_ativos = Usuario.objects.filter(empresa=usuario_logado.empresa, is_active=True).exclude(is_master=True).count()
+    # 3. Validação do Limite de Usuários Ativos da Empresa
+    qtd_permitida = empresa_alvo.qtd_usuarios
+    usuarios_ativos = Usuario.objects.filter(empresa=empresa_alvo, is_active=True).exclude(codigo_local=1).count()
     if usuarios_ativos >= qtd_permitida:
         messages.warning(request, f'Limite de {qtd_permitida} usuário(s) ativos atingido para sua empresa.')
         return redirect('/usuarios/lista/')
+    # 4. Preparação das Permissões para renderização na Tela
     todas_permissoes = Permission.objects.all()
+    # Certifique-se de que a função 'agrupar_permissoes_por_grupo' está importada ou declarada no arquivo
     permissoes_por_grupo = agrupar_permissoes_por_grupo(todas_permissoes)
     grupos_marcados = []
+    # 5. Processamento do Formulário (Submissão POST)
     if request.method == 'POST':
-        form = UsuarioCadastroForm(request.POST, empresa=request.user.empresa)
+        # ✅ CORREÇÃO CHAVE: 'data=' nomeado de forma explícita e 'empresa=' isolada
+        form = UsuarioCadastroForm(data=request.POST, empresa=empresa_alvo)
         gerar_senha_lib = request.POST.get('gerar_senha_lib') == 'on'
         senha_liberacao = request.POST.get('senha_liberacao')
         if form.is_valid():
-            novo_user = form.save(commit=False)
-            novo_user.first_name = request.POST.get('first_name')
-            novo_user.set_password(request.POST.get('password'))
-            novo_user.empresa = usuario_logado.empresa
-            novo_user.gerar_senha_lib = gerar_senha_lib
-            novo_user.senha_liberacao = senha_liberacao
-            novo_user.save()
-            permissoes = form.cleaned_data.get('permissoes')
-            if permissoes: novo_user.user_permissions.set(permissoes)
-            messages.success(request, 'Usuário cadastrado com sucesso.')
-            return redirect('/usuarios/lista/')
+            try:
+                novo_user = form.save(commit=False)
+                novo_user.first_name = request.POST.get('first_name', '').upper()
+                novo_user.set_password(request.POST.get('password'))
+                # Força o vínculo com a empresa correta do criador
+                novo_user.empresa = empresa_alvo
+                novo_user.gerar_senha_lib = gerar_senha_lib
+                novo_user.senha_liberacao = senha_liberacao
+                novo_user.save()
+                # Vincula as permissões selecionadas no Checkbox
+                permissoes = form.cleaned_data.get('permissoes')
+                if permissoes:
+                    novo_user.user_permissions.set(permissoes)
+                messages.success(request, 'Usuário cadastrado com sucesso.')
+                return redirect('/usuarios/lista/')
+            except Exception as e:
+                # Caso ocorra algum erro inesperado de banco de dados
+                messages.error(request, f'Erro interno ao salvar no banco de dados: {str(e)}')
         else:
-            messages.error(request, 'Erro ao cadastrar usuário.')
-            permissoes_selecionadas = form.cleaned_data.get('permissoes', [])
-            for grupo, permissoes in permissoes_por_grupo.items():
-                if all(perm in permissoes_selecionadas for perm in permissoes): grupos_marcados.append(slugify(grupo))
-    else: form = UsuarioCadastroForm(empresa=request.user.empresa)
-    context = {'form': form, 'filial': filial, 'permissoes_por_grupo': permissoes_por_grupo, 'grupos_marcados': grupos_marcados}
+            # ✅ Captura todos os erros ocultos de validação e joga na tela do usuário
+            for field, errors in form.errors.items():
+                for error in errors:
+                    label_campo = form.fields[field].label if field in form.fields else field
+                    messages.error(request, f"❌ Erro no campo '{label_campo}': {error}")
+            # Reconstrói o estado dos checkboxes marcados para não perder a seleção visual na tela
+            permissoes_selecionadas = form.cleaned_data.get('permissoes', []) if form.cleaned_data else []
+            for grupo, permissoes_lista in permissoes_por_grupo.items():
+                if all(perm in permissoes_selecionadas for perm in permissoes_lista):
+                    grupos_marcados.append(slugify(grupo))
+    # 6. Renderização Inicial da Página (Acesso GET)
+    else:
+        form = UsuarioCadastroForm(empresa=empresa_alvo)
+    context = {
+        'form': form,
+        'filial': filial,
+        'permissoes_por_grupo': permissoes_por_grupo,
+        'grupos_marcados': grupos_marcados
+    }
     return render(request, 'usuarios/add_usuario.html', context)
 
 @login_required
@@ -161,7 +192,7 @@ def att_usuario(request, codigo_local):
     permissoes_por_grupo = agrupar_permissoes_por_grupo(todas_permissoes)
     grupos_marcados = []
     if request.method == 'POST':
-        form = UsuarioCadastroForm(request.POST, instance=usuario, empresa=request.user.empresa)
+        form = UsuarioCadastroForm(data=request.POST, instance=usuario, empresa=request.user.empresa)
         gerar_senha_lib = request.POST.get('gerar_senha_lib') == 'on'
         senha_liberacao = request.POST.get('senha_liberacao')
         if form.is_valid():

@@ -368,7 +368,7 @@
                                                                             <td>{{ item.quantidade }}</td>
                                                                             <td>{{ item.preco_unitario }}</td>
                                                                             <td>{{ item.desconto }}</td>
-                                                                            <td>{{ item.subtotal|floatformat:2 }}</td>
+                                                                            <td>{{ item.subtotal|moeda_br }}</td>
                                                                         </tr>
                                                                     {% empty %}
                                                                         <tr>
@@ -392,7 +392,7 @@
                             <td data-label="" class="mobile-2col" style="text-align: center;"><i class="fa-solid fa-circle-info" style="font-size: 25px; margin-right: 10px;" data-bs-toggle="modal" data-bs-target="#infoEntModal{{ entrada.codigo }}"></i></td>
                             <td data-label="Nº:" class="mobile-2col" style="align-items: center;">{{ entrada.numeracao }}</td>
                             <td data-label="Situação:" class="mobile-2col" style="text-align: center;">
-                                {% if entrada.situacao == 'Pendente' %}    
+                                {% if entrada.situacao == 'Pendente' %}
                                     <div style="background-color: #005eff; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
                                         <strong>{{ entrada.situacao }}</strong>
                                     </div>
@@ -404,7 +404,7 @@
                                     <div style="background-color: #800000; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
                                         <strong>{{ entrada.situacao }}</strong>
                                     </div>
-                                {% endif %}    
+                                {% endif %}
                             </td>
                             <td data-label="Fornecedor:" class="mobile-2col" style="align-items: center;">{{ entrada.fornecedor }}</td>
                             <td data-label="Filial:" class="mobile-2col" style="align-items: center; text-transform: uppercase;">{{ entrada.vinc_fil }}</td>

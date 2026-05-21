@@ -21,19 +21,30 @@ class UsuarioCadastroForm(forms.ModelForm):
     first_name = forms.CharField(label="Nome do Usuário", widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
     email = forms.CharField(label="E-mail", widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-lowercase'}))
     password = forms.CharField(label="Senha*", widget=forms.PasswordInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'type': 'password'}), required=False)
-    filial_user = forms.ModelChoiceField(label="Filial Padrão", queryset=Filial.objects.none(), widget=forms.Select(attrs={'class': 'form-control'}))
+    filial_user = forms.ChoiceField(
+        label="Filial Padrão",
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        required=True
+    )
     class Meta:
         model = Usuario
         fields = ['is_active', 'filial_user', 'first_name', 'username', 'email', 'password', 'permissoes', 'gerar_senha_lib', 'senha_liberacao']
-    def __init__(self, *args, empresa=None, **kwargs):
+    def __init__(self, *args, **kwargs):
+        self.empresa = kwargs.pop('empresa', None)
         super().__init__(*args, **kwargs)
-        self.fields['filial_user'].label_from_instance = lambda obj: obj.fantasia.upper()
-        if empresa:
-            self.fields['filial_user'].queryset = Filial.objects.filter(vinc_emp=empresa, situacao='Ativa')
-        elif self.instance and self.instance.empresa:
-            self.fields['filial_user'].queryset = Filial.objects.filter(vinc_emp=self.instance.empresa, situacao='Ativa')
+        if not self.empresa and self.instance and self.instance.pk and self.instance.empresa:
+            self.empresa = self.instance.empresa
+        # 2. Alimentamos as choices com o (codigo, fantasia) em vez de (id, fantasia)
+        if self.empresa:
+            filiais_ativas = Filial.objects.filter(vinc_emp=self.empresa, situacao='Ativa')
+            self.fields['filial_user'].choices = [('', 'Escolha uma opção')] + [
+                (str(f.codigo), f.fantasia.upper()) for f in filiais_ativas
+            ]
+            # Se for edição, define o valor inicial usando o 'codigo'
+            if self.instance and self.instance.pk and self.instance.filial_user:
+                self.initial['filial_user'] = str(self.instance.filial_user.codigo)
         else:
-            self.fields['filial_user'].queryset = Filial.objects.none()
+            self.fields['filial_user'].choices = [('', 'Escolha uma filial')]
         ordem_codename = [
             'view_caixa', 'add_caixa', 'change_caixa', 'delete_caixa',
             'view_pdv', 'add_pdv', 'change_pdv', 'delete_pdv',
@@ -110,6 +121,21 @@ class UsuarioCadastroForm(forms.ModelForm):
             elif perm.codename in orcamentos_perms: grupo_permissoes['Orçamentos'].append(perm)
             elif 'tecnico' in perm.codename: grupo_permissoes['Técnicos'].append(perm)
         self.grupo_permissoes = grupo_permissoes
+    # ✅ VALIDAÇÃO EXTRA À PROVA DE ERROS
+    def clean_filial_user(self):
+        codigo_enviado = self.cleaned_data.get('filial_user')
+        if not codigo_enviado:
+            raise forms.ValidationError("Por favor, selecione uma filial.")
+        if not self.empresa:
+            raise forms.ValidationError("Erro: empresa não definida no formulário.")
+        try:
+            filial = Filial.objects.get(codigo=codigo_enviado, vinc_emp=self.empresa)
+        except Filial.DoesNotExist:
+            raise forms.ValidationError("A filial selecionada não existe para a sua empresa.")
+        if filial.situacao != 'Ativa':
+            raise forms.ValidationError("A filial selecionada não está ativa.")
+        # Retornamos o objeto Filial completo. O Django vai saber salvar no banco!
+        return filial
     def save(self, commit=True):
         user = super().save(commit=False)
         alterar = self.cleaned_data.get('alterar_senha')

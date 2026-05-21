@@ -62,8 +62,8 @@ def lista_entradas(request):
     # Filtro por situação
     if f_s and f_s != 'Todos': entradas = entradas.filter(situacao=f_s)
     # Filtro por cliente
-    if forn: entradas = entradas.filter(fornecedor_codigo=forn)
-    if fil: entradas = entradas.filter(vinc_fil_codigo=fil)
+    if forn: entradas = entradas.filter(fornecedor__codigo=forn)
+    if fil: entradas = entradas.filter(vinc_fil__codigo=fil)
     fornecedores = Fornecedor.objects.filter(vinc_emp=request.user.empresa)
     filiais = Filial.objects.filter(vinc_emp=request.user.empresa)
     # Paginação
@@ -77,12 +77,12 @@ def lista_entradas(request):
     return render(request, 'entradas/lista.html', {'entradas': entradas, 's': s, 'forn': forn, 'fil': fil, 'fornecedores': fornecedores, 'filiais': filiais, 'dt_ini': dt_ini, 'dt_fim': dt_fim, 'p_dt': por_dt, 'tp_dt': tp_dt, 'reg': reg})
 
 @login_required
-def entradas_por_produto(request, produto_codigo):
-    entradas = EntradaProduto.objects.filter(produto_codigo=produto_codigo).select_related('entrada', 'entrada__fornecedor')
+def entradas_por_produto(request, produto__codigo):
+    entradas = EntradaProduto.objects.filter(produto__codigo=produto__codigo, produto__vinc_emp=request.user.empresa).select_related('entrada', 'entrada__fornecedor')
     data = []
     for ep in entradas:
         entrada = ep.entrada
-        data.append({'entrada_id': entrada.codigo, 'data': entrada.dt_ent.strftime('%d/%m/%Y') if entrada.dt_ent else '', 'fornecedor': str(entrada.fornecedor), 'quantidade': float(ep.quantidade), 'valor_unitario': float(ep.preco_unitario), 'total_entrada': float(entrada.total)})
+        data.append({'entrada_id': entrada.numeracao, 'data': entrada.dt_ent.strftime('%d/%m/%Y') if entrada.dt_ent else '', 'fornecedor': str(entrada.fornecedor), 'quantidade': float(ep.quantidade), 'valor_unitario': float(ep.preco_unitario), 'total_entrada': float(entrada.total)})
     return JsonResponse({'entradas': data})
 
 def somente_numeros(valor):
@@ -385,20 +385,24 @@ def add_entrada(request):
     if not request.user.has_perm('entradas.add_entrada'):
         messages.info(request, 'Você não tem permissão para adicionar entradas de NF/Pedidos.')
         return redirect('/entradas/lista/')
+    empresa = request.user.empresa
+    if not empresa:
+        messages.error(request, 'Erro crítico: Seu usuário não está vinculado a nenhuma empresa cadastrada.')
+        return redirect('/entradas/lista/')
     try:
         if request.method == "POST":
-            form = EntradaForm(request.POST, empresa=request.user.empresa, user=request.user)
+            form = EntradaForm(data=request.POST, empresa=empresa, user=request.user)
             if not form.is_valid():
                 error_messages = [f"Campo ({field.label}) é obrigatório!" for field in form if field.errors]
                 return render(request, 'entradas/add.html', {'form': form, 'error_messages': error_messages})
             entrada = form.save(commit=False)
-            if entrada.fornecedor and entrada.fornecedor.vinc_emp != request.user.empresa: return HttpResponseForbidden()
-            if entrada.vinc_fil and entrada.vinc_fil.vinc_emp != request.user.empresa: return HttpResponseForbidden()
-            entrada.vinc_emp = request.user.empresa
+            if entrada.fornecedor and entrada.fornecedor.vinc_emp != empresa: return HttpResponseForbidden()
+            if entrada.vinc_fil and entrada.vinc_fil.vinc_emp != empresa: return HttpResponseForbidden()
+            entrada.vinc_emp = empresa
             entrada.save()
             produtos_dict = montar_produtos_post(request.POST)
             for dados in produtos_dict.values():
-                try: produto = Produto.objects.get(pk=dados.get("codigo"), vinc_emp=request.user.empresa)
+                try: produto = Produto.objects.get(codigo=dados.get("codigo"), vinc_emp=empresa)
                 except Produto.DoesNotExist:
                     messages.warning(request, f"Produto {dados.get('produto')} não encontrado e foi ignorado.")
                     continue
@@ -408,7 +412,7 @@ def add_entrada(request):
                 for tab in dados.get("tabelas", {}).values():
                     tabela_id = tab.get("tabela_id")
                     if not tabela_id: continue
-                    try: tabela = TabelaPreco.objects.get(codigo=tabela_id, vinc_emp=request.user.empresa)
+                    try: tabela = TabelaPreco.objects.get(codigo=tabela_id, vinc_emp=empresa)
                     except TabelaPreco.DoesNotExist:
                         messages.warning(request, f"Tabela {tabela_id} não encontrada para o produto {dados.get('produto')}.")
                         continue
@@ -422,7 +426,7 @@ def add_entrada(request):
             entrada.save(update_fields=["total"])
             messages.success(request, f'Registro de {entrada.tipo} - {entrada.numeracao} realizado com sucesso!')
             return redirect(f'/entradas/lista/?tp=numeracao&s={entrada.numeracao}')
-        form = EntradaForm(empresa=request.user.empresa, user=request.user)
+        form = EntradaForm(empresa=empresa, user=request.user)
     except ObjectDoesNotExist: error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
     except IntegrityError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}")
     except DatabaseError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco de dados: {str(e)}")
@@ -483,7 +487,7 @@ def att_entrada(request, codigo):
                     tab_ids_mantidas.append(ept.codigo)
                     ProdutoTabela.objects.update_or_create(produto=produto, tabela=tabela, defaults={"vl_prod": valor, "margem": margem})
                 EntradaProdutoTabela.objects.filter(entrada_produto=ep, tabela_preco__vinc_emp=request.user.empresa).exclude(codigo__in=tab_ids_mantidas).delete()
-            EntradaProdutoTabela.objects.filter(entrada_produto__entrada=entrada, entrada_produto__produto__vinc_emp=request.user.empresa).exclude(entrada_produto_codigo__in=itens_ids_mantidos).delete()
+            EntradaProdutoTabela.objects.filter(entrada_produto__entrada=entrada, entrada_produto__produto__vinc_emp=request.user.empresa).exclude(entrada_produto__codigo__in=itens_ids_mantidos).delete()
             EntradaProduto.objects.filter(entrada=entrada, produto__vinc_emp=request.user.empresa).exclude(codigo__in=itens_ids_mantidos).delete()
             entrada.total = entrada.atualizar_total()
             entrada.save(update_fields=["total"])

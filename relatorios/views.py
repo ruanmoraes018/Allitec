@@ -34,7 +34,7 @@ def lista_relatorios(request):
 
 @login_required
 def relatorio_pedidos(request):
-    pedidos = (Pedido.objects.filter(vinc_emp=request.user.empresa).select_related('cli', 'vendedor', 'vinc_fil').prefetch_related('itens__produto', 'formas_pgto__forma_pgto') .order_by('id'))
+    pedidos = (Pedido.objects.filter(vinc_emp=request.user.empresa).select_related('cli', 'vendedor', 'vinc_fil').prefetch_related('itens__produto', 'formas_pgto__forma_pgto') .order_by('codigo'))
     # FILTROS
     tipo = request.GET.get('tipo', 'resumido')
     dt_ini = request.GET.get('dt_ini')
@@ -49,13 +49,13 @@ def relatorio_pedidos(request):
     if dt_fim:
         dt_fim = parse_date_br(dt_fim)
         if dt_fim: pedidos = pedidos.filter(dt_emi__date__lte=dt_fim)
-    if cli: pedidos = pedidos.filter(cli_id=cli)
+    if cli: pedidos = pedidos.filter(cli__codigo=cli)
     # Filtro por Filial
-    if fil: 
-        pedidos = pedidos.filter(vinc_fil_id=fil)
-        filial = Filial.objects.filter(id=fil, vinc_emp=request.user.empresa).first()
+    if fil:
+        pedidos = pedidos.filter(vinc_fil__codigo=fil)
+        filial = Filial.objects.filter(codigo=fil, vinc_emp=request.user.empresa).first()
     # Filtro por Vendedor
-    if vend: pedidos = pedidos.filter(vendedor_id=vend)
+    if vend: pedidos = pedidos.filter(vendedor__codigo=vend)
     pedidos = pedidos.filter(situacao='Faturado')
     total_pedidos = pedidos.count()
     valor_total = pedidos.aggregate(total=Sum('total'))['total'] or Decimal('0.00')
@@ -112,23 +112,51 @@ def relatorio_produtos_vendidos(request):
     # FILTROS
     if dt_ini: itens = itens.filter(pedido__dt_fat__date__gte=dt_ini)
     if dt_fim: itens = itens.filter(pedido__dt_fat__date__lte=dt_fim)
-    if grupo: itens = itens.filter(produto__grupo_id=grupo)
-    if marca: itens = itens.filter(produto__marca_id=marca)
-    if vendedor: itens = itens.filter(pedido__vendedor_id=vendedor)
+    if grupo: itens = itens.filter(produto__grupo__codigo=grupo)
+    if marca: itens = itens.filter(produto__marca__codigo=marca)
+    if vendedor: itens = itens.filter(pedido__vendedor__codigo=vendedor)
     # AGRUPAMENTO
-    produtos = (itens.values('produto__id', 'produto__desc_prod', 'produto__grupo__nome_grupo', 'produto__marca__nome_marca', 'produto__estoque_prod', 'produto__vl_compra',)
+    produtos = (
+        itens.values(
+            'produto__codigo',
+            'produto__desc_prod',
+            'produto__grupo__nome_grupo',
+            'produto__marca__nome_marca',
+            'produto__estoque_prod',
+            'produto__vl_compra'
+        )
         .annotate(
-            qtd_vendida=Coalesce(Sum('quantidade'), Decimal('0.00')), total_vendido=Coalesce(Sum(F('quantidade') * F('vl_unit'), output_field=DecimalField()), Decimal('0.00')),
-            total_compras=Coalesce(Sum(F('quantidade') * F('produto__vl_compra'), output_field=DecimalField()), Decimal('0.00')),
-            lucro=ExpressionWrapper(
-                Coalesce(Sum(F('quantidade') * F('vl_unit'), output_field=DecimalField()), Decimal('0.00')) -
-                Coalesce(Sum(F('quantidade') * F('produto__vl_compra'), output_field=DecimalField()), Decimal('0.00')), output_field=DecimalField()),
-            margem_lucro=ExpressionWrapper(((
-                    Coalesce(Sum(F('quantidade') * F('vl_unit'), output_field=DecimalField()), Decimal('0.00')) -
-                    Coalesce(Sum(F('quantidade') * F('produto__vl_compra'), output_field=DecimalField()), Decimal('0.00'))) * Decimal('100.00')) /
-                    Coalesce(Sum(F('quantidade') * F('produto__vl_compra'), output_field=DecimalField()), Decimal('1.00')), output_field=DecimalField( max_digits=10, decimal_places=2)
+            # 1. Cálculos base (agrupando e somando)
+            qtd_vendida=Coalesce(Sum('quantidade'), Decimal('0.00')),
+            total_pedidos=Count('pedido__codigo', distinct=True),
+
+            total_vendido=Coalesce(
+                Sum(F('quantidade') * F('vl_unit'), output_field=DecimalField()),
+                Decimal('0.00')
             ),
-            total_pedidos=Count('pedido_id', distinct=True), valor_medio=Coalesce(Sum(F('quantidade') * F('vl_unit'), output_field=DecimalField()) / Count('id'), Decimal('0.00')),
+            total_compras=Coalesce(
+                Sum(F('quantidade') * F('produto__vl_compra'), output_field=DecimalField()),
+                Decimal('0.00')
+            ),
+
+            # Corrigido aqui: trocado 'codigo' por 'id' para calcular a média por linha de item
+            valor_medio=Coalesce(
+                Sum(F('quantidade') * F('vl_unit'), output_field=DecimalField()) / Count('id'),
+                Decimal('0.00')
+            ),
+        )
+        .annotate(
+            # 2. Cálculos derivados (reaproveitando as somas acima para ficar mais rápido)
+            lucro=ExpressionWrapper(
+                F('total_vendido') - F('total_compras'),
+                output_field=DecimalField(max_digits=10, decimal_places=2)
+            ),
+            margem_lucro=ExpressionWrapper(
+                # Se total_compras for zero, evita divisão por zero usando Coalesce no divisor
+                ((F('total_vendido') - F('total_compras')) * Decimal('100.00')) /
+                Coalesce(F('total_compras'), Decimal('1.00')),
+                output_field=DecimalField(max_digits=10, decimal_places=2)
+            )
         )
     )
     # ORDENAÇÃO
@@ -153,7 +181,7 @@ def relatorio_produtos_vendidos(request):
     total_produtos = produtos.count()
     produto_campeao = produtos.first()
     context = {
-        'produtos': produtos, 'tipo': tipo, 'dt_ini': dt_ini, 'dt_fim': dt_fim, 'total_vendido': total_vendido, 'total_qtd': total_qtd, 'total_produtos': total_produtos, 
+        'produtos': produtos, 'tipo': tipo, 'dt_ini': dt_ini, 'dt_fim': dt_fim, 'total_vendido': total_vendido, 'total_qtd': total_qtd, 'total_produtos': total_produtos,
         'produto_campeao': produto_campeao, 'total_compras': total_compras, 'lucro_total': lucro_total,
     }
     html_string = render_to_string('relatorios/vendas_produtos.html', context, request=request)

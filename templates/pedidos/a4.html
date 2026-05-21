@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+{% load custom_filters %}
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Pedido {{ pedido.codigo }}</title>
+</head>
+<body>
+
+    <!-- CABEÇALHO -->
+    <table class="sem-borda mb cabecalho">
+        <tr>
+            <td class="td-logo">
+                {% if lg_emp %}
+                    <img class="logo" src="{{ lg_emp }}">
+                {% endif %}
+            </td>
+            <td class="td-info">
+                <div class="titulo">{{ pedido.vinc_emp.fantasia }}</div>
+                <div class="sub-info">
+                    <span>CNPJ: {{ pedido.vinc_fil.cnpj }}</span> • 
+                    <span>{{ pedido.vinc_fil.tel }}</span>
+                </div>
+                <div class="sub-info">
+                    {{ pedido.vinc_fil.endereco }}, {{ pedido.vinc_fil.numero }} - {{ pedido.vinc_fil.bairro_fil }}
+                </div>
+                <div class="sub-info">
+                    {{ pedido.vinc_fil.cidade_fil }} - {{ pedido.vinc_fil.uf }}
+                </div>
+            </td>
+            <td class="td-status text-right">
+                <div class="badge-pedido">PEDIDO Nº {{ pedido.codigo }}</div>
+                <div style="margin-top: 8px; font-size: 10px; color: #666;">
+                    <strong>EMISSÃO:</strong> {{ pedido.dt_emi|date:"d/m/Y H:i" }}<br>
+                    <strong>SITUAÇÃO:</strong> {{ pedido.situacao }}<br>
+                    <strong>OPERADOR:</strong> {{ usuario }}
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- DADOS DO CLIENTE -->
+    <table class="table-dados mb">
+        <thead>
+            <tr>
+                <th colspan="4">DADOS DO CLIENTE E VENDA</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td width="40%">
+                    <span class="label">Cliente</span>
+                    <span class="valor">{{ pedido.cli.codigo }} - {{ pedido.nome_cli }}</span>
+                </td>
+                <td width="25%">
+                    <span class="label">Vendedor</span>
+                    <span class="valor">{{ pedido.vendedor.codigo }} - {{ pedido.nome_vend|default:"-" }}</span>
+                </td>
+                <td width="15%">
+                    <span class="label">Caixa</span>
+                    <span class="valor">{{ pedido.caixa|default:"-" }}</span>
+                </td>
+                <td width="20%">
+                    <span class="label">Tabela de Preço</span>
+                    <span class="valor">{{ pedido.tabela_preco|default:"-" }}</span>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- ITENS -->
+    <table class="table-itens mb">
+        <thead>
+            <tr>
+                <th class="text-center" width="3%">#</th>
+                <th width="12%">Código</th>
+                <th width="25%">Produto</th>
+                <th width="10%">Marca</th>
+                <th width="10%">Unidade</th>
+                <th class="text-right" width="12%">Unitário</th>
+                <th class="text-center" width="8%">Qtd</th>
+                <th class="text-right" width="10%">Desc/Acrés</th>
+                <th class="text-right" width="10%">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in pedido.itens.all %}
+            <tr>
+                <td class="text-center color-muted">{{ forloop.counter }}</td>
+                <td>{{ item.codigo_usado|default_if_none:item.produto.codigo }}</td>
+                <td class="font-bold">{{ item.produto.desc_prod }}</td>
+                <td class="font-bold">{{ item.produto.marca }}</td>
+                <td class="font-bold">{{ item.produto.unidProd }}</td>
+                <td class="text-right">R$ {{ item.vl_unit|moeda_br }}</td>
+                <td class="text-center">{{ item.quantidade }}</td>
+                <td class="text-right color-muted">
+                    {% if item.desc_acres != 0 %}
+                        {{ item.tp_desc_acres }} {{ item.desc_acres }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td class="text-right font-bold">R$ {{ item.subtotal|moeda_br }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- PAGAMENTO E TOTAIS -->
+    <table class="sem-borda mb" style="page-break-inside: avoid;">
+        <tr>
+            <!-- Coluna da Esquerda: Formas de Pagamento -->
+            <td style="width: 55%; vertical-align: top; padding-right: 15px;">
+                <table class="table-dados">
+                    <thead>
+                        <tr>
+                            <th colspan="2">FORMAS DE PAGAMENTO</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fp in pedido.formas_pgto.all %}
+                        <tr>
+                            <td>{{ fp.forma_pgto.descricao }}</td>
+                            <td class="text-right font-bold">R$ {{ fp.valor|moeda_br }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="2" class="color-muted italic">Nenhuma forma de pagamento registrada</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </td>
+
+            <!-- Coluna da Direita: Resumo Financeiro -->
+            <td style="width: 45%; vertical-align: top;">
+                <table class="table-totais">
+                    <tr>
+                        <td>Qtd. Total de Itens:</td>
+                        <td class="text-right">{{ pedido.itens.all|length }}</td>
+                    </tr>
+                    <tr class="linha-total-final">
+                        <td>TOTAL DO PEDIDO:</td>
+                        <td class="text-right">R$ {{ pedido.total|moeda_br }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- OBSERVAÇÕES -->
+    {% if pedido.obs %}
+    <table class="table-dados mb" style="page-break-inside: avoid;">
+        <thead>
+            <tr>
+                <th>OBSERVAÇÕES</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="italic" style="padding: 10px; color: #333; line-height: 1.4;">
+                    {{ pedido.obs }}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- RODAPÉ COMPLEMENTAR -->
+    {% if pedido.vinc_fil.info_comp %}
+    <div class="rodape-info">
+        {{ pedido.vinc_fil.info_comp }}
+    </div>
+    {% endif %}
+
+</body>
+</html>

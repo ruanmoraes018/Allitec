@@ -14,4 +14,5 @@ urlpatterns = [
     path('<int:pedido_id>/recuperar-pagamento/', views.recuperar_pix_pendente, name='recuperar-pix-pendente'),
     path('pedidos-produto/<int:produto_id>/', views.pedidos_por_produto, name='pedidos_por_produto'),
     path('cupom/<int:codigo>/', views.imprimir_cupom_pedido, name='cupom_pedido'),
+    path('a4/<int:codigo>/', views.imprimir_pedido, name='imprimir-pedido'),
 ]

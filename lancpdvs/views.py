@@ -52,8 +52,8 @@ def lista_lancamentos(request):
         try: caixas = caixas.filter(codigo__iexact=s).order_by('terminal__nome')
         except ValueError: caixas = Caixa.objects.none()
     if sit and sit != 'Todos': caixas = caixas.filter(situacao=sit)
-    if fil: caixas = caixas.filter(vinc_fil_codigo=fil)
-    if user1: caixas = caixas.filter(usuario_codigo_local=user1)
+    if fil: caixas = caixas.filter(vinc_fil__codigo=fil)
+    if user1: caixas = caixas.filter(usuario__codigo_local=user1)
     filiais = Filial.objects.filter(vinc_emp=request.user.empresa)
     usuarios = Usuario.objects.filter(empresa=request.user.empresa)
     if reg == 'todos': num_pagina = caixas.count() or 1
@@ -77,7 +77,7 @@ def lista_lancamentos_ajax(request):
         return JsonResponse({'results': results})
     except Exception as e:
         return JsonResponse({'results': [], 'error': str(e)})
-    
+
 @login_required
 def add_lancamento(request):
     if not request.user.has_perm('lancpdvs.add_caixa'):
@@ -154,7 +154,7 @@ def del_lancamento(request, codigo):
     if b.caixamovimento_set.exists():
         messages.error(request, 'Não é possível deletar este caixa porque existem movimentos associados a ele.')
         return redirect('/lancpdvs/lista/')
-    else:   
+    else:
         b.delete()
         messages.success(request, 'Caixa deletado com sucesso!')
         return redirect('/lancpdvs/lista/')
@@ -196,11 +196,11 @@ def movimentos_caixa(request, caixa_id):
         vendas_qs = movs.filter(categoria='Venda').order_by('pedido_id')
         vendas_dict = {}
         for m in vendas_qs:
-            pedido_id = m.pedido_codigo
+            pedido_id = m.pedido__codigo
             if pedido_id not in vendas_dict:
                 vendas_dict[pedido_id] = {
-                    "pedido_id": pedido_id, "cliente": f"{m.pedido.cli_codigo or '-'} - {getattr(m.pedido.cli, 'fantasia', '-')}",
-                    "vendedor": f"{m.pedido.vendedor_codigo or '-'} - {getattr(m.pedido.vendedor, 'fantasia', '-')}", "data": m.pedido.dt_emi, "formas": [], "total": 0
+                    "pedido_id": pedido_id, "cliente": f"{m.pedido.cli__codigo or '-'} - {getattr(m.pedido.cli, 'fantasia', '-')}",
+                    "vendedor": f"{m.pedido.vendedor__codigo or '-'} - {getattr(m.pedido.vendedor, 'fantasia', '-')}", "data": m.pedido.dt_emi, "formas": [], "total": 0
                 }
             vendas_dict[pedido_id]["formas"].append({"forma": m.forma_pagamento.descricao if m.forma_pagamento else "-", "valor": float(m.valor)})
             vendas_dict[pedido_id]["total"] += float(m.valor)
@@ -275,8 +275,8 @@ def finalizar_venda(request):
         content_type = ContentType.objects.get_for_model(caixa)
         pix_pendente = Pagamento.objects.filter(content_type=content_type, object_id=caixa.codigo, status="pendente").exists()
         # 🔥 CRIA PEDIDO
-        pedido = Pedido.objects.create(vinc_emp=request.user.empresa, vinc_fil=caixa.vinc_fil, caixa=caixa, cli_codigo=cliente_id, vendedor_codigo=vendedor_id,
-            tabela_preco_codigo=tabela_preco_id, dt_emi=timezone.now(), dt_fat=timezone.now(), situacao='Faturado' if not pix_pendente else 'Aberto'
+        pedido = Pedido.objects.create(vinc_emp=request.user.empresa, vinc_fil=caixa.vinc_fil, caixa=caixa, cli__codigo=cliente_id, vendedor__codigo=vendedor_id,
+            tabela_preco__codigo=tabela_preco_id, dt_emi=timezone.now(), dt_fat=timezone.now(), situacao='Faturado' if not pix_pendente else 'Aberto'
         )
         total_venda = Decimal('0.00')
         itens_objs = []
@@ -322,7 +322,7 @@ def finalizar_venda(request):
             try:
                 prod = Produto.objects.get(codigo=item['produto_id'])
                 qtd = Decimal(str(item['qtd']))
-                if (hasattr(prod, 'estoque_prod') and prod.estoque_prod is not None):  
+                if (hasattr(prod, 'estoque_prod') and prod.estoque_prod is not None):
                     if not pode_vender_sem_estoque and prod.estoque_prod < qtd:
                         return JsonResponse({'erro': f'Estoque insuficiente para o produto {prod.desc_prod}. Disponível: {prod.estoque_prod}!'}, status=400)
                     prod.estoque_prod -= qtd
@@ -370,7 +370,7 @@ def gerar_pagamento_caixa(request):
             except Exception: continue
         return JsonResponse({"pagamentos": pagamentos_gerados})
     except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
-    
+
 @login_required
 def status_pagamento_caixa(request, caixa_id):
     try:

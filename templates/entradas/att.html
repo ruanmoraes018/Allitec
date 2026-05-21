@@ -70,7 +70,7 @@
                                                                 <input type="checkbox" class="form-check-input task-checkbox" name="multi" value="{{ item.produto.id }}" onclick="event.stopPropagation(); checkIfAllSelected(); updateMassChangesButton();">
                                                             </td>
                                                             <td>
-                                                                {{ item.produto.id }}<input type="hidden" name="produtos[{{ forloop.counter0 }}][codigo]" value="{{ item.produto.id }}">
+                                                                {{ item.produto.codigo }}<input type="hidden" name="produtos[{{ forloop.counter0 }}][codigo]" value="{{ item.produto.codigo }}">
                                                             </td>
                                                             <td>
                                                                 {{ item.produto.desc_prod }}<input type="hidden" name="produtos[{{ forloop.counter0 }}][produto]" value="{{ item.produto.desc_prod }}">
@@ -85,7 +85,7 @@
                                                                 {{ item.desconto }}<input type="hidden" name="produtos[{{ forloop.counter0 }}][desconto]" value="{{ item.desconto }}">
                                                             </td>
                                                             <td style="font-weight: bold; color: #2E8B57;">
-                                                                {{ item.subtotal|floatformat:2 }}
+                                                                {{ item.subtotal|moeda_br }}
                                                             </td>
                                                             <td>
                                                                 {% if item.tabelas.exists %}

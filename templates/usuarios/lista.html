@@ -92,21 +92,21 @@
                         <tr>
 
                             <td data-label="Opções:" class="mobile-2col">
-                                <a href="{% url 'att-usuario' usuario.codigo %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="filiais.change_usuario" data-msg-negado="Seu usuário não pode editar usuários!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
+                                <a href="{% url 'att-usuario' usuario.codigo_local %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao" data-permissao="filiais.change_usuario" data-msg-negado="Seu usuário não pode editar usuários!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
                                 <span>
                                     <i class="fas fa-trash btn-permissao"
                                        title="Deletar usuário"
-                                       data-bs-target="#modal-{{ usuario.codigo }}"
-                                       data-permissao="usuarios.delete_usuario"
+                                       data-bs-target="#modal-{{ usuario.codigo_local }}"
+                                       data-permissao="filiais.delete_usuario"
                                        data-msg-negado="Seu usuário não pode deletar usuários!">
                                     </i>
                                 </span>
                                 <!-- Modal ÚNICO para cada usuario -->
-                                <div class="modal fade" id="modal-{{ usuario.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ usuario.codigo }}" aria-hidden="true">
+                                <div class="modal fade" id="modal-{{ usuario.codigo_local }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ usuario.codigo_local }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header titulo-modal">
-                                                <h1 class="modal-title fs-5" id="modalLabel-{{ usuario.codigo }}">
+                                                <h1 class="modal-title fs-5" id="modalLabel-{{ usuario.codigo_local }}">
                                                     <i class="fa-regular fa-circle-question"></i> Confirmação!
                                                 </h1>
                                             </div>
@@ -118,7 +118,7 @@
                                                 </p>
                                             </div>
                                             <div class="modal-footer">
-                                                <form method="post" action="{% url 'del-usuario' usuario.codigo %}" class="form-excluir">
+                                                <form method="post" action="{% url 'del-usuario' usuario.codigo_local %}" class="form-excluir">
                                                     {% csrf_token %}
                                                     <button type="submit" class="btn btn-primary btn-confirmar" disabled>
                                                         <u>S</u>im <span class="contador">3</span>

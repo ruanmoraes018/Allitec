@@ -1,5 +1,4 @@
 from django.db import models
-from unidecode import unidecode
 from grupos.models import Grupo
 from marcas.models import Marca
 from unidades.models import Unidade

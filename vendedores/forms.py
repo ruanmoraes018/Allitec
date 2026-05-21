@@ -14,18 +14,48 @@ class VendedorForm(forms.ModelForm):
     endereco = forms.CharField(label='Endereço', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
     cep = forms.CharField(label='CEP', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
     complem = forms.CharField(label='Complemento', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
-    bairro = forms.ModelChoiceField(queryset=Bairro.objects.none(), required=False, widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Bairro')
-    cidade = forms.ModelChoiceField(queryset=Cidade.objects.none(), required=False, widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Cidade')
-    uf = forms.ModelChoiceField(queryset=Estado.objects.none(), required=False, widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Estado')
+    bairro = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Bairro')
+    cidade = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Cidade')
+    uf = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Estado')
     numero = forms.CharField(label='Nº', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
     tel = forms.CharField(label="Fone", max_length=20, widget=forms.TextInput(attrs={'maxlength': '20', 'class': 'form-control form-control-sm border-dark-subtle'}))
     email = forms.CharField(label='E-mail', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-lowercase'}))
     class Meta:
         model = Vendedor
         fields = ('situacao', 'pessoa', 'cpf_cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro', 'complem', 'cidade', 'uf', 'tel', 'email')
-    def __init__(self, *args, empresa=None, **kwargs):
+    def __init__(self, *args, **kwargs):
+        # Captura e remove a empresa dos kwargs de forma segura
+        self.empresa = kwargs.pop('empresa', None)
         super().__init__(*args, **kwargs)
-        if empresa:
-            self.fields['bairro'].queryset = Bairro.objects.filter(vinc_emp=empresa)
-            self.fields['cidade'].queryset = Cidade.objects.filter(vinc_emp=empresa)
-            self.fields['uf'].queryset = Estado.objects.filter(vinc_emp=empresa)
+        if not self.empresa and self.instance and self.instance.pk and self.instance.vinc_emp:
+            self.empresa = self.instance.vinc_emp
+        if self.empresa:
+            bairros = Bairro.objects.filter(vinc_emp=self.empresa)
+            cidades = Cidade.objects.filter(vinc_emp=self.empresa)
+            estados = Estado.objects.filter(vinc_emp=self.empresa)
+            self.fields['bairro'].choices = [('', 'Escolha um Bairro')] + [(str(b.codigo), b.nome_bairro.upper()) for b in bairros]
+            self.fields['cidade'].choices = [('', 'Escolha uma Cidade')] + [(str(c.codigo), c.nome_cidade.upper()) for c in cidades]
+            self.fields['uf'].choices = [('', 'Escolha um Estado')] + [(str(e.codigo), e.nome_estado.upper()) for e in estados]
+            # Define os valores iniciais em caso de Edição (Uso do código)
+            if self.instance and self.instance.pk:
+                if self.instance.bairro: self.initial['bairro'] = str(self.instance.bairro.codigo)
+                if self.instance.cidade: self.initial['cidade'] = str(self.instance.cidade.codigo)
+                if self.instance.uf: self.initial['uf'] = str(self.instance.uf.codigo)
+        else:
+            self.fields['bairro'].choices = [('', 'Escolha um Bairro')]
+            self.fields['cidade'].choices = [('', 'Escolha uma Cidade')]
+            self.fields['uf'].choices = [('', 'Escolha um Estado')]
+    def clean(self):
+        cleaned_data = super().clean()
+        # Mapeamento genérico: 'nome_no_form': (ClasseDoModel, 'Nome Amigável para o Erro')
+        campos_select2 = {'bairro': (Bairro, 'Bairro'), 'cidade': (Cidade, 'Cidade'), 'uf': (Estado, 'UF'),}
+        for nome_campo, (model_classe, nome_exibicao) in campos_select2.items():
+            codigo = cleaned_data.get(nome_campo)
+            # Se o usuário preencheu o campo, fazemos a conversão genérica
+            if codigo:
+                try:
+                    objeto_real = model_classe.objects.get(codigo=codigo, vinc_emp=self.empresa)
+                    cleaned_data[nome_campo] = objeto_real  # Substitui o código string pelo objeto do banco
+                except model_classe.DoesNotExist:
+                    self.add_error(nome_campo, f"{nome_exibicao} inválido(a) para esta empresa.")
+        return cleaned_data

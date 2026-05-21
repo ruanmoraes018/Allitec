@@ -154,9 +154,9 @@ $(document).ready(function() {
         const temVirgula = s.includes(',');
         const temPonto = s.includes('.');
         if (temVirgula && temPonto) {
-            if (s.lastIndexOf(',') > s.lastIndexOf('.')) {s = s.replace(/\./g, '').replace(',', '.');} 
+            if (s.lastIndexOf(',') > s.lastIndexOf('.')) {s = s.replace(/\./g, '').replace(',', '.');}
             else {s = s.replace(/,/g, '');}
-        } 
+        }
         else if (temVirgula) {s = s.replace(',', '.');}
         const num = parseFloat(s);
         return isNaN(num) ? 0 : num;
@@ -172,7 +172,7 @@ $(document).ready(function() {
     function aplicarMascaraMoney(input) {
         if (!input) return;
         let valor = '';
-        if (typeof input === 'object' && input.value !== undefined) {valor = input.value;} 
+        if (typeof input === 'object' && input.value !== undefined) {valor = input.value;}
         else {valor = String(input);}
         valor = valor.replace(/\D/g, '');
         if (!valor) {
@@ -257,7 +257,7 @@ $(document).ready(function() {
         }, 500);
     });
     /* ENTER ADICIONA */
-    buscarProduto({
+    buscarProdutoCaixa({
         inputCod: '#id_cod_produtoCaixa',
         desc: '#id_desc_prodCaixa',
         marca: '#id_marcaProdCaixa',
@@ -496,7 +496,7 @@ $(document).ready(function() {
         iniciarLoading();
         fetch('/produtos/precos-lote/', {
             method: 'POST',
-            credentials: 'same-origin', 
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCSRFToken()
@@ -2166,7 +2166,7 @@ $(document).ready(function() {
                     <td>${qtd}<input type="hidden" name="produtos[${idx}][quantidade]" value="${qtd}"></td>
                     <td style="font-weight: bold; color: #2E8B57;">${preco}<input type="hidden" name="produtos[${idx}][preco_unitario]" value="${preco}"></td>
                     <td>${dsct}<input type="hidden" name="produtos[${idx}][desconto]" value="${dsct}"></td>
-                    <td style="font-weight: bold; color: #2E8B57;">${total}</td>
+                    <td style="font-weight: bold; color: #2E8B57;">${formatBR(total)}</td>
                     <td>${resumoTabelas}${montarInputsTabelasEnt(idx, tabelasEntTmp)}</td>
                     <td>
                         <button type="button" class="editar btn btn-success btn-sm mt-1 mb-1"><i class="fa-solid fa-pen-to-square"></i></button>
@@ -2602,6 +2602,72 @@ $(document).ready(function() {
     }
     // Entrada de Produtos
     function buscarProduto(config) {
+        const {inputCod, desc, marca, unid, grupo, preco, precoVenda, extrasReset = [], focoFinal, aposCarregar} = config;
+        // 1. Isolamos a função que faz a busca
+        function executarBusca(elemento) {
+            const productId = $(elemento).val();
+            if (productId.trim() === '') {
+                $(desc + ',' + marca + ',' + unid + ',' + grupo + ',' + preco).val('');
+                return;
+            }
+            iniciarLoading();
+            $.ajax({
+                url: '/produtos/lista_ajax_ent/',
+                method: 'GET',
+                data: { s: productId, tp: 'cod' },
+                success: async function (response) {
+                    if (response.produtos.length > 0) {
+                        const p = response.produtos[0];
+                        $(desc).val(p.desc_prod || '');
+                        $(marca).val(p.marca || '');
+                        $(unid).val(p.unidProd || '');
+                        $(grupo).val(p.grupo || '');
+                        $(preco).val(formatBR(p.vl_compra));
+                        $(precoVenda).val(formatBR(p.vl_prod));
+                        // Reset campos extras
+                        extrasReset.forEach(campo => {
+                            $(campo.selector).val(campo.valor);
+                        });
+                        if (typeof aposCarregar === 'function') {
+                            aposCarregar();
+                        }
+                        try {
+                            const respTabs = await carregarTabelasProdutoAjax(p.id);
+                            tabelasEntTmp = respTabs.tabelas || [];
+                            trEditTabEnt = null;
+                            renderTabelasEntModal();
+                        } catch (e) {
+                            tabelasEntTmp = [];
+                            renderTabelasEntModal();
+                        }
+                        fecharLoading();
+                        if (focoFinal) $(focoFinal).focus();
+                    } else {
+                        toast(`${ic_amarelo} Código de produto não encontrado!`, cor_amarelo);
+                        $(desc + ',' + marca + ',' + unid + ',' + grupo + ',' + preco).val('');
+                        fecharLoading();
+                    }
+                },
+                error: function () {
+                    toast(`${ic_vermelho} Erro ao buscar o produto. Tente novamente!`, cor_vermelho);
+                    $(desc + ',' + marca + ',' + unid + ',' + grupo + ',' + preco).val('');
+                    fecharLoading();
+                }
+            });
+        }
+        // 2. Ouvinte para o evento Blur (quando sai do campo)
+        $(inputCod).on('blur', function (event) {
+            executarBusca(this);
+        });
+        // 3. Ouvinte para a tecla Enter
+        $(inputCod).on('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Evita dar submit no form se houver um
+                executarBusca(this);
+            }
+        });
+    }
+    function buscarProdutoCaixa(config) {
         const {inputCod, desc, marca, unid, grupo, preco, precoVenda, extrasReset = [], focoFinal, aposCarregar} = config;
         $(inputCod).on('blur', function (event) {
             const productId = $(this).val();
@@ -5294,7 +5360,7 @@ $(document).ready(function() {
         const porta = $(this).data("porta");
         await carregarProdutosIniciais(porta);
         await atualizarSubtotal();
-        finalizarLoading();
+        fecharLoading();
     });
     $(document).on('keyup change', '.larg', function () {
         let porta = $(this).data('porta');
@@ -5317,8 +5383,8 @@ $(document).ready(function() {
         }
         atualizarJSONPortas();
         gerarJSONFormas();
-        finalizarLoading();
         atualizarSubtotal();
+        fecharLoading();
     });
     $("#prod_servBtn, #adicionaisBtn, #form_pgtoBtn").on("click", async function () {
         await atualizarSubtotal();
@@ -5345,7 +5411,7 @@ $(document).ready(function() {
             await carregarProdutosIniciais(porta);
         }
         await atualizarSubtotal();
-        finalizarLoading();
+        fecharLoading();
     });
     gerarJSONFormas();
     let debounceTimeout;
@@ -5905,7 +5971,7 @@ $(document).ready(function() {
         atualizarSubtotal();
         calcularValorForma();
         somaFormas();
-        finalizarLoading();
+        fecharLoading();
     });
     $(document).on("click", ".removerPorta", function () {
         const porta = $(this).data("porta");
@@ -7346,7 +7412,7 @@ $(document).ready(function() {
                     bgColor = "linear-gradient(to right, #333, #555)";
                     icon = `<i class="fa-solid fa-exclamation"></i>`; // Ícone de informação/exclamação (default)
             }
-            Toastify({text: `<span style="display: flex; align-items: center; gap: 8px;"><strong>${icon}</strong> ${msg.text}</span>`, duration: 5000, gravity: "top", position: "center", backgroundColor: bgColor, stopOnFocus: true, escapeMarkup: false,
+            Toastify({text: `<span style="display: flex; align-items: center; gap: 8px;"><strong>${icon}</strong> ${msg.text}</span>`, duration: 5000, gravity: "top", position: "center", style:{background: bgColor}, stopOnFocus: true, escapeMarkup: false,
                 onClick: function () {
                     let toastElements = document.querySelectorAll(".toastify");
                     toastElements.forEach(el => {

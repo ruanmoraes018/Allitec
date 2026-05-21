@@ -19,7 +19,7 @@ from bairros.models import Bairro
 from collections import defaultdict
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
-from core.pagamentos.webhooks import processar_webhook
+from core.pagamentos.webhooks import processar_webhook, processar_webhook_pagbank
 from pedidos.models import Pagamento
 from django.utils import timezone
 
@@ -164,11 +164,11 @@ def dados_filiais_js(request):
     if not empresa: return JsonResponse({}, status=403)
     filiais = Filial.objects.filter(
         vinc_emp=empresa, situacao='Ativa'
-    ).values('codigo', 'cli_codigo', 'cli__fantasia', 'tec_codigo', 'vendedor_codigo', 'vendedor__fantasia', 'multi_m2', 'multi_lg_corte1', 'multi_lg_corte2', 'multi_lg_corte3', 'tb_preco_codigo', 'tb_preco__descricao', 'agrupa_itens')
+    ).values('codigo', 'cli__codigo', 'cli__fantasia', 'tec__codigo', 'vendedor__codigo', 'vendedor__fantasia', 'multi_m2', 'multi_lg_corte1', 'multi_lg_corte2', 'multi_lg_corte3', 'tb_preco__codigo', 'tb_preco__descricao', 'agrupa_itens')
     data = {
         str(f['codigo']): {
-            'cli': f['cli_codigo'], 'cli_nome': f['cli__fantasia'], 'tec': f['tec_codigo'], 'vend': f['vendedor_codigo'], 'vend_nome': f['vendedor__fantasia'],
-            'multi_m2': float(f['multi_m2']) if f['multi_m2'] is not None else 0, 'tb_preco': f['tb_preco_codigo'], 'tb_preco_nome': f['tb_preco__descricao'],
+            'cli': f['cli__codigo'], 'cli_nome': f['cli__fantasia'], 'tec': f['tec__codigo'], 'vend': f['vendedor__codigo'], 'vend_nome': f['vendedor__fantasia'],
+            'multi_m2': float(f['multi_m2']) if f['multi_m2'] is not None else 0, 'tb_preco': f['tb_preco__codigo'], 'tb_preco_nome': f['tb_preco__descricao'],
             'agrupa_itens': f['agrupa_itens'],
             'multi_lg_corte1': float(f['multi_lg_corte1']) if f['multi_lg_corte1'] is not None else 0,
             'multi_lg_corte2': float(f['multi_lg_corte2']) if f['multi_lg_corte2'] is not None else 0,
@@ -182,6 +182,10 @@ def dados_filiais_js(request):
 def add_filial(request):
     if not request.user.has_perm('filiais.add_filial'):
         messages.info(request, 'Você não tem permissão para adicionar filiais.')
+        return redirect('/filiais/lista/')
+    empresa = request.user.empresa
+    if not empresa:
+        messages.error(request, 'Erro crítico: Seu usuário não está vinculado a nenhuma empresa cadastrada.')
         return redirect('/filiais/lista/')
     try:
         empresa = request.user.empresa
@@ -197,7 +201,7 @@ def add_filial(request):
         messages.warning(request, f'Limite de {qtd_permitida} filial(is) ativa(s) atingido para sua empresa.')
         return redirect('/filiais/lista/')
     if request.method == 'POST':
-        form = FilialForm(request.POST, request.FILES, empresa=request.user.empresa)
+        form = FilialForm(data=request.POST, files=request.FILES, empresa=empresa)
         if form.is_valid():
             nova_filial = form.save(commit=False)
             nova_filial.vinc_emp = empresa
@@ -341,3 +345,40 @@ def webhook_pagamentos(request):
         # 🔥 regra única
         if hasattr(origem, "processar_pagamento"): origem.processar_pagamento(pagamento)
     return JsonResponse({"ok": True})
+
+import logging
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+logger = logging.getLogger('pagamentos.pagbank')
+
+@csrf_exempt
+@require_POST
+def webhook_pagbank(request):
+    # 1. Usa o novo processador específico para o PagBank
+    result = processar_webhook_pagbank(request)
+
+    # Se for apenas um ping de teste ou JSON inválido, responde OK para o banco
+    if not result:
+        return HttpResponse(status=200)
+
+    # 2. Daqui para baixo é Rigorosamente o seu código do Mercado Pago!
+    pagamento = Pagamento.objects.filter(txid=result["txid"]).first()
+    if not pagamento:
+        return HttpResponse(status=200) # Pro PagBank não reenviar, dizemos que deu OK
+
+    if pagamento.status == "pago":
+        return HttpResponse(status=200)
+
+    if result.get("status") == "pago":
+        pagamento.status = "pago"
+        pagamento.payload = result.get("payload")
+        pagamento.dt_pagamento = timezone.now()
+        pagamento.save()
+
+        origem = pagamento.origem
+        # 🔥 Sua regra única roda perfeitamente aqui também!
+        if hasattr(origem, "processar_pagamento"):
+            origem.processar_pagamento(pagamento)
+
+    return HttpResponse(status=200)

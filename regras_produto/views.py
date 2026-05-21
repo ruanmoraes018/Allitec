@@ -168,7 +168,7 @@ def parse_decimal_br(valor):
     elif ',' in valor: valor = valor.replace(',', '.')
     try: return Decimal(valor)
     except (InvalidOperation, ValueError): return Decimal('0')
-    
+
 @require_POST
 @login_required
 def aplicar_regras_porta(request):
@@ -196,7 +196,7 @@ def aplicar_regras_porta(request):
                         try: qtd = calcular_expressao_segura(expr, contexto)
                         except: qtd = 0
                         if produto and qtd > 0:
-                            preco = ProdutoTabela.objects.filter(produto=produto, tabela_codigo=tabela_id).first()
+                            preco = ProdutoTabela.objects.filter(produto=produto, tabela__codigo=tabela_id).first()
                             if not preco: continue
                             produtos_resultado.append({'id': produto.codigo, 'codigo': produto.codigo, 'desc_prod': produto.desc_prod, 'unidProd': produto.unidProd.nome_unidade if produto.unidProd else '',
                                 'tp_prod': produto.tp_prod, 'vl_compra': float(produto.vl_compra), 'vl_unit': float(preco.vl_prod), 'qtd': float(qtd), 'regra_origem': regra.codigo})
@@ -205,13 +205,13 @@ def aplicar_regras_porta(request):
                     try: qtd = calcular_expressao_segura(regra.expressao, contexto)
                     except: qtd = 0
                     if produto and qtd > 0:
-                        preco = ProdutoTabela.objects.filter(produto=produto, tabela_codigo=tabela_id).first()
+                        preco = ProdutoTabela.objects.filter(produto=produto, tabela__codigo=tabela_id).first()
                         if not preco: continue
                         produtos_resultado.append({'id': produto.codigo, 'codigo': produto.codigo, 'desc_prod': produto.desc_prod, 'unidProd': produto.unidProd.nome_unidade if produto.unidProd else '',
                             'tp_prod': produto.tp_prod, 'vl_compra': float(produto.vl_compra), 'vl_unit': float(preco.vl_prod), 'qtd': float(qtd), 'regra_origem': regra.codigo})
             if produto_selecionado and qtd_calculada > 0:
                 try:
-                    preco = ProdutoTabela.objects.filter(produto=produto_selecionado, tabela_codigo=tabela_id).first()
+                    preco = ProdutoTabela.objects.filter(produto=produto_selecionado, tabela__codigo=tabela_id).first()
                     if not preco: continue
                     produtos_resultado.append({'id': produto_selecionado.codigo, 'codigo': produto_selecionado.codigo, 'desc_prod': produto_selecionado.desc_prod,
                         'unidProd': str(produto_selecionado.unidProd) if produto_selecionado.unidProd else '', 'tp_prod': produto_selecionado.tp_prod,
@@ -283,7 +283,7 @@ def calcular_orcamento(request):
         produtos_req = body.get('produtos', [])
         ids_originais = list(set(p['id'] for p in produtos_req if 'id' in p))
         produtos_base = Produto.objects.filter(codigo__in=ids_originais, vinc_emp=empresa)
-        precos = {p.produto_codigo: p.vl_prod for p in ProdutoTabela.objects.filter(tabela_codigo=tabela_id,produto_codigo__in=ids_originais)}
+        precos = {p.produto__codigo: p.vl_prod for p in ProdutoTabela.objects.filter(tabela__codigo=tabela_id,produto__codigo__in=ids_originais)}
         itens_dict = {}
         total_geral = Decimal('0.00')
         for prod in produtos_base:
@@ -317,7 +317,7 @@ def add_regra(request):
                     for field in form if field.errors
                 ]
                 return render(request, "regras_produto/att.html", {"form": form, "e": e, "error_messages": erros})
-            
+
             e = form.save(commit=False)
             e.vinc_emp = empresa
             try:
@@ -331,7 +331,7 @@ def add_regra(request):
     except ObjectDoesNotExist: error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
     except IntegrityError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}")
     except DatabaseError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco de dados: {str(e)}")
-    except Exception as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")        
+    except Exception as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     form = RegraProdutoForm(empresa=empresa)
     return render(request, 'regras_produto/add.html', {'form': form})
 

@@ -79,7 +79,7 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Item</th><th>Código</th><th>Descrição</th><th>Unidade</th><th>Vl. Unit.</th><th>Qtde</th><th>Desc/Acres</th><th>Subtotal</th>
+                                <th>Item</th><th>Código</th><th>Descrição</th><th>Marca</th><th>Unidade</th><th>Vl. Unit.</th><th>Qtde</th><th>Desc/Acres</th><th>Subtotal</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -88,6 +88,7 @@
                                     <td class="center">{{ forloop.counter }}</td>
                                     <td class="center">{{ item.codigo_usado|default:item.produto.codigo }}</td>
                                     <td>{{ item.produto.desc_prod }}</td>
+                                    <td class="center">{{ item.produto.marca }}</td>
                                     <td class="center">{{ item.produto.unidProd }}</td>
                                     <td class="right">R$ {{ item.vl_unit }}</td>
                                     <td class="right">{{ item.quantidade }}</td>

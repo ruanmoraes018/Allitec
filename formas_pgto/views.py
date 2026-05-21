@@ -80,12 +80,19 @@ def add_formas_pgto(request):
         return redirect('/formas_pgto/lista/')
     try:
         if request.method == 'POST':
-            form = FormaPgtoForm(request.POST)
+            form = FormaPgtoForm(request.POST, request.FILES)
             if not form.is_valid():
+                # 1. Pega erros dos campos
                 error_messages = [f"Campo ({field.label}) é obrigatório!" for field in form if field.errors]
+
+                # 🔥 CORREÇÃO: Pega também os erros globais (como os do clean)
+                for err in form.non_field_errors():
+                    error_messages.append(f"<i class='fa-solid fa-xmark'></i> {err}")
+
                 return render(request, 'formas_pgto/add.html', {'form': form, 'error_messages': error_messages})
+
             c = form.save(commit=False)
-            c.vinc_emp = request.user.empresa  # Busca a filial do usuário logado
+            c.vinc_emp = request.user.empresa
             c.save()
             messages.success(request, 'Forma de Pagamento adicionada com sucesso!')
             cid = str(c.codigo)
@@ -105,7 +112,7 @@ def att_formas_pgto(request, codigo):
         messages.info(request, 'Você não tem permissão para editar formas de pagamento.')
         return redirect('/formas_pgto/lista/')
     if request.method == 'POST':
-        form = FormaPgtoForm(request.POST, instance=c)
+        form = FormaPgtoForm(request.POST, request.FILES, instance=c)
         try:
             if form.is_valid():
                 c = form.save()  # 🔥 ESSENCIAL (salva credenciais corretamente)

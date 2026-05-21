@@ -5,8 +5,8 @@ urlpatterns = [
     path("buscar_empresa/", views.buscar_empresa, name="buscar_empresa"),
     path("lista/", views.lista_usuarios, name='lista-usuarios'),
     path("add/", views.add_usuario, name="add-usuario"),
-    path("att/<int:codigo>/", views.att_usuario, name='att-usuario'),
-    path("del/<int:codigo>/", views.del_usuario, name='del-usuario'),
+    path("att/<int:codigo_local>/", views.att_usuario, name='att-usuario'),
+    path("del/<int:codigo_local>/", views.del_usuario, name='del-usuario'),
     path('ajax/permissao/', views.checar_permissao, name='checar_permissao'),
     path('lista_ajax/', views.lista_usuarios_ajax, name='lista-usuarios-ajax'),
 ]

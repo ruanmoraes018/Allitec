@@ -150,6 +150,15 @@
                                                 <button class="btn btn-light w-100 text-start menu-opcao op-detalhe-pedido border border-secondary" data-id="{{ pedido.codigo }}" data-bs-toggle="modal" data-bs-target="#infoEntModalP{{ pedido.codigo }}">
                                                     <i class="fa-solid fa-circle-info"></i> Detalhes
                                                 </button>
+                                                <div class="dropdown w-100">
+                                                    <button class="btn btn-light w-100 text-start menu-opcao border border-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="true">
+                                                        <i class="fa-solid fa-print"></i> Impressão
+                                                    </button>
+                                                    <ul class="dropdown-menu w-100">
+                                                        <li><a href="{% url 'cupom_pedido' pedido.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Cupom</a></li>
+                                                        <li><a href="{% url 'imprimir-pedido' pedido.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> A4</a></li>
+                                                    </ul>
+                                                </div>
                                                 {% if pedido.situacao == 'Faturado' %}
                                                 <button class="btn btn-light w-100 text-start menu-opcao op-cancelar border border-secondary btn-permissao" data-permissao="pedidos.cancelar_pedido" data-msg-negado="Seu usuário não pode cancelar pedidos!" data-collapse="#colCancelar{{ pedido.codigo }}">
                                                     <i class="fa-solid fa-circle-xmark"></i> Cancelar

@@ -6,7 +6,7 @@ from django.db import transaction
 
 class FormaPgto(models.Model):
     codigo = models.PositiveIntegerField(blank=True, null=True)
-    descricao = models.CharField(max_length=100, unique=True)
+    descricao = models.CharField(max_length=100)
     situacao = models.CharField(max_length=7, choices=[('Ativo', 'Ativo'), ('Inativo', 'Inativo')])
     troco = models.CharField(max_length=3, choices=[('Sim', 'Sim'), ('Não', 'Não')], default='Não')
     forma_padrao = models.CharField(max_length=3, choices=[('Sim', 'Sim'), ('Não', 'Não')], default='Não')
@@ -30,18 +30,34 @@ class FormaPgto(models.Model):
     def clean(self):
         if self.gateway == "nenhum":
             return
+
         cred = self.credenciais
         # 🔥 GARANTE QUE É DICT
         if isinstance(cred, str):
-            try: cred = json.loads(cred)
-            except: raise ValidationError("Credenciais inválidas")
-        if not cred: raise ValidationError("Credenciais obrigatórias para este gateway")
+            try:
+                cred = json.loads(cred)
+            except:
+                raise ValidationError("Credenciais inválidas")
+
+        if not cred:
+            raise ValidationError("Credenciais obrigatórias para este gateway")
+
+        # Pega a lista padrão do arquivo credenciais.py
         obrigatorios = CREDENCIAIS_GATEWAY.get(self.gateway, [])
+
+        # 🔥 CORREÇÃO: Se for pix_direto e estiver em homologação, removemos a obrigatoriedade do certificado
+        if self.gateway == "pix_direto" and cred.get("ambiente") == "homologacao":
+            # Faz uma cópia da lista para não alterar o arquivo original do sistema globalmente
+            obrigatorios = [campo for campo in obrigatorios if campo != "certificado_path"]
+
         faltando = [
             campo for campo in obrigatorios
             if campo not in cred or not cred.get(campo)
         ]
-        if faltando: raise ValidationError(f"Campos obrigatórios faltando: {', '.join(faltando)}")
+
+        if faltando:
+            raise ValidationError(f"Campos obrigatórios faltando: {', '.join(faltando)}")
+
         # 🔥 salva já convertido
         self.credenciais = cred
     def get_credencial(self, chave):

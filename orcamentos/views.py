@@ -167,9 +167,9 @@ def lista_orcamentos(request):
     filtros_ativos = any([s, f_s, por_dt == 'Sim', cli, tec, tp_dt and tp_dt != 'Todos'])
     if not filtros_ativos: orcamentos = orcamentos.filter(dt_emi__range=(inicio_dia, fim_dia), situacao='Aberto')
     if f_s and f_s != 'Todos': orcamentos = orcamentos.filter(situacao=f_s)
-    if fil: orcamentos = orcamentos.filter(vinc_fil_codigo=fil)
-    if cli: orcamentos = orcamentos.filter(cli_codigo=cli)
-    if tec: orcamentos = orcamentos.filter(solicitante_codigo=tec)
+    if fil: orcamentos = orcamentos.filter(vinc_fil__codigo=fil)
+    if cli: orcamentos = orcamentos.filter(cli__codigo=cli)
+    if tec: orcamentos = orcamentos.filter(solicitante__codigo=tec)
     if ordem == '0': orcamentos = orcamentos.order_by('codigo')
     elif ordem == '1': orcamentos = orcamentos.order_by('vinc_fil')
     elif ordem == '2': orcamentos = orcamentos.order_by('cli')
@@ -330,7 +330,7 @@ def att_orcamento(request, codigo):
             lados_antigos = {}
             for porta_antiga in orcamento.portas.all():
                 for adc in porta_antiga.adicionais.all():
-                    chave = (int(porta_antiga.numero or 0), int(adc.produto_codigo or 0), str(adc.regra_origem or '').strip())
+                    chave = (int(porta_antiga.numero or 0), int(adc.produto.codigo or 0), str(adc.regra_origem or '').strip())
                     lados_antigos[chave] = (adc.lado or '').strip()
             PortaOrcamento.objects.filter(orcamento=orcamento).delete()
             for p in lista_portas:
@@ -344,10 +344,14 @@ def att_orcamento(request, codigo):
                     qtd = item.get("qtdProd")
                     regra_origem = item.get("regra_origem")
                     if not cod: continue
+                    try:
+                        produto = Produto.objects.get(codigo=cod, vinc_emp=request.user.empresa)
+                    except Produto.DoesNotExist:
+                        continue
                     valor_unitario = Decimal(str(item.get("vl_unit") or "0"))
                     valor_total = Decimal(str(item.get("vl_total") or "0"))
                     if valor_total == 0 and valor_unitario > 0 and qtd: valor_total = valor_unitario * Decimal(str(qtd))
-                    PortaProduto.objects.create(porta=porta, produto_codigo=cod, quantidade=qtd, valor_unitario=valor_unitario, valor_total=valor_total, regra_origem=regra_origem)
+                    PortaProduto.objects.create(porta=porta, produto=produto, quantidade=qtd, valor_unitario=valor_unitario, valor_total=valor_total, regra_origem=regra_origem)
                 for item in p.get("adicionais", []):
                     if not isinstance(item, dict): continue
                     cod = item.get("codProd")
@@ -355,6 +359,10 @@ def att_orcamento(request, codigo):
                     regra_origem = item.get("regra_origem")
                     lado = (item.get("lado") or '').strip()
                     if not cod: continue
+                    try:
+                        produto = Produto.objects.get(codigo=cod, vinc_emp=request.user.empresa)
+                    except Produto.DoesNotExist:
+                        continue
                     # se o lado vier vazio no JSON, tenta reaproveitar o que já existia
                     if not lado:
                         chave = (int(p.get("numero", 1) or 0), int(cod or 0), str(regra_origem or '').strip())
@@ -362,7 +370,7 @@ def att_orcamento(request, codigo):
                     valor_unitario = Decimal(str(item.get("vl_unit") or "0"))
                     valor_total = Decimal(str(item.get("vl_total") or "0"))
                     if valor_total == 0 and valor_unitario > 0 and qtd: valor_total = valor_unitario * Decimal(str(qtd))
-                    PortaAdicional.objects.create(porta=porta, produto_codigo=cod, quantidade=qtd, valor_unitario=valor_unitario, valor_total=valor_total, regra_origem=regra_origem, lado=lado)
+                    PortaAdicional.objects.create(porta=porta, produto=produto, quantidade=qtd, valor_unitario=valor_unitario, valor_total=valor_total, regra_origem=regra_origem, lado=lado)
             formas_json = request.POST.get("json_formas_pgto")
             if formas_json:
                 OrcamentoFormaPgto.objects.filter(orcamento=orcamento).delete()
@@ -499,7 +507,7 @@ def faturar_orcamento(request, codigo):
                     return JsonResponse({'erro': f'Estoque insuficiente para o produto {item.produto.desc_prod}. Disponível: {item.produto.estoque_prod}!'}, status=400)
             for item in porta.adicionais.all():
                 if item.produto.estoque_prod < item.quantidade:
-                    return JsonResponse({'erro': f'Estoque insuficiente para o produto {item.produto.desc_prod}. Disponível: {item.produto.estoque_prod}!'}, status=400)            
+                    return JsonResponse({'erro': f'Estoque insuficiente para o produto {item.produto.desc_prod}. Disponível: {item.produto.estoque_prod}!'}, status=400)
     for porta in orcamento.portas.all():
         for item in porta.produtos.all():
             produto = item.produto

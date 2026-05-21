@@ -41,3 +41,29 @@ def processar_webhook(request):
     if not result: return None
     result["gateway"] = gateway
     return result
+
+def processar_webhook_pagbank(request):
+    """
+    Trata o payload plano do PagBank e padroniza o retorno
+    para o formato aceito pelo banco de dados do sistema.
+    """
+    try:
+        import json
+        payload = json.loads(request.body.decode('utf-8'))
+
+        txid = payload.get('reference_id')
+        status_pagbank = payload.get('status')
+
+        # Mapeia o status do PagBank ("PAID") para o seu status interno ("pago")
+        status_interno = "pago" if status_pagbank == "PAID" else "pendente"
+
+        if not txid:
+            return None
+
+        return {
+            "txid": txid,
+            "status": status_interno,
+            "payload": payload  # Salva o JSON bruto do PagBank no campo payload
+        }
+    except Exception:
+        return None

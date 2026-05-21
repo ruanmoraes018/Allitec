@@ -24,6 +24,11 @@ import logging
 logger = logging.getLogger(__name__)
 from django.utils.timezone import localtime
 import re
+from django.utils import timezone
+from django.template.loader import render_to_string
+from django.http import HttpResponse
+from weasyprint import HTML, CSS
+from util.logo_impressao import img_base64
 
 @verifica_permissao('pedidos.view_pedido')
 @login_required
@@ -57,9 +62,9 @@ def lista_pedidos(request):
     if not filtros_ativos: pedidos = pedidos.filter(dt_emi__range=(inicio_dia, fim_dia), situacao='Aberto')
     # Filtro por situação
     if f_s and f_s != 'Todos': pedidos = pedidos.filter(situacao=f_s)
-    if cli: pedidos = pedidos.filter(cli_codigo=cli)
-    if fil: pedidos = pedidos.filter(vinc_fil_codigo=fil)
-    if vend: pedidos = pedidos.filter(vendedor_codigo=vend)
+    if cli: pedidos = pedidos.filter(cli__codigo=cli)
+    if fil: pedidos = pedidos.filter(vinc_fil__codigo=fil)
+    if vend: pedidos = pedidos.filter(vendedor__codigo=vend)
     # Paginação
     if reg == 'todos': num_pagina = pedidos.count() or 1
     else:
@@ -82,7 +87,7 @@ def lista_pedidos(request):
         'ped_ab': ped_ab_pg, 'ped_fat': ped_fat_pg, 'ped_canc': ped_canc_pg, 'dt_ini': dt_ini, 'dt_fim': dt_fim, 'p_dt': por_dt, 'tp_dt': tp_dt, 'reg': reg,
     })
 def pedidos_por_produto(request, produto_id):
-    pedidos = PedidoProduto.objects.filter(produto_codigo=produto_id, vinc_emp=request.user.empresa).select_related('pedido', 'pedido__cliente')
+    pedidos = PedidoProduto.objects.filter(produto__codigo=produto_id, vinc_emp=request.user.empresa).select_related('pedido', 'pedido__cliente')
     data = []
     for ep in pedidos:
         pedido = ep.pedido
@@ -129,22 +134,26 @@ def buscar_produto(codigo, empresa):
     # 2. Fallback: ID do produto
     try: return Produto.objects.get(codigo=int(codigo), vinc_emp=empresa)
     except (ValueError, Produto.DoesNotExist): raise Produto.DoesNotExist("Produto não encontrado")
-    
+
 @login_required
 def add_pedido(request):
     # Verifica se o usuário tem permissão para adicionar pedidos
     if not request.user.has_perm('pedidos.add_pedido'):
         messages.info(request, 'Você não tem permissão para adicionar pedidos.')
         return redirect('/pedidos/lista/')
+    empresa = request.user.empresa
+    if not empresa:
+        messages.error(request, 'Erro crítico: Seu usuário não está vinculado a nenhuma empresa cadastrada.')
+        return redirect('/pedidos/lista/')
     # Se a requisição for do tipo POST (formulário enviado)
     if request.method == "POST":
         # Cria uma instância do formulário com os dados enviados
-        form = PedidoForm(request.POST, empresa=request.user.empresa, user=request.user)
+        form = PedidoForm(data=request.POST, empresa=empresa, user=request.user)
         # Valida se o formulário está correto
         if form.is_valid():
             # Cria o objeto pedido sem salvar ainda no banco
             pedido = form.save(commit=False)
-            pedido.vinc_emp = request.user.empresa
+            pedido.vinc_emp = empresa
             pedido.dt_emi = datetime.now()
             pedido.save()  # Salva a pedido no banco
             # Dicionário para organizar os produtos enviados no POST
@@ -163,12 +172,12 @@ def add_pedido(request):
             # Percorre os produtos organizados e os adiciona na pedido
             agrupa = request.user.filial_user.agrupa_itens  # ou request.user.filial
             itens_existentes = {
-                (i.produto_codigo, float(i.vl_unit)): i
+                (i.produto__codigo, float(i.vl_unit)): i
                 for i in PedidoProduto.objects.filter(pedido=pedido)
             }
             for dados in produtos_dict.values():
                 codigo = dados.get("codigo")
-                try: produto = buscar_produto(codigo, request.user.empresa)
+                try: produto = buscar_produto(codigo, empresa)
                 except Produto.DoesNotExist:
                     messages.warning(request, f"Produto {codigo} não encontrado.")
                     continue
@@ -196,7 +205,7 @@ def add_pedido(request):
             for field in form: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             # Renderiza novamente a página com os erros
             return render(request, "pedidos/add.html", {"form": form, 'error_messages': error_messages})
-    else: form = PedidoForm(empresa=request.user.empresa, user=request.user)
+    else: form = PedidoForm(empresa=empresa, user=request.user)
     # Renderiza a página com o formulário
     return render(request, "pedidos/add.html", {"form": form,})
 
@@ -212,7 +221,7 @@ def att_pedido(request, codigo):
         return redirect(f'/pedidos/lista/?s={pedido.codigo}')
     if request.method == "POST":
         dt_emi_original = pedido.dt_emi
-        form = PedidoForm(request.POST, instance=pedido, empresa=request.user.empresa, user=request.user)
+        form = PedidoForm(data=request.POST, instance=pedido, empresa=request.user.empresa, user=request.user)
         if form.is_valid():
             pedido = form.save(commit=False)
             pedido.dt_emi = dt_emi_original
@@ -277,12 +286,16 @@ def clonar_pedido(request, codigo):
     if not request.user.has_perm('pedidos.clonar_pedido'):
         messages.warning(request, "Você não tem permissão para clonar pedidos.")
         return redirect('/pedidos/lista/')
-    pedido_origem = get_object_or_404(Pedido, codigo=codigo, vinc_emp=request.user.empresa)
+    empresa = request.user.empresa
+    if not empresa:
+        messages.error(request, 'Erro crítico: Seu usuário não está vinculado a nenhuma empresa cadastrada.')
+        return redirect('/pedidos/lista/')
+    pedido_origem = get_object_or_404(Pedido, codigo=codigo, vinc_emp=empresa)
     if request.method == "POST":
-        form = PedidoForm(request.POST, empresa=request.user.empresa, user=request.user)
+        form = PedidoForm(data=request.POST, empresa=empresa, user=request.user)
         if form.is_valid():
             pedido = form.save(commit=False)
-            pedido.vinc_emp = request.user.empresa
+            pedido.vinc_emp = empresa
             pedido.situacao = "Aberto"
             pedido.status_pagamento = "pendente"
             pedido.dt_emi = datetime.now()
@@ -299,7 +312,7 @@ def clonar_pedido(request, codigo):
             itens_existentes = {}
             for dados in produtos_dict.values():
                 codigo = dados.get("codigo")
-                try: produto = buscar_produto(codigo, request.user.empresa)
+                try: produto = buscar_produto(codigo, empresa)
                 except Produto.DoesNotExist: continue
                 qtd = parse_decimal(dados.get("quantidade"))
                 vl_unit = parse_decimal(dados.get("preco_unitario"))
@@ -317,7 +330,7 @@ def clonar_pedido(request, codigo):
             pedido.save(update_fields=["total"])
             messages.success(request, "Pedido clonado com sucesso!")
             return redirect(f'/pedidos/lista/?s={pedido.codigo}')
-    else: form = PedidoForm(instance=pedido_origem, empresa=request.user.empresa, user=request.user)
+    else: form = PedidoForm(instance=pedido_origem, empresa=empresa, user=request.user)
     return render(request, "pedidos/clonar.html", {"form": form, "produtos": pedido_origem.itens.all(),})
 
 @login_required
@@ -426,7 +439,7 @@ def gerar_pagamento_pedido(request, pedido_id):
     formas = json.loads(request.POST.get("formas", "[]"))
     PedidoFormaPgto.objects.filter(pedido=pedido).delete()
     for f in formas:
-        PedidoFormaPgto.objects.create(pedido=pedido, forma_pgto_codigo=f["forma"], valor=f["valor"])
+        PedidoFormaPgto.objects.create(pedido=pedido, forma_pgto__codigo=f["forma"], valor=f["valor"])
     pagamentos = gerar_pagamentos_pedido(pedido)
     data = []
     for p in pagamentos:
@@ -443,6 +456,7 @@ def status_pagamento_pedido(request, pedido_id):
     # 🔥 PIX pago → fatura automaticamente
     if (novo_status == "pago" and pedido.situacao == "Aberto"):
         pedido.processar_pagamento(None)
+        pedido.situacao == "Faturado"
         pedido.refresh_from_db()
     return JsonResponse({"status": pedido.status_pagamento, "situacao": pedido.situacao})
 
@@ -456,3 +470,162 @@ def recuperar_pix_pendente(request, pedido_id):
 def imprimir_cupom_pedido(request, codigo):
     pedido = get_object_or_404(Pedido, codigo=codigo, vinc_emp=request.user.empresa)
     return render(request, 'pedidos/cupom.html', {'pedido': pedido})
+
+@login_required
+def imprimir_pedido(request, codigo):
+    pedido = get_object_or_404(Pedido.objects.select_related('cli', 'vendedor', 'vinc_fil', 'vinc_emp', 'caixa', 'tabela_preco').prefetch_related('itens__produto', 'formas_pgto__forma_pgto', 'pagamentos__forma_pgto'), codigo=codigo, vinc_emp=request.user.empresa)
+    total_itens = sum(i.subtotal for i in pedido.itens.all())
+    total_pago = sum(p.valor for p in pedido.pagamentos.all() if p.status == 'pago')
+    lg_emp = img_base64(pedido.vinc_fil.logo.path)
+    context = {'pedido': pedido, 'usuario': request.user.first_name, 'data_impressao': timezone.localtime(), 'total_itens': total_itens, 'total_pago': total_pago, 'lg_emp': lg_emp}
+    html_string = render_to_string('pedidos/a4.html', context)
+    html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
+    css = CSS(string='''
+        @page {
+            size: A4;
+            margin: 1.2cm 1cm 1.2cm 1cm;
+            @bottom-right { content: "Página " counter(page) " de " counter(pages); font-size: 10px; font-weight: bold; }
+            @bottom-left { content: "By Allitec Sistemas"; font-size: 10px; font-weight: bold; font-style: italic; }
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 11px;
+            color: #222;
+            line-height: 1.3;
+        }
+
+        /* Cabeçalho */
+        .cabecalho { width: 100%; margin-bottom: 20px; }
+        .cabecalho td { vertical-align: top; }
+        .td-logo { width: 120px; text-align: left; }
+        .td-info { width: auto; padding-left: 15px; }
+        .td-status { width: 200px; }
+
+        .logo {
+            max-width: 120px;
+            max-height: 65px;
+            object-fit: contain;
+            display: block;
+        }
+
+        .titulo { font-size: 18px; font-weight: bold; color: #1a1a1a; margin-bottom: 4px; }
+        .sub-info { font-size: 10px; color: #555; margin-bottom: 2px; }
+
+        .badge-pedido {
+            background-color: #2c3e50;
+            color: #ffffff;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: bold;
+            display: inline-block;
+            text-align: center;
+            border-radius: 3px;
+        }
+
+        /* Estrutura de Tabelas Padrão */
+        table { width: 100%; border-collapse: collapse; }
+        .mb { margin-bottom: 18px; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .font-bold { font-weight: bold; }
+        .color-muted { color: #666; }
+        .italic { font-style: italic; }
+
+        .sem-borda td { border: none; padding: 0; }
+
+        /* Tabelas de Dados (Cliente, Pagamentos, Obs) */
+        .table-dados {
+            border: 1px solid #e0e0e0;
+        }
+        .table-dados th {
+            background-color: #f8f9fa;
+            color: #2c3e50;
+            text-align: left;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 6px 8px;
+            border-bottom: 2px solid #e0e0e0;
+            letter-spacing: 0.5px;
+        }
+        .table-dados td {
+            padding: 8px;
+            border: 1px solid #eee;
+            vertical-align: top;
+        }
+        .table-dados .label {
+            display: block;
+            font-size: 9px;
+            color: #777;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+        .table-dados .valor {
+            font-size: 11px;
+            font-weight: bold;
+            color: #111;
+        }
+
+        /* Tabela de Itens (Produtos) */
+        .table-itens {
+            border: 1px solid #dee2e6;
+        }
+        .table-itens th {
+            background-color: #2c3e50;
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 8px;
+            text-transform: uppercase;
+            border: none;
+        }
+        .table-itens td {
+            padding: 7px 8px;
+            border-bottom: 1px solid #eee;
+            font-size: 10.5px;
+            vertical-align: middle;
+        }
+        .table-itens tbody tr:nth-child(even) {
+            background-color: #fdfdfd;
+        }
+        .table-itens tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Bloco de Totais */
+        .table-totais {
+            border: 1px solid #e0e0e0;
+            background-color: #f8f9fa;
+        }
+        .table-totais td {
+            padding: 8px 12px;
+            font-size: 11px;
+            color: #444;
+            border-bottom: 1px solid #eee;
+        }
+        .table-totais .linha-total-final {
+            background-color: #e9ecef;
+            font-size: 13px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .table-totais .linha-total-final td {
+            padding: 10px 12px;
+            border: none;
+        }
+
+        /* Rodapé Informativo */
+        .rodape-info {
+            text-align: center;
+            font-size: 9.5px;
+            color: #666;
+            border-top: 1px dashed #ccc;
+            padding-top: 8px;
+            margin-top: 20px;
+            page-break-inside: avoid;
+        }
+    ''')
+    pdf = html.write_pdf(stylesheets=[css])
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = (f'inline; filename="Pedido {pedido.codigo}.pdf"')
+    return response

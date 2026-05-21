@@ -74,23 +74,15 @@ def add_fornecedor(request):
     if not request.user.has_perm('fornecedores.add_fornecedor'):
         messages.info(request, 'Você não tem permissão para adicionar fornecedores.')
         return redirect('/fornecedores/lista/')
+    empresa = request.user.empresa
+    if not empresa:
+        messages.error(request, 'Erro crítico: Seu usuário não está vinculado a nenhuma empresa cadastrada.')
+        return redirect('/fornecedores/lista/')
     if request.method == 'POST':
-        form = FornecedorForm(request.POST, empresa=request.user.empresa)
+        form = FornecedorForm(data=request.POST, empresa=empresa)
         if form.is_valid():
             c = form.save(commit=False)
-            bairro_id = request.POST.get('bairro')
-            cidade_id = request.POST.get('cidade')
-            estado_id = request.POST.get('uf')
-            if bairro_id:
-                try: c.bairro = Bairro.objects.get(codigo=bairro_id)
-                except Bairro.DoesNotExist: c.bairro = None
-            if cidade_id:
-                try: c.cidade = Cidade.objects.get(codigo=cidade_id)
-                except Cidade.DoesNotExist: c.cidade = None
-            if estado_id:
-                try: c.uf = Estado.objects.get(codigo=estado_id)
-                except Estado.DoesNotExist: c.uf = None
-            c.vinc_emp = request.user.empresa  # Busca a filial do usuário logado
+            c.vinc_emp = empresa  # Busca a filial do usuário logado
             c.save()
             messages.success(request, 'Fornecedor adicionado com sucesso!')
             clie = str(c.codigo)
@@ -100,7 +92,7 @@ def add_fornecedor(request):
             for field in form:
                 if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
             return render(request, 'fornecedores/add.html', {'form': form, 'error_messages': error_messages})
-    else: form = FornecedorForm(empresa=request.user.empresa)
+    else: form = FornecedorForm(empresa=empresa)
     return render(request, 'fornecedores/add.html', {'form': form})
 
 @verifica_alguma_permissao('fornecedores.add_fornecedor', 'fornecedores.change_fornecedor', 'fornecedores.delete_fornecedor')
