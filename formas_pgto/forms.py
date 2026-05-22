@@ -63,31 +63,39 @@ class FormaPgtoForm(forms.ModelForm):
         if ambiente:
             cred["ambiente"] = ambiente
 
-        # Se for pix_direto, validações específicas do certificado e chaves
-        if gateway == "pix_direto":
+        # 🔐 VALIDAÇÃO E LIMPEZA PARA O PAGSEGURO (PAGBANK)
+        if gateway == "pagseguro":
+            obrigatorios_pagseguro = ["token"]
+            
+            # Remove espaços em branco acidentais que quebram o cabeçalho Authorization
+            if "token" in cred and isinstance(cred["token"], str):
+                cred["token"] = cred["token"].strip()
+            if "access_token" in cred and isinstance(cred["access_token"], str):
+                cred["access_token"] = cred["access_token"].strip()
+
+            faltando = [c for c in obrigatorios_pagseguro if c not in cred or not cred.get(c)]
+            if faltando:
+                raise forms.ValidationError(f"Campos obrigatórios faltando para PagSeguro: {', '.join(faltando)}")
+
+        # 🏛️ VALIDAÇÃO PARA O PIX DIRETO (Seu código original mantido intacto)
+        elif gateway == "pix_direto":
             uploaded_file = self.files.get("certificado_file")
             is_producao = (ambiente == "producao")
 
-            # 🔥 AJUSTE: Validação do certificado só roda se for PRODUÇÃO
             if is_producao:
                 if not uploaded_file and not cred.get("certificado_path"):
                     raise forms.ValidationError("O arquivo de Certificado (.pem) é estritamente obrigatório em ambiente de Produção.")
 
-            # Validação dos outros campos de texto do pix_direto (client_id, client_secret, chave_pix)
-            # Garantimos que "certificado_path" NUNCA entre nesta lista automatizada em homologação
             obrigatorios = ["client_id", "client_secret", "chave_pix"]
-            
             faltando = [c for c in obrigatorios if c not in cred or not cred.get(c)]
             if faltando:
                 raise forms.ValidationError(f"Campos obrigatórios faltando: {', '.join(faltando)}")
 
-            # Trata e salva o arquivo se ele foi enviado (válido para ambos os ambientes, caso o usuário queira subir em homologação)
             if uploaded_file:
                 pasta_destino = os.path.join('certificados_pix', str(uploaded_file.name))
                 caminho_salvo = default_storage.save(pasta_destino, ContentFile(uploaded_file.read()))
-                caminho_absoluto = os.path.join(settings.MEDIA_ROOT, caminho_salvo)
-                
-                cred["certificado_path"] = caminho_absoluto
+                caminho_absolute = os.path.join(settings.MEDIA_ROOT, caminho_salvo)
+                cred["certificado_path"] = caminho_absolute
 
         # Atualiza o cleaned_data final com o dicionário de credenciais modificado
         cleaned["credenciais"] = cred

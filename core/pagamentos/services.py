@@ -3,6 +3,7 @@ import requests
 import json
 import base64
 from django.conf import settings
+from datetime import datetime, timedelta
 
 class PagamentoService:
     def __init__(self, forma_pgto, origem=None):
@@ -15,10 +16,11 @@ class PagamentoService:
             except: creds = {}
         self.creds = creds
     # 🔹 MÉTODO PRINCIPAL
-    def gerar_pagamento(self, valor, descricao, email, external_reference=None):
+    def gerar_pagamento(self, valor, descricao, email=None, cpf=None, external_reference=None):
         if self.gateway == 'mercadopago': return self._mercadopago(valor, descricao, email, external_reference)
-        elif self.gateway == 'pagseguro': return self._pagbank(valor, descricao, external_reference)
-        elif self.gateway == "pix_direto":
+        if self.gateway == 'pagseguro':
+            return self._pagbank(valor, descricao, email=email, cpf=cpf, external_reference=external_reference)
+        if self.gateway == "pix_direto":
             # Passa os parâmetros necessários para o método novo
             return self._pix_direto(valor, descricao, external_reference)
         raise Exception("Gateway não suportado")
@@ -36,13 +38,18 @@ class PagamentoService:
         tx = resp.get("point_of_interaction", {}).get("transaction_data", {})
         return {"id": resp.get("id"), "qr_code": tx.get("qr_code"), "qr_base64": tx.get("qr_code_base64")}
     # 🔹 PAGBANK
-    def _pagbank(self, valor, descricao, external_reference=None):
+    def _pagbank(self, valor, descricao, email=None, cpf=None, external_reference=None):
         token = self.creds.get("token") or self.creds.get("access_token")
         ambiente = self.creds.get("ambiente", "homologacao")
+        
+        # Gera a data de expiração dinâmica (60 minutos) no padrão ISO do PagBank
+        from datetime import datetime, timedelta
+        data_expiracao = (datetime.now() + timedelta(minutes=60)).strftime("%Y-%m-%dT%H:%M:%S-03:00")
 
         if not token:
             raise Exception("Token PagBank não configurado nas credenciais")
 
+        # Define URL com base no ambiente selecionado no Admin
         if ambiente == "producao":
             url = "https://api.pagseguro.com/orders"
         else:
@@ -54,17 +61,38 @@ class PagamentoService:
             "accept": "application/json"
         }
 
-        # 🔥 PagBank exige valor em CENTAVOS (Ex: 10.50 vira 1050)
+        # Converte valor para centavos (ex: 15.90 -> 1590)
         valor_centavos = int(float(valor) * 100)
+
+        # 🧼 TRATAMENTO DE SEGURANÇA DO CPF/CNPJ:
+        if cpf:
+            # Limpa qualquer pontuação que o cliente tenha digitado no front-end
+            tax_id_limpo = "".join(filter(str.isdigit, str(cpf)))
+        else:
+            tax_id_limpo = ""
+
+        # 🧠 INTELIGÊNCIA DE AMBIENTE:
+        # Se estiver em homologação e não veio CPF, injeta o CNPJ de teste que validamos.
+        # Se estiver em produção, barra a requisição se o CPF/CNPJ real do comprador estiver ausente.
+        if not tax_id_limpo:
+            if ambiente != "producao":
+                tax_id_limpo = "66643052000194"  # Nosso CNPJ de teste aprovado
+            else:
+                raise Exception("Erro: O CPF ou CNPJ do cliente é obrigatório para emitir Pix em Produção.")
 
         payload = {
             "reference_id": str(external_reference or "SEM_REF"),
+            "customer": {
+                # Se não houver nome do cliente no escopo, usa uma string genérica aceitável
+                "name": "Cliente PagBank" if ambiente == "producao" else "Empresa Allitec Teste",
+                "email": str(email) if email else "cliente@teste.com",
+                "tax_id": tax_id_limpo
+            },
             "customer_modifiable": False,
             "qr_codes": [
                 {
                     "amount": {"value": valor_centavos},
-                    # Validade de 60 minutos para o Pix
-                    "expiration_date": "2026-05-21T23:59:59-03:00"
+                    "expiration_date": data_expiracao
                 }
             ],
             "notification_urls": [
@@ -82,17 +110,14 @@ class PagamentoService:
             qr_code_data = data.get("qr_codes", [{}])[0]
 
             copia_cola = qr_code_data.get("text")
-            qrcode_url = qr_code_data.get("links", [{}])[0].get("href")
-
-            # Em vez de forçar o front a ler um link e um base64 de formas diferentes,
-            # nós geramos o Base64 localmente a partir do copia_cola para manter o padrão perfeito!
+            
+            # Gera o Base64 localmente mantendo a retrocompatibilidade perfeita com o Mercado Pago
             qr_base64 = self._gerar_qr_base64_local(copia_cola)
 
-            # Retorna no EXATO padrão que o Mercado Pago usa
             return {
-                "id": data.get("id"),          # ID do pedido no PagBank (ORD-xxxx)
-                "qr_code": copia_cola,         # Chave Copia e Cola
-                "qr_base64": qr_base64         # Imagem convertida em string base64
+                "id": data.get("id"),          # ID da ordem (ORDE_xxxx) para salvar no banco
+                "qr_code": copia_cola,         # String Copia e Cola para o cliente copiar
+                "qr_base64": qr_base64         # Imagem em Base64 para a tag <img> do front
             }
 
         except Exception as e:
