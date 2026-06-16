@@ -28,7 +28,7 @@ def gerar_pagamentos_caixa(caixa):
             qr_code = result.get("qr_code")
             if not txid or not qr_code: continue
             pagamento = Pagamento.objects.create(
-                vinc_emp=caixa.vinc_emp, content_type=ContentType.objects.get_for_model(caixa), object_id=caixa.codigo, forma_pgto=forma, valor=valor, txid=txid, qr_code=qr_code,
+                vinc_emp=caixa.vinc_emp, content_type=ContentType.objects.get_for_model(caixa), object_id=caixa.id, forma_pgto=forma, valor=valor, txid=txid, qr_code=qr_code,
                 qr_base64=result.get("qr_base64"), gateway=forma.gateway, status="pendente"
             )
             pagamentos_gerados.append({"txid": pagamento.txid, "qr_code": pagamento.qr_code, "qr_base64": pagamento.qr_base64, "valor": str(pagamento.valor)})
@@ -36,23 +36,53 @@ def gerar_pagamentos_caixa(caixa):
     return pagamentos_gerados
 
 def gerar_pagamentos_pedido(pedido):
+    import traceback  # 👈 Importante para ler o rastreamento do erro
+    import sys
     pagamentos_gerados = []
     for forma in pedido.formas_pgto.all():
         gateway = (forma.forma_pgto.gateway or "").strip().lower()
         if gateway in ["nenhum", "", "none"]: continue
         try:
             service = PagamentoService(forma.forma_pgto)
-            result = service.gerar_pagamento(valor=forma.valor, descricao=f"Pedido {pedido.codigo}", email=getattr(pedido.cli, "email", None), external_reference=str(pedido.codigo))
-            if not result: continue
+            result = service.gerar_pagamento(
+                valor=forma.valor,
+                descricao=f"Pedido {pedido.codigo}",
+                email=getattr(pedido.cli, "email", None),
+                external_reference=str(pedido.codigo)
+            )
+            if not result:
+                print(f"--- [DEBUG] Gateway {gateway} retornou None ou vazio ---", file=sys.stderr)
+                continue
             txid = result.get("id")
             qr_code = result.get("qr_code")
-            if not txid or not qr_code: continue
+            if not txid or not qr_code:
+                print(f"--- [DEBUG] Gateway retornou dados incompletos: txid={txid}, qr_code={qr_code} ---", file=sys.stderr)
+                continue
             pagamento = Pagamento.objects.create(
-                vinc_emp=pedido.vinc_emp, content_type=ContentType.objects.get_for_model(pedido), object_id=pedido.codigo, forma_pgto=forma.forma_pgto, valor=Decimal(str(forma.valor)),
-                txid=txid, qr_code=qr_code, qr_base64=result.get("qr_base64"), gateway=forma.forma_pgto.gateway, status="pendente"
+                vinc_emp=pedido.vinc_emp,
+                content_type=ContentType.objects.get_for_model(pedido),
+                object_id=pedido.id,
+                forma_pgto=forma.forma_pgto,
+                valor=Decimal(str(forma.valor)),
+                txid=txid,
+                qr_code=qr_code,
+                qr_base64=result.get("qr_base64"),
+                gateway=forma.forma_pgto.gateway,
+                status="pendente"
             )
-            pagamentos_gerados.append({"txid": pagamento.txid, "qr_code": pagamento.qr_code, "qr_base64": result.get("qr_base64"), "valor": str(pagamento.valor)})
-        except Exception as e: continue
+            pagamentos_gerados.append({
+                "txid": pagamento.txid,
+                "qr_code": pagamento.qr_code,
+                "qr_base64": result.get("qr_base64"),
+                "valor": str(pagamento.valor)
+            })
+        except Exception as e:
+            # 🔥 ISSO AQUI VAI GRAVAR O ERRO REAL NO SEU SERVER LOG DO PYTHONANYWHERE
+            print("\n" + "="*50, file=sys.stderr)
+            print(f"CRASH REAL NO FLUXO DE PAGAMENTO ({gateway}): {str(e)}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
+            print("="*50 + "\n", file=sys.stderr)
+            raise Exception(str(e))
     return pagamentos_gerados
 
 def gerar_pagamento_conta_receber(conta, forma, valor):
@@ -62,7 +92,7 @@ def gerar_pagamento_conta_receber(conta, forma, valor):
     result = service.gerar_pagamento(valor=valor, descricao=f"Conta {conta.num_conta}", email=getattr(conta.cliente, "email", None), external_reference=str(conta.id))
     if not result: return None
     pagamento = Pagamento.objects.create(
-        content_type=ContentType.objects.get_for_model(conta), object_id=conta.codigo, vinc_emp=conta.vinc_emp, forma_pgto=forma, valor=valor, txid=result.get("id"),
+        content_type=ContentType.objects.get_for_model(conta), object_id=conta.id, vinc_emp=conta.vinc_emp, forma_pgto=forma, valor=valor, txid=result.get("id"),
         qr_code=result.get("qr_code"), qr_base64=result.get("qr_base64"), gateway=forma.gateway, status="pendente"
     )
     return pagamento
@@ -74,7 +104,7 @@ def gerar_pagamentos_orcamento(orcamento):
         if gateway in ["", "nenhum", "none"]: continue
         try:
             service = PagamentoService(forma.formas_pgto)
-            result = service.gerar_pagamento(valor=forma.valor, descricao=f"Orçamento {orcamento.codigo}", email=getattr(orcamento.cli, "email", None), 
+            result = service.gerar_pagamento(valor=forma.valor, descricao=f"Orçamento {orcamento.codigo}", email=getattr(orcamento.cli, "email", None),
                 external_reference=str(orcamento.codigo)
             )
             if not result: continue
@@ -82,7 +112,7 @@ def gerar_pagamentos_orcamento(orcamento):
             qr_code = result.get("qr_code")
             if not txid or not qr_code: continue
             pagamento = Pagamento.objects.create(
-                vinc_emp=orcamento.vinc_emp, content_type=ContentType.objects.get_for_model(orcamento), object_id=orcamento.codigo, forma_pgto=forma.formas_pgto, valor=Decimal(str(forma.valor)),
+                vinc_emp=orcamento.vinc_emp, content_type=ContentType.objects.get_for_model(orcamento), object_id=orcamento.id, forma_pgto=forma.formas_pgto, valor=Decimal(str(forma.valor)),
                 txid=txid, qr_code=qr_code, qr_base64=result.get("qr_base64"), gateway=forma.formas_pgto.gateway, status="pendente"
             )
             pagamentos_gerados.append({"txid": pagamento.txid, "qr_code": pagamento.qr_code, "qr_base64": pagamento.qr_base64, "valor": str(pagamento.valor)})

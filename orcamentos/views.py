@@ -47,9 +47,11 @@ from django.db import DatabaseError, IntegrityError
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Exists, OuterRef
 from util.parse_decimal import parse_decimal
-PortaFormSet = inlineformset_factory( Orcamento, PortaOrcamento, form=PortaOrcamentoForm, extra=1, can_delete=False )
-ProdutoFormSet = inlineformset_factory( PortaOrcamento, PortaProduto, form=PortaProdutoForm, extra=1, can_delete=True )
-AdicionalFormSet = inlineformset_factory( PortaOrcamento, PortaAdicional, form=PortaAdicionalForm, extra=1, can_delete=True )
+from django.db.models import F
+from collections import defaultdict
+PortaFormSet = inlineformset_factory(Orcamento, PortaOrcamento, form=PortaOrcamentoForm, extra=1, can_delete=False)
+ProdutoFormSet = inlineformset_factory(PortaOrcamento, PortaProduto, form=PortaProdutoForm, extra=1, can_delete=True)
+AdicionalFormSet = inlineformset_factory(PortaOrcamento, PortaAdicional, form=PortaAdicionalForm, extra=1, can_delete=True)
 
 @login_required
 @require_POST
@@ -118,7 +120,7 @@ def liberar_com_senha(request):
     if not usuario_id or not senha: return JsonResponse({'status': 'erro'}, status=400)
     try: autorizador = Usuario.objects.get(codigo_local=usuario_id, empresa=request.user.empresa, gerar_senha_lib=True)
     except Usuario.DoesNotExist: return JsonResponse({'status': 'erro'}, status=404)
-    if not check_password(senha, autorizador.password): return JsonResponse({'status': 'senha_incorreta'})
+    if not check_password(senha, autorizador.senha_liberacao): return JsonResponse({'status': 'senha_incorreta'})
     return JsonResponse({'status': 'Aprovada'})
 
 @login_required
@@ -220,9 +222,10 @@ def add_orcamento(request):
     if not request.user.has_perm('orcamentos.add_orcamento'):
         messages.info(request, 'Você não tem permissão para adicionar orçamentos.')
         return redirect('/orcamentos/lista/')
+    empresa = request.user.empresa
     try:
         if request.method == 'POST':
-            form = OrcamentoForm(request.POST, empresa=request.user.empresa, user=request.user)
+            form = OrcamentoForm(data=request.POST, empresa=empresa, user=request.user)
             if not form.is_valid():
                 error_messages = [f"Campo ({field.label}) é obrigatório!" for field in form if field.errors]
                 return render(request, 'orcamentos/add_orcamento.html', {'form': form, 'error_messages': error_messages})
@@ -284,11 +287,12 @@ def add_orcamento(request):
                     OrcamentoFormaPgto.objects.create(orcamento=o, formas_pgto=fp, valor=valor, parcelas=parcelas, dias_intervalo=dias)
             messages.success(request, "Orçamento criado com sucesso!")
             return redirect('/orcamentos/lista/?s=' + str(o.codigo))
-        else: form = OrcamentoForm(empresa=request.user.empresa, user=request.user)
+        else: form = OrcamentoForm(empresa=empresa, user=request.user)
     except ObjectDoesNotExist: error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
     except IntegrityError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}")
     except DatabaseError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco de dados: {str(e)}")
     except Exception as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    form = OrcamentoForm(empresa=empresa, user=request.user)
     return render(request, 'orcamentos/add_orcamento.html', {'form': form, 'error_messages': error_messages})
 
 @login_required
@@ -302,7 +306,7 @@ def att_orcamento(request, codigo):
     if orcamento.situacao != 'Aberto':
         messages.warning(request, 'Somente orçamentos em Aberto podem ser editados!')
         return redirect(f'/orcamentos/lista/?s={orcamento.codigo}')
-    form = OrcamentoForm(instance=orcamento, empresa=request.user.empresa, user=request.user)
+    form = OrcamentoForm(request.POST, instance=orcamento, empresa=request.user.empresa, user=request.user)
     try:
         if request.method == "POST":
             dt_emi_original = orcamento.dt_emi
@@ -371,6 +375,9 @@ def att_orcamento(request, codigo):
                     valor_total = Decimal(str(item.get("vl_total") or "0"))
                     if valor_total == 0 and valor_unitario > 0 and qtd: valor_total = valor_unitario * Decimal(str(qtd))
                     PortaAdicional.objects.create(porta=porta, produto=produto, quantidade=qtd, valor_unitario=valor_unitario, valor_total=valor_total, regra_origem=regra_origem, lado=lado)
+            orcamento.atualizar_subtotal()
+            if orcamento.subtotal == 0: raise ValueError("O orçamento precisa ter pelo menos um item com valor.")
+            orcamento.save(update_fields=['subtotal', 'total'])
             formas_json = request.POST.get("json_formas_pgto")
             if formas_json:
                 OrcamentoFormaPgto.objects.filter(orcamento=orcamento).delete()
@@ -390,6 +397,17 @@ def att_orcamento(request, codigo):
             messages.success(request, "Orçamento atualizado com sucesso!")
             if next_url: return redirect(next_url)
             else: return redirect(f'/orcamentos/lista/?s={orcamento.codigo}')
+        else:
+            form = OrcamentoForm(instance=orcamento, empresa=request.user.empresa, user=request.user)
+            portas_json = []
+            for porta in orcamento.portas.all():
+                portas_json.append({"numero": porta.numero, "largura": float(porta.largura), "altura": float(porta.altura), "qtd_lam": float(porta.qtd_lam or 0), "m2": float(porta.m2 or 0), "larg_corte": float(porta.larg_corte or 0),
+                    "alt_corte": float(porta.alt_corte or 0), "rolo": float(porta.rolo or 0), "peso": float(porta.peso or 0), "ft_peso": float(porta.fator_peso or 0), "eix_mot": float(porta.eixo_motor or 0),
+                    "tipo_lamina": porta.tp_lamina, "tipo_vao": porta.tp_vao, "op_guia_e": porta.op_guia_e, "op_guia_d": porta.op_guia_d,
+                    "produtos":[{"codProd":pp.produto.codigo,"qtdProd":float(pp.quantidade),"regra_origem":pp.regra_origem,"vl_unit":float(pp.valor_unitario or 0),"vl_total":float(pp.valor_total or 0)} for pp in porta.produtos.all()],
+                    "adicionais":[{"codProd":adc.produto.codigo,"qtdProd":float(adc.quantidade),"lado":adc.lado,"regra_origem":adc.regra_origem,"vl_unit":float(adc.valor_unitario or 0),"vl_total":float(adc.valor_total or 0)} for adc in porta.adicionais.all()]
+                })
+            return render(request, "orcamentos/att_orcamento.html",{"form": form, "orcamento": orcamento, "error_messages": error_messages, "portas": orcamento.portas.all(), "portas_json": json.dumps(portas_json)})
     except ObjectDoesNotExist: error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
     except IntegrityError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}")
     except DatabaseError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
@@ -414,7 +432,7 @@ def clonar_orcamento(request, codigo):
         return redirect('/orcamentos/lista/')
     try:
         if request.method == 'POST':
-            form = OrcamentoForm(request.POST, empresa=request.user.empresa, user=request.user)
+            form = OrcamentoForm(data=request.POST, empresa=request.user.empresa, user=request.user)
             if not form.is_valid():
                 erros = [
                     f"<i class='fa-solid fa-xmark'></i> Campo ({f.label}) é obrigatório!"
@@ -428,6 +446,9 @@ def clonar_orcamento(request, codigo):
             novo.save()
             novo.num_orcamento = f"{datetime.now():%Y-}{novo.codigo}"
             novo.save(update_fields=["num_orcamento"])
+            novo.atualizar_subtotal()
+            if novo.subtotal == 0: raise ValueError("O orçamento precisa ter pelo menos um item com valor.")
+            novo.save(update_fields=['subtotal', 'total'])
             for forma in orcamento.formas_pgto.all():
                 OrcamentoFormaPgto.objects.create(orcamento=novo, formas_pgto=forma.formas_pgto, valor=forma.valor, parcelas=forma.parcelas, dias_intervalo=forma.dias_intervalo)
             for porta in orcamento.portas.all():
@@ -470,55 +491,195 @@ def del_orcamento(request, codigo):
     messages.success(request, 'Orçamento deletado com sucesso!')
     return redirect('lista-orcamentos')
 
-@require_POST
 @login_required
 @transaction.atomic
 def faturar_orcamento(request, codigo):
-    orcamento = get_object_or_404(Orcamento.objects.select_related('cli', 'vinc_fil', 'vinc_emp').prefetch_related('formas_pgto__formas_pgto', 'portas__produtos__produto', 'portas__adicionais__produto',), codigo=codigo, vinc_emp=request.user.empresa)
+
     if not request.user.has_perm('orcamentos.faturar_orcamento'):
-        messages.error(request, 'Você não tem permissão para faturar orçamentos!')
+        messages.error(
+            request,
+            'Você não tem permissão para faturar orçamentos.'
+        )
         return redirect('/orcamentos/lista/')
+
+    orcamento = get_object_or_404(
+        Orcamento.objects.select_related(
+            'cli',
+            'vinc_fil',
+            'vinc_emp'
+        ).prefetch_related(
+            'formas_pgto__formas_pgto',
+            'portas__produtos__produto',
+            'portas__adicionais__produto',
+        ),
+        codigo=codigo,
+        vinc_emp=request.user.empresa
+    )
+
     if orcamento.situacao == 'Faturado':
-        messages.warning(request, 'Orçamento já está faturado!')
+        messages.warning(
+            request,
+            f'O orçamento {orcamento.codigo} já foi faturado.'
+        )
         return redirect('/orcamentos/lista/')
+
     formas = list(orcamento.formas_pgto.all())
+
     if not formas:
-        messages.error(request, 'Informe forma de pagamento!')
-        return redirect('/orcamentos/lista/')
-    for forma in formas:
-        gateway = (forma.formas_pgto.gateway or "").strip().lower()
-        if gateway not in ["", "nenhum", "none"]: continue  # será tratado pelo fluxo de pagamento
-        if forma.formas_pgto.gera_parcelas:
-            parcelas = forma.parcelas or 1
-            valor_parcela = (Decimal(forma.valor) / parcelas).quantize(Decimal("0.01"))
-            for i in range(parcelas):
-                ContaReceber.objects.create(data_emissao=orcamento.dt_emi, vinc_emp=orcamento.vinc_emp, vinc_fil=orcamento.vinc_fil, orcamento=orcamento, cliente=orcamento.cli,
-                    forma_pgto=forma.formas_pgto, num_conta=f"{orcamento.codigo}-{i+1}", valor=valor_parcela, data_vencimento=datetime.now().date() + timedelta(days=forma.dias_intervalo * (i+1)),
-                    situacao='Aberta'
-                )
-    orcamento.situacao = 'Faturado'
-    orcamento.dt_fat = datetime.now()
-    orcamento.save(update_fields=['situacao', 'dt_fat'])
-    pode_faturar_sem_estoque = request.user.has_perm('orcamentos.vender_sem_estoque_orc')
-    if not pode_faturar_sem_estoque:
+        messages.error(
+            request,
+            'Informe ao menos uma forma de pagamento antes de faturar.'
+        )
+        return redirect(
+            request.META.get(
+                'HTTP_REFERER',
+                f'/orcamentos/att/{orcamento.codigo}/'
+            )
+        )
+
+    def obter_itens():
         for porta in orcamento.portas.all():
-            for item in porta.produtos.all():
-                if item.produto.estoque_prod < item.quantidade:
-                    return JsonResponse({'erro': f'Estoque insuficiente para o produto {item.produto.desc_prod}. Disponível: {item.produto.estoque_prod}!'}, status=400)
-            for item in porta.adicionais.all():
-                if item.produto.estoque_prod < item.quantidade:
-                    return JsonResponse({'erro': f'Estoque insuficiente para o produto {item.produto.desc_prod}. Disponível: {item.produto.estoque_prod}!'}, status=400)
-    for porta in orcamento.portas.all():
-        for item in porta.produtos.all():
-            produto = item.produto
-            produto.estoque_prod -= item.quantidade
-            produto.save(update_fields=['estoque_prod'])
-        for item in porta.adicionais.all():
-            produto = item.produto
-            produto.estoque_prod -= item.quantidade
-            produto.save(update_fields=['estoque_prod'])
-    messages.success(request, f'Orçamento {orcamento.codigo} faturado!')
-    return redirect('/orcamentos/lista/?s=' + str(orcamento.codigo))
+            yield from porta.produtos.all()
+            yield from porta.adicionais.all()
+
+    # =====================================================
+    # VALIDAÇÃO DE ESTOQUE
+    # =====================================================
+
+    pode_vender_sem_estoque = request.user.has_perm(
+        'orcamentos.vender_sem_estoque_orc'
+    )
+
+    if not pode_vender_sem_estoque:
+
+        quantidades = defaultdict(Decimal)
+
+        for item in obter_itens():
+            quantidades[item.produto_id] += item.quantidade
+
+        produtos = {
+            produto.id: produto
+            for produto in Produto.objects.filter(
+                id__in=quantidades.keys()
+            )
+        }
+
+        erros_estoque = []
+
+        for produto_id, quantidade_necessaria in quantidades.items():
+
+            produto = produtos.get(produto_id)
+
+            if not produto:
+                erros_estoque.append(
+                    f'Produto ID {produto_id} não encontrado.'
+                )
+                continue
+
+            if produto.estoque_prod < quantidade_necessaria:
+                faltando = quantidade_necessaria - produto.estoque_prod
+
+                erros_estoque.append(
+                    f'{produto.desc_prod}: '
+                    f'disponível {produto.estoque_prod}, '
+                    f'necessário {quantidade_necessaria}, '
+                    f'faltam {faltando}'
+                )
+
+        if erros_estoque:
+
+            for erro in erros_estoque[:5]:
+                messages.error(request, erro)
+
+            if len(erros_estoque) > 5:
+                messages.error(
+                    request,
+                    f'Existem mais {len(erros_estoque) - 5} produtos com estoque insuficiente.'
+                )
+
+            return redirect(
+                request.META.get(
+                    'HTTP_REFERER',
+                    '/orcamentos/lista/'
+                )
+            )
+
+    # =====================================================
+    # CONTAS A RECEBER
+    # =====================================================
+
+    for forma in formas:
+
+        gateway = (
+            forma.formas_pgto.gateway or ''
+        ).strip().lower()
+
+        # Gateway será tratado por integração própria
+        if gateway not in ['', 'nenhum', 'none']:
+            continue
+
+        if not forma.formas_pgto.gera_parcelas:
+            continue
+
+        parcelas = forma.parcelas or 1
+
+        valor_parcela = (
+            Decimal(forma.valor) / parcelas
+        ).quantize(Decimal('0.01'))
+
+        for i in range(parcelas):
+
+            ContaReceber.objects.create(
+                data_emissao=orcamento.dt_emi,
+                vinc_emp=orcamento.vinc_emp,
+                vinc_fil=orcamento.vinc_fil,
+                orcamento=orcamento,
+                cliente=orcamento.cli,
+                forma_pgto=forma.formas_pgto,
+                num_conta=f'{orcamento.codigo}-{i + 1}',
+                valor=valor_parcela,
+                data_vencimento=timezone.now().date() + timedelta(
+                    days=forma.dias_intervalo * (i + 1)
+                ),
+                situacao='Aberta'
+            )
+
+    # =====================================================
+    # BAIXA DE ESTOQUE
+    # =====================================================
+
+    if not pode_vender_sem_estoque:
+
+        for produto_id, quantidade in quantidades.items():
+
+            Produto.objects.filter(
+                pk=produto_id
+            ).update(
+                estoque_prod=F('estoque_prod') - quantidade
+            )
+
+    # =====================================================
+    # FATURAMENTO
+    # =====================================================
+
+    orcamento.situacao = 'Faturado'
+    orcamento.dt_fat = timezone.now()
+
+    orcamento.save(
+        update_fields=[
+            'situacao',
+            'dt_fat'
+        ]
+    )
+
+    messages.success(
+        request,
+        f'Orçamento {orcamento.codigo} faturado com sucesso.'
+    )
+
+    return redirect(
+        f'/orcamentos/lista/?s={orcamento.codigo}'
+    )
 
 from core.pagamentos.fluxo import gerar_pagamentos_orcamento
 from pedidos.models import Pagamento

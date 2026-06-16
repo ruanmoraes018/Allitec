@@ -109,7 +109,7 @@ def att_cliente(request, codigo):
     if request.method == 'POST':
         form = ClienteForm(request.POST, instance=cli, empresa=request.user.empresa, user=request.user)
         if form.is_valid():
-            cli.save()
+            form.save()
             next_url = request.POST.get('next') or request.GET.get('next')
             clie = str(cli.codigo)
             messages.success(request, 'Cliente atualizado com sucesso!')

@@ -16,6 +16,7 @@ from django.db.models import Q
 from collections import defaultdict
 from django.contrib.auth.models import Permission
 from django.utils.text import slugify
+from django.contrib.auth.hashers import make_password
 
 @login_required
 def checar_permissao(request):
@@ -148,7 +149,10 @@ def add_usuario(request):
                 # Força o vínculo com a empresa correta do criador
                 novo_user.empresa = empresa_alvo
                 novo_user.gerar_senha_lib = gerar_senha_lib
-                novo_user.senha_liberacao = senha_liberacao
+                novo_user.senha_liberacao = make_password(senha_liberacao)
+                senha = request.POST.get('password')
+                if senha:
+                    novo_user.password = make_password(senha)
                 novo_user.save()
                 # Vincula as permissões selecionadas no Checkbox
                 permissoes = form.cleaned_data.get('permissoes')
@@ -202,7 +206,10 @@ def att_usuario(request, codigo_local):
             permissoes = form.cleaned_data.get('permissoes')
             if permissoes is not None: user.user_permissions.set(permissoes)
             usuario.gerar_senha_lib = gerar_senha_lib
-            usuario.senha_liberacao = senha_liberacao
+            usuario.senha_liberacao = make_password(senha_liberacao)
+            senha = request.POST.get('password')
+            if senha:
+                usuario.password = make_password(senha)
             usuario.save()
             next_url = request.POST.get('next') or request.GET.get('next')
             messages.success(request, 'Usuário atualizado com sucesso.')

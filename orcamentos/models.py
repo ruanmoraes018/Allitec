@@ -93,7 +93,10 @@ class Orcamento(models.Model):
             subtotal += sum((p.subtotalP for p in porta.produtos.all()), Decimal("0.00"))
             subtotal += sum((a.subtotalA for a in porta.adicionais.all()), Decimal("0.00"))
         self.subtotal = subtotal
-        self.total = subtotal - (self.desconto or Decimal("0.00")) + (self.acrescimo or Decimal("0.00"))
+        if self.vl_p_s > 0:
+            self.total = subtotal + self.vl_p_s - (self.desconto or Decimal("0.00")) + (self.acrescimo or Decimal("0.00"))
+        else:
+            self.total = subtotal - (self.desconto or Decimal("0.00")) + (self.acrescimo or Decimal("0.00"))
         return self.subtotal
     def save(self, *args, **kwargs):
         if self.vinc_emp and not self.codigo:

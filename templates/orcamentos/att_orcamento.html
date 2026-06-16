@@ -49,27 +49,27 @@
                                 <div class="col-md-3">{{ form.cli|as_crispy_field }}</div>
                                 <div class="col-md-2" id="div_id_cpfCnpj">
                                     <label for="id_cpfCnpj" class="form-label requiredField">CPF/CNPJ</label>
-                                    <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_cpfCnpj" name="cpfCnpj" disabled="disabled">
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle" id="orc_cpfCnpj" name="cpfCnpj" disabled="disabled">
                                 </div>
                                 <div class="col-md-3" id="div_id_email">
                                     <label for="id_email" class="form-label requiredField">E-mail</label>
-                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_email" name="email" disabled="disabled">
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="orc_email" name="email" disabled="disabled">
                                 </div>
                                 <div class="col-md-2" id="div_id_tel">
                                     <label for="id_tel" class="form-label requiredField">Fone</label>
-                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_tel" name="tel" disabled="disabled">
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="orc_tel" name="tel" disabled="disabled">
                                 </div>
                                 <div class="col-md-2" id="div_id_cep">
                                     <label for="id_cep" class="form-label requiredField">CEP*</label>
-                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_cep" name="cep" disabled="disabled">
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="orc_cep" name="cep" disabled="disabled">
                                 </div>
                                 <div class="col-md-4" id="div_id_endereco">
                                     <label for="id_endereco" class="form-label requiredField">Endereço*</label>
-                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_endereco" name="endereco" disabled="disabled">
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="orc_endereco" name="endereco" disabled="disabled">
                                 </div>
                                 <div class="col-md-1" id="div_id_numero">
                                     <label for="id_numero" class="form-label requiredField">Nº*</label>
-                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_numero" name="numero" disabled="disabled">
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="orc_numero" name="numero" disabled="disabled">
                                 </div>
                                 <div class="col-md-3" id="div_id_bairro">
                                     <label for="id_bairro_txt" class="form-label requiredField">Bairro*</label>
@@ -116,25 +116,16 @@
                                                 {% for pt in orcamento.portas.all %}
                                                     <tr id="linha_resumo_{{ pt.numero }}" class="linha-porta" data-porta="{{ pt.numero }}">
                                                         <td data-label="Porta:" class="mobile-2col">{{ forloop.counter|stringformat:"01d" }}</td>
-                                                        {% load l10n %}
-                                                        <td data-label="Largura:" class="mobile-2col"><input type="text" class="form-control form-control-sm larg" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.largura|unlocalize }}"></td>
-                                                        {% load l10n %}
-                                                        <td data-label="Altura:" class="mobile-2col"><input type="text" class="form-control form-control-sm alt" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.altura|unlocalize }}"></td>
-                                                        {% load l10n %}
-                                                        <td data-label="Lg. Corte:" class="mobile-2col"><input readonly class="form-control form-control-sm larg-corte" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.larg_corte|unlocalize }}"></td>
-                                                        {% load l10n %}
-                                                        <td data-label="At. Corte:" class="mobile-2col"><input readonly class="form-control form-control-sm alt-corte" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.alt_corte|unlocalize }}"></td>
-                                                        <td data-label="Qtd. Lâm.:" class="mobile-2col"><input readonly class="form-control form-control-sm qtd-laminas" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.qtd_lam|unlocalize }}"></td>
-                                                        {% load l10n %}
-                                                        <td data-label="M²:" class="mobile-2col"><input readonly class="form-control form-control-sm m2" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.m2|unlocalize }}"></td>
-                                                        {% load l10n %}
-                                                        <td data-label="Ft. Peso:" class="mobile-2col"><input readonly class="form-control form-control-sm ft-peso" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.fator_peso|unlocalize }}"></td>
-                                                        {% load l10n %}
-                                                        <td data-label="Peso:" class="mobile-2col"><input readonly class="form-control form-control-sm peso" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.peso|unlocalize }}"></td>
-                                                        {% load l10n %}
-                                                        <td data-label="Eix. Mot.:" class="mobile-2col"><input readonly class="form-control form-control-sm eix-mot" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.eixo_motor|unlocalize }}"></td>
-                                                        {% load l10n %}
-                                                        <td data-label="Rolo:" class="mobile-full"><input readonly class="form-control form-control-sm rolo" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.rolo|unlocalize }}"></td>
+                                                        <td data-label="Largura:" class="mobile-2col"><input type="text" class="form-control form-control-sm larg" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.largura }}"></td>
+                                                        <td data-label="Altura:" class="mobile-2col"><input type="text" class="form-control form-control-sm alt" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.altura }}"></td>
+                                                        <td data-label="Lg. Corte:" class="mobile-2col"><input readonly class="form-control form-control-sm larg-corte" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.larg_corte }}"></td>
+                                                        <td data-label="At. Corte:" class="mobile-2col"><input readonly class="form-control form-control-sm alt-corte" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.alt_corte }}"></td>
+                                                        <td data-label="Qtd. Lâm.:" class="mobile-2col"><input readonly class="form-control form-control-sm qtd-laminas" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.qtd_lam }}"></td>
+                                                        <td data-label="M²:" class="mobile-2col"><input readonly class="form-control form-control-sm m2" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.m2 }}"></td>
+                                                        <td data-label="Ft. Peso:" class="mobile-2col"><input readonly class="form-control form-control-sm ft-peso" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.fator_peso }}"></td>
+                                                        <td data-label="Peso:" class="mobile-2col"><input readonly class="form-control form-control-sm peso" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.peso }}"></td>
+                                                        <td data-label="Eix. Mot.:" class="mobile-2col"><input readonly class="form-control form-control-sm eix-mot" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.eixo_motor }}"></td>
+                                                        <td data-label="Rolo:" class="mobile-full"><input readonly class="form-control form-control-sm rolo" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.rolo }}"></td>
                                                         <td data-label="Tipo Lâmina:" class="mobile-full">
                                                             <select class="form-select form-select-sm tipo-lamina" data-porta="{{ pt.numero }}">
                                                                 <option value="Fechada" {% if pt.tp_lamina == "Fechada" %}selected{% endif %}>Fechada</option>
@@ -239,13 +230,13 @@
                                                                     <td data-label="Código:" class="td-cod mobile-full">{{ pprod.produto.codigo }}</td>
                                                                     <td data-label="Descrição:" class="td-desc mobile-full">{{ pprod.produto.desc_prod }}</td>
                                                                     <td data-label="Unidade:" class="td-unid mobile-full">{{ pprod.produto.unidProd }}</td>
-                                                                    <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">{{ pprod.produto.vl_compra }}</td>
+                                                                    <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">{{ pprod.produto.vl_compra|moeda_br }}</td>
                                                                     {% load l10n %}
-                                                                    <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">{{ pprod.valor_unitario|unlocalize }}</td>
+                                                                    <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">{{ pprod.valor_unitario|moeda_br }}</td>
                                                                     {% load l10n %}
-                                                                    <td class="qtd-produto mobile-full" data-label="Quantidade:">{{ pprod.quantidade|unlocalize }}</td>
-                                                                    <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">{{ pprod.totCompraP|floatformat:2 }}</td>
-                                                                    <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">{{ pprod.valor_total|floatformat:2 }}</td>
+                                                                    <td class="qtd-produto mobile-full" data-label="Quantidade:">{{ pprod.quantidade|moeda_br }}</td>
+                                                                    <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">{{ pprod.totCompraP|moeda_br }}</td>
+                                                                    <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">{{ pprod.valor_total|moeda_br }}</td>
                                                                     <td data-label="Ações:" class="mobile-full">
                                                                         <button class="btn btn-success btn-sm editBtn" data-bs-target="#editItemModal"><i class="fa-regular fa-pen-to-square text-white"></i></button>
                                                                         <button class="btn btn-danger btn-sm deleteBtn"><i class="fa-solid fa-trash-can text-white"></i></button>
@@ -339,13 +330,13 @@
                                                                 <td data-label="Cód:" class="td-cod mobile-full">{{ adc.produto.codigo }}</td>
                                                                 <td data-label="Descrição:" class="td-desc mobile-full">{{ adc.produto.desc_prod }}</td>
                                                                 <td data-label="Unidade:" class="td-unid mobile-full">{{ adc.produto.unidProd }}</td>
-                                                                <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">{{ adc.produto.vl_compra }}</td>
+                                                                <td class="td-vl-compra text-danger fw-bold mobile-full" data-label="Vl. Compra:">{{ adc.produto.vl_compra|moeda_br }}</td>
                                                                 {% load l10n %}
-                                                                <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">{{ adc.valor_unitario|unlocalize }}</td>
+                                                                <td class="vl-unit text-success fw-bold mobile-full" data-label="Vl. Unit:">{{ adc.valor_unitario|moeda_br }}</td>
                                                                 {% load l10n %}
-                                                                <td class="qtd-produto mobile-full" data-label="Quantidade:">{{ adc.quantidade|unlocalize }}</td>
-                                                                <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">{{ adc.totCompraA|floatformat:2 }}</td>
-                                                                <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">{{ adc.valor_total|floatformat:2 }}</td>
+                                                                <td class="qtd-produto mobile-full" data-label="Quantidade:">{{ adc.quantidade|moeda_br }}</td>
+                                                                <td class="tot-compra text-danger fw-bold mobile-full" data-label="Tot. Compra:">{{ adc.totCompraA|moeda_br }}</td>
+                                                                <td class="vl-total text-success fw-bold mobile-full" data-label="Vl. Total:">{{ adc.valor_total|moeda_br }}</td>
                                                                 <td data-label="Ações:" class="mobile-full">
                                                                     <button class="btn btn-success btn-sm editBtn" data-bs-target="#editItemAdcModal"><i class="fa-regular fa-pen-to-square text-white"></i></button>
                                                                     <button class="btn btn-danger btn-sm deleteBtn"><i class="fa-solid fa-trash-can text-white"></i></button>
@@ -374,8 +365,6 @@
                         <!--Form. Pgto.-->
                         <div class="form-section" id="form_pgto">
                             <div class="row" style="margin-left: -8px;">
-                                <input type="hidden" id="id_subtotal" name="subtotal">
-                                <input type="hidden" id="id_total" name="total">
                                 <div class="col-md-3" id="div_id_form_pgto">{{ form.formas_pgto|as_crispy_field }}</div>
                                 <div class="col-md-2" id="div_id_vl_form_pgto">
                                     <label for="id_vl_form_pgto" class="form-label requiredField">Valor*</label>
@@ -497,47 +486,6 @@
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>
                     <button type="button" class="btn btn-secondary btn-sm" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Modal de Confirmação -->
-    <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header titulo-modal">
-                    <h5 class="modal-title" id="confirmModalLabel"><i class="fa-solid fa-circle-info" style="float: none; color: white;"></i> Atenção!</h5>
-                </div>
-                <div class="modal-body">
-                    Você não tem permissão para realizar esta ação. Deseja enviar uma solicitação para um usuário autorizado?
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary btn-sm" id="confirmSend">Sim</button>
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Não</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Modal de Seleção de Usuário -->
-    <div class="modal fade" id="userSelectModal" tabindex="-1">
-        <div class="modal-dialog modal-sm modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header titulo-modal">
-                    <h5 class="modal-title"><i class="fa-solid fa-user-tie"></i> Liberação de Permissão</h5>
-                </div>
-                <div class="modal-body">
-                    <label class="form-label">Usuário Autorizador</label>
-                    <select id="userSelect" class="form-select mb-2">
-                        <option value="">--------</option>
-                    </select>
-                    <label class="form-label">Senha de liberação</label>
-                    <input type="password" id="senhaLiberacao" class="form-control" placeholder="Digite a senha do autorizador">
-                    <small class="text-muted">O autorizador pode digitar a senha aqui para liberar imediatamente.</small>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"> <i class='fa-solid fa-circle-xmark' style="float: none; color: white; margin: 0; font-size: 16px;"></i> Fechar</button>
-                    <button type="button" class="btn btn-success btn-sm" id="liberarAgora"> <i class="fa-solid fa-key"></i> Liberar</button>
-                    <button type="button" class="btn btn-primary btn-sm" id="sendNotification"> <i class="fa-solid fa-paper-plane"></i> Enviar Msg.</button>
                 </div>
             </div>
         </div>

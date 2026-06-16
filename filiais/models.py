@@ -73,6 +73,7 @@ class Filial(models.Model):
                 self.complem = self.complem.strip().upper()
                 self.email = self.email.strip().lower()
                 logo_alterada = False
+
                 super().save(*args, **kwargs)
                 if self.logo and self.logo.name != 'default_logo.png':
                     img = Image.open(self.logo.path)
@@ -91,11 +92,12 @@ class Filial(models.Model):
             self.endereco = self.endereco.strip().upper()
             self.complem = self.complem.strip().upper()
             self.email = self.email.strip().lower()
+
             logo_alterada = False
             super().save(*args, **kwargs)
             if self.logo and self.logo.name != 'default_logo.png':
                 img = Image.open(self.logo.path)
-                if img.mode in ('RGBA', 'P'): img = img.convert('RGB')
+                # if img.mode in ('RGBA', 'P'): img = img.convert('RGB')
                 max_size = (300, 300)
                 img.thumbnail(max_size)
                 img_io = BytesIO()
@@ -122,8 +124,11 @@ class Usuario(AbstractUser):
     filial_user = models.ForeignKey(Filial, on_delete=models.SET_NULL, null=True, blank=True, related_name="usuarios")
     codigo_local = models.PositiveIntegerField(blank=True, null=True)
     gerar_senha_lib = models.BooleanField(default=False, verbose_name='Gerar Senha de Liberação')
-    senha_liberacao = models.CharField(max_length=20, blank=True, null=True, verbose_name='Senha de Liberação')
+    senha_liberacao = models.CharField(max_length=20, blank=True, null=True, verbose_name='Senha de Liberação', help_text="Para nova senha, preencha esse campo!")
     is_master = models.BooleanField(default=False)
+
+    ver_res_orc = models.BooleanField(default=False)
+    ver_res_orc_tec = models.BooleanField(default=False)
     class Meta:
         unique_together = ('username', 'empresa')
     def save(self, *args, **kwargs):

@@ -274,13 +274,13 @@
                                 <div class="collapse" id="guiaFaturamentos">
                                     <div class="p-2">
                                         {% if perm_view_pedido %}
-                                            <a href="{% url 'lista-pedidos' %}" class="btn btn-dark w-100">Pedidos</a>
+                                            <a href="{% url 'lista-pedidos' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Pedidos</a>
                                         {% endif %}
                                         {% if perm_view_caixa %}
-                                            <a href="{% url 'lista-lancamentos' %}" class="btn btn-dark w-100">Lançamentos de Caixa</a>
+                                            <a href="{% url 'lista-lancamentos' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Lançamentos de Caixa</a>
                                         {% endif %}
                                         {% if perm_view_orcamentos %}
-                                            <a href="{% url 'lista-orcamentos' %}" class="btn btn-dark w-100">Orçamentos - Portas</a>
+                                            <a href="{% url 'lista-orcamentos' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Orçamentos - Portas</a>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -310,7 +310,7 @@
                                 </a>
                                 <div class="collapse" id="guiaRelatorios">
                                     <div class="p-2">
-                                        <a href="{% url 'lista-relatorios' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Relatórios</a>
+                                        <a href="{% url 'lista-relatorios' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Meus Relatórios</a>
                                     </div>
                                 </div>
                             {% endif %}
@@ -321,6 +321,46 @@
             <div id="loadingOverlay" class="loading-overlay" hidden>
                 <div class="loading-box">
                     <img src="{% static 'img/favicon.png' %}" alt="Carregando" class="loading-logo">
+                </div>
+            </div>
+            <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header titulo-modal">
+                            <h5 class="modal-title mx-auto" id="confirmModalLabel"><i class="fa-solid fa-circle-info" style="float: none; color: white;"></i> Atenção!</h5>
+                        </div>
+                        <div class="modal-body">
+                            Você não tem permissão para realizar esta ação. Deseja enviar uma solicitação para um usuário autorizado?
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary btn-sm" id="confirmSend">Sim</button>
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Não</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Modal de Seleção de Usuário -->
+            <div class="modal fade" id="userSelectModal" tabindex="-1">
+                <div class="modal-dialog modal-sm modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header titulo-modal">
+                            <h5 class="modal-title mx-auto"><i class="fa-solid fa-user-tie"></i> Liberação de Permissão</h5>
+                        </div>
+                        <div class="modal-body">
+                            <label class="form-label">Usuário Autorizador</label>
+                            <select id="userSelect" class="form-select mb-2">
+                                <option value="">--------</option>
+                            </select>
+                            <label class="form-label">Senha de liberação</label>
+                            <input type="password" id="senhaLiberacao" class="form-control" placeholder="Digite a senha do autorizador">
+                            <small class="text-muted">O autorizador pode digitar a senha aqui para liberar imediatamente.</small>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"> <i class='fa-solid fa-circle-xmark' style="float: none; color: white; margin: 0; font-size: 16px;"></i> Fechar</button>
+                            <button type="button" class="btn btn-success btn-sm" id="liberarAgora"> <i class="fa-solid fa-key"></i> Liberar</button>
+                            <button type="button" class="btn btn-primary btn-sm" id="sendNotification"> <i class="fa-solid fa-paper-plane"></i> Enviar Msg.</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -35,10 +35,10 @@
                             <div class="col-md-2">
                                 {{ form.filial_user|as_crispy_field }}
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 {{ form.first_name|as_crispy_field }}
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 {{ form.username|as_crispy_field }}
                             </div>
                             <div class="col-md-2">
@@ -47,18 +47,16 @@
                             <div class="col-md-2">
                               {{ form.password|as_crispy_field }}
                             </div>
-                            <div class="col-md-2 form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="id_gerar_senha_lib" name="gerar_senha_lib" {% if usuario.gerar_senha_lib %}checked{% endif %}>
-                                <label class="form-check-label" for="id_gerar_senha_lib">
-                                    Gerar Senha de Liberação
+                            <div class="col-md-2">
+                                <label for="id_senha_liberacao" class="form-label d-flex text-start align-items-center">
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" id="id_gerar_senha_lib" name="gerar_senha_lib" {% if usuario.gerar_senha_lib %}checked{% endif %}>
+                                    </div>
+                                    <span>Senha de Autorização</span> <i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Senha de liberação de ações para usuários sem permissão!"></i>
                                 </label>
+                                <input type="password" class="form-control form-control-sm border-dark-subtle" id="id_senha_liberacao" name="senha_liberacao" value="{{ usuario.senha_liberacao }}">
+                                <div id="id_senha_liberacao_helptext" class="form-text">Para nova senha, preencha esse campo!</div>
                             </div>
-
-                            <div class="col-md-3 mb-3">
-                                <label for="id_senha_liberacao" class="form-label">Senha de Liberação</label>
-                                <input type="password" class="form-control" id="id_senha_liberacao" name="senha_liberacao" value="{{ usuario.senha_liberacao }}">
-                            </div>
-
                             <div class="card" style="margin: 0; margin-left: 5px;">
                                 <div class="form-buttons" style="margin-left: 10px; margin-top: 10px; margin-bottom: 10px;">
                                     <div class="card-header bg-white">
@@ -85,7 +83,6 @@
                                                                         </span>
                                                                         {{ grupo }}
                                                                     </div>
-
                                                                     <div class="card-body">
                                                                         {% for perm in form.grupo_permissoes|get_item:grupo %}
                                                                             <div class="form-check mb-2">
@@ -96,7 +93,6 @@
                                                                                        id="check_{{ perm.id }}"
                                                                                        data-grupo="{{ grupo|slugify }}"
                                                                                        {% if perm.id in form.initial.permissoes %} checked {% endif %}>
-
                                                                                 <label class="form-check-label" for="check_{{ perm.id }}">
                                                                                     {% with perm.codename as code %}
                                                                                         {% if 'add_' in code %}
@@ -190,22 +186,4 @@
         </div>
     </div>
 </div>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const checkbox = document.getElementById('id_alterar_senha');
-    const senhaContainer = document.getElementById('senha-container');
-
-    if (!checkbox || !senhaContainer) return; // Proteção caso não existam
-
-    function toggleSenha() {
-        senhaContainer.style.display = checkbox.checked ? 'block' : 'none';
-    }
-
-    // Ativa/desativa quando clica no label ou na própria checkbox
-    checkbox.addEventListener('change', toggleSenha);
-
-    // Executa no carregamento inicial
-    toggleSenha();
-});
-</script>
 {% endblock %}

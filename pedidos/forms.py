@@ -50,6 +50,9 @@ class PedidoForm(forms.ModelForm):
                 # ✅ Se for CRIAÇÃO (Novo Registro): Pré-seleciona a filial do usuário logado
                 if self.user and self.user.filial_user:
                     self.initial['vinc_fil'] = str(self.user.filial_user.codigo)
+                    self.initial['cli'] = str(self.user.filial_user.cli.codigo)
+                    self.initial['vendedor'] = str(self.user.filial_user.vendedor.codigo)
+                    self.initial['tabela_preco'] = str(self.user.filial_user.tb_preco.codigo)
         else:
             self.fields['cli'].choices = [('', 'Escolha uma opção')]
             self.fields['tabela_preco'].choices = [('', 'Escolha uma opção')]

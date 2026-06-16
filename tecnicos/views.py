@@ -65,11 +65,12 @@ def add_tecnico(request):
     if not request.user.has_perm('tecnicos.add_tecnico'):
         messages.info(request, 'Você não tem permissão para adicionar técnicos.')
         return redirect('/tecnicos/lista/')
+    empresa = request.user.empresa
     if request.method == 'POST':
-        form = TecnicoForm(request.POST, empresa=request.user.empresa)
+        form = TecnicoForm(data=request.POST, empresa=empresa)
         if form.is_valid():
             t = form.save(commit=False)
-            t.vinc_emp = request.user.empresa
+            t.vinc_emp = empresa
             t.save()
             messages.success(request, 'Técnico adicionado com sucesso!')
             tec = str(t.codigo)
@@ -85,7 +86,7 @@ def add_tecnico(request):
 @login_required
 def att_tecnico(request, codigo):
     tec = get_object_or_404(Tecnico, codigo=codigo, vinc_emp=request.user.empresa)
-    form = TecnicoForm(instance=tec, empresa=request.user.empresa)
+    form = TecnicoForm(data=request.POST, instance=tec, empresa=request.user.empresa)
     if not request.user.has_perm('tecnicos.change_tecnico'):
         messages.info(request, 'Você não tem permissão para editar técnicos.')
         return redirect('/tecnicos/lista/')

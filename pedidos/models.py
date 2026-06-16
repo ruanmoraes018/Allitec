@@ -24,6 +24,7 @@ class Pedido(models.Model):
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     dt_emi = models.DateTimeField(null=True, blank=True)
     dt_fat = models.DateTimeField(null=True, blank=True)
+    dt_canc = models.DateTimeField(null=True, blank=True)
     motivo = models.CharField(max_length=60, blank=True, null=True)
     estoque_baixado = models.BooleanField(default=False)
     pagamentos = GenericRelation(

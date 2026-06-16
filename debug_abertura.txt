@@ -1,0 +1,6 @@
+
+    TEL='.'
+    EMAIL='cliente@gmail.com'
+    CEP='.'
+    ENDERECO='.'
+    

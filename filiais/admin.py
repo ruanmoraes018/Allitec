@@ -118,7 +118,7 @@ class EntradaInline(admin.TabularInline):
 class PedidoInline(admin.TabularInline):
     model = Pedido
     extra = 0
-    fields = ('cli', 'id', 'dt_emi', 'total')
+    fields = ('cli', 'id', 'dt_emi', 'situacao', 'motivo', 'total')
     show_change_link = True
 
 class PedidoProdutoInline(admin.TabularInline):
@@ -254,5 +254,5 @@ class OrcamentoAdmin(admin.ModelAdmin):
             {"forma": fp.formas_pgto.descricao, "valor": str(fp.valor),}
             for fp in obj.formas_pgto.all()
         ]
-        return format_html("<pre style='white-space: pre-wrap'>{}</pre>", json.dumps(dados, indent=2, ensure_ascii=False)) 
+        return format_html("<pre style='white-space: pre-wrap'>{}</pre>", json.dumps(dados, indent=2, ensure_ascii=False))
     json_formas_pgto.short_description = "Formas de Pagamento (JSON)"

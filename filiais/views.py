@@ -332,53 +332,29 @@ def dashboard(request):
 @csrf_exempt
 def webhook_pagamentos(request):
     result = processar_webhook(request)
+    # Se der erro de parsing ou for ping de teste, responde sucesso (HTTP 200) para o gateway não ficar tentando reenviar
     if not result: return JsonResponse({"ok": True})
     pagamento = Pagamento.objects.filter(txid=result["txid"]).first()
-    if not pagamento: return JsonResponse({"ok": False})
+    # Se não achar o pagamento no banco, avisa o gateway que recebeu (HTTP 200) para cessar as tentativas
+    if not pagamento: return JsonResponse({"ok": True})
     if pagamento.status == "pago": return JsonResponse({"ok": True})
     if result.get("status") == "pago":
+        print("ANTES SAVE")
+
         pagamento.status = "pago"
         pagamento.payload = result.get("payload")
         pagamento.dt_pagamento = timezone.now()
+
         pagamento.save()
-        origem = pagamento.origem
-        # 🔥 regra única
-        if hasattr(origem, "processar_pagamento"): origem.processar_pagamento(pagamento)
+
+        print("DEPOIS SAVE")
+
+        try:
+            origem = pagamento.origem
+
+            if hasattr(origem, "processar_pagamento"):
+                origem.processar_pagamento(pagamento)
+
+        except Exception as e:
+            print("ERRO processar_pagamento:", e)
     return JsonResponse({"ok": True})
-
-import logging
-from django.http import HttpResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
-logger = logging.getLogger('pagamentos.pagbank')
-
-@csrf_exempt
-@require_POST
-def webhook_pagbank(request):
-    # 1. Usa o novo processador específico para o PagBank
-    result = processar_webhook_pagbank(request)
-
-    # Se for apenas um ping de teste ou JSON inválido, responde OK para o banco
-    if not result:
-        return HttpResponse(status=200)
-
-    # 2. Daqui para baixo é Rigorosamente o seu código do Mercado Pago!
-    pagamento = Pagamento.objects.filter(txid=result["txid"]).first()
-    if not pagamento:
-        return HttpResponse(status=200) # Pro PagBank não reenviar, dizemos que deu OK
-
-    if pagamento.status == "pago":
-        return HttpResponse(status=200)
-
-    if result.get("status") == "pago":
-        pagamento.status = "pago"
-        pagamento.payload = result.get("payload")
-        pagamento.dt_pagamento = timezone.now()
-        pagamento.save()
-
-        origem = pagamento.origem
-        # 🔥 Sua regra única roda perfeitamente aqui também!
-        if hasattr(origem, "processar_pagamento"):
-            origem.processar_pagamento(pagamento)
-
-    return HttpResponse(status=200)

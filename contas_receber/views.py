@@ -16,6 +16,10 @@ from datetime import timedelta, date, datetime
 from django.db import DatabaseError, IntegrityError
 from django.core.exceptions import ObjectDoesNotExist
 from formas_pgto.models import FormaPgto
+from django.template.loader import render_to_string
+from weasyprint import HTML
+from util.pix import Payload
+from django.http import HttpResponse
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -280,3 +284,85 @@ def status_pagamento_conta(request, conta_id):
     parcial = conta.valor_pago > 0 and conta.valor_pago < total
     restante = total - conta.valor_pago
     return JsonResponse({"status": conta.situacao, "saldo": str(conta.saldo), "valor_pago": str(conta.valor_pago), "pago": conta.situacao == "Paga", "parcial": parcial, "restante": str(restante)})
+
+from pedidos.models import Pedido
+from django.conf import settings
+import re
+from util.logo_impressao import img_base64
+
+@login_required
+def imprimir_carne(request, codigo):
+    empresa = request.user.empresa
+    pedido = get_object_or_404(
+        Pedido.objects.select_related(
+            'cli',
+            'vinc_emp',
+            'vinc_fil'
+        ),
+        codigo=codigo,
+        vinc_emp=empresa
+    )
+
+    contas = (
+        ContaReceber.objects
+        .filter(pedido=pedido, situacao='Aberta')
+        .select_related(
+            'forma_pgto',
+            'vinc_fil',
+            'vinc_fil__cidade_fil'
+        )
+        .order_by('data_vencimento')
+    )
+    contas_contexto = []
+
+    for c in contas:
+        if not c.vinc_fil.chave_pix:
+            return HttpResponse(
+                f'A filial "{c.vinc_fil}" não possui uma chave Pix cadastrada.'
+            )
+        nome = c.vinc_fil.fantasia.strip().upper()
+        cidade = c.vinc_fil.cidade_fil.nome_cidade.strip().upper()
+        chave_pix = c.vinc_fil.chave_pix.strip()
+        if c.vinc_fil.tp_chave == 'Telefone':
+            chave_pix = re.sub(r'\D', '', chave_pix)
+            if not chave_pix.startswith('55'):
+                chave_pix = '55' + chave_pix
+            chave_pix = '+' + chave_pix
+        txt_id = f'CR{c.codigo}'.strip()
+        valor = f'{c.valor:.2f}'
+        print(repr(nome))
+        print(repr(chave_pix))
+        print(repr(valor))
+        print(repr(cidade))
+        print(repr(txt_id))
+        descricao = f'Parcela {c.num_conta}-{contas.count()} - (Pedido  Nº {c.pedido.codigo} - {c.pedido.vinc_fil.fantasia})'
+        resultado = Payload(
+            nome,
+            chave_pix,
+            valor,
+            cidade,
+            txt_id,
+            descricao
+        ).gerarPayload()
+        c.qr_code = resultado['qr_code']
+        c.pix_copia_cola = resultado['payload']
+        contas_contexto.append(c)
+    lg_emp = img_base64(pedido.vinc_fil.logo.path)
+    html = render_to_string(
+        'contas_receber/carne.html',
+        {
+            'pedido': pedido,
+            'empresa': pedido.vinc_fil,
+            'contas': contas_contexto,
+            'lg_emp': lg_emp
+        }
+    )
+    pdf = HTML(
+        string=html,
+        base_url=settings.MEDIA_ROOT
+    ).write_pdf()
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = (
+        f'inline; filename="Carnê Pedido {pedido.codigo}.pdf"'
+    )
+    return response

@@ -3,24 +3,23 @@ from django.contrib.auth.models import User, Permission
 from filiais.models import Filial
 from django.contrib.auth.forms import AuthenticationForm
 from collections import OrderedDict
-from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
-from empresas.models import Empresa
 Usuario = get_user_model()
 class SuperuserLoginForm(AuthenticationForm):
     username = forms.CharField(label="Usuário")
     password = forms.CharField(label="Senha", widget=forms.PasswordInput)
 class UsuarioCadastroForm(forms.ModelForm):
     gerar_senha_lib = forms.BooleanField(label="Gerar Senha de Liberação", required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}))
-    senha_liberacao = forms.CharField(label="Senha de Liberação", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    senha_liberacao = forms.CharField(label="Senha de Liberação", help_text="Para nova senha, preencha esse campo!", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     is_active = forms.TypedChoiceField(label='Situação', choices=(('True', 'Ativo'), ('False', 'Inativo')), coerce=lambda x: x in ['True', 'true', '1', True], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
-    alterar_senha = forms.BooleanField(label="Mudar senha", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_res_orc = forms.BooleanField(label="Ver Resumo Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_res_orc_tec = forms.BooleanField(label="Ver Resumo Orçamento por Técnico", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
     username = forms.CharField(label="Usuário", widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-lowercase'}))
     permissoes = forms.ModelMultipleChoiceField(queryset=Permission.objects.filter(content_type__app_label__in=['entradas', 'filiais', 'usuarios', 'clientes', 'produtos', 'orcamentos', 'tecnicos', 'tipo_cobranca', 'pedidos',
         'lancpdvs', 'pdvs', 'bairros', 'cidades', 'estados', 'grupos', 'bancos', 'unidades', 'fornecedores', 'marcas', 'tabelas_preco', 'contas_receber' ]), widget=forms.CheckboxSelectMultiple, required=False)
     first_name = forms.CharField(label="Nome do Usuário", widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
     email = forms.CharField(label="E-mail", widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-lowercase'}))
-    password = forms.CharField(label="Senha*", widget=forms.PasswordInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'type': 'password'}), required=False)
+    password = forms.CharField(label="Senha*", help_text="Para nova senha, preencha esse campo!", widget=forms.PasswordInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'type': 'password'}), required=False)
     filial_user = forms.ChoiceField(
         label="Filial Padrão",
         widget=forms.Select(attrs={'class': 'form-control'}),
@@ -28,7 +27,7 @@ class UsuarioCadastroForm(forms.ModelForm):
     )
     class Meta:
         model = Usuario
-        fields = ['is_active', 'filial_user', 'first_name', 'username', 'email', 'password', 'permissoes', 'gerar_senha_lib', 'senha_liberacao']
+        fields = ['is_active', 'filial_user', 'first_name', 'username', 'email', 'password', 'permissoes', 'gerar_senha_lib', 'senha_liberacao', 'ver_res_orc', 'ver_res_orc_tec']
     def __init__(self, *args, **kwargs):
         self.empresa = kwargs.pop('empresa', None)
         super().__init__(*args, **kwargs)
@@ -138,13 +137,17 @@ class UsuarioCadastroForm(forms.ModelForm):
         return filial
     def save(self, commit=True):
         user = super().save(commit=False)
-        alterar = self.cleaned_data.get('alterar_senha')
+        senha_lib = self.cleaned_data.get('senha_liberacao')
         nova_senha = self.cleaned_data.get('password')
-        if alterar and nova_senha:
+        if nova_senha and len(nova_senha.strip()) > 0:
             user.set_password(nova_senha)
-        elif not alterar and user.pk:
-            old_password = Usuario.objects.get(pk=user.pk).password
-            user.password = old_password
+        elif user.pk:
+            user.password = Usuario.objects.get(pk=user.pk).password
+
+        if senha_lib and len(senha_lib.strip()) > 0:
+            user.set_senha_liberacao(senha_lib)
+        elif user.pk:
+            user.senha_liberacao = Usuario.objects.get(pk=user.pk).senha_liberacao
         user.filial_user = self.cleaned_data.get('filial_user')
         user.gerar_senha_lib = self.cleaned_data['gerar_senha_lib']
         user.senha_liberacao = self.cleaned_data['senha_liberacao']

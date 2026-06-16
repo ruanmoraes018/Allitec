@@ -14,7 +14,7 @@ class FormaPgto(models.Model):
     gera_parcelas = models.BooleanField(default=False)
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE, null=True, blank=True)
     # 🔥 Gateway dinâmico
-    gateway = models.CharField(max_length=20,choices=[('nenhum','Nenhum'),('mercadopago','Mercado Pago'),('pagseguro','PagSeguro'),('stripe','Stripe'),('pix_direto','Pix Direto'),],default='nenhum')
+    gateway = models.CharField(max_length=20,choices=[('nenhum','Nenhum'),('mercadopago','Mercado Pago'),('pagseguro','PagSeguro'),('stripe','Stripe'),('pix_direto','Pix Direto'), ('infinitepay', 'InfinitePay'),],default='nenhum')
     # 🔥 Credenciais flexíveis
     credenciais = models.JSONField(null=True, blank=True)
     def save(self, *args, **kwargs):

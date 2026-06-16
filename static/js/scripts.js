@@ -1,5 +1,19 @@
 $(document).ready(function() {
     $('.mb-3').removeClass('mb-3');
+    $('#id_alterar_senha').on('change', function () {
+        $('#id_password').prop('readonly', !this.checked);
+
+        if (this.checked) {
+            $('#id_password').css('background-color', 'white');
+        } else {
+            $('#id_password').css('background-color', '#A9A9A9');
+        }
+    });
+    $('label[for="id_alterar_senha"]').on('click', function () {
+        setTimeout(function () {
+            $('#id_password').prop('readonly', !this.checked).prop('checked');
+        }, 0);
+    });
     let REGRAS = {};
     let DADOS_FILIAL = {};
     $('#id_logo').on('change', function () {
@@ -912,15 +926,24 @@ $(document).ready(function() {
         }, 150);
     });
     // Habilitar campo de portão social
-    $('#id_portao_social').on('change', function () {
-        const p_social = $(this).val();
+    function verificarPortaoSocial() {
+        const p_social = $('#id_portao_social').val();
         if (p_social === 'Não') {
-            $("#id_vl_p_s").val('0');
-            $("#id_vl_p_s").prop("disabled", true);
+            $("#id_vl_p_s").val('0,00');
+            $("#id_vl_p_s").prop("readonly", true);
             atualizarSubtotal();
-        } else if (p_social === "Sim") {$("#id_vl_p_s").prop("disabled", false);}
+        } else if (p_social === 'Sim') {
+            $("#id_vl_p_s").prop("readonly", false);
+        }
+    }
+    verificarPortaoSocial();
+    // Ao alterar o campo
+    $('#id_portao_social').on('change', function () {
+        verificarPortaoSocial();
     });
-    $("#id_vl_p_s").on("blur", function() {atualizarSubtotal();});
+    $("#id_vl_p_s").on("blur", function() {
+        atualizarSubtotal();
+    });
     // Clicar no EDIT
     $(document).on("click", ".edit-status", function () {
         const id = $(this).data("id");
@@ -2476,7 +2499,7 @@ $(document).ready(function() {
             totalFinal += ajuste;
         }
         if (totalFinal < 0) totalFinal = 0;
-        $('#valor-final').text('R$ ' + parseBR(totalFinal));
+        $('#valor-final').text('R$ ' + formatBR(totalFinal));
     }
     $('#modalDesconto').on('shown.bs.modal', function () {
         $('#campo_desconto').val('0,00');
@@ -2498,7 +2521,7 @@ $(document).ready(function() {
     $('#add-produtosP').click(function () {
         setTimeout(() => {
             $('#id_cod_produtoP').focus();
-        }, 100); // 100ms é suficiente
+        }, 500); // 100ms é suficiente
     });
     $('#confirmarDesconto').click(function () {
         let tipo = $('#tipo_desconto').val(); // valor | percentual
@@ -3580,136 +3603,7 @@ $(document).ready(function() {
     let toastAguardando = null;
     let acaoSelecionada = null;
     // Confirmação do envio da solicitação
-    $('#confirmSend').on('click', function() {
-        $('#confirmModal').modal('hide');
-        $('#userSelectModal').modal('show');
-    });
-    // Enviar a solicitação
-    $('#sendNotification').on('click', function() {
-        const usuarioId = $('#userSelect').val();
-        $.post('/orcamentos/enviar-solicitacao/', {
-            acao: acaoSelecionada, modulo: contextoPermissao.modulo, registro_id: contextoPermissao.registro_id, registro_desc: contextoPermissao.registro_desc, usuario_id: usuarioId, csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()
-        }, function(data) {
-            solicitacaoId = data.id;
-            $('#userSelectModal').modal('hide');
-            toastAguardando = Toastify({
-                text: `<i class="fa-solid fa-stopwatch"></i> Aguardando aprovação para sua solicitação!<div class='spinner-grow text-dark' role='status' style='width: 1rem; height: 1rem;'><span class='visually-hidden'Carregando...</span></div>`,
-                duration: 180000, close: false, gravity: "top", position: "center", stopOnFocus: false, escapeMarkup: false, style: {background: "linear-gradient(to right, #6c757d, #adb5bd)", color: "#212529", borderRadius: "8px"}
-            });
-            toastAguardando.showToast();
-            iniciarTimerDeVerificacao(data.expira_em);
-        });
-    });
-    // Verificar status a cada 5 segundos
-    function iniciarTimerDeVerificacao(expiraEm) {
-        const expira = new Date(expiraEm);
-        timer = setInterval(() => {
-            const agora = new Date();
-            if (agora > expira) {
-                clearInterval(timer);
-                $.post('/orcamentos/expirar-solicitacao/', {id: solicitacaoId, csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()});
-                if (toastAguardando) toastAguardando.hideToast();
-                toast(`${ic_padrao} Tempo expirado. A solicitação não foi respondida!`, cor_padrao);
-                carregarNotificacoes();
-                return;
-            }
-            $.get(`/orcamentos/verificar-solicitacao/${solicitacaoId}/`, function(data) {
-                if (data.status === 'Aprovada') {
-                    clearInterval(timer);
-                    if (toastAguardando) toastAguardando.hideToast();
-                    toast(`${ic_verde} Solicitação Concedida ao usuário!`, cor_verde);
-                    if (acaoSelecionada === "atribuir_desconto") {$('#modalDesconto').modal('show');}
-                    else if (acaoSelecionada === "atribuir_acrescimo") {$('#modalAcrescimo').modal('show');}
-                } else if (data.status === 'Negada') {
-                    clearInterval(timer);
-                    if (toastAguardando) toastAguardando.hideToast();
-                    toast(`${ic_vermelho} Solicitação Negada ao usuário!`, cor_vermelho);
-                } else if (data.status === 'Expirada') {
-                    clearInterval(timer);
-                    if (toastAguardando) toastAguardando.hideToast();
-                    toast(`${ic_info} A solicitação expirou!`, cor_padrao);
-                }
-            });
-        }, 5000);
-    }
-    $('#userSelectModal').on('show.bs.modal', function () {
-        $.get('/orcamentos/usuarios-com-permissao/', function (data) {
-            const select = $('#userSelect');
-            select.empty();
-            select.append(`<option value="">------</option>`);
-            if (!data.usuarios || data.usuarios.length === 0) {
-                select.append(`<option value="">Nenhum usuário disponível</option>`);
-                return;
-            }
-            data.usuarios.forEach(u => {select.append(`<option value="${u.id}">${u.nome}</option>`);});
-        });
-    });
-    $('#liberarAgora').on('click', function () {
-        const usuarioId = $('#userSelect').val();
-        const senha = $('#senhaLiberacao').val();
-        const acao = window.acaoPendente; // você já usa isso no sistema
-        if (!usuarioId) {
-            toast(`${ic_amarelo} Usuário deve ser informado!`, cor_amarelo);
-            return;
-        }
-        if (!senha) {
-            toast(`${ic_amarelo} Digite a senha do Usuário Autorizador!`, cor_amarelo);
-            return;
-        }
-        $.ajax({
-            url: '/orcamentos/liberar-com-senha/', type: 'POST', data: {usuario_id: usuarioId, senha: senha, acao: acao, csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()},
-            success: function (resp) {
-                if (resp.status === 'Aprovada') {
-                    $('#userSelectModal').modal('hide');
-                    toast(`${ic_verde} Solicitação Concedida ao usuário!`, cor_verde);
-                    if (acaoSelecionada === "atribuir_desconto") {$('#modalDesconto').modal('show');}
-                    else if (acaoSelecionada === "atribuir_acrescimo") {$('#modalAcrescimo').modal('show');}
-                    if (window.acaoCallback) {window.acaoCallback();}
-                }
-                else {toast(`${ic_vermelho} Senha inserida incorreta!`, cor_vermelho);}
-            }
-        });
-        $('#senhaLiberacao').val('');
-    });
-    // Ao clicar em uma notificação, abre o modal preenchendo descrição e id
-    $(document).on('click', '.abrir-modal-solicitacao', function(e) {
-        e.preventDefault();
-        const verb = $(this).data('verb');
-        const descricao = $(this).data('description') || '';
-        $('#modalSolicitacaoLabel').html(`<i class="fa-solid fa-walkie-talkie me-2"></i> ${verb}`);
-        const match = verb.match(/ID\s+(\d+)/i);
-        const solicitacaoId = match ? match[1] : null;
-        console.log('ID capturado:', solicitacaoId);
-        if (!solicitacaoId) {
-            toast(`${ic_info} ID da solicitação não encontrado!`, cor_info);
-            return;
-        }
-        $('#descricaoSolicitacao').text(descricao);
-        $('#solicitacaoId').val(solicitacaoId);
-        $('#modalSolicitacao').modal('show');
-    });
-    // Quando clicar no botão aprovar
-    $('#aprovarSolicitacao').on('click', function() {
-        const id = $('#solicitacaoId').val();              // pega id da solicitação no modal
-        responderSolicitacao(id, 'aprovar');               // chama função para aprovar
-        carregarNotificacoes();
-    });
-    // Quando clicar no botão negar
-    $('#negarSolicitacao').on('click', function() {
-        const id = $('#solicitacaoId').val();              // pega id da solicitação no modal
-        responderSolicitacao(id, 'negar');                 // chama função para negar
-        carregarNotificacoes();
-    });
-    // Função que envia o POST para a view Django que responde a solicitação
-    function responderSolicitacao(id, acao) {
-        console.log('Enviando resposta:', {id, acao});
-        $.post('/orcamentos/responder-solicitacao/', {id: id, acao: acao, csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()}, function(response) {
-            $('#modalSolicitacao').modal('hide');
-            if (response.status === "Aprovada") {toast(`${ic_verde} Solicitação Concedida ao usuário!`, cor_verde);}
-            else {toast(`${ic_vermelho} Solicitação Negada ao usuário!`, cor_vermelho);}
-        });
-        carregarNotificacoes();
-    }
+
     function verificarOuCriarLocalizacao(estado, cidade, bairro) {return fetch(`/verificar-localizacao/?estado=${estado}&cidade=${cidade}&bairro=${bairro}`).then(response => response.json()).catch(error => console.error('Erro na verificação de localizacao:', error));}
     // Marcar checkboxs de permissões
     $('.check-grupo').on('click', function () {
@@ -3734,63 +3628,49 @@ $(document).ready(function() {
         const url = $btn.data('url');
         const href = $btn.attr('href');
         const modalTarget = $btn.data('bs-target');
-        const acaoSelecionada = $btn.data('acao');
+        acaoSelecionada = $btn.data('acao');
         contextoPermissao = {acao: $btn.data('acao') || '', modulo: $btn.data('modulo') || document.title, registro_id: $btn.data('registro-id') || '', registro_desc: $btn.data('registro-desc') || ''};
         verificarPermissaoAntesDeExecutar(
             permissao,
             function () {
                 if ($('#createForm').length) {
-
                     const isOrcamento = $('.tabela-produtos').length > 0;
                     const isCaixa = $('#listaItens').length > 0;
-
                     // 🔥 ORÇAMENTO
                     if (isOrcamento) {
                         const temProdutos = $('.tabela-produtos tbody tr:not(.vazio)').length > 0;
                         const temAdicionais = $('.tabela-adicionais tbody tr:not(.vazio)').length > 0;
-
                         if (!temProdutos && !temAdicionais) {
                             toast(`${ic_amarelo} Insira ao menos um item antes de continuar!`, cor_amarelo);
-
                             $('.tabela-produtos').addClass('border border-warning');
                             setTimeout(() => {
                                 $('.tabela-produtos').removeClass('border border-warning');
                             }, 1500);
-
                             return;
                         }
                     }
-
                     // 🔥 CAIXA (SEU CASO NOVO)
                     else if (isCaixa) {
-
                         const semItensArray = !itens || itens.length === 0;
                         const semItensDOM = $('#listaItens td[colspan]').length > 0;
-
                         if (semItensArray || semItensDOM) {
                             toast(`${ic_amarelo} Insira ao menos um produto antes de continuar!`, cor_amarelo);
-
                             $('#listaItens').addClass('border border-warning');
                             setTimeout(() => {
                                 $('#listaItens').removeClass('border border-warning');
                             }, 1500);
-
                             return;
                         }
                     }
-
                     // 🔥 FORM PADRÃO
                     else {
                         if ($('#tabela-produtos tbody tr').length === 0 ||
                             $('#tabela-produtos tbody tr.vazio').length) {
-
                             toast(`${ic_amarelo} Insira ao menos um produto antes de continuar!`, cor_amarelo);
-
                             $('#tabela-produtos').addClass('border border-warning');
                             setTimeout(() => {
                                 $('#tabela-produtos').removeClass('border border-warning');
                             }, 1500);
-
                             return;
                         }
                     }
@@ -3831,22 +3711,17 @@ $(document).ready(function() {
                     }
                 } else if ($btn.hasClass('btn-faturar')) {
                     const id = $btn.data('id');
-
                     // 🔥 tenta Pedido primeiro
                     let modalEl = document.getElementById('faturarModalP-' + id);
-
                     // 🔥 fallback para Orçamento
                     if (!modalEl) {
                         modalEl = document.getElementById('faturarModal-' + id);
                     }
-
                     const modalMenuEl = document.getElementById('menuModal' + id);
-
                     if (modalMenuEl) {
                         const menuInstance = bootstrap.Modal.getInstance(modalMenuEl);
                         if (menuInstance) {menuInstance.hide();}
                     }
-
                     if (modalEl) {
                         const modal = new bootstrap.Modal(modalEl, {
                             backdrop: 'static',
@@ -3863,6 +3738,167 @@ $(document).ready(function() {
             }
         );
     });
+    $('#confirmSend').on('click', function() {
+        $('#confirmModal').modal('hide');
+        $('#userSelectModal').modal('show');
+    });
+    // Enviar a solicitação
+    $('#sendNotification').on('click', function() {
+        const usuarioId = $('#userSelect').val();
+        $.post('/orcamentos/enviar-solicitacao/', {
+            acao: acaoSelecionada, modulo: contextoPermissao.modulo, registro_id: contextoPermissao.registro_id, registro_desc: contextoPermissao.registro_desc, usuario_id: usuarioId, csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()
+        }, function(data) {
+            solicitacaoId = data.id;
+            $('#userSelectModal').modal('hide');
+            toastAguardando = Toastify({
+                text: `<i class="fa-solid fa-stopwatch"></i> Aguardando aprovação para sua solicitação!<div class='spinner-grow text-dark' role='status' style='width: 1rem; height: 1rem;'><span class='visually-hidden'Carregando...</span></div>`,
+                duration: 180000, close: false, gravity: "top", position: "center", stopOnFocus: false, escapeMarkup: false, style: {background: "linear-gradient(to right, #6c757d, #adb5bd)", color: "#212529", borderRadius: "8px"}
+            });
+            toastAguardando.showToast();
+            iniciarTimerDeVerificacao(data.expira_em);
+        });
+    });
+    // Verificar status a cada 5 segundos
+    function iniciarTimerDeVerificacao(expiraEm) {
+        const expira = new Date(expiraEm);
+        timer = setInterval(() => {
+            const agora = new Date();
+            if (agora > expira) {
+                clearInterval(timer);
+                $.post('/orcamentos/expirar-solicitacao/', {id: solicitacaoId, csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()});
+                if (toastAguardando) toastAguardando.hideToast();
+                toast(`${ic_padrao} Tempo expirado. A solicitação não foi respondida!`, cor_padrao);
+                carregarNotificacoes();
+                return;
+            }
+            $.get(`/orcamentos/verificar-solicitacao/${solicitacaoId}/`, function(data) {
+                if (data.status === 'Aprovada') {
+                    clearInterval(timer);
+                    if (toastAguardando) toastAguardando.hideToast();
+                    toast(`${ic_verde} Solicitação Concedida ao usuário!`, cor_verde);
+                    if (acaoSelecionada === "atribuir_desconto") {$('#modalDesconto').modal('show');}
+                    else if (acaoSelecionada === "atribuir_acrescimo") {$('#modalAcrescimo').modal('show');}
+                    else if (acaoSelecionada === "atribuir_desconto_ped") {
+                        $('#operacao').val('desconto');
+                        $('#tituloModal').html('<i class="fa-solid fa-circle-minus"></i> Aplicar Desconto');
+                        $('#modalDesconto').modal('show');
+                    }
+                    else if (acaoSelecionada === "atribuir_acrescimo_ped") {
+                        $('#operacao').val('acrescimo');
+                        $('#tituloModal').html('<i class="fa-solid fa-circle-plus"></i> Aplicar Acréscimo');
+                        $('#modalDesconto').modal('show');
+                    }
+                } else if (data.status === 'Negada') {
+                    clearInterval(timer);
+                    if (toastAguardando) toastAguardando.hideToast();
+                    toast(`${ic_vermelho} Solicitação Negada ao usuário!`, cor_vermelho);
+                } else if (data.status === 'Expirada') {
+                    clearInterval(timer);
+                    if (toastAguardando) toastAguardando.hideToast();
+                    toast(`${ic_info} A solicitação expirou!`, cor_padrao);
+                }
+            });
+        }, 5000);
+    }
+    $('#userSelectModal').on('show.bs.modal', function () {
+        $.get('/orcamentos/usuarios-com-permissao/', function (data) {
+            const select = $('#userSelect');
+            select.empty();
+            select.append(`<option value="">------</option>`);
+            if (!data.usuarios || data.usuarios.length === 0) {
+                select.append(`<option value="">Nenhum usuário disponível</option>`);
+                return;
+            }
+            data.usuarios.forEach(u => {select.append(`<option value="${u.codigo_local}">${u.nome}</option>`);});
+        });
+    });
+    $('#liberarAgora').on('click', function () {
+        const usuarioId = $('#userSelect').val();
+        const senha = $('#senhaLiberacao').val();
+        if (!usuarioId) {
+            toast(`${ic_amarelo} Usuário deve ser informado!`, cor_amarelo);
+            return;
+        }
+        if (!senha) {
+            toast(`${ic_amarelo} Digite a senha do Usuário Autorizador!`, cor_amarelo);
+            return;
+        }
+        $.ajax({
+            url: '/orcamentos/liberar-com-senha/', type: 'POST', data: {usuario_id: usuarioId, senha: senha, acao: acaoSelecionada, csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()},
+            success: function (resp) {
+                if (resp.status === 'Aprovada') {
+                    $('#userSelectModal').modal('hide');
+                    toast(`${ic_verde} Solicitação Concedida ao usuário!`, cor_verde);
+                    fecharLoading();
+                    console.log("acaoSelecionada =", acaoSelecionada);
+                    if (acaoSelecionada === "atribuir_desconto") {$('#modalDesconto').modal('show');}
+                    else if (acaoSelecionada === "atribuir_acrescimo") {$('#modalAcrescimo').modal('show');}
+                    else if (acaoSelecionada === "atribuir_desconto_ped") {
+                        $('#operacao').val('desconto');
+                        $('#tituloModal').html('<i class="fa-solid fa-circle-minus"></i> Aplicar Desconto');
+                        $('#modalDesconto').modal('show');
+                    }
+                    else if (acaoSelecionada === "atribuir_acrescimo_ped") {
+                        $('#operacao').val('acrescimo');
+                        $('#tituloModal').html('<i class="fa-solid fa-circle-plus"></i> Aplicar Acréscimo');
+                        $('#modalDesconto').modal('show');
+                    }
+                    if (window.acaoCallback) {window.acaoCallback();}
+                }
+                else {
+                    toast(`${ic_vermelho} Senha inserida incorreta!`, cor_vermelho);
+                    fecharLoading();
+                }
+            }
+        });
+        $('#senhaLiberacao').val('');
+    });
+    $(document).on("keydown", "#senhaLiberacao", function(e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            $("#liberarAgora").click();
+            iniciarLoading();
+        }
+    });
+    // Ao clicar em uma notificação, abre o modal preenchendo descrição e id
+    $(document).on('click', '.abrir-modal-solicitacao', function(e) {
+        e.preventDefault();
+        const verb = $(this).data('verb');
+        const descricao = $(this).data('description') || '';
+        $('#modalSolicitacaoLabel').html(`<i class="fa-solid fa-walkie-talkie me-2"></i> ${verb}`);
+        const match = verb.match(/ID\s+(\d+)/i);
+        const solicitacaoId = match ? match[1] : null;
+        console.log('ID capturado:', solicitacaoId);
+        if (!solicitacaoId) {
+            toast(`${ic_info} ID da solicitação não encontrado!`, cor_info);
+            return;
+        }
+        $('#descricaoSolicitacao').text(descricao);
+        $('#solicitacaoId').val(solicitacaoId);
+        $('#modalSolicitacao').modal('show');
+    });
+    // Quando clicar no botão aprovar
+    $('#aprovarSolicitacao').on('click', function() {
+        const id = $('#solicitacaoId').val();              // pega id da solicitação no modal
+        responderSolicitacao(id, 'aprovar');               // chama função para aprovar
+        carregarNotificacoes();
+    });
+    // Quando clicar no botão negar
+    $('#negarSolicitacao').on('click', function() {
+        const id = $('#solicitacaoId').val();              // pega id da solicitação no modal
+        responderSolicitacao(id, 'negar');                 // chama função para negar
+        carregarNotificacoes();
+    });
+    // Função que envia o POST para a view Django que responde a solicitação
+    function responderSolicitacao(id, acao) {
+        console.log('Enviando resposta:', {id, acao});
+        $.post('/orcamentos/responder-solicitacao/', {id: id, acao: acao, csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()}, function(response) {
+            $('#modalSolicitacao').modal('hide');
+            if (response.status === "Aprovada") {toast(`${ic_verde} Solicitação Concedida ao usuário!`, cor_verde);}
+            else {toast(`${ic_vermelho} Solicitação Negada ao usuário!`, cor_vermelho);}
+        });
+        carregarNotificacoes();
+    }
     $('#tipo_desconto').change(function () {
         let tipo = $(this).val();
 
@@ -4855,16 +4891,37 @@ $(document).ready(function() {
     }
     function gerarPix($modal, pedidoId, formas) {
         iniciarLoading();
+
         $.post(`/pedidos/${pedidoId}/gerar-pagamento/`, {
             csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
             formas: JSON.stringify(formas)
         }, function (resp) {
             fecharLoading();
+            // Se o backend responder sucesso mas a lista vier vazia por causa de algum 'try/except' silencioso
             if (resp.pagamentos && resp.pagamentos.length > 0) {
                 abrirModalPix(resp.pagamentos, pedidoId);
             } else {
-                toast(`${ic_vermelho} Erro ao gerar PIX!`, cor_vermelho);
+                const msgErro = resp.erro || "Verifique as configurações do gateway.";
+                toast(`${ic_vermelho} Erro: ${msgErro}`, cor_vermelho);
             }
+        })
+        // 🔥 O PULO DO GATO: Captura erros de comunicação, timeout ou crash do Django (Status 400, 404, 500)
+        .fail(function (xhr) {
+            fecharLoading();
+            let mensagemOriginal = "Erro de comunicação com o servidor.";
+
+            try {
+                // Tenta pegar a mensagem amigável enviada em JSON pelo Django
+                const respostaJson = JSON.parse(xhr.responseText);
+                if (respostaJson.erro) {
+                    mensagemOriginal = respostaJson.erro;
+                }
+            } catch (e) {
+                // Se o Django capotou e retornou uma tela amarela de erro (HTML), pega o texto do status
+                mensagemOriginal = `Erro interno no servidor (${xhr.status}).`;
+            }
+
+            toast(`${ic_vermelho} ${mensagemOriginal}`, cor_vermelho);
         });
     }
     function abrirModalPix(pagamentos, pedidoId) {
@@ -5420,10 +5477,10 @@ $(document).ready(function() {
         debounceTimeout = setTimeout(() => {calcFtPeso();}, 200);
     }
     $('#id_alt, #id_tp_vao, #id_larg, #id_qtd, #id_rolo, #id_alt_corte, #id_larg_corte').on('blur', atualizarCalculoCompletoDebounced);
-    $(document).on('input', '.money, #editQtdInput, #editQtdAdcInput, #id_qtd_prod, #id_qtd_prod_adc, #id_vl_p_s, #id_vl_compra, #id_vl_prod, #id_vl_prod_adc, #editValorItemInput, #editValorItemAdcInput, .editable, .inpFrete, #id_desconto, #id_acrescimo, #desconto, #acrescimo', function() {
+    $(document).on('input', '.money, #editQtdInput, #editQtdAdcInput, #id_qtd_prod, #id_qtd_prod_adc, #id_vl_compra, #id_vl_prod, #id_vl_prod_adc, .editable, .inpFrete, #id_desconto, #id_acrescimo, #desconto, #acrescimo', function() {
         formatBR(this);
     });
-    $(document).on('blur', '.money, #editQtdInput, #editQtdAdcInput, #id_qtd_prod, #id_qtd_prod_adc, #id_vl_p_s, #id_vl_compra, #id_vl_prod, #id_vl_prod_adc, #editValorItemInput, #editValorItemAdcInput, .editable, .inpFrete, #id_desconto, #id_acrescimo, #desconto, #acrescimo', function() {
+    $(document).on('blur', '.money, #editQtdInput, #editQtdAdcInput, #id_qtd_prod, #id_qtd_prod_adc, #id_vl_compra, #id_vl_prod, #id_vl_prod_adc, .editable, .inpFrete, #id_desconto, #id_acrescimo, #desconto, #acrescimo', function() {
         const num = parseBR($(this).val());
         $(this).val(formatInputBR(num));
     });
@@ -5445,7 +5502,6 @@ $(document).ready(function() {
             subtotal += vl_p_s;
             $('#custoTotal_txt').text('R$ ' + formatBR(custoTotal));
             $('#subtotal_txt').text('R$ ' + formatBR(subtotal));
-            $('#id_subtotal').val(parseBR(subtotal));
             $('#id_vl_form_pgto').val(aplicarMascaraMoney(subtotal));
             const descontoRaw = $('#id_desconto').length ? $('#id_desconto').val() : '0';
             const acrescimoRaw = $('#id_acrescimo').length ? $('#id_acrescimo').val() : '0';
@@ -5455,7 +5511,6 @@ $(document).ready(function() {
             $('#desconto').text('R$ ' + formatBR(desconto));
             $('#acrescimo').text('R$ ' + formatBR(acrescimo));
             $('#total_txt').text('R$ ' + formatBR(total));
-            $('#id_total').val(total);
             const margemLucro = subtotal > 0 ? ((subtotal - custoTotal) / subtotal) * 100 : 0;
             $('#margem_txt').text(formatBR(margemLucro) + '%');
             calcularValorForma();
@@ -5465,7 +5520,7 @@ $(document).ready(function() {
     }
     atualizarSubtotal();
     function calcularValorForma() {
-        const totalValor = parseBR($('#id_total').val() || $('#total_txt').text());
+        const totalValor = parseBR($('#total_txt').text());
         let totalPago = 0;
         $('#itensTableForm tbody tr').each(function() {
             const valor = parseBR($(this).find('td:nth-child(3)').text());
@@ -5476,7 +5531,7 @@ $(document).ready(function() {
         $('#id_vl_form_pgto').val(formatBR(restante));
     }
     function verificarTotalFormas() {
-        const totalValor = parseBR($('#id_total').val() || $('#total_txt').text());
+        const totalValor = parseBR($('#total_txt').text());
         let totalFormas = 0;
         $('#itensTableForm tbody tr').each(function () {totalFormas += parseBR($(this).find('td:nth-child(3)').text());});
         const totalArred = parseBR(totalValor);
@@ -6382,8 +6437,6 @@ $(document).ready(function() {
         $('#desconto').text(zeroBR);
         $('#acrescimo').text(zeroBR);
         $('#margem_txt').text('0.00%');
-        $('#id_subtotal').val('0,00');
-        $('#id_total').val('0,00');
         $('#id_vl_form_pgto').val('0,00');
     }
     $("#btnGerarPortas").on("click", function() {
@@ -6473,6 +6526,7 @@ $(document).ready(function() {
         }
     });
     $('#saveEditBtn').on('click', function () {
+        iniciarLoading();
         const { porta, itemId } = prodManager.currentEditing;
         if (!porta || !itemId) return;
         const cells = [$('#editCódInput').val().trim(), $('#editDescInput').val().trim(), $('#editUnidInput').val().trim(), $('#editValorItemInput').val().trim(), $('#editQtdInput').val().trim()];
@@ -6493,9 +6547,12 @@ $(document).ready(function() {
         setTimeout(async () => {
             await atualizarSubtotal();
             recalcularTotaisPorta(porta);
+            atualizarJSONPortas();
         }, 500);
+        fecharLoading();
     });
     $('#saveEditAdcBtn').on('click', function () {
+        iniciarLoading();
         const { porta, itemId } = prodAdcManager.currentEditing;
         if (!porta || !itemId) return;
         const item = prodAdcManager.data[porta]?.find(i => i.id === itemId);
@@ -6520,7 +6577,8 @@ $(document).ready(function() {
             await atualizarSubtotal();
             recalcularTotaisPorta(porta);
             atualizarJSONPortas();
-        }, 100);
+        }, 500);
+        fecharLoading();
     });
     $('.remQtd').on('click', function () {
         let qtd = parseBR($('#editQtdInput').val()) || 0;
@@ -6863,12 +6921,12 @@ $(document).ready(function() {
                 success: function(response) {
                     if (response.results && response.results.length > 0) {
                         const cliente = response.results[0];
-                        $('#id_cpfCnpj').val(cliente.cpfCnpj);
-                        $('#id_email').val(cliente.email);
-                        $('#id_tel').val(cliente.tel);
-                        $('#id_cep').val(cliente.cep);
-                        $('#id_endereco').val(cliente.endereco);
-                        $('#id_numero').val(cliente.numero);
+                        $('#orc_cpfCnpj').val(cliente.cpfCnpj);
+                        $('#orc_email').val(cliente.email);
+                        $('#orc_tel').val(cliente.tel);
+                        $('#orc_cep').val(cliente.cep);
+                        $('#orc_endereco').val(cliente.endereco);
+                        $('#orc_numero').val(cliente.numero);
                         $('#id_bairro_txt').val(cliente.bairro);
                         $('#id_cidade_txt').val(cliente.cidade);
                         $('#id_uf_txt').val(cliente.uf);
@@ -8275,7 +8333,7 @@ $(document).ready(function() {
         }
         return formatInputBR(num);
     }
-    let selectors = '#valorPgto, .money, #id_quantidadeP, #id_quantidadeEd, #id_vl_form_pgto, #id_multi_m2, #id_multi_lg_corte1, #id_multi_lg_corte2, #id_multi_lg_corte3, .inp-valor-pgto, #id_desc_acres, #id_preco_unitP, [id^=desc_m_cr], [id^=desc_j_cr], [id^=juros_cr], [id^=multa_cr], [id^=vl_pg_cr], .inp-valor, #id_valor, #id_juros, #id_multa, #id_vl_juros, #id_vl_multa, #id_ft_juros, #id_ft_multa, .valor-prod, .valor-prod-adc, .qtd-prod-adc, .qtd-prod, #campo_1, #campo_2, #id_margem, #id_vl_prod, #id_vl_tab, #id_vl_tabEnt, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
+    let selectors = '#id_vl_p_s, #editValorItemInput, #editValorItemAdcInput, #valorPgto, .money, #id_quantidadeP, #id_quantidadeEd, #id_vl_form_pgto, #id_multi_m2, #id_multi_lg_corte1, #id_multi_lg_corte2, #id_multi_lg_corte3, .inp-valor-pgto, #id_desc_acres, #id_preco_unitP, [id^=desc_m_cr], [id^=desc_j_cr], [id^=juros_cr], [id^=multa_cr], [id^=vl_pg_cr], .inp-valor, #id_valor, #id_juros, #id_multa, #id_vl_juros, #id_vl_multa, #id_ft_juros, #id_ft_multa, .valor-prod, .valor-prod-adc, .qtd-prod-adc, .qtd-prod, #campo_1, #campo_2, #id_margem, #id_vl_prod, #id_vl_tab, #id_vl_tabEnt, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
     $(document).on('input', selectors, function() {
         aplicarMascaraMoney(this);
     });
@@ -8550,6 +8608,17 @@ $(document).ready(function() {
                     situacaoColor = "#B22222";
                 }
                 const tabelaItens = montarTabelaItensPedido(response.itens);
+                let motivoCancelamento = '';
+                if (response.situacao === "Cancelado") {
+                    motivoCancelamento = `
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <label class="form-label">Motivo do Cancelamento</label>
+                                <textarea class="form-control" disabled>${response.motivo || ''}</textarea>
+                            </div>
+                        </div>
+                    `;
+                }
                 $('#infoEntBody').html(`
                     <div class="row g-3">
                         <div class="col-md-2">
@@ -8597,6 +8666,7 @@ $(document).ready(function() {
                             <textarea class="form-control" disabled>${response.obs || ''}</textarea>
                         </div>
                     </div>
+                    ${motivoCancelamento}
                 `);
                 fecharLoading();
                 $('#infoEntModal').modal('show');

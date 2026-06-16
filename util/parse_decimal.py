@@ -1,4 +1,3 @@
-
 from decimal import Decimal
 
 def parse_decimal(valor):
@@ -18,7 +17,7 @@ def parse_decimal(valor):
         return Decimal(valor)
     except:
         return Decimal('0.00')
-    
+
 def format_decimal_br(valor):
     if valor is None:
         return '0,00'

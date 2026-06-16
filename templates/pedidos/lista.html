@@ -140,12 +140,12 @@
                                                     <i class="fa-solid fa-clone"></i> Clonar
                                                 </a>
                                                 {% if pedido.situacao == 'Aberto' %}
-                                                <button class="btn btn-light w-100 text-start menu-opcao op-deletar btn-delete border border-secondary btn-permissao" data-orcamento-id="{{ pedido.codigo }}" data-permissao="pedidos.delete_pedido" data-msg-negado="Seu usuário não pode deletar pedidos!">
-                                                    <i class="fas fa-trash"></i> Deletar
-                                                </button>
-                                                <button class="btn btn-light w-100 text-start menu-opcao op-faturar btn-faturar border border-secondary btn-permissao" data-id="{{ pedido.codigo }}" data-permissao="pedidos.faturar_pedido" data-msg-negado="Seu usuário não pode faturar pedidos!">
-                                                    <i class="fa-solid fa-money-bill"></i> Faturar
-                                                </button>
+                                                    <button class="btn btn-light w-100 text-start menu-opcao op-deletar btn-delete border border-secondary btn-permissao" data-orcamento-id="{{ pedido.codigo }}" data-permissao="pedidos.delete_pedido" data-msg-negado="Seu usuário não pode deletar pedidos!">
+                                                        <i class="fas fa-trash"></i> Deletar
+                                                    </button>
+                                                    <button class="btn btn-light w-100 text-start menu-opcao op-faturar btn-faturar border border-secondary btn-permissao" data-id="{{ pedido.codigo }}" data-permissao="pedidos.faturar_pedido" data-msg-negado="Seu usuário não pode faturar pedidos!">
+                                                        <i class="fa-solid fa-money-bill"></i> Faturar
+                                                    </button>
                                                 {% endif %}
                                                 <button class="btn btn-light w-100 text-start menu-opcao op-detalhe-pedido border border-secondary" data-id="{{ pedido.codigo }}" data-bs-toggle="modal" data-bs-target="#infoEntModalP{{ pedido.codigo }}">
                                                     <i class="fa-solid fa-circle-info"></i> Detalhes
@@ -157,6 +157,9 @@
                                                     <ul class="dropdown-menu w-100">
                                                         <li><a href="{% url 'cupom_pedido' pedido.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Cupom</a></li>
                                                         <li><a href="{% url 'imprimir-pedido' pedido.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> A4</a></li>
+                                                        {% if pedido.tabela_preco.tipo == "A prazo" and pedido.titulos_pedidos.exists %}
+                                                            <li><a href="{% url 'imprimir-carne' pedido.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Carnê</a></li>
+                                                        {% endif %}
                                                     </ul>
                                                 </div>
                                                 {% if pedido.situacao == 'Faturado' %}

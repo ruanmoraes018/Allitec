@@ -85,7 +85,7 @@ class Empresa(models.Model):
         # processa logo
         if self.logo and self.logo.name != 'default_logo.png':
             img = Image.open(self.logo)
-            if img.mode in ('RGBA', 'P'): img = img.convert('RGB')
+            # if img.mode in ('RGBA', 'P'): img = img.convert('RGB')
             img.thumbnail((300, 300))
             img_io = BytesIO()
             img.save(img_io, format='PNG', quality=90)

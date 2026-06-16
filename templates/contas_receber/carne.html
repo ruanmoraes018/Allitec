@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            @page{
+                size:A4;
+                margin:0.25cm;
+            }
+            body{
+                font-family: Arial, sans-serif;
+                color:#333;
+                font-size:8px;
+            }
+            .container{
+                width:100%;
+                margin-bottom: 5px;
+            }
+            .bloco{
+                display:flex;
+                width:100%;
+            }
+            .cliente{
+                width:65%;
+                padding:2.5px;
+                border:1.25px solid #444;
+                box-sizing:border-box;
+            }
+            .empresa{
+                width:35%;
+                padding:5px;
+                border-top:1.25px solid #444;
+                border-right:1.25px solid #444;
+                border-bottom:1.25px solid #444;
+                border-left:1.25px dashed #999;
+                box-sizing:border-box;
+            }
+            .logo{
+                text-align:left;
+                margin-bottom:1px;
+
+            }
+            .cabecalho {
+                display: flex;
+                flex-wrap: wrap;
+            }
+            .direita {
+                text-align: right;
+            }
+            .cabecalho {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+            }
+
+            .lado-esquerdo {
+                display: flex;
+                gap: 10px;
+                align-items: flex-start;
+            }
+            .lado-central {
+                display: flex;
+                align-items: center;
+                flex-direction: column;
+                line-height: 0.75;
+            }
+            .lado-direito-emp {
+                display: flex;
+                align-items: end;
+                flex-direction: column;
+            }
+            .subtitulo {
+                color: black;
+                font-size: 8px;
+            }
+
+            .logo-img {
+                max-height: 80px;
+            }
+
+            .lado-direito {
+                text-align: right;
+                font-weight: bold;
+            }
+            .nome_empresa{
+                font-size:16px;
+                font-weight:bold;
+                color:#0d6efd;
+            }
+            .parcela{
+                text-align:center;
+                font-size:8px;
+                font-weight:bold;
+                margin-bottom:1px;
+                color:#666;
+            }
+            table{
+                width:100%;
+                border-collapse:collapse;
+            }
+            td{
+                border:0.5px solid #ddd;
+                padding:1px;
+            }
+            .label{
+                font-size:8px;
+                color:#777;
+            }
+            .valor{
+                text-align:center;
+                margin-top:2px;
+            }
+            .valor_numero{
+                font-size:8px;
+                color:#198754;
+                font-weight:bold;
+            }
+            .qrcode{
+                display: flex;
+                text-align:center;
+                margin-top:2px;
+            }
+            .qrcode img{
+                width:80px;
+                height:80px;
+            }
+            .linha{
+                width:140px;
+                border-top:0.25px solid #000;
+                margin:auto;
+            }
+        </style>
+    </head>
+    <body>
+        {% for conta in contas %}
+            <div class="container">
+                <div class="bloco">
+                    <!-- VIA DO CLIENTE -->
+                    <div class="cliente">
+                        <div class="cabecalho">
+
+                            <!-- ESQUERDA -->
+                            <div class="lado-esquerdo">
+                                {% if lg_emp %}
+                                    <img class="logo-img" src="{{ lg_emp }}">
+                                {% endif %}
+                            </div>
+                            <div class="lado-central">
+                                <div class="nome_empresa">
+                                    {{ empresa.fantasia }}
+                                    <small class="subtitulo">{{ empresa.cnpj }}<br></small>
+                                    <small class="subtitulo">{{ empresa.tel }} - </small>
+                                    <small class="subtitulo">{{ empresa.cidade_fil }}</small>
+                                </div>
+                            </div>
+
+                            <!-- DIREITA -->
+                            <div class="lado-direito">
+                                {% if conta.pedido %}
+                                    Pedido: {{ conta.pedido.codigo }}
+                                {% endif %}<br>
+                                Data de Emissão<br>
+                                {{ conta.data_emissao|date:'d/m/Y' }}
+                            </div>
+                        </div>
+                        <div class="parcela">Parcela {{ forloop.counter }}/{{ contas|length }} <span style="font-style: italic;">(VIA DO CLIENTE)</span></div>
+                        <table>
+                            <tr>
+                                <td>
+                                    <div class="label">Cliente</div>
+                                    {{ conta.cliente.codigo }} - {{ conta.cliente.razao_social }} - {{ conta.cliente }}
+                                </td>
+                                <td>
+                                    <div class="label">Nº Conta</div>
+                                    {{ conta.num_conta }}
+                                </td>
+                                <td>
+                                    <div class="label">Endereço</div>
+                                    {{ conta.cliente.endereco }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="label">Número</div>
+                                    {{ conta.cliente.numero|upper }}
+                                </td>
+                                <td>
+                                    <div class="label">Bairro</div>
+                                    {{ conta.cliente.bairro }}
+                                </td>
+                                <td>
+                                    <div class="label">Cidade</div>
+                                    {{ conta.cliente.cidade }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="label">Vencimento</div>
+                                    {{ conta.data_vencimento|date:'d/m/Y' }}
+                                </td>
+                                <td>
+                                    <div class="label">Juros</div>
+                                    {{ conta.juros }} {% if conta.tp_juros == "Percentual" %}%{% else %}R${% endif %}
+                                </td>
+                                <td>
+                                    <div class="label">Valor Parcela</div>
+                                    R$ {{ conta.valor }}
+                                </td>
+                            </tr>
+                        </table>
+                        <div class="qrcode">
+                            <img src="data:image/png;base64,{{ conta.qr_code }}">
+                            <h5>Pague sua parcela com PIX</h5>
+                        </div>
+                    </div>
+                    <!-- VIA DA EMPRESA -->
+                    <div class="empresa">
+                        <div class="cabecalho">
+                            <!-- ESQUERDA -->
+                            <div class="lado-esquerdo">
+                                {% if lg_emp %}
+                                    <img class="logo-img" src="{{ lg_emp }}">
+                                {% endif %}
+                            </div>
+                            <!-- DIREITA -->
+                            <div class="lado-direito-emp">
+                                <div class="nome_empresa">
+                                    {{ empresa.fantasia }}<br>
+                                    <small class="subtitulo">{{ empresa.cnpj }}<br></small>
+                                    <small class="subtitulo">{{ empresa.tel }}<br></small>
+                                    <small class="subtitulo">{{ empresa.cidade_fil }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="parcela">Parcela {{ forloop.counter }}/{{ contas|length }} <span style="font-style: italic;">(VIA DA EMPRESA)</span></div>
+                            <table>
+                                <tr>
+                                    <td colspan="2">
+                                        <div class="label">Cliente</div>
+                                        {{ conta.cliente.codigo }} - {{ conta.cliente.razao_social }} - {{ conta.cliente }}
+                                    </td>
+                                    <td>
+                                        <div class="label">Nº Conta</div>
+                                        {{ conta.num_conta }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2">
+                                        <div class="label">Endereço</div>
+                                        {{ conta.cliente.endereco }}
+                                    </td>
+                                    <td>
+                                        <div class="label">Nº</div>
+                                        {{ conta.cliente.numero|upper }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="label">Bairro</div>
+                                        {{ conta.cliente.bairro }}
+                                    </td>
+                                    <td>
+                                        <div class="label">Cidade</div>
+                                        {{ conta.cliente.cidade }}
+                                    </td>
+                                    <td>
+                                        <div class="label">Emissão</div>
+                                        {{ conta.data_emissao|date:'d/m/Y' }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="label">Vencimento</div>
+                                        {{ conta.data_vencimento|date:'d/m/Y' }}
+                                    </td>
+                                    <td>
+                                        <div class="label">Juros</div>
+                                        {{ conta.juros }} {% if conta.tp_juros == "Percentual" %}%{% else %}R${% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="label">Valor</div>
+                                        R$ {{ conta.valor }}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </body>
+</html>

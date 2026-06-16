@@ -36,7 +36,7 @@
                             <div class="col-md-2">
                                 {{ form.filial_user|as_crispy_field }}
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 {{ form.first_name|as_crispy_field }}
                             </div>
                             <div class="col-md-1">
@@ -45,21 +45,18 @@
                             <div class="col-md-2">
                                 {{ form.email|as_crispy_field }}
                             </div>
-                            <div class="col-md-1 form-check form-switch">
-                                {{ form.alterar_senha }}
-                                <label class="form-check-label" for="id_alterar_senha">{{ form.alterar_senha.label }}</label>
-                            </div>
-                            <div id="senha-container" class="col-md-2 d-none">
+                            <div class="col-md-2">
                                 {{ form.password|as_crispy_field }}
                             </div>
-                            <div class="col-md-2 mb-3">
+                            <div class="col-md-2">
                                 <label for="id_senha_liberacao" class="form-label d-flex text-start align-items-center">
                                     <div class="form-check form-switch m-0">
                                         <input class="form-check-input" type="checkbox" id="id_gerar_senha_lib" name="gerar_senha_lib" {% if usuario.gerar_senha_lib %}checked{% endif %}>
                                     </div>
-                                    <span>Senha de Liberação</span>
+                                    <span>Senha de Autorização</span> <i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Senha de liberação de ações para usuários sem permissão!"></i></label>
                                 </label>
-                                <input type="password" class="form-control" id="id_senha_liberacao" name="senha_liberacao" value="{{ usuario.senha_liberacao }}">
+                                <input type="password" class="form-control form-control-sm border-dark-subtle" id="id_senha_liberacao" name="senha_liberacao">
+                                <div id="id_senha_liberacao_helptext" class="form-text">Para nova senha, preencha esse campo!</div>
                             </div>
                             <div class="card" style="margin: 0; margin-left: 5px;">
                                 <div class="form-buttons" style="margin-left: 10px; margin-top: 10px; margin-bottom: 10px;">
@@ -156,7 +153,22 @@
                                 </div>
                                 <div class="form-section" id="complementos">
                                     <div class="row g-3" style="margin-left: -8px;">
-                                        Teste
+                                        <div class="col-md-3">
+                                            <div class="form-check form-switch">
+                                                {{ form.ver_res_orc }}
+                                                <label class="form-check-label" for="{{ form.ver_res_orc.id_for_label }}">
+                                                    {{ form.ver_res_orc.label }}
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-check form-switch">
+                                                {{ form.ver_res_orc_tec }}
+                                                <label class="form-check-label" for="{{ form.ver_res_orc_tec.id_for_label }}">
+                                                    {{ form.ver_res_orc_tec.label }}
+                                                </label>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -190,21 +202,4 @@
         </div>
     </div>
 </div>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const checkbox = document.getElementById('id_alterar_senha');
-    const senhaContainer = document.getElementById('senha-container');
-
-    function toggleSenha() {
-        if (checkbox.checked) {
-            senhaContainer.classList.remove('d-none');
-        } else {
-            senhaContainer.classList.add('d-none');
-        }
-    }
-
-    checkbox.addEventListener('change', toggleSenha);
-    toggleSenha();  // para inicializar correto ao carregar a página
-});
-</script>
 {% endblock %}

@@ -1,3 +1,4 @@
+from datetime import datetime
 def finalizar_pedido(pedido, formas=None, parcelas=None, parcial=False, request=None):
     from decimal import Decimal
     from django.utils import timezone
@@ -33,8 +34,35 @@ def finalizar_pedido(pedido, formas=None, parcelas=None, parcial=False, request=
     # 🔥 CONTAS A RECEBER
     if parcelas:
         for p in parcelas:
-            ContaReceber.objects.create(vinc_emp=pedido.vinc_emp, vinc_fil=pedido.vinc_fil, cliente=pedido.cli, pedido=pedido, forma_pgto_id=p.get('forma'), num_conta=p.get('numero'),
-                valor=Decimal(str(p.get('valor'))), data_vencimento=p.get('vencimento'), situacao='Aberta'
+            # converte data_emissao para date, caso seja string
+            if isinstance(pedido.dt_fat, str):
+                try:
+                    data_emissao = datetime.strptime(pedido.dt_fat, "%Y-%m-%d").date()
+                except ValueError:
+                    # fallback: usa hoje
+                    data_emissao = datetime.today().date()
+            else:
+                data_emissao = pedido.dt_fat
+
+            # converte data_vencimento
+            data_vencimento = p.get('vencimento')
+            if isinstance(data_vencimento, str):
+                try:
+                    data_vencimento = datetime.strptime(data_vencimento, "%Y-%m-%d").date()
+                except ValueError:
+                    data_vencimento = None  # ou escolha outra estratégia
+
+            ContaReceber.objects.create(
+                data_emissao=p.get("data_emissao"),
+                vinc_emp=pedido.vinc_emp,
+                vinc_fil=pedido.vinc_fil,
+                cliente=pedido.cli,
+                pedido=pedido,
+                forma_pgto_id=p.get('forma'),
+                num_conta=p.get('numero'),
+                valor=Decimal(str(p.get('valor'))),
+                data_vencimento=data_vencimento,
+                situacao='Aberta',
             )
     # 🔥 STATUS
     pedido.status_pagamento = "parcial" if parcial else "pago"

@@ -18,14 +18,14 @@ class FormaPgtoForm(forms.ModelForm):
     descricao = forms.CharField(label='Descrição', widget=forms.TextInput(attrs={'class': f'{c_f} text-uppercase'}))
     gera_parcelas = forms.ChoiceField(label='Gera Parcelas?', choices=[(False, 'Não'), (True, 'Sim')], widget=forms.Select(attrs={'class': c_s}))
     gateway = forms.ChoiceField(label="Gateway", choices=FormaPgto._meta.get_field('gateway').choices, widget=forms.Select(attrs={'class': c_s}))
-    
+
     # 🔥 NOVO: Campo de Ambiente (Será injetado dentro do JSON de credenciais)
     ambiente = forms.ChoiceField(
-        label="Ambiente", 
-        choices=[('homologacao', 'Homologação'), ('producao', 'Produção')], 
+        label="Ambiente",
+        choices=[('homologacao', 'Homologação'), ('producao', 'Produção')],
         widget=forms.Select(attrs={'class': c_s})
     )
-    
+
     credenciais = forms.CharField(label="Credenciais (JSON)", required=False, widget=forms.Textarea(attrs={'class': c_f, 'rows': 4, 'placeholder': '{"access_token": "..."}'}))
 
     class Meta:
@@ -66,7 +66,7 @@ class FormaPgtoForm(forms.ModelForm):
         # 🔐 VALIDAÇÃO E LIMPEZA PARA O PAGSEGURO (PAGBANK)
         if gateway == "pagseguro":
             obrigatorios_pagseguro = ["token"]
-            
+
             # Remove espaços em branco acidentais que quebram o cabeçalho Authorization
             if "token" in cred and isinstance(cred["token"], str):
                 cred["token"] = cred["token"].strip()
@@ -76,7 +76,16 @@ class FormaPgtoForm(forms.ModelForm):
             faltando = [c for c in obrigatorios_pagseguro if c not in cred or not cred.get(c)]
             if faltando:
                 raise forms.ValidationError(f"Campos obrigatórios faltando para PagSeguro: {', '.join(faltando)}")
+        elif gateway == "infinitepay":
+            obrigatorios_infinitepay = ["handle"]
 
+            # Limpa espaços em branco e garante tratamento sem o cifrão '$'
+            if "handle" in cred and isinstance(cred["handle"], str):
+                cred["handle"] = cred["handle"].replace("$", "").strip()
+
+            faltando = [c for c in obrigatorios_infinitepay if c not in cred or not cred.get(c)]
+            if faltando:
+                raise forms.ValidationError(f"Campos obrigatórios faltando para InfinitePay: {', '.join(faltando)}")
         # 🏛️ VALIDAÇÃO PARA O PIX DIRETO (Seu código original mantido intacto)
         elif gateway == "pix_direto":
             uploaded_file = self.files.get("certificado_file")

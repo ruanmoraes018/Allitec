@@ -1,0 +1,36 @@
+
+===== ANTES SAVE =====
+
+TEL = '.'
+EMAIL = 'cliente@gmail.com'
+CEP = '.'
+ENDERECO = '.'
+NUMERO = '.'
+COMPLEMENTO = ''
+CHAVE PIX = '(91) 98182-7344'
+BENEFICIARIO = '.'
+
+
+===== DEPOIS SAVE =====
+
+TEL = '.'
+EMAIL = 'cliente@gmail.com'
+CEP = '.'
+ENDERECO = '.'
+NUMERO = '.'
+COMPLEMENTO = ''
+CHAVE PIX = '(91) 98182-7344'
+BENEFICIARIO = '.'
+
+
+===== DEPOIS REFRESH =====
+
+TEL = '.'
+EMAIL = 'cliente@gmail.com'
+CEP = '.'
+ENDERECO = '.'
+NUMERO = '.'
+COMPLEMENTO = ''
+CHAVE PIX = '(91) 98182-7344'
+BENEFICIARIO = '.'
+

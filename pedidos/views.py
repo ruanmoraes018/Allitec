@@ -121,7 +121,7 @@ def detalhes_pedido_ajax(request, codigo):
         data = {
             "id":pedido.codigo,"cliente":pedido.nome_cli,"filial":pedido.fantasia_fil,"vendedor":str(pedido.nome_vend),"situacao":pedido.situacao,"status_pagamento":pedido.status_pagamento,
             "data_emissao": localtime(pedido.dt_emi).strftime("%d/%m/%Y - %H:%M") if pedido.dt_emi else "", "data_faturamento": localtime(pedido.dt_fat).strftime("%d/%m/%Y - %H:%M") if pedido.dt_fat else "",
-            "total": str(pedido.total), "obs": pedido.obs, "itens": itens, "formas_pagamento": formas_pgto, "pagamentos": pagamentos,
+            "total": str(pedido.total), "obs": pedido.obs, "itens": itens, "formas_pagamento": formas_pgto, "pagamentos": pagamentos, "motivo": pedido.motivo
         }
         return JsonResponse(data)
     except Pedido.DoesNotExist: return JsonResponse({'error': 'Pedido não encontrado'}, status=404)
@@ -154,7 +154,13 @@ def add_pedido(request):
             # Cria o objeto pedido sem salvar ainda no banco
             pedido = form.save(commit=False)
             pedido.vinc_emp = empresa
-            pedido.dt_emi = datetime.now()
+            dt_emissao = request.POST.get('dt_emi')
+            # converte a string em um objeto date
+            data = datetime.strptime(dt_emissao, '%d/%m/%Y').date()
+            # pega a hora atual
+            agora = timezone.localtime()
+            # junta a data do formulário com a hora atual
+            pedido.dt_emi = datetime.combine(data, agora.time())
             pedido.save()  # Salva a pedido no banco
             # Dicionário para organizar os produtos enviados no POST
             produtos_dict = {}
@@ -220,11 +226,17 @@ def att_pedido(request, codigo):
         messages.warning(request, 'Pedidos só podem ser editados com Situação em Aberto!')
         return redirect(f'/pedidos/lista/?s={pedido.codigo}')
     if request.method == "POST":
-        dt_emi_original = pedido.dt_emi
         form = PedidoForm(data=request.POST, instance=pedido, empresa=request.user.empresa, user=request.user)
         if form.is_valid():
             pedido = form.save(commit=False)
-            pedido.dt_emi = dt_emi_original
+            dt_emissao = request.POST.get('dt_emi')
+            # converte a string em um objeto date
+            data = datetime.strptime(dt_emissao, '%d/%m/%Y').date()
+            if pedido.dt_emi != data:
+                # pega a hora atual
+                agora = timezone.localtime()
+                # junta a data do formulário com a hora atual
+                pedido.dt_emi = datetime.combine(data, agora.time())
             pedido.save()
             next_url = request.POST.get('next') or request.GET.get('next')
             # 🔥 ORGANIZA PRODUTOS
@@ -298,7 +310,13 @@ def clonar_pedido(request, codigo):
             pedido.vinc_emp = empresa
             pedido.situacao = "Aberto"
             pedido.status_pagamento = "pendente"
-            pedido.dt_emi = datetime.now()
+            data = pedido.dt_emi.date()
+            # Hora atual
+            agora = timezone.localtime()
+            # Data do formulário + hora atual
+            pedido.dt_emi = timezone.make_aware(
+                datetime.combine(data, agora.time())
+            )
             pedido.save()
             produtos_dict = {}
             for key, value in request.POST.items():
@@ -389,7 +407,7 @@ def faturar_pedido(request, codigo):
             valor_str = str(item.get('valor', '0')).replace('.', '').replace(',', '.')
             valor_parcela = Decimal(valor_str).quantize(Decimal('0.01'))
             vencimento = datetime.strptime(item.get('vencimento'), '%d/%m/%Y').date()
-            parcelas.append({"forma": formas_normais[0]['forma'] if formas_normais else None, "numero": f"{pedido.codigo}/{idx}", "valor": valor_parcela, "vencimento": vencimento})
+            parcelas.append({"forma": formas_normais[0]['forma'] if formas_normais else None, "numero": f"{pedido.codigo}/{idx}", "valor": valor_parcela, "vencimento": vencimento, "data_emissao": pedido.dt_fat or timezone.now().date()})
     # 🔥 FATURA PARTE NORMAL
     if formas_normais:
         resultado = finalizar_pedido(pedido, formas=formas_normais, parcelas=parcelas if tem_forma_com_parcela else None, parcial=bool(formas_gateway), request=request)
@@ -423,24 +441,93 @@ def cancelar_pedido(request, codigo):
         produto = item.produto
         produto.estoque_prod = (produto.estoque_prod or 0) + (item.quantidade or 0)
         produto.save(update_fields=["estoque_prod"])
-    PedidoFormaPgto.objects.filter(pedido=pedido).delete()
     pedido.situacao = "Cancelado"
-    pedido.dt_fat = datetime.now()  # opcional (log de cancelamento)
+    pedido.dt_canc = datetime.now()  # opcional (log de cancelamento)
+    pedido.motivo = motivo
     pedido.save(update_fields=["situacao", "dt_fat"])
     messages.success(request, f'Pedido {pedido.codigo} cancelado com sucesso!')
     return redirect(f'/pedidos/lista/?s={pedido.codigo}')
 
+# @login_required
+# @require_POST
+# def gerar_pagamento_pedido(request, pedido_id):
+#     import requests
+#     import json
+
+#     pedido = get_object_or_404(Pedido, codigo=pedido_id, vinc_emp=request.user.empresa)
+
+#     # 1. Monta o payload exatamente com os seus dados reais
+#     url = "https://api.checkout.infinitepay.io/links"
+#     headers = {
+#         "Content-Type": "application/json",
+#         "accept": "application/json"
+#     }
+
+#     # Ruan, usei aqui a sua URL exata de webhook que você passou: /pagamentos/webhook/
+#     payload = {
+#         "handle": "ruan-moraes-9r1",
+#         "webhook_url": "https://allitec.pythonanywhere.com/pagamentos/webhook/",
+#         "items": [
+#             {
+#                 "quantity": 1,
+#                 "price": int(float(pedido.total) * 100),
+#                 "description": f"Pedido {pedido.codigo}"
+#             }
+#         ]
+#     }
+
+#     # 2. Tenta disparar a requisição e captura QUALQUER retorno ou erro
+#     try:
+#         response = requests.post(url, json=payload, headers=headers, timeout=10)
+
+#         # Devolve o Payload enviado e a resposta da InfinitePay na tela para inspeção
+#         return JsonResponse({
+#             "erro": f"DEBUG ATIVO - Status da API: {response.status_code}",
+#             "payload_enviado": payload,
+#             "resposta_api_text": response.text
+#         }, status=400) # Força cair no .fail() do JS para exibir o texto
+
+#     except Exception as e:
+#         # Se o PythonAnywhere Free bloquear a requisição, vai cair aqui e mostrar o motivo
+#         return JsonResponse({
+#             "erro": f"Falha de Conexão (Possível bloqueio de conta Free): {str(e)}",
+#             "payload_enviado": payload
+#         }, status=400)
 @login_required
 @require_POST
 def gerar_pagamento_pedido(request, pedido_id):
     pedido = get_object_or_404(Pedido, codigo=pedido_id, vinc_emp=request.user.empresa)
-    if pedido.situacao != "Aberto": return JsonResponse({"erro": "Pedido não pode gerar pagamento"})
-    if pedido.pagamentos.filter(status="pendente").exists(): return JsonResponse({"erro": "Já existe pagamento pendente"})
+
+    # 🕵️‍♂️ Validação 1: Situação
+    if pedido.situacao != "Aberto":
+        return JsonResponse({"erro": f"Bloqueado: A situação deste pedido é '{pedido.situacao}' e não 'Aberto'."})
+
+    # 🕵️‍♂️ Validação 2: Pagamento Pendente Duplicado
+    if pedido.pagamentos.filter(status="pendente").exists():
+        return JsonResponse({"erro": "Bloqueado: Já existe um pagamento PENDENTE para este pedido no banco. Delete-o para testar novamente."})
+
     formas = json.loads(request.POST.get("formas", "[]"))
+
+    # 🕵️‍♂️ Validação 3: Formas vazias vindas do Front-end
+    if not formas:
+        return JsonResponse({"erro": "Bloqueado: O seu Front-end enviou uma lista de formas de pagamento vazia. O loop não pôde iniciar."})
+
+    # Se passar por tudo, limpa as formas antigas e continua o fluxo normal
     PedidoFormaPgto.objects.filter(pedido=pedido).delete()
+
     for f in formas:
-        PedidoFormaPgto.objects.create(pedido=pedido, forma_pgto__codigo=f["forma"], valor=f["valor"])
+        PedidoFormaPgto.objects.create(
+            pedido=pedido,
+            forma_pgto_id=f["forma"],
+            valor=f["valor"]
+        )
+
     pagamentos = gerar_pagamentos_pedido(pedido)
+
+    # Se o loop rodar mas a API da InfinitePay falhar internamente e o fluxo devolver vazio:
+    if not pagamentos:
+        return JsonResponse({"erro": "O fluxo rodou, mas a função gerar_pagamentos_pedido retornou vazia."})
+
     data = []
     for p in pagamentos:
         data.append({"txid": p["txid"], "qr_code": p["qr_code"], "qr_base64": p.get("qr_base64"), "valor": str(p["valor"])})
@@ -456,7 +543,7 @@ def status_pagamento_pedido(request, pedido_id):
     # 🔥 PIX pago → fatura automaticamente
     if (novo_status == "pago" and pedido.situacao == "Aberto"):
         pedido.processar_pagamento(None)
-        pedido.situacao == "Faturado"
+        pedido.situacao = "Faturado"
         pedido.refresh_from_db()
     return JsonResponse({"status": pedido.status_pagamento, "situacao": pedido.situacao})
 
