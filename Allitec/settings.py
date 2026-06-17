@@ -3,7 +3,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-q+la1=z6y43yf-+j=c+3cf2scm_6lw6l)lz0y8lwb^5zv3i35z'
 DEBUG = True
-ALLOWED_HOSTS = ['*', 'allitec.pythonanywhere.com', '127.0.0.1']
+ALLOWED_HOSTS = ['*', ".onrender.com", 'allitec.pythonanywhere.com', '127.0.0.1']
 CSRF_TRUSTED_ORIGINS = ['https://allitec.pythonanywhere.com']
 INSTALLED_APPS = [
     'django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions',
@@ -16,7 +16,7 @@ INSTALLED_APPS = [
     'notifications', 'mensalidades', 'contratos', 'crispy_forms', 'crispy_bootstrap5',
 ]
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware', 'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.security.SecurityMiddleware', 'whitenoise.middleware.WhiteNoiseMiddleware', 'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware', 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware', 'core.middleware.bloqueio.BloqueioInadimplenciaMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware', 'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -84,6 +84,9 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'static'
 ]
+STATICFILES_STORAGE = (
+    'whitenoise.storage.CompressedManifestStaticFilesStorage'
+)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 STATIC_ROOT = BASE_DIR / 'staticfiles'
