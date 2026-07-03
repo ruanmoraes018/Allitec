@@ -133,9 +133,11 @@
                                                                                             <span class="badge-permissao fs-6">Acessar Relatórios de Pedidos</span>
                                                                                         {% elif 'relatorio_vendas_produto' in code %}
                                                                                             <span class="badge-permissao fs-6">Acessar Relatórios de Vendas de Produtos</span>
+                                                                                        {% elif 'caixa_outro_user' in code %}
+                                                                                            <span class="badge-permissao fs-6">Acessar Caixa de Outro Usuário</span>
                                                                                         {% else %}
                                                                                             {{ perm.name }}
-                                                                                        {% endif %}
+                                                                                        {% endif %}caixa_outro_user
                                                                                     {% endwith %}
                                                                                 </label>
                                                                             </div>

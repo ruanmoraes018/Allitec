@@ -17,6 +17,7 @@ urlpatterns = [
     path('', include ('filiais.urls')),
     path('contas_receber/', include ('contas_receber.urls')),
     path('relatorios/', include ('relatorios.urls')),
+    path('propostas/', include ('propostas.urls')),
     path('pedidos/', include ('pedidos.urls')),
     path('marcas/', include ('marcas.urls')),
     path('formas_pgto/', include ('formas_pgto.urls')),

@@ -12,6 +12,7 @@ import unicodedata
 from django.http import JsonResponse
 from pedidos.models import Pagamento, Pedido, PedidoFormaPgto, PedidoProduto
 from produtos.models import Produto
+from util.parse_decimal import parse_decimal
 from util.permissoes import verifica_permissao
 from django.db.models import Q
 from filiais.models import Filial, Usuario
@@ -63,7 +64,9 @@ def lista_lancamentos(request):
     paginator = Paginator(caixas, num_pagina)
     page = request.GET.get('page')
     caixas = paginator.get_page(page)
-    return render(request, 'lancpdvs/lista.html', {'caixas': caixas, 'filiais': filiais, 'usuarios': usuarios, 'user1': user1, 'sit': sit, 's': s, 'tp': tp, 'reg': reg,})
+    cx_ab_pg = sum(1 for p in caixas.object_list if p.situacao == 'Aberto')
+    cx_fec_pg = sum(1 for p in caixas.object_list if p.situacao == 'Fechado')
+    return render(request, 'lancpdvs/lista.html', {'caixas': caixas, 'filiais': filiais, 'usuarios': usuarios, 'user1': user1, 'sit': sit, 's': s, 'tp': tp, 'reg': reg, 'cx_ab': cx_ab_pg, 'cx_fec': cx_fec_pg,})
 
 @login_required
 def lista_lancamentos_ajax(request):
@@ -163,6 +166,9 @@ def del_lancamento(request, codigo):
 def tela_caixa(request, caixa_id):
     empresa = request.user.empresa
     caixa = get_object_or_404(Caixa, codigo=caixa_id, vinc_emp=empresa, situacao='Aberto')
+    if (not request.user.has_perm('lancpdvs.caixa_outro_user') and caixa.usuario != request.user):
+        messages.error(request, 'Seu usuário não pode realizar lançamentos em caixas de outros usuários!')
+        return redirect('lista-lancamentos')
     formas = FormaPgto.objects.filter(vinc_emp=empresa, situacao='Ativo')
     logo_base64 = None
     logo_path = os.path.join(settings.MEDIA_ROOT, str(caixa.vinc_fil.logo))
@@ -180,6 +186,94 @@ def tela_caixa(request, caixa_id):
     return render(request, 'lancpdvs/caixa.html', {'caixa': caixa, 'formas_pgto': formas, 'vendedores': vendedores, 'logo_base64': logo_base64})
 
 @login_required
+def realizar_entrada_caixa(request, caixa_id):
+    if request.method != "POST":
+        return JsonResponse({"sucesso": False}, status=400)
+
+    try:
+        caixa = Caixa.objects.get(
+            codigo=caixa_id,
+            vinc_emp=request.user.empresa,
+            situacao='Aberto'
+        )
+
+        forma = FormaPgto.objects.get(
+            codigo=request.POST.get('forma_pagamento_entrada')
+        )
+
+        movimento = CaixaMovimento.objects.create(
+            caixa=caixa,
+            tipo='Entrada',
+            categoria='Suprimento',
+            forma_pagamento=forma,
+            valor=parse_decimal(request.POST.get('valor')),
+            descricao=request.POST.get('descricao'),
+            usuario=request.user
+        )
+
+        return JsonResponse({
+            "sucesso": True,
+            "id": movimento.id,
+            "tipo": movimento.tipo,
+            "categoria": movimento.categoria,
+            "forma": forma.descricao,
+            "valor": float(movimento.valor),
+            "descricao": movimento.descricao,
+            "usuario": request.user.first_name,
+            "data": timezone.localtime(movimento.data_hora).strftime("%d/%m/%Y %H:%M:%S")
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            "sucesso": False,
+            "erro": str(e)
+        }, status=500)
+    
+@login_required
+def realizar_saida_caixa(request, caixa_id):
+    if request.method != "POST":
+        return JsonResponse({"sucesso": False}, status=400)
+
+    try:
+        caixa = Caixa.objects.get(
+            codigo=caixa_id,
+            vinc_emp=request.user.empresa,
+            situacao='Aberto'
+        )
+
+        forma = FormaPgto.objects.get(
+            codigo=request.POST.get('forma_pagamento_saida')
+        )
+
+        movimento = CaixaMovimento.objects.create(
+            caixa=caixa,
+            tipo='Saída',
+            categoria='Sangria',
+            forma_pagamento=forma,
+            valor=parse_decimal(request.POST.get('valor')),
+            descricao=request.POST.get('descricao'),
+            usuario=request.user
+        )
+
+        return JsonResponse({
+            "sucesso": True,
+            "id": movimento.id,
+            "tipo": movimento.tipo,
+            "categoria": movimento.categoria,
+            "forma": forma.descricao,
+            "valor": float(movimento.valor),
+            "descricao": movimento.descricao,
+            "usuario": request.user.first_name,
+            "data": timezone.localtime(movimento.data_hora).strftime("%d/%m/%Y %H:%M:%S")
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            "sucesso": False,
+            "erro": str(e)
+        }, status=500)
+    
+@login_required
 def movimentos_caixa(request, caixa_id):
     try:
         caixa = Caixa.objects.get(codigo=caixa_id, vinc_emp=request.user.empresa)
@@ -196,11 +290,11 @@ def movimentos_caixa(request, caixa_id):
         vendas_qs = movs.filter(categoria='Venda').order_by('pedido_id')
         vendas_dict = {}
         for m in vendas_qs:
-            pedido_id = m.pedido__codigo
+            pedido_id = m.pedido.codigo
             if pedido_id not in vendas_dict:
                 vendas_dict[pedido_id] = {
-                    "pedido_id": pedido_id, "cliente": f"{m.pedido.cli__codigo or '-'} - {getattr(m.pedido.cli, 'fantasia', '-')}",
-                    "vendedor": f"{m.pedido.vendedor__codigo or '-'} - {getattr(m.pedido.vendedor, 'fantasia', '-')}", "data": m.pedido.dt_emi, "formas": [], "total": 0
+                    "pedido_id": pedido_id, "cliente": f"{getattr(m.pedido.cli, 'codigo', '-') or '-'} - {getattr(m.pedido.cli, 'fantasia', '-')}",
+                    "vendedor": f"{getattr(m.pedido.vendedor, 'codigo', '-') or '-'} - {getattr(m.pedido.vendedor, 'fantasia', '-')}", "data": m.pedido.dt_emi, "formas": [], "total": 0
                 }
             vendas_dict[pedido_id]["formas"].append({"forma": m.forma_pagamento.descricao if m.forma_pagamento else "-", "valor": float(m.valor)})
             vendas_dict[pedido_id]["total"] += float(m.valor)
@@ -215,19 +309,19 @@ def movimentos_caixa(request, caixa_id):
         resumo_vendas = list(resumo_temp.values())
         total_vendas = float(vendas_qs.aggregate(total=Sum('valor'))['total'] or 0)
         # 🔹 ENTRADAS
-        entradas_qs = movs.filter(tipo='Entrada').exclude(categoria='Venda')
+        entradas_qs = movs.filter(tipo='Entrada').exclude(categoria='Venda').order_by('forma_pagamento__codigo')
         entradas = [{"descricao": m.descricao or "-", "forma": m.forma_pagamento.descricao if m.forma_pagamento else "-", "valor": float(m.valor)} for m in entradas_qs]
         resumo_entradas = entradas_qs.values('forma_pagamento__descricao').annotate(total=Sum('valor'))
         resumo_entradas = [{"forma": r['forma_pagamento__descricao'], "total": float(r['total'])} for r in resumo_entradas]
         total_entradas = float(entradas_qs.aggregate(total=Sum('valor'))['total'] or 0)
         # 🔹 SAÍDAS
-        saidas_qs = movs.filter(tipo='Saída')
-        saidas = [{"descricao": m.descricao or "-", "forma": m.forma_pagamento.descricao if m.forma_pagamento else "-", "valor": float(m.valor)} for m in saidas_qs]
+        saidas_qs = movs.filter(tipo='Saída').exclude(categoria='Venda').order_by('forma_pagamento__codigo')
+        saidas = [{"descricao": s.descricao or "-", "forma": s.forma_pagamento.descricao if s.forma_pagamento else "-", "valor": float(s.valor)} for s in saidas_qs]
         resumo_saidas = saidas_qs.values('forma_pagamento__descricao').annotate(total=Sum('valor'))
-        resumo_saidas = [{"forma": r['forma_pagamento__descricao'], "total": float(r['total'])} for r in resumo_saidas]
+        resumo_saidas = [{"forma": res['forma_pagamento__descricao'], "total": float(res['total'])} for res in resumo_saidas]
         total_saidas = float(saidas_qs.aggregate(total=Sum('valor'))['total'] or 0)
         # 🔹 TOTAL GERAL
-        total_geral = movs.values('forma_pagamento__descricao').annotate(total=Sum('valor'))
+        total_geral = movs.values('forma_pagamento__descricao').annotate(total=Sum('valor')).order_by('forma_pagamento__codigo')
         total_geral = [{"forma": t['forma_pagamento__descricao'], "total": float(t['total'])} for t in total_geral]
         valor_total_geral = float(movs.aggregate(total=Sum('valor'))['total'] or 0)
         return JsonResponse({

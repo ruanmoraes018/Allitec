@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Lista - Propostas{% endblock %}
+{% block content %}
+    <div class="container-fluid py-3 min-vh-100">
+        <nav class="mt-5" aria-label="breadcrumb">
+            <ol class="breadcrumb p-2 m-2">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'inicio' %}" class="text-decoration-none text-secondary" id="item-naveg"><i class="fas fa-home me-1"></i> Principal</a>
+                </li>
+                <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">Listagem de Propostas</li>
+            </ol>
+        </nav>
+        {% if messages %}
+            <div id="django-messages" data-messages='[
+                {% for message in messages %}
+                    {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
+                    {% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ]'></div>
+        {% endif %}
+        <div class="card border-0 shadow-sm rounded-3 mb-2">
+            <div class="card-body p-0 mb-2">
+                <form method="GET" id="search-form">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-xl-1 col-md-4">
+                            <label for="tp" class="form-label small text-secondary fw-semibold">Filtro por</label>
+                            <select name="tp" id="tp" class="form-select">
+                                <option value="desc" {% if request.GET.tp == 'desc' %}selected{% endif %}>Descrição</option>
+                                <option value="cod" {% if request.GET.tp == 'cod' %}selected{% endif %}>Código</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-3 col-md-8">
+                            <label for="s" class="form-label small text-secondary fw-semibold">Termo de Busca</label>
+                            <input class="form-control" type="text" name="s" id="s" placeholder="Digite para buscar..." value="{{ request.GET.s }}">
+                        </div>
+                        <div class="col-xl-2 col-md-4">
+                            <label for="situacao" class="form-label small text-secondary fw-semibold">Situação</label>
+                            <select class="form-select" name="sit" id="situacao">
+                                <option value="Todas" {% if request.GET.sit == 'Todas' %}selected{% endif %}>Todas</option>
+                                <option value="Aberta" {% if request.GET.sit == 'Aberta' %}selected{% endif %}>Abertas</option>
+                                <option value="Confirmada" {% if request.GET.sit == 'Confirmada' %}selected{% endif %}>Confirmadas</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-4">
+                            <label for="usar-data" class="form-label small text-secondary fw-semibold">Filtrar Data</label>
+                            <select class="form-select" id="usar-data" name="p_dt">
+                                <option value="Nao" {% if request.GET.p_dt == 'Nao' %}selected{% endif %}>Não</option>
+                                <option value="Sim" {% if request.GET.p_dt == 'Sim' %}selected{% endif %}>Sim</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-3 col-md-8">
+                            <label class="form-label small text-secondary fw-semibold">Período</label>
+                            <div class="input-group">
+                                <input class="form-control" type="text" name="dt_ini" id="data_inicio1" placeholder="De" value="{{ request.GET.dt_ini }}">
+                                <span class="input-group-text bg-white text-secondary"><i class="fas fa-calendar-alt"></i></span>
+                                <input class="form-control" type="text" name="dt_fim" id="data_fim1" placeholder="Até" value="{{ request.GET.dt_fim }}">
+                            </div>
+                        </div>
+                        <div class="col-xl-1 col-md-4">
+                            <label class="form-label small text-secondary fw-semibold">Exibir</label>
+                            <select class="form-select" id="qtd_reg" name="reg">
+                                <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
+                                <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
+                                <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
+                                <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
+                                <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
+                                <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-auto col-md-12 d-grid">
+                            <button class="btn btn-dark px-4" title="Consultar" type="submit" id="data-btn">
+                                <i class="fa-solid fa-magnifying-glass"></i> Filtrar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+            <div class="list-group">
+                <!-- Cabeçalho -->
+                <div class="list-group-item bg-light fw-bold">
+                    <div class="row align-items-center">
+                        <div class="col-md-1 text-center border-end">Ações</div>
+                        <div class="col-md-1 text-center border-end">Código</div>
+                        <div class="col-md-1 text-center border-end">Situação</div>
+                        <div class="col-md-2 border-end">Empresa</div>
+                        <div class="col-md-2 border-end">Valor Implantação</div>
+                        <div class="col-md-2 border-end">Valor Assessoria</div>
+                        <div class="col-md-1 border-end">Dt. Emissão</div>
+                        <div class="col-md-2">Dt. Confirmação</div>
+                    </div>
+                </div>
+                <!-- Registros -->
+                {% for p in propostas %}
+                    <div class="list-group-item py-1">
+                        <div class="row align-items-center">
+                            <!-- Ações -->
+                            <div class="col-md-1 text-center mb-2 mb-md-0">
+                                <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#menuModal{{ p.id }}" title="Opções">
+                                    <i class="fa-solid fa-bars"></i>
+                                </button>
+                            </div>
+                            <!-- Código -->
+                            <div class="col-md-1 text-center fw-bold text-secondary">#{{ p.id }}</div>
+                            <!-- Situação -->
+                            <div class="col-md-1 text-center">
+                                {% if p.situacao == 'Aberta' %}
+                                    <span class="badge bg-primary"><i class="fa-regular fa-clock"></i> {{ p.situacao }}</span>
+                                {% else %}
+                                    <span class="badge bg-success"><i class="fa-regular fa-circle-check"></i> {{ p.situacao }}</span>
+                                {% endif %}
+                            </div>
+                            <!-- Empresa -->
+                            <div class="col-md-2 fw-semibold">{{ p.nome_emp }}</div>
+                            <!-- Implantação -->
+                            <div class="col-md-2 text-success fw-bold">R$ {{ p.vl_fin_imp }}</div>
+                            <!-- Assessoria -->
+                            <div class="col-md-2 text-success fw-bold">R$ {{ p.vl_fin_ass }}</div>
+                            <!-- Dt. Emissão -->
+                            <div class="col-md-1">
+                                {{ p.dt_emi|date:"d/m/Y" }}
+                            </div>
+                            <!-- Dt. Confirmação -->
+                            <div class="col-md-2 text-center">
+                                {% if p.situacao == 'Confirmada' %}
+                                    {{ p.dt_confirmacao }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Modal de opções da proposta -->
+                    <div class="modal fade modal-sm" id="menuModal{{ p.id }}" data-orcamento-id="{{ p.id }}" tabindex="-1" aria-labelledby="menuModalLabel{{ p.id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title fw-bold mx-auto" id="menuModalLabel{{ p.id }}">Opções - {{ p.id }}</h5>
+                                </div>
+                                <div class="modal-body p-2">
+                                    {% if p.situacao == 'Aberta' %}
+                                        <a href="{% url 'att-proposta' p.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-light w-100 text-start menu-opcao op-editar border border-secondary" >
+                                            <i class="fas fa-edit"></i> Editar
+                                        </a>
+                                        <button class="btn btn-light w-100 text-start menu-opcao op-deletar btn-delete border border-secondary" data-orcamento-id="{{ p.id }}" data-bs-toggle="modal" data-bs-target="#modal-{{ p.id }}">
+                                            <i class="fas fa-trash"></i> Deletar
+                                        </button>
+                                        <button class="btn btn-light w-100 text-start menu-opcao op-faturar border border-secondary" data-orcamento-id="{{ p.id }}" data-bs-toggle="modal" data-bs-target="#mdConfProp{{ p.id }}">
+                                            <i class="fa-solid fa-user-check"></i> Confirmar
+                                        </button>
+                                    {% endif %}
+                                    <a href="{% url 'gerar_proposta' p.id %}" target="_blank" class="btn btn-light w-100 text-start menu-opcao op-imprimir border border-secondary">
+                                        <i class="fa-solid fa-file-pdf"></i> Imprimir
+                                    </a>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary btn-sm mx-auto" data-bs-dismiss="modal">Fechar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="mdConfProp{{ p.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title"><i class="fa-regular fa-circle-question"></i> Confirmação!</h5>
+                                </div>
+                                <div class="modal-body">
+                                    <p class="text-dark">Este processo não pode ser revertido! Apenas confirme se a Empresa fechar parceria.</p>
+                                    <p class="text-dark text-center">Você confirma a APROVAÇÃO DA PROPOSTA - {{ p.id }}?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post" action="{% url 'confirmar-proposta' p.id %}" class="form-excluir">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success btn-confirmar" disabled>
+                                            Sim <span class="contador">3</span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Não</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="modal-{{ p.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title"><i class="fa-regular fa-circle-question"></i> Confirmação!</h5>
+                                </div>
+                                <div class="modal-body">
+                                    <p class="text-dark text-center">Você confirma a EXCLUSÃO DA PROPOSTA - <strong>{{ p.id }}</strong>?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post" action="{% url 'del-proposta' p.id %}" class="form-excluir">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-dark btn-confirmar" id="confirmBtn" disabled>
+                                            Sim <span class="contador">3</span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" id="btnRecusa" data-bs-dismiss="modal">Não</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="list-group-item text-center py-3 text-muted">
+                        <i class="fas fa-folder-open fs-2 d-block mb-3 opacity-50"></i> Nenhuma proposta encontrada.
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="card-footer bg-white border-top p-1">
+                <div class="row align-items-center">
+                    <div class="col-md-4 text-center text-md-start">
+                        <ul class="list-group list-group-horizontal-sm">
+                            <li class="list-group-item">Propostas Abertas: <span class="badge bg-primary ms-1">{{ prop_ab }}</span></li>
+                            <li class="list-group-item">Propostas Confirmadas: <span class="badge bg-success ms-1">{{ prop_conf }}</span></li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4 d-flex justify-content-center">
+                        {% if propostas.paginator.num_pages > 1 %}
+                            <nav aria-label="Navegação de páginas">
+                                <ul class="pagination pagination-sm m-0 gap-1 border-0">
+                                    {% if propostas.number > 3 %}
+                                        <li class="page-item">
+                                            <a class="page-link rounded border-0 text-dark" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">1</a>
+                                        </li>
+                                    {% endif %}
+                                    {% if propostas.number > 4 %}
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    {% endif %}
+                                    
+                                    {% for num in propostas.paginator.page_range %}
+                                        {% if num >= propostas.number|add:'-2' and num <= propostas.number|add:'2' %}
+                                            {% if propostas.number == num %}
+                                                <li class="page-item active" aria-current="page">
+                                                    <span class="page-link rounded border-0 bg-dark text-white fw-bold">{{ num }}</span>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item">
+                                                    <a class="page-link rounded border-0 text-dark" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                                                </li>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if propostas.number < propostas.paginator.num_pages|add:'-3' %}
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    {% endif %}
+                                    {% if propostas.number < propostas.paginator.num_pages and propostas.number < propostas.paginator.num_pages|add:'-2' %}
+                                        <li class="page-item">
+                                            <a class="page-link rounded border-0 text-dark" href="?page={{ propostas.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ propostas.paginator.num_pages }}</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4 text-center text-md-end">
+                        <a id="add-link" href="{% url 'add-proposta' %}">
+                            <button type="button" class="btn btn-primary btn-sm px-3 shadow-sm fw-semibold" id="add-proposta">
+                                <i class="fas fa-plus me-1"></i> Novo
+                            </button>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

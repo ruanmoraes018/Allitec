@@ -36,7 +36,7 @@ def baixar_modelo_regras(request):
     df = pd.DataFrame(columns=colunas)
     df.loc[0] = ["001", "Descrição exemplo", "QTD", "x > 10", True]
     response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response["Content-Disposition"] = 'attachment; filename="modelo_importacao_regras.xlsx"'
+    response["Content-Disposition"] = 'attachment; filename="Modelo Importação Regras de Produto.xlsx"'
     with pd.ExcelWriter(response, engine='xlsxwriter') as writer: df.to_excel(writer, index=False)
     return response
 
@@ -56,9 +56,9 @@ def exportar_regras_produto(request):
         ws.cell(row=1, column=col).font = bold_font
     regras = RegraProduto.objects.filter(vinc_emp=empresa).order_by('cod_local')
     for regra in regras:
-        ws.append([regra.codigo, regra.descricao, regra.tipo, regra.expressao_json, 'Sim' if regra.ativo else 'Não'])
+        ws.append([regra.codigo, regra.descricao, regra.tipo, json.dumps(regra.expressao_json, ensure_ascii=False) if regra.expressao_json else '', 'Sim' if regra.ativo else 'Não'])
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = (f'attachment; filename=regras_produto_{empresa.id}.xlsx')
+    response['Content-Disposition'] = (f'attachment; filename=Regras de Produto {empresa.id}.xlsx')
     wb.save(response)
     return response
 

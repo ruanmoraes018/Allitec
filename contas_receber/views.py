@@ -68,11 +68,27 @@ def lista_contas_receber(request):
     paginator = Paginator(contas_receber, num_pagina)
     page = request.GET.get('page')
     contas_receber = paginator.get_page(page)
+    tot_vencido = sum(
+        (o.saldo or Decimal("0.00"))
+        for o in contas_receber.object_list
+        if o.data_vencimento < date.today() and o.situacao == "Aberta"
+    )
+
+    tot_vencer = sum(
+        (o.saldo or Decimal("0.00"))
+        for o in contas_receber.object_list
+        if o.data_vencimento >= date.today() and o.situacao == "Aberta"
+    )
+    tot_j = sum((o.valor_juros or Decimal('0.00')) for o in contas_receber.object_list if o.situacao == 'Aberta')
+    tot_m = sum((o.valor_multa or Decimal('0.00')) for o in contas_receber.object_list if o.situacao == 'Aberta')
+    tot_g = tot_vencido + tot_vencer + tot_j + tot_m
     filiais = Filial.objects.filter(vinc_emp=request.user.empresa)
     formas_pgto = FormaPgto.objects.filter(vinc_emp=request.user.empresa)
     return render(request, 'contas_receber/lista.html', {
         'contas_receber': contas_receber, 'filiais': filiais, 'formas_pgto': formas_pgto, 'fil': fil,
         'cli': cli, 'sit': sit, 'dt_ini': dt_ini, 'dt_fim': dt_fim, 'p_dt': por_dt, 'list_p': list_p, 'ordem': ordem, 'reg': reg,
+        'tot_vencido': tot_vencido, 'tot_vencer': tot_vencer, 'tot_j': tot_j,
+        'tot_m': tot_m, 'tot_g': tot_g,
     })
 
 @login_required
@@ -217,30 +233,52 @@ def pagar_conta_receber(request, codigo):
     cr.observacao = (cr.observacao or '') + f' Baixa de R$ {total_pago:.2f}.'
     if len(formas_processadas) == 1: cr.forma_pgto__codigo = formas_processadas[0]['forma_id']
     cr.save()
+    pagamentos = []
     for item in formas_processadas:
-        forma = FormaPgto.objects.get(codigo=item['forma_id'], vinc_emp=request.user.empresa)
-        cr.aplicar_pagamento(item['valor'], forma)
-    if restante > 0:
-        ContaReceber.objects.create(
-            vinc_emp=cr.vinc_emp, vinc_fil=cr.vinc_fil, orcamento=cr.orcamento, pedido=cr.pedido, cliente=cr.cliente, forma_pgto=None, num_conta=cr.num_conta, tp_juros=cr.tp_juros,
-            tp_multa=cr.tp_multa, valor=restante, valor_pago=Decimal('0.00'), juros=cr.juros, multa=cr.multa, desconto=Decimal('0.00'), data_emissao=cr.data_emissao,
-            data_vencimento=cr.data_vencimento, situacao='Aberta', obs_internas=f'Saldo remanescente do título {cr.num_conta}, pago dia {cr.data_pagamento.strftime("%d/%m/%Y")}.'
+        forma = FormaPgto.objects.get(
+            codigo=item["forma_id"],
+            vinc_emp=request.user.empresa
         )
-        messages.success(request, f'Baixa parcial realizada. Saldo restante: R$ {restante:.2f}.')
-    else: messages.success(request, 'Baixa realizada com sucesso.')
+        pagamentos.append({
+            "forma_pgto": forma,
+            "valor": item["valor"]
+        })
+    saldo = cr.baixar(
+        pagamentos=pagamentos,
+        juros=juros_final,
+        multa=multa_final,
+        desconto=desconto_final
+    )
+    if saldo > 0:
+        messages.success(
+            request,
+            f"Baixa parcial realizada. Saldo restante: R$ {saldo:.2f}."
+        )
+    else:
+        messages.success(
+            request,
+            "Baixa realizada com sucesso."
+        )
     return redirect('/contas_receber/lista/')
 
 @login_required
+@transaction.atomic
 def estornar_conta_receber(request, codigo):
-    cr = get_object_or_404(ContaReceber, codigo=codigo, vinc_emp=request.user.empresa)
-    if cr.situacao == 'Aberta':
-        messages.warning(request, 'Contas à Receber Abertas não podem ser estornadas!')
-        return redirect('/contas_receber/lista/')
-    elif cr.situacao == 'Paga':
-        cr.situacao = "Aberta"
-        cr.save()
-        messages.success(request, 'Estorno da Conta à Receber realizada com sucesso!')
-        return redirect('/contas_receber/lista/')
+    cr = get_object_or_404(
+        ContaReceber,
+        codigo=codigo,
+        vinc_emp=request.user.empresa
+    )
+    try:
+        cr.estornar()
+    except ValueError as e:
+        messages.warning(request, str(e))
+    else:
+        messages.success(
+            request,
+            "Estorno da conta à receber realizado com sucesso!"
+        )
+    return redirect("/contas_receber/lista/")
 
 import json
 
@@ -293,49 +331,122 @@ from util.logo_impressao import img_base64
 @login_required
 def imprimir_carne(request, codigo):
     empresa = request.user.empresa
-    pedido = get_object_or_404(
-        Pedido.objects.select_related(
-            'cli',
-            'vinc_emp',
-            'vinc_fil'
+
+    conta = get_object_or_404(
+        ContaReceber.objects.select_related(
+            "pedido",
+            "orcamento",
+            "cliente",
+            "vinc_fil",
+            "vinc_fil__cidade_fil",
         ),
         codigo=codigo,
-        vinc_emp=empresa
+        vinc_emp=empresa,
     )
 
-    contas = (
-        ContaReceber.objects
-        .filter(pedido=pedido, situacao='Aberta')
-        .select_related(
-            'forma_pgto',
-            'vinc_fil',
-            'vinc_fil__cidade_fil'
+    # ==========================================================
+    # Descobre a origem das parcelas
+    # ==========================================================
+
+    if conta.pedido:
+        documento = conta.pedido
+        tipo_documento = "Pedido"
+
+        contas = (
+            ContaReceber.objects
+            .filter(
+                pedido=documento,
+                situacao="Aberta"
+            )
+            .select_related(
+                "forma_pgto",
+                "vinc_fil",
+                "vinc_fil__cidade_fil",
+            )
+            .order_by("data_vencimento")
         )
-        .order_by('data_vencimento')
-    )
+
+    elif conta.orcamento:
+        documento = conta.orcamento
+        tipo_documento = "Orçamento"
+
+        contas = (
+            ContaReceber.objects
+            .filter(
+                orcamento=documento,
+                situacao="Aberta"
+            )
+            .select_related(
+                "forma_pgto",
+                "vinc_fil",
+                "vinc_fil__cidade_fil",
+            )
+            .order_by("data_vencimento")
+        )
+
+    else:
+        documento = None
+        tipo_documento = "Conta a Receber"
+
+        contas = (
+            ContaReceber.objects
+            .filter(pk=conta.pk)
+            .select_related(
+                "forma_pgto",
+                "vinc_fil",
+                "vinc_fil__cidade_fil",
+            )
+        )
+
+    if not contas.exists():
+        return HttpResponse("Não existem parcelas em aberto.")
+
     contas_contexto = []
+    total_parcelas = contas.count()
 
     for c in contas:
+
         if not c.vinc_fil.chave_pix:
             return HttpResponse(
                 f'A filial "{c.vinc_fil}" não possui uma chave Pix cadastrada.'
             )
+
         nome = c.vinc_fil.fantasia.strip().upper()
         cidade = c.vinc_fil.cidade_fil.nome_cidade.strip().upper()
         chave_pix = c.vinc_fil.chave_pix.strip()
-        if c.vinc_fil.tp_chave == 'Telefone':
-            chave_pix = re.sub(r'\D', '', chave_pix)
-            if not chave_pix.startswith('55'):
-                chave_pix = '55' + chave_pix
-            chave_pix = '+' + chave_pix
-        txt_id = f'CR{c.codigo}'.strip()
-        valor = f'{c.valor:.2f}'
-        print(repr(nome))
-        print(repr(chave_pix))
-        print(repr(valor))
-        print(repr(cidade))
-        print(repr(txt_id))
-        descricao = f'Parcela {c.num_conta}-{contas.count()} - (Pedido  Nº {c.pedido.codigo} - {c.pedido.vinc_fil.fantasia})'
+
+        if c.vinc_fil.tp_chave == "Telefone":
+            chave_pix = re.sub(r"\D", "", chave_pix)
+
+            if not chave_pix.startswith("55"):
+                chave_pix = "55" + chave_pix
+
+            chave_pix = "+" + chave_pix
+
+        txt_id = f"CR{c.codigo}"
+        valor = f"{c.valor:.2f}"
+
+        # -------------------------------
+        # Descrição do Pix
+        # -------------------------------
+
+        if c.pedido:
+            descricao = (
+                f"Parcela {c.num_conta}-{total_parcelas} "
+                f"(Pedido Nº {c.pedido.codigo})"
+            )
+
+        elif c.orcamento:
+            descricao = (
+                f"Parcela {c.num_conta}-{total_parcelas} "
+                f"(Orçamento Nº {c.orcamento.codigo})"
+            )
+
+        else:
+            descricao = (
+                f"Conta a Receber {c.codigo}"
+            )
+
         resultado = Payload(
             nome,
             chave_pix,
@@ -344,25 +455,43 @@ def imprimir_carne(request, codigo):
             txt_id,
             descricao
         ).gerarPayload()
-        c.qr_code = resultado['qr_code']
-        c.pix_copia_cola = resultado['payload']
+
+        c.qr_code = resultado["qr_code"]
+        c.pix_copia_cola = resultado["payload"]
+
         contas_contexto.append(c)
-    lg_emp = img_base64(pedido.vinc_fil.logo.path)
+
+    lg_emp = img_base64(conta.vinc_fil.logo.path)
+
     html = render_to_string(
-        'contas_receber/carne.html',
+        "contas_receber/carne.html",
         {
-            'pedido': pedido,
-            'empresa': pedido.vinc_fil,
-            'contas': contas_contexto,
-            'lg_emp': lg_emp
+            "empresa": conta.vinc_fil,
+            "cliente": conta.cliente,
+            "documento": documento,
+            "tipo_documento": tipo_documento,
+            "contas": contas_contexto,
+            "lg_emp": lg_emp,
         }
     )
+
     pdf = HTML(
         string=html,
         base_url=settings.MEDIA_ROOT
     ).write_pdf()
-    response = HttpResponse(pdf, content_type='application/pdf')
-    response['Content-Disposition'] = (
-        f'inline; filename="Carnê Pedido {pedido.codigo}.pdf"'
+
+    response = HttpResponse(
+        pdf,
+        content_type="application/pdf"
     )
+
+    if documento:
+        response["Content-Disposition"] = (
+            f'inline; filename="Carnê {tipo_documento} {documento.codigo}.pdf"'
+        )
+    else:
+        response["Content-Disposition"] = (
+            f'inline; filename="Carnê ContaReceber {conta.codigo}.pdf"'
+        )
+
     return response

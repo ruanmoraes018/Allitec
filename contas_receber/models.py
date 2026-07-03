@@ -31,6 +31,22 @@ class ContaReceber(models.Model):
     situacao = models.CharField(max_length=14, choices=SITUACAO, default='Aberta')
     observacao = models.TextField(blank=True, null=True)
     obs_internas = models.TextField(blank=True, null=True)
+    titulo_origem = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="titulos_remanescentes"
+    )
+    TIPOS = [
+        ("Original", "Original"),
+        ("Remanescente", "Remanescente"),
+    ]
+    tipo = models.CharField(
+        max_length=15,
+        choices=TIPOS,
+        default="Original"
+    )
     class Meta:
         verbose_name_plural = "Contas à Receber"
         permissions = [
@@ -79,27 +95,94 @@ class ContaReceber(models.Model):
         return self.valor + self.valor_multa + self.valor_juros
     def __str__(self):
         return f"{self.num_conta}"
-
-    def processar_pagamento(self, pagamento):
-        ContaReceberBaixaForma.objects.create(vinc_emp=self.vinc_emp, conta_receber=self, forma_pgto=pagamento.forma_pgto, valor=pagamento.valor)
-        self.valor_pago += pagamento.valor
-        if self.saldo <= 0:
-            self.situacao = "Paga"
-            self.data_pagamento = timezone.now().date()
-        if self.saldo > 0:
-            ContaReceber.objects.create(
-                vinc_emp=self.vinc_emp, vinc_fil=self.vinc_fil, orcamento=self.orcamento, pedido=self.pedido, cliente=self.cliente, forma_pgto=None, num_conta=self.num_conta,
-                tp_juros=self.tp_juros, tp_multa=self.tp_multa, valor=self.saldo, valor_pago=Decimal('0.00'), juros=self.juros, multa=self.multa, desconto=Decimal('0.00'),
-                data_emissao=self.data_emissao, data_vencimento=self.data_vencimento, situacao='Aberta', obs_internas=f'Saldo remanescente do título {self.num_conta}'
+    @transaction.atomic
+    def baixar(self, pagamentos, juros=Decimal("0.00"), multa=Decimal("0.00"), desconto=Decimal("0.00")):
+        if self.situacao == "Paga":
+            raise ValueError("Título já está pago.")
+        self.juros = juros
+        self.multa = multa
+        self.desconto = desconto
+        total_titulo = self.valor + juros + multa - desconto
+        total_pago = Decimal("0.00")
+        for pagamento in pagamentos:
+            ContaReceberBaixaForma.objects.create(vinc_emp=self.vinc_emp, conta_receber=self,
+                forma_pgto=pagamento["forma_pgto"], valor=pagamento["valor"]
             )
-            self.valor_pago = self.valor + self.juros + self.multa - self.desconto
-            self.situacao = "Paga"
-            self.data_pagamento = timezone.now().date()
+            total_pago += pagamento["valor"]
+        self.valor_pago = total_pago
+        self.data_pagamento = timezone.now().date()
+        saldo = total_titulo - total_pago
+        if saldo > Decimal("0.00"):
+            ContaReceber.objects.create(
+                vinc_emp=self.vinc_emp,
+                vinc_fil=self.vinc_fil,
+                orcamento=self.orcamento,
+                pedido=self.pedido,
+                cliente=self.cliente,
+                forma_pgto=None,
+                num_conta=self.num_conta,
+                titulo_origem=self,
+                tipo="Remanescente",
+                tp_juros=self.tp_juros,
+                tp_multa=self.tp_multa,
+                valor=saldo,
+                valor_pago=Decimal("0.00"),
+                juros=self.juros,
+                multa=self.multa,
+                desconto=Decimal("0.00"),
+                data_emissao=self.data_emissao,
+                data_vencimento=self.data_vencimento,
+                situacao="Aberta",
+                obs_internas=f"Saldo remanescente do título {self.num_conta}"
+            )
+        self.situacao = "Paga"
+        if len(pagamentos) == 1:
+            self.forma_pgto = pagamentos[0]["forma_pgto"]
+        else:
+            self.forma_pgto = None
         self.save()
-    def aplicar_pagamento(self, valor, forma_pgto):
-        ContaReceberBaixaForma.objects.create(vinc_emp=self.vinc_emp, conta_receber=self, forma_pgto=forma_pgto, valor=valor)
-        self.valor_pago += valor
+        return saldo
+    def _excluir_remanescentes(self):
+        for filho in self.titulos_remanescentes.all():
+
+            if filho.situacao == "Paga":
+                raise ValueError(
+                    "Existem baixas posteriores. Estorne-as primeiro."
+                )
+
+            filho._excluir_remanescentes()
+            filho.delete()
+
+
+    @transaction.atomic
+    def estornar(self):
+
+        if self.situacao == "Aberta":
+            raise ValueError(
+                "Contas à receber abertas não podem ser estornadas."
+            )
+
+        # Exclui todos os remanescentes (recursivamente)
+        self._excluir_remanescentes()
+
+        # Remove as formas de pagamento desta baixa
+        self.formas_baixa.all().delete()
+
+        # Restaura o título
+        self.situacao = "Aberta"
+        self.valor_pago = Decimal("0.00")
+        self.data_pagamento = None
+        self.forma_pgto = None
+
+        # Se esses valores são definidos na baixa
+        self.juros = Decimal("0.00")
+        self.multa = Decimal("0.00")
+        self.desconto = Decimal("0.00")
+
         self.save()
+
+        return self
+    
 class ContaReceberBaixaForma(models.Model):
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
     conta_receber = models.ForeignKey(ContaReceber, on_delete=models.CASCADE, related_name='formas_baixa')

@@ -3,11 +3,13 @@
 {% load custom_filters %}
 {% block title %}Lista - Pedidos{% endblock %}
 {% block content %}
-    <div class="container-fluid bg-white">
-        <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Listagem de Pedidos</li>
+    <div class="container-fluid py-3 min-vh-100">
+        <nav class="mt-5" aria-label="breadcrumb">
+            <ol class="breadcrumb p-2 m-2">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'inicio' %}" class="text-decoration-none text-secondary" id="item-naveg"><i class="fas fa-home me-1"></i> Principal</a>
+                </li>
+                <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">Listagem de Pedidos</li>
             </ol>
         </nav>
         {% if messages %}
@@ -18,553 +20,467 @@
             {% endfor %}
             ]'></div>
         {% endif %}
-        <form method="GET" id="search-form" style="margin-left: 1%; margin-right: 1%;">
-            <div class="row g-3 align-items-end">
-                <div class="col-md-2 search-div">
-                    <label class="form-label">Nº Pedido:</label>
-                    <input class="form-control" type="text" name="s" id="s" placeholder="Digite o termo de busca" value="{{ request.GET.s }}">
-                </div>
-                <div class="col-md-2 search-div flex-md-fill">
-                    <label class="form-label">Filial:</label>
-                    <select class="form-control" id="id_filial_user" name="fil">
-                        <option value="">Selecione uma filial</option>
-                        {% for f in filiais %}
-                            <option value="{{ f.codigo }}" {% if request.GET.fil == f.codigo|stringformat:"s" %}selected{% endif %}>{{ f.fantasia }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2 search-div flex-md-fill">
-                    <label class="form-label">Cliente:</label>
-                    <select class="form-control" id="cliente" name="cl">
-                        <option value="">Selecione um cliente</option>
-                        {% for cliente in clientes %}
-                            <option value="{{ cliente.codigo }}" {% if request.GET.cl == cliente.codigo|stringformat:"s" %}selected{% endif %}>{{ cliente.fantasia }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2 search-div flex-md-fill">
-                    <label class="form-label">Vendedor:</label>
-                    <select class="form-control" id="vendedor" name="vend">
-                        <option value="">Selecione um vendedor</option>
-                        {% for v in vendedores %}
-                            <option value="{{ v.codigo }}" {% if request.GET.vend == v.codigo|stringformat:"s" %}selected{% endif %}>{{ v.fantasia }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Situação:</label>
-                    <div class="d-flex">
-                        <select class="form-control" name="sit" id="situacao">
-                            <option value="Aberto" {% if request.GET.sit == 'Aberto' %}selected{% endif %}>Abertos</option>
-                            <option value="Faturado" {% if request.GET.sit == 'Faturado' %}selected{% endif %}>Faturados</option>
-                            <option value="Cancelado" {% if request.GET.sit == 'Cancelado' %}selected{% endif %}>Cancelados</option>
-                            <option value="Todos" {% if request.GET.sit == 'Todos' %}selected{% endif %}>Todos</option>
-                        </select>
+        <div class="card border-0 shadow-sm rounded-3 mb-2">
+            <div class="card-body p-0 mb-2">
+                <form method="GET" id="search-form">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-xl-1 col-md-2 flex-md-fill">
+                            <label for="s" class="form-label small text-secondary fw-semibold">Nº Pedido</label>
+                            <input class="form-control" type="text" name="s" id="s" placeholder="Digite para buscar..." value="{{ request.GET.s }}">
+                        </div>
+                        <div class="col-xl-1 col-md-2 flex-md-fill">
+                            <label for="vinc_emp" class="form-label small text-secondary fw-semibold">Filial</label>
+                            <select name="fil" id="vinc_emp" class="form-select form-select-sm">
+                                <option value="">Escolha uma opção</option>
+                                {% for f in filiais %}
+                                    <option value="{{ f.codigo }}" {% if request.GET.fil == f.codigo|stringformat:"s" %}selected{% endif %}>{{ f }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2 flex-md-fill">
+                            <label for="cliente" class="form-label small text-secondary fw-semibold">Cliente</label>
+                            <select class="form-select form-select-sm" id="cliente" name="cl">
+                                <option value="">Escolha uma opção</option>
+                                {% for c in clientes %}
+                                    <option value="{{ c.codigo }}" {% if request.GET.cl == c.codigo|stringformat:"s" %}selected{% endif %}>{{ c }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2 flex-md-fill">
+                            <label for="vendedor" class="form-label small text-secondary fw-semibold">Vendedor</label>
+                            <select class="form-select form-select-sm" id="vendedor" name="vend">
+                                <option value="">Escolha uma opção</option>
+                                {% for v in vendedores %}
+                                    <option value="{{ v.codigo }}" {% if request.GET.vend == v.codigo|stringformat:"s" %}selected{% endif %}>{{ v }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label for="situacao" class="form-label small text-secondary fw-semibold">Situação</label>
+                            <select class="form-select" name="sit" id="situacao">
+                                <option value="Aberto" {% if request.GET.sit == 'Aberto' %}selected{% endif %}>Abertos</option>
+                                <option value="Faturado" {% if request.GET.sit == 'Faturado' %}selected{% endif %}>Faturados</option>
+                                <option value="Cancelado" {% if request.GET.sit == 'Cancelado' %}selected{% endif %}>Cancelados</option>
+                                <option value="Todos" {% if request.GET.sit == 'Todos' %}selected{% endif %}>Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label for="tp_data" class="form-label small text-secondary fw-semibold">Data de</label>
+                            <select class="form-select" name="tp_dt" id="tp_data">
+                                <option value="Emissão" {% if request.GET.tp_dt == 'Emissão' %}selected{% endif %}>Emissão</option>
+                                <option value="Fatura" {% if request.GET.tp_dt == 'Fatura' %}selected{% endif %}>Fatura</option>
+                                <option value="Todos" {% if request.GET.tp_dt == 'Todos' %}selected{% endif %}>Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label for="usar-data" class="form-label small text-secondary fw-semibold">Filtrar Data</label>
+                            <select class="form-select" id="usar-data" name="p_dt">
+                                <option value="Sim" {% if request.GET.p_dt == 'Sim' %}selected{% endif %}>Sim</option>
+                                <option value="Nao" {% if request.GET.p_dt == 'Nao' %}selected{% endif %}>Não</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-md-4">
+                            <label class="form-label small text-secondary fw-semibold">Período</label>
+                            <div class="input-group">
+                                <input class="form-control" type="text" name="dt_ini" id="data_inicio1" placeholder="De" value="{{ request.GET.dt_ini }}">
+                                <span class="input-group-text bg-white text-secondary"><i class="fas fa-calendar-alt"></i></span>
+                                <input class="form-control" type="text" name="dt_fim" id="data_fim1" placeholder="Até" value="{{ request.GET.dt_fim }}">
+                            </div>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label class="form-label small text-secondary fw-semibold">Exibir</label>
+                            <select class="form-select" id="qtd_reg" name="reg">
+                                <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
+                                <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
+                                <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
+                                <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
+                                <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
+                                <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-auto col-md-12 d-grid">
+                            <button class="btn btn-dark px-4" title="Consultar" type="submit" id="data-btn">
+                                <i class="fa-solid fa-magnifying-glass"></i> Filtrar
+                            </button>
+                        </div>
                     </div>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Data de:</label>
-                    <div class="d-flex">
-                        <select class="form-control" name="tp_dt" id="tp_data">
-                            <option value="Emissão" {% if request.GET.tp_dt == 'Emissão' %}selected{% endif %}>Emissão</option>
-                            <option value="Fatura" {% if request.GET.tp_dt == 'Fatura' %}selected{% endif %}>Fatura</option>
-                            <option value="Todos" {% if request.GET.tp_dt == 'Todos' %}selected{% endif %}>Todos</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Período:</label>
-                    <select class="form-control" id="usar-data" name="p_dt">
-                        <option value="Sim" {% if request.GET.p_dt == 'Sim' %}selected{% endif %}>Sim</option>
-                        <option value="Nao" {% if request.GET.p_dt == 'Nao' %}selected{% endif %}>Não</option>
-                    </select>
-                </div>
-                <div class="col-md-2 search-div">
-                    <div class="col">
-                        <label class="form-label">De:</label>
-                        <input class="form-control" type="text" name="dt_ini" id="data_inicio1" value="{{ request.GET.dt_ini }}">
-                    </div>
-                </div>
-                <div class="col-md-2 search-div">
-                    <div class="col">
-                        <label class="form-label">Até:</label>
-                        <input class="form-control" type="text" name="dt_fim" id="data_fim1" value="{{ request.GET.dt_fim }}">
-                    </div>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Reg.:</label>
-                    <select class="form-control" id="qtd_reg" name="reg">
-                        <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
-                        <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
-                        <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
-                        <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
-                        <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
-                        <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
-                    </select>
-                </div>
-                <div class="col search-div d-flex justify-content-start">
-                    <button class="btn btn-dark" title="Consultar" type="submit" id="data-btn" data-bs-toggle="modal" data-bs-target="#loadingModal">🔎</button>
-                </div>
+                </form>
             </div>
-        </form>
-        <div class="table-container" style="margin-left: 1%; margin-right: 1%;">
-            <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
-                <thead thead class="table-dark">
-                    <tr>
-                        <th scope="col" style="text-align: justify; width: 4%;">Opções</th><th scope="col" style="text-align: justify; width: 8%;">Nº Pedido</th><th style="width: 20px;"></th>
-                        <th scope="col" style="text-align: justify; width: 6%;">Situação</th><th scope="col" style="text-align: justify; width: 18%;">Filial</th>
-                        <th scope="col" style="text-align: justify; width: 18%;">Cliente</th><th scope="col" style="text-align: justify; width: 9%;">Vendedor</th>
-                        <th scope="col" style="align-items: center; width: 7%;">Dt. Emissão</th><th scope="col" style="align-items: center; width: 7%;">Dt. Fatura</th>
-                        <th scope="col" style="text-align: justify; width: 7%;">Valor</th><th scope="col" style="align-items: center; width: 12%;">Formas</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for pedido in pedidos %}
-                        <tr>
-                            <td data-label="Opções:" class="mobile-2col">
-                                <div style="text-align: left;">
-                                    <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#menuModal{{ pedido.codigo }}" title="Opções">
-                                        <i class="fa-solid fa-bars"></i>
-                                    </button>
+        </div>
+        <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+            <div class="list-group">
+                <!-- Cabeçalho -->
+                <div class="list-group-item bg-light fw-bold cabecalho-lista">
+                    <div class="row align-items-center">
+                        <div class="col-md-1 text-center border-end">Ações</div>
+                        <div class="col-md-1 text-center border-end">Nº Pedido</div>
+                        <div class="col-md-auto me-3 text-center border-end"></div>
+                        <div class="col-md-1 text-center border-start border-end">Situação</div>
+                        <div class="col-md-1 border-end">Filial</div>
+                        <div class="col-md-2 border-end">Cliente</div>
+                        <div class="col-md-1 border-end">Vendedor</div>
+                        <div class="col-md-1 border-end">Dt. Emissão</div>
+                        <div class="col-md-1 border-end">Dt. Fatura</div>
+                        <div class="col-md-1 border-end">Valor</div>
+                        <div class="col-sm-1">Formas</div>
+                    </div>
+                </div>
+                <!-- Registros -->
+                {% for p in pedidos %}
+                    <div class="list-group-item py-1 item-lista">
+                        <div class="row align-items-center linha-lista">
+                            <!-- Ações -->
+                            <div class="col-md-1 text-center mb-1 mb-md-0 acoes-col">
+                                <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#menuModal{{ p.codigo }}" title="Opções">
+                                    <i class="fa-solid fa-bars"></i>
+                                </button>
+                            </div>
+                            <!-- Nº Pedido -->
+                            <div class="col-md-1 text-center fw-bold text-secondary codigo-col" data-label="Código:">#{{ p.codigo }}</div>
+                            <!-- Ícone -->
+                            <div class="col-md-auto text-center fw-bold codigo-col"><i class="fa-solid fa-circle-info" id="icone-pedido" data-id="{{ p.codigo }}" style="cursor: pointer;" title="Detalhes do Pedido"></i></div>
+                            <!-- Situação -->
+                            <div class="col-md-1 text-center codigo-col" data-label="Situação:">
+                                {% if p.situacao == 'Aberto' %}
+                                    <span class="badge bg-primary">{{ p.situacao }}</span>
+                                {% elif p.situacao == 'Faturado' %}
+                                    <span class="badge bg-success">{{ p.situacao }}</span>
+                                {% else %}
+                                    <span class="badge bg-danger">{{ p.situacao }}</span>
+                                {% endif %}
+                            </div>
+                            <!-- Filial -->
+                            <div class="col-md-1 fw-bold codigo-col" data-label="Filial:">{{ p.fantasia_fil }}</div>
+                            <!-- Cliente -->
+                            <div class="col-md-2 fw-bold descricao-col" data-label="Cliente:">{{ p.nome_cli }}</div>
+                            <!-- Vendedor -->
+                            <div class="col-md-1 fw-bold codigo-col" data-label="Vendedor:">{{ p.nome_vend }}</div>
+                            <!-- Dt. Emissão -->
+                            <div class="col-md-1 fw-bold codigo-col" data-label="Dt. Emissão:">{{ p.dt_emi|date:"d/m/Y - H:i" }}</div>
+                            <!-- Dt. Fatura -->
+                            <div class="col-md-1 text-center fw-bold codigo-col" data-label="{% if p.situacao == 'Faturado' %}Dt. Fatura:{% endif %}">{% if p.situacao == 'Faturado' %}{{ p.dt_fat|date:"d/m/Y - H:i" }}{% else %} - {% endif %}</div>
+                            <!-- Valor Total -->
+                            <div class="col-md-1 fw-bold codigo-col" data-label="Valor Total:">{{ p.total|moeda_br}}</div>
+                            <!-- Formas de Pagamento -->
+                            <div class="col-md-auto fw-bold codigo-col" data-label="Formas:">
+                                {% if p.situacao != 'Aberto' %}
+                                    {% for f in p.formas_convertidas %}
+                                        <div class="p-1 mb-1 bg-secondary text-light rounded-3" style="font-size: 0.75rem;">
+                                            <small>{{ f.descricao }} - {{ f.valor|moeda_br }}</small>
+                                        </div>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Modal ÚNICO para cada pedido -->
+                    <div class="modal fade" id="modal-{{ p.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ p.codigo }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title" id="modalLabel-{{ p.codigo }}">
+                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                    </h5>
                                 </div>
-                                <!-- Modal de opções da pedido -->
-                                <div class="modal fade modal-sm" id="menuModal{{ pedido.codigo }}" data-orcamento-id="{{ pedido.codigo }}" tabindex="-1" aria-labelledby="menuModalLabel{{ pedido.codigo }}" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header titulo-modal"><h5 class="modal-title fw-bold mx-auto" id="menuModalLabel{{ pedido.codigo }}">Opções - {{ pedido.codigo }}</h5></div>
-                                            <div class="modal-body p-2">
-                                                <a href="{% url 'att-pedido' pedido.codigo %}?next={{ request.get_full_path|urlencode }}" data-permissao="pedidos.change_pedido" data-msg-negado="Seu usuário não pode editar pedidos!" class="btn btn-light w-100 text-start menu-opcao op-editar border border-secondary btn-permissao" >
-                                                    <i class="fas fa-edit"></i> Editar
-                                                </a>
-                                                <a href="{% url 'clonar-pedido' pedido.codigo %}?next={{ request.get_full_path|urlencode }}" data-permissao="pedidos.clonar_pedido" data-msg-negado="Seu usuário não pode clonar pedidos!" class="btn btn-light w-100 text-start menu-opcao op-clonar border border-secondary btn-permissao">
-                                                    <i class="fa-solid fa-clone"></i> Clonar
-                                                </a>
-                                                {% if pedido.situacao == 'Aberto' %}
-                                                    <button class="btn btn-light w-100 text-start menu-opcao op-deletar btn-delete border border-secondary btn-permissao" data-orcamento-id="{{ pedido.codigo }}" data-permissao="pedidos.delete_pedido" data-msg-negado="Seu usuário não pode deletar pedidos!">
-                                                        <i class="fas fa-trash"></i> Deletar
-                                                    </button>
-                                                    <button class="btn btn-light w-100 text-start menu-opcao op-faturar btn-faturar border border-secondary btn-permissao" data-id="{{ pedido.codigo }}" data-permissao="pedidos.faturar_pedido" data-msg-negado="Seu usuário não pode faturar pedidos!">
-                                                        <i class="fa-solid fa-money-bill"></i> Faturar
-                                                    </button>
-                                                {% endif %}
-                                                <button class="btn btn-light w-100 text-start menu-opcao op-detalhe-pedido border border-secondary" data-id="{{ pedido.codigo }}" data-bs-toggle="modal" data-bs-target="#infoEntModalP{{ pedido.codigo }}">
-                                                    <i class="fa-solid fa-circle-info"></i> Detalhes
-                                                </button>
-                                                <div class="dropdown w-100">
-                                                    <button class="btn btn-light w-100 text-start menu-opcao border border-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="true">
-                                                        <i class="fa-solid fa-print"></i> Impressão
-                                                    </button>
-                                                    <ul class="dropdown-menu w-100">
-                                                        <li><a href="{% url 'cupom_pedido' pedido.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Cupom</a></li>
-                                                        <li><a href="{% url 'imprimir-pedido' pedido.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> A4</a></li>
-                                                        {% if pedido.tabela_preco.tipo == "A prazo" and pedido.titulos_pedidos.exists %}
-                                                            <li><a href="{% url 'imprimir-carne' pedido.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Carnê</a></li>
+                                <div class="modal-body">
+                                    <p>Você confirma a EXCLUSÃO DO PEDIDO <strong>{{ p.codigo }}</strong>?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post" action="{% url 'del-pedido' p.codigo %}" class="form-excluir">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-confirmar" id="confirmBtn" disabled>
+                                            <u>S</u>im <span class="contador">3</span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnRecusa">
+                                            <u>N</u>ão
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Modal de opções do pedido -->
+                    <div class="modal fade modal-sm" id="menuModal{{ p.codigo }}" data-orcamento-id="{{ p.codigo }}" tabindex="-1" aria-labelledby="menuModalLabel{{ p.codigo }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal"><h5 class="modal-title fw-bold mx-auto" id="menuModalLabel{{ p.codigo }}">Opções - {{ p.codigo }}</h5></div>
+                                <div class="modal-body p-2">
+                                    <a href="{% url 'att-pedido' p.codigo %}?next={{ request.get_full_path|urlencode }}" data-permissao="pedidos.change_pedido" data-msg-negado="Seu usuário não pode editar pedidos!" class="btn btn-light w-100 text-start menu-opcao op-editar border border-secondary btn-permissao" >
+                                        <i class="fas fa-edit"></i> Editar
+                                    </a>
+                                    <a href="{% url 'clonar-pedido' p.codigo %}?next={{ request.get_full_path|urlencode }}" data-permissao="pedidos.clonar_pedido" data-msg-negado="Seu usuário não pode clonar pedidos!" class="btn btn-light w-100 text-start menu-opcao op-clonar border border-secondary btn-permissao">
+                                        <i class="fa-solid fa-clone"></i> Clonar
+                                    </a>
+                                    {% if p.situacao == 'Aberto' %}
+                                        <button class="btn btn-light w-100 text-start menu-opcao op-deletar btn-delete border border-secondary btn-permissao" data-orcamento-id="{{ p.codigo }}" data-permissao="pedidos.delete_pedido" data-msg-negado="Seu usuário não pode deletar pedidos!">
+                                            <i class="fas fa-trash"></i> Deletar
+                                        </button>
+                                        <button class="btn btn-light w-100 text-start menu-opcao op-faturar btn-faturar border border-secondary btn-permissao" data-id="{{ p.codigo }}" data-permissao="pedidos.faturar_pedido" data-msg-negado="Seu usuário não pode faturar pedidos!">
+                                            <i class="fa-solid fa-money-bill"></i> Faturar
+                                        </button>
+                                    {% endif %}
+                                    <button class="btn btn-light w-100 text-start menu-opcao op-detalhe op-detalhe-pedido border border-secondary" data-id="{{ p.codigo }}" data-bs-toggle="modal" data-bs-target="#infoEntModalP{{ p.codigo }}">
+                                        <i class="fa-solid fa-circle-info"></i> Detalhes
+                                    </button>
+                                    <div class="dropdown w-100">
+                                        <button class="btn btn-light w-100 text-start menu-opcao op-imprimir border border-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="true">
+                                            <i class="fa-solid fa-print"></i> Impressão
+                                        </button>
+                                        <ul class="dropdown-menu w-100">
+                                            <li><a href="{% url 'cupom_pedido' p.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Cupom</a></li>
+                                            <li><a href="{% url 'imprimir-pedido' p.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> A4</a></li>
+                                            {% if p.tabela_preco.tipo == "A prazo" and p.titulos_pedidos.exists %}
+                                                <li>
+                                                    {% with conta=p.titulos_pedidos.first %}
+                                                        {% if conta %}
+                                                            <a href="{% url 'imprimir-carne' conta.codigo %}" target="_blank" class="dropdown-item">
+                                                                <i class="fa-solid fa-file-pdf text-danger"></i> Carnê
+                                                            </a>
                                                         {% endif %}
-                                                    </ul>
+                                                    {% endwith %}
+                                                </li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                    {% if p.situacao == 'Faturado' %}
+                                    <button class="btn btn-light w-100 text-start menu-opcao op-cancelar border border-secondary btn-permissao" data-permissao="pedidos.cancelar_pedido" data-msg-negado="Seu usuário não pode cancelar pedidos!" data-collapse="#colCancelar{{ p.codigo }}">
+                                        <i class="fa-solid fa-circle-xmark"></i> Cancelar
+                                    </button>
+                                    <div class="collapse" id="colCancelar{{ p.codigo }}">
+                                        <div class="card" style="margin: 0;">
+                                            <div class="card-body">
+                                                <label class="form-label fw-bold">Motivo do cancelamento</label>
+                                                <textarea id="motivoCancelamento{{ p.codigo }}" class="form-control form-control-sm border-dark-subtle text-uppercase" rows="2" required></textarea>
+                                                <div class="mt-3 d-flex justify-content-end gap-2">
+                                                    <button type="button" class="btn btn-danger btn-sm btn-abrir-modal-pedido" data-orcamento-id="{{ p.codigo }}" data-bs-target="#modalConfirmarCancelamento{{ p.codigo }}">
+                                                        Cancelar pedido
+                                                    </button>
                                                 </div>
-                                                {% if pedido.situacao == 'Faturado' %}
-                                                <button class="btn btn-light w-100 text-start menu-opcao op-cancelar border border-secondary btn-permissao" data-permissao="pedidos.cancelar_pedido" data-msg-negado="Seu usuário não pode cancelar pedidos!" data-collapse="#colCancelar{{ pedido.codigo }}">
-                                                    <i class="fa-solid fa-circle-xmark"></i> Cancelar
-                                                </button>
-                                                <div class="collapse" id="colCancelar{{ pedido.codigo }}">
-                                                    <div class="card" style="margin: 0;">
-                                                        <div class="card-body">
-                                                            <label class="form-label fw-bold">Motivo do cancelamento</label>
-                                                            <textarea id="motivoCancelamento{{ pedido.codigo }}" class="form-control form-control-sm border-dark-subtle text-uppercase" rows="2" required></textarea>
-                                                            <div class="mt-3 d-flex justify-content-end gap-2">
-                                                                <button type="button" class="btn btn-danger btn-sm btn-abrir-modal-pedido" data-orcamento-id="{{ pedido.codigo }}" data-bs-target="#modalConfirmarCancelamento{{ pedido.codigo }}">
-                                                                    Cancelar pedido
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="modal fade" id="modalConfirmarCancelamento{{ pedido.codigo }}" tabindex="-1" aria-hidden="true">
-                                                    <div class="modal-dialog modal-dialog-centered">
-                                                        <div class="modal-content">
-                                                            <div class="modal-header titulo-modal">
-                                                                <h5 class="modal-title"><i class="fa-regular fa-circle-question"></i>Confirmação</h5>
-                                                            </div>
-                                                            <div class="modal-body"><p class="mb-2">Você confirma o CANCELAMENTO DO PEDIDO <strong>{{ pedido.codigo }}</strong>?</p></div>
-                                                            <div class="modal-footer">
-                                                                <button type="button" class="btn btn-primary btn-confirmar btn-confirmar-canc-pedido" data-orcamento-id="{{ pedido.codigo }}" disabled><u>S</u>im <span class="contador">3</span></button>
-                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                {% endif %}
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary btn-sm mx-auto" data-bs-dismiss="modal">Fechar</button>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                {% if pedido.situacao == 'Aberto' %}
-                                    <!-- Modal ÚNICO para cada cliente -->
-                                    <div class="modal fade" id="modal-{{ pedido.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ pedido.codigo }}" aria-hidden="true">
+                                    <div class="modal fade" id="modalConfirmarCancelamento{{ p.codigo }}" tabindex="-1" aria-hidden="true">
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
                                                 <div class="modal-header titulo-modal">
-                                                    <h5 class="modal-title" id="modalTitle-{{ pedido.codigo }}"> <i class="fa-regular fa-circle-question"></i> Confirmação! </h5>
+                                                    <h5 class="modal-title"><i class="fa-regular fa-circle-question"></i>Confirmação</h5>
                                                 </div>
-                                                <div class="modal-body"> <p>Você confirma a EXCLUSÃO DO PEDIDO <strong>{{ pedido.codigo }}</strong>?</p> </div>
+                                                <div class="modal-body"><p class="mb-2">Você confirma o CANCELAMENTO DO PEDIDO <strong>{{ p.codigo }}</strong>?</p></div>
                                                 <div class="modal-footer">
-                                                    <form method="post" action="{% url 'del-pedido' pedido.codigo %}" id="form-del-{{ pedido.codigo }}">
-                                                        {% csrf_token %}
-                                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled><u>S</u>im <span class="contador">3</span></button>
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
-                                                    </form>
+                                                    <button type="button" class="btn btn-primary btn-confirmar btn-confirmar-canc-pedido" data-orcamento-id="{{ p.codigo }}" disabled><u>S</u>im <span class="contador">3</span></button>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                {% endif %}
-                                <div class="modal fade modal-pagamento modal-faturar-pedido" data-tipo="pedido" id="faturarModalP-{{ pedido.codigo }}" tabindex="-1" aria-hidden="true" data-pedido-id="{{ pedido.codigo }}"  data-total="{{ pedido.total }}" data-num-pedido="{{ pedido.codigo }}">
-                                    <div class="modal-dialog modal-dialog-centered modal-lg">
-                                        <div class="modal-content">
-                                            <div class="modal-header bg-success text-white" style="max-height: 30px;">
-                                                <h5 class="modal-title"><i class="fa-solid fa-money-bill"></i> Faturar Pedido {{ pedido.codigo }}</h5>
-                                            </div>
-                                            <div class="modal-body">
-                                                <!-- CLIENTE -->
-                                                <div class="row">
-                                                    <div style="flex: 1;">
-                                                        <label class="form-label fw-bold">Cliente:</label>
-                                                        <input class="form-control fw-bold" value="{{ pedido.cli }}" disabled>
-                                                    </div>
-                                                    <div style="flex: 1;">
-                                                        <label class="form-label fw-bold">Valor Total:</label>
-                                                        <input class="form-control fw-bold totalModal" value="{{ pedido.total|floatformat:2 }}" disabled>
-                                                    </div>
-                                                    <div style="width:150px;">
-                                                        <label class="form-label fw-bold">Data Emissão:</label>
-                                                        <input class="form-control fw-bold dt-emi-pedido"
-                                                            value="{{ pedido.dt_emi|date:'d/m/Y' }}" disabled>
-                                                    </div>
-                                                    <div style="width:160px;">
-                                                        <label class="form-label fw-bold">Data Faturamento:</label>
-                                                        <input class="form-control fw-bold dt-fat-pedido" value="{{ pedido.dt_fat|date:'d/m/Y' }}" readonly>
-                                                    </div>
-                                                    <div style="width:45px;">
-                                                        <label class="form-label">&nbsp;</label>
-                                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-lib-dt-fat-ped" data-permissao="pedidos.alterar_data_faturamento"
-                                                            data-msg-negado="Sem permissão para alterar data de faturamento." data-editando="0">
-                                                            <i class="fa fa-pen"></i>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <hr>
-                                                <!-- INSERÇÃO DE FORMA -->
-                                                <div class="row align-items-end g-2">
-                                                    <div class="col-md-4">
-                                                        <label class="form-label fw-bold">Forma Pgto</label>
-                                                        <select class="form-select forma-pgto">
-                                                            <option value="">Selecione</option>
-                                                            {% for f in formas_pgto %}
-                                                                <option value="{{ f.codigo }}" data-gera="{{ f.gera_parcelas|yesno:'1,0' }}">
-                                                                    {{ f.descricao }}
-                                                                </option>
-                                                            {% endfor %}
-                                                        </select>
-                                                    </div>
-                                                    <div class="col-md-2">
-                                                        <label class="form-label fw-bold">Valor</label>
-                                                        <input type="text" class="form-control inp-valor-pgto">
-                                                    </div>
-                                                    <div class="col-md-2 campos-parcela d-none">
-                                                        <label class="form-label fw-bold">Parcelas</label>
-                                                        <input type="number" class="form-control form-control-sm parcelasPgto">
-                                                    </div>
-                                                    <div class="col-md-2 campos-parcela d-none">
-                                                        <label class="form-label fw-bold">Dias</label>
-                                                        <input type="number" class="form-control form-control-sm diasPgto">
-                                                    </div>
-                                                    <div class="col-md-2">
-                                                        <button class="btn btn-success btn-sm w-100 btn-add-forma"><i class="fas fa-plus"></i> Adicionar</button>
-                                                    </div>
-                                                </div>
-                                                <hr>
-                                                <!-- TABELA FORMAS -->
-                                                <h6 class="fw-bold">Formas de Pagamento</h6>
-                                                <table class="table table-bordered table-striped table-formas">
-                                                    <thead class="table-dark">
-                                                        <tr>
-                                                            <th>#</th><th>Forma</th><th>Valor</th><th>Parcelas</th><th>Dias</th><th style="width:50px;">Ações</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody></tbody>
-                                                </table>
-                                                <!-- PREVIEW -->
-                                                <h6 class="fw-bold mt-3 d-none preview-title">Parcelas</h6>
-                                                <table class="table table-bordered d-none preview-table" id="previewPedido-{{ pedido.codigo }}">
-                                                    <thead class="table-dark">
-                                                        <tr>
-                                                            <th>Nº</th><th>Valor</th><th>Vencimento</th><th style="width:50px;">Ações</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody></tbody>
-                                                </table>
-                                                <div class="row">
-                                                    <div class="mt-2">
-                                                        <h5 class="fw-bold saldo-restante">Saldo Restante: R$ 0.00</h5>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <form method="post" action="{% url 'faturar-pedido' pedido.codigo %}">
-                                                    {% csrf_token %}
-                                                    <input type="hidden" name="dados_pagamento" id="dadosPagamento-{{ pedido.codigo }}">
-                                                    <input type="hidden" name="parcelas_json" id="parcelasJson-{{ pedido.codigo }}">
-                                                    <button type="submit" class="btn btn-success btn-sm btn-confirmar-pedido">Faturar</button>
-                                                    <button type="button" class="btn btn-secondary btn-sm btn-canc-fat-pedido" data-bs-dismiss="modal">Cancelar</button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal fade" id="modalPixPagamento" tabindex="-1">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content border-0 shadow-lg">
-                                            <div class="modal-header titulo-modal text-white" style="max-height: 30px;">
-                                                <h5 class="modal-title"><i class="fa-brands fa-pix"></i> Pagamento via PIX</h5>
-                                            </div>
-                                            <div class="modal-body text-center">
-                                                <!-- QR -->
-                                                <div id="pixQrContainer" class="mb-3"></div>
-                                                <!-- Status -->
-                                                <div id="statusPix" class="mt-3">
-                                                    <div class="spinner-border text-success mb-2"></div>
-                                                    <div class="fw-semibold">Aguardando pagamento...</div>
-                                                </div>
-                                                <!-- Sucesso -->
-                                                <div id="statusSucesso" class="d-none mt-3">
-                                                    <div class="check-anim">✔</div>
-                                                    <div class="fw-bold text-success">Pagamento confirmado!</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal fade" id="infoEntModal" tabindex="-1" aria-labelledby="infoEntModalLabel" aria-hidden="true">
-                                    <div class="modal-dialog modal-lg">
-                                        <div class="modal-content">
-                                            <div class="modal-header titulo-modal">
-                                                <h5 class="modal-title" id="infoEntModalLabel"></h5>
-                                            </div>
-                                            <div class="modal-body" id="infoEntBody"></div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td data-label="Nº Pedido:" class="mobile-2col" style="align-items: center;">{{ pedido.codigo }}</td>
-                            <td class="icon-cell mx-auto mobile-2col" data-label=""><i class="fa-solid fa-circle-info" id="icone-pedido" data-id="{{ pedido.codigo }}" style="cursor: pointer;" title="Detalhes do Pedido"></i></td>
-                            <td data-label="Situação:" class="mobile-2col" style="text-align: center;">
-                                {% if pedido.situacao == 'Aberto' %}
-                                    <div style="background-color: #005eff; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
-                                        <strong>{{ pedido.situacao }}</strong>
-                                    </div>
-                                {% elif pedido.situacao == 'Faturado' %}
-                                    <div style="background-color: #3CB371; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
-                                        <strong>{{ pedido.situacao }}</strong>
-                                    </div>
-                                {% else %}
-                                    <div style="background-color: #800000; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px;">
-                                        <strong>{{ pedido.situacao }}</strong>
-                                    </div>
-                                {% endif %}
-                            </td>
-                            <td data-label="Filial:" class="mobile-2col" style="align-items: center;">{{ pedido.fantasia_fil }}</td>
-                            <td data-label="Cliente:" class="mobile-2col" style="color: #36454F; font-weight: bold;">{{ pedido.nome_cli }}</td>
-                            <td data-label="Vendedor:" class="mobile-2col" style="color: #36454F; font-weight: bold;">{{ pedido.nome_vend }}</td>
-                            <td data-label="Dt. Emissão:" class="mobile-2col" style="align-items: center;">{{ pedido.dt_emi|date:"d/m/Y - H:i" }}</td>
-                            <td data-label="{% if pedido.situacao != 'Aberto' %}Dt. Fatura:{% endif %}" class="mobile-2col" style="align-items: center;">{{ pedido.dt_fat|date:"d/m/Y - H:i" }}</td>
-                            <td data-label="Vl. Total:" class="mobile-2col" style="color: #36454F; font-weight: bold;">{{ pedido.total|moeda_br }}</td>
-                            <td data-label="Formas Pgto.:" class="mobile-full" style="align-items: center; font-weight: bold;">
-                                <div style="max-height: 5em; overflow-y: auto; white-space: normal; line-height: 0.8em;">
-                                    {% if pedido.situacao != 'Aberto' %}
-                                        {% for forma in pedido.formas_convertidas %}
-                                            <div class="p-1 mb-1 bg-secondary text-light rounded-3" style="font-size: 0.8rem;">
-                                                {{ forma.descricao }} <span style="float: right;">{{ forma.valor|moeda_br }}</span>
-                                            </div>
-                                        {% endfor %}
                                     {% endif %}
                                 </div>
-                            </td>
-                        </tr>
-                    {% empty %}
-                    <tr>
-                        <td data-label="" class="mobile-full" colspan="12" class="me-auto" style="text-align: center;">
-                            Nenhum pedido encontrado.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex flex-column flex-lg-row align-items-stretch align-items-lg-center gap-2">
-                    <ul class="list-group d-flex flex-wrap flex-row gap-2 mb-0 flex-grow-1">
-                        <li class="list-group-item flex-fill text-center">
-                            Pedidos Abertos:
-                            <span class="badge rounded-pill text-bg-primary">
-                                {{ ped_ab }}
-                            </span>
-                        </li>
-                        <li class="list-group-item flex-fill text-center">
-                            Total Ped. Abertos:
-                            <span class="badge rounded-pill text-bg-primary">
-                                R$ {{ tot_ab|moeda_br }}
-                            </span>
-                        </li>
-                        <li class="list-group-item flex-fill text-center">
-                            Pedidos Faturados:
-                            <span class="badge rounded-pill text-bg-success">
-                                {{ ped_fat }}
-                            </span>
-                        </li>
-                        <li class="list-group-item flex-fill text-center">
-                            Total Ped. Faturados:
-                            <span class="badge rounded-pill text-bg-success">
-                                R$ {{ tot_fat|moeda_br }}
-                            </span>
-                        </li>
-                        <li class="list-group-item flex-fill text-center">
-                            Pedidos Cancelados:
-                            <span class="badge rounded-pill text-bg-danger">
-                                {{ ped_canc }}
-                            </span>
-                        </li>
-                        <li class="list-group-item flex-fill text-center">
-                            Total Ped. Cancelados:
-                            <span class="badge rounded-pill text-bg-danger">
-                                R$ {{ tot_canc|moeda_br }}
-                            </span>
-                        </li>
-                    </ul>
-                    <a id="add-link"
-                    href="{% url 'add-pedido' %}"
-                    class="btn-permissao"
-                    data-permissao="pedidos.add_pedido"
-                    data-msg-negado="Seu usuário não pode adicionar pedidos!">
-                        <button type="button"
-                                class="btn btn-primary w-100 w-lg-auto"
-                                id="add-pedido">
-                            <i class="fas fa-plus"></i> Novo
-                        </button>
-                    </a>
-                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary btn-sm mx-auto" data-bs-dismiss="modal">Fechar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade modal-pagamento modal-faturar-pedido" data-tipo="pedido" id="faturarModalP-{{ p.codigo }}" tabindex="-1" aria-hidden="true" data-pedido-id="{{ p.codigo }}"  data-total="{{ p.total }}" data-num-pedido="{{ p.codigo }}">
+                        <div class="modal-dialog modal-dialog-centered modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header bg-success text-white" style="max-height: 30px;">
+                                    <h5 class="modal-title"><i class="fa-solid fa-money-bill"></i> Faturar Pedido {{ p.codigo }}</h5>
+                                </div>
+                                <div class="modal-body">
+                                    <!-- CLIENTE -->
+                                    <div class="row">
+                                        <div style="flex: 1;">
+                                            <label class="form-label fw-bold">Cliente:</label>
+                                            <input class="form-control fw-bold" value="{{ p.cli }}" disabled>
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label class="form-label fw-bold">Valor Total:</label>
+                                            <input class="form-control fw-bold totalModal" value="{{ p.total|floatformat:2 }}" disabled>
+                                        </div>
+                                        <div style="width:150px;">
+                                            <label class="form-label fw-bold">Data Emissão:</label>
+                                            <input class="form-control fw-bold dt-emi-pedido"
+                                                value="{{ p.dt_emi|date:'d/m/Y' }}" disabled>
+                                        </div>
+                                        <div style="width:160px;">
+                                            <label class="form-label fw-bold">Data Faturamento:</label>
+                                            <input class="form-control fw-bold dt-fat-pedido" value="{{ p.dt_fat|date:'d/m/Y' }}" readonly>
+                                        </div>
+                                        <div style="width:45px;">
+                                            <label class="form-label">&nbsp;</label>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm btn-lib-dt-fat-ped" data-permissao="pedidos.alterar_data_faturamento"
+                                                data-msg-negado="Sem permissão para alterar data de faturamento." data-editando="0">
+                                                <i class="fa fa-pen"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <!-- INSERÇÃO DE FORMA -->
+                                    <div class="row align-items-end g-2">
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-bold">Forma Pgto</label>
+                                            <select class="form-select forma-pgto">
+                                                <option value="">Selecione</option>
+                                                {% for f in formas_pgto %}
+                                                    <option value="{{ f.codigo }}" data-gera="{{ f.gera_parcelas|yesno:'1,0' }}">
+                                                        {{ f.descricao }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label fw-bold">Valor</label>
+                                            <input type="text" class="form-control inp-valor-pgto">
+                                        </div>
+                                        <div class="col-md-2 campos-parcela d-none">
+                                            <label class="form-label fw-bold">Parcelas</label>
+                                            <input type="number" class="form-control form-control-sm parcelasPgto">
+                                        </div>
+                                        <div class="col-md-2 campos-parcela d-none">
+                                            <label class="form-label fw-bold">Dias</label>
+                                            <input type="number" class="form-control form-control-sm diasPgto">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button class="btn btn-success btn-sm w-100 btn-add-forma"><i class="fas fa-plus"></i> Adicionar</button>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <!-- TABELA FORMAS -->
+                                    <h6 class="fw-bold">Formas de Pagamento</h6>
+                                    <table class="table table-bordered table-striped table-formas">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>#</th><th>Forma</th><th>Valor</th><th>Parcelas</th><th>Dias</th><th style="width:50px;">Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                    <!-- PREVIEW -->
+                                    <h6 class="fw-bold mt-3 d-none preview-title">Parcelas</h6>
+                                    <table class="table table-bordered d-none preview-table" id="previewPedido-{{ p.codigo }}">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Nº</th><th>Valor</th><th>Vencimento</th><th style="width:50px;">Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                    <div class="row">
+                                        <div class="mt-2">
+                                            <h5 class="fw-bold saldo-restante">Saldo Restante: R$ 0.00</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post" action="{% url 'faturar-pedido' p.codigo %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="dados_pagamento" id="dadosPagamento-{{ p.codigo }}">
+                                        <input type="hidden" name="parcelas_json" id="parcelasJson-{{ p.codigo }}">
+                                        <button type="submit" class="btn btn-success btn-sm btn-confirmar-pedido">Faturar</button>
+                                        <button type="button" class="btn btn-secondary btn-sm btn-canc-fat-pedido" data-bs-dismiss="modal">Cancelar</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="modalPixPagamento" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content border-0 shadow-lg">
+                                <div class="modal-header titulo-modal text-white" style="max-height: 30px;">
+                                    <h5 class="modal-title"><i class="fa-brands fa-pix"></i> Pagamento via PIX</h5>
+                                </div>
+                                <div class="modal-body text-center">
+                                    <!-- QR -->
+                                    <div id="pixQrContainer" class="mb-3"></div>
+                                    <!-- Status -->
+                                    <div id="statusPix" class="mt-3">
+                                        <div class="spinner-border text-success mb-2"></div>
+                                        <div class="fw-semibold">Aguardando pagamento...</div>
+                                    </div>
+                                    <!-- Sucesso -->
+                                    <div id="statusSucesso" class="d-none mt-3">
+                                        <div class="check-anim">✔</div>
+                                        <div class="fw-bold text-success">Pagamento confirmado!</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="infoEntModal" tabindex="-1" aria-labelledby="infoEntModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title" id="infoEntModalLabel"></h5>
+                                </div>
+                                <div class="modal-body" id="infoEntBody"></div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="list-group-item text-center py-3 text-muted">
+                        <i class="fas fa-folder-open fs-2 d-block mb-3 opacity-50"></i> Nenhum pedido encontrado.
+                    </div>
+                {% endfor %}
             </div>
-            <div class="card-footer text-body-secondary">
-                <nav aria-label="Page navigation example" style="padding-bottom: 1px;">
-                    <ul class="pagination justify-content-center">
-                        {% if pedidos.number > 1 and pedidos.number > 3 %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="First">
-                                    <span aria-hidden="true" style="color: #0f1d2b;">1</span>
-                                </a>
-                            </li>
+            <div class="card-footer bg-white border-top p-1">
+                <div class="row align-items-center">
+                    <div class="col-md-4 text-center text-md-start d-flex justify-content-center justify-content-md-start">
+                        <ul class="list-group list-group-horizontal-sm">
+                            <li class="list-group-item"><small>Pedidos Abertos:</small> <span class="badge bg-primary ms-1">{{ ped_ab }} - R$ {{ tot_ab|moeda_br }}</span></li>
+                            <li class="list-group-item"><small>Pedidos Faturados:</small> <span class="badge bg-success ms-1">{{ ped_fat }} - R$ {{ tot_fat|moeda_br }}</span></li>
+                            <li class="list-group-item"><small>Pedidos Cancelados:</small> <span class="badge bg-danger ms-1">{{ ped_canc }} - R$ {{ tot_canc|moeda_br }}</span></li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4 mt-1 d-flex justify-content-center">
+                        {% if pedidos.paginator.num_pages > 1 %}
+                            <nav aria-label="Navegação de páginas">
+                                <ul class="pagination pagination-sm m-0 gap-1 border-0">
+                                    {% if pedidos.number > 3 %}
+                                        <li class="page-item">
+                                            <a class="page-link rounded border-0 text-dark" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">1</a>
+                                        </li>
+                                    {% endif %}
+                                    {% if pedidos.number > 4 %}
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    {% endif %}
+                                    {% for num in pedidos.paginator.page_range %}
+                                        {% if num >= pedidos.number|add:'-2' and num <= pedidos.number|add:'2' %}
+                                            {% if pedidos.number == num %}
+                                                <li class="page-item active" aria-current="page">
+                                                    <span class="page-link rounded border-0 bg-dark text-white fw-bold">{{ num }}</span>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item">
+                                                    <a class="page-link rounded border-0 text-dark" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                                                </li>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if pedidos.number < pedidos.paginator.num_pages|add:'-3' %}
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    {% endif %}
+                                    {% if pedidos.number < pedidos.paginator.num_pages and pedidos.number < pedidos.paginator.num_pages|add:'-2' %}
+                                        <li class="page-item">
+                                            <a class="page-link rounded border-0 text-dark" href="?page={{ pedidos.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ pedidos.paginator.num_pages }}</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
                         {% endif %}
-                        {% if pedidos.number > 4 %}
-                            <li class="page-item disabled">
-                                <a class="page-link">...</a>
-                            </li>
-                        {% endif %}
-                        {% for num in pedidos.paginator.page_range %}
-                            {% if num >= pedidos.number|add:'-2' and num <= pedidos.number|add:'2' %}
-                                {% if pedidos.number == num %}
-                                    <li class="page-item active" aria-current="page">
-                                        <span class="page-link" style="background-color: #0f1d2b; color: white;">{{ num }}</span>
-                                    </li>
-                                {% else %}
-                                    <li class="page-item">
-                                        <a class="page-link" style="color: #0f1d2b;" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
-                                    </li>
-                                {% endif %}
-                            {% endif %}
-                        {% endfor %}
-                        {% if pedidos.number < pedidos.paginator.num_pages|add:'-3' %}
-                            <li class="page-item disabled">
-                                <a class="page-link">...</a>
-                            </li>
-                        {% endif %}
-                        {% if pedidos.number < pedidos.paginator.num_pages and pedidos.number < pedidos.paginator.num_pages|add:'-2' %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ pedidos.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                                    <span aria-hidden="true" style="color: #0f1d2b;">{{ pedidos.paginator.num_pages }}</span>
-                                </a>
-                            </li>
-                        {% endif %}
-                    </ul>
-                </nav>
+                    </div>
+                    <div class="col-md-4 mt-1 text-center text-md-end">
+                        <a id="add-link" href="{% url 'add-pedido' %}" class="btn-permissao" data-permissao="pedidos.add_pedido" data-msg-negado="Seu usuário não pode adicionar pedidos!">
+                            <button type="button" class="btn btn-primary btn-sm px-3 shadow-sm fw-semibold" id="add-pedido">
+                                <i class="fas fa-plus me-1"></i> Novo
+                            </button>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <script>
-        function imprimirEFaturar(id) {
-            fetch(`/orcamentos/fat_orc/${id}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
-            })
-            .then(response => {
-                if (response.redirected) {
-                    window.location.href = response.url;
-                } else {
-                    const win = window.open(`/orcamentos/comprovante/${id}/`, '_blank');
-                    const selectSituacao = document.getElementById('situacao');
-                    if (selectSituacao) {
-                        selectSituacao.value = 'Todos';
-                    }
-                    const checkClose = setInterval(function () {
-                        if (win.closed) {
-                            clearInterval(checkClose);
-                            // Aciona o botão de busca ao fechar o comprovante
-                            const btnBuscar = document.getElementById('data-btn');
-                            if (btnBuscar) {
-                                btnBuscar.click();
-                            }
-                            // Exibe o Toastify só depois que o comprovante for fechado
-                            Toastify({
-                                text: "Orçamento faturado com sucesso!",
-                                duration: 10000,
-                                gravity: "top",
-                                position: "center",
-                                backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)"
-                            }).showToast();
-                        }
-                    }, 1000);
-                }
-            })
-            .catch(() => {
-                Toastify({
-                    text: "Erro ao faturar orçamento!",
-                    duration: 3000,
-                    gravity: "top",
-                    position: "center",
-                    backgroundColor: "linear-gradient(to right, #d58300, #ffc93b)"
-                }).showToast();
-            });
-        }
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let cookie of cookies) {
-                    cookie = cookie.trim();
-                    if (cookie.startsWith(name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.slice(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-    </script>
 {% endblock %}

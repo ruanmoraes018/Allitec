@@ -42,16 +42,23 @@
     <div class="row">
         <!-- ITENS -->
         <div class="col-md-8">
-            <div class="card shadow-sm">
-                <div class="card-body p-0" style="height: 500px; overflow:auto;">
-                    <table class="table table-striped mb-0">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>#</th><th>Código</th><th>Produto</th><th>Vl. Unitário</th><th>Quantidade</th><th>Vl. Total</th><th>Opções</th>
-                            </tr>
-                        </thead>
-                        <tbody id="listaItens"></tbody>
-                    </table>
+            <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+                <div class="list-group" style="height: 500px; overflow:auto;">
+                    <!-- Cabeçalho -->
+                    <div class="list-group-item bg-light fw-bold cabecalho-lista">
+                        <div class="row align-items-center">
+                            <div class="col-md-1 text-center border-end">#</div>
+                            <div class="col-md-2 text-center border-end">Código</div>
+                            <div class="col-md-3 border-end">Produto</div>
+                            <div class="col-md-1 border-end" style="font-size: 0.91rem;">Vl. Unit.</div>
+                            <div class="col-md-1 border-end">Qtde.</div>
+                            <div class="col-md-2 border-end">Vl. Total</div>
+                            <div class="col-md-2">Ações</div>
+                        </div>
+                    </div>
+                    <div class="list-group-item py-1 item-lista">
+                        <div class="row align-items-center linha-lista" id="listaItens"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -102,10 +109,18 @@
                             data-acao="atribuir_acrescimo_ped" data-msg-negado="Seu usuário não pode aplicar acréscimos em Caixas!">
                             <i class="fa-solid fa-brazilian-real-sign"></i> Aplicar Acréscimo
                         </button>
+                        <button 
+                            class="btn btn-light w-100 text-start menu-opcao op-faturar border border-secondary" data-bs-toggle="modal" data-bs-target="#modalEntrada" type="button">
+                            <i class="fa-solid fa-circle-plus"></i> Realizar Entrada
+                        </button>
+                        <button 
+                            class="btn btn-light w-100 text-start menu-opcao op-cancelar border border-secondary" data-bs-toggle="modal" data-bs-target="#modalSaida" type="button">
+                            <i class="fa-solid fa-circle-minus"></i> Realizar Saída
+                        </button>
                         <button class="btn btn-light w-100 text-start menu-caixa border border-secondary btnMovi" style="color: #ff8800;" data-caixa-id="{{ caixa.codigo }}" data-bs-target="#modalMovCaixa" data-bs-toggle="modal">
                             <i class="fa-solid fa-arrows-turn-to-dots"></i> Movimentação
                         </button>
-                        <button class="btn btn-light w-100 text-start menu-opcao op-faturar border border-secondary" data-bs-target="#mdDadosVenda" data-bs-toggle="modal">
+                        <button class="btn btn-light w-100 text-start menu-opcao op-detalhe border border-secondary" data-bs-target="#mdDadosVenda" data-bs-toggle="modal">
                             <i class="fa-solid fa-circle-plus"></i> Fechar Caixa
                         </button>
                     </div>
@@ -256,20 +271,19 @@
             </div>
         </div>
         <div class="modal modal-pagamento" data-tipo="caixa" data-id="0" data-total="0" data-forma-padrao-id="{{ forma_padrao.codigo }}" data-forma-padrao-text="{{ forma_padrao.descricao }}">
-                    <div class="modal-header bg-success text-white" style="max-height: 30px;">
-                        <h5><i class="fa-solid fa-money-bill" style="font-size: 16px;"></i> Finalizar Venda</h5>
-                    </div>
-                    <div class="modal-body">
-                        <div class="row">
-                            <div style="flex: 1;">
-                                <label class="form-label fw-bold">Cliente:</label>
-                                <input class="form-control fw-bold vendaCliente" disabled>
-                            </div>
-                            <!-- TOTAL -->
-                            <div class="col-md-2">
-                                <label class="form-label fw-bold">Total Venda:</label>
-                                <input class="form-control fw-bold totalModal" disabled>
-                            </div>
+                <div class="modal-header bg-success text-white" style="max-height: 30px;">
+                    <h5><i class="fa-solid fa-money-bill" style="font-size: 16px;"></i> Finalizar Venda</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div style="flex: 1;">
+                            <label class="form-label fw-bold">Cliente:</label>
+                            <input class="form-control fw-bold vendaCliente" disabled>
+                        </div>
+                        <!-- TOTAL -->
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold">Total Venda:</label>
+                            <input class="form-control fw-bold totalModal" disabled>
                         </div>
                         <!-- ADD FORMA -->
                         <div class="row g-2 align-items-end">
@@ -365,6 +379,125 @@
             </div>
         </div>
     </div>
+    <!-- Modal Entrada -->
+    <div class="modal fade" id="modalEntrada" tabindex="-1" aria-labelledby="modalEntradaLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+
+                <div class="modal-header titulo-modal">
+                    <h5 class="modal-title" id="modalEntradaLabel">
+                        <i class="fa-solid fa-circle-plus"></i>
+                        Realizar Entrada
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <form id="formEntrada" action="{% url 'realizar_entrada_caixa' caixa.codigo %}">
+                    {% csrf_token %}
+
+                    <div class="modal-body">
+
+                        <div class="mb-2">
+                            <label class="form-label fw-bold">
+                                Forma de Pagamento
+                            </label>
+                            <select class="form-select" id="forma_entrada" name="forma_pagamento_entrada" required>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                Valor
+                            </label>
+                            <input type="text"
+                                class="form-control"
+                                name="valor"
+                                id="vl_entrada"
+                                required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                Descrição
+                            </label>
+                            <textarea class="form-control"
+                                    rows="3"
+                                    name="descricao"
+                                    placeholder="Informe o motivo da entrada"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-success">
+                            <i class="fa-solid fa-check"></i> Confirmar Entrada
+                        </button>
+                        <button class="btn btn-secondary" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <iframe id="frameImpressao" style="display:none;"></iframe>
+    <!-- Modal Saída -->
+    <div class="modal fade" id="modalSaida" tabindex="-1" aria-labelledby="modalSaidaLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+
+                <div class="modal-header titulo-modal">
+                    <h5 class="modal-title" id="modalSaidaLabel">
+                        <i class="fa-solid fa-circle-minus"></i>
+                        Realizar Saída
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <form id="formSaida" action="{% url 'realizar_saida_caixa' caixa.codigo %}">
+                    {% csrf_token %}
+
+                    <div class="modal-body">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                Forma de Pagamento
+                            </label>
+                            <select class="form-select" id="id_formas_pgto" name="forma_pagamento_saida" required>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                Valor
+                            </label>
+                            <input type="text"
+                                class="form-control"
+                                name="valor"
+                                id="vl_saida"
+                                required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                Motivo da Saída
+                            </label>
+                            <textarea class="form-control"
+                                    rows="3"
+                                    name="descricao"
+                                    placeholder="Informe o motivo da saída"
+                                    required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-danger">
+                            <i class="fa-solid fa-check"></i> Confirmar Saída
+                        </button>
+                        <button class="btn btn-secondary" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <iframe id="frameImpressaoSaida" style="display:none;"></iframe>
     <div class="modal fade" id="modalDesconto" tabindex="-1">
         <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content">

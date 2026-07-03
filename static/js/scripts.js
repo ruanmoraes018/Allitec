@@ -14,6 +14,9 @@ $(document).ready(function() {
             $('#id_password').prop('readonly', !this.checked).prop('checked');
         }, 0);
     });
+    $('[id^="colCancelar"]').on('shown.bs.collapse', function () {
+        $(this).find('[id^="motivoCancelamento"]').val('').focus();
+    });
     let REGRAS = {};
     let DADOS_FILIAL = {};
     $('#id_logo').on('change', function () {
@@ -318,6 +321,30 @@ $(document).ready(function() {
             $(this).trigger('blur');
         }
     });
+    let adicionandoPorEnter = false;
+
+    $('#id_cod_produtoCaixa').on('keydown', function(e){
+        if(e.key === 'Enter'){
+            adicionandoPorEnter = true;
+        }
+    });
+
+    $('#id_cod_produtoCaixa').on('blur', function(){
+
+        if(adicionandoPorEnter){
+            adicionandoPorEnter = false;
+            return;
+        }
+
+        setTimeout(() => {
+            let produto = $('#id_cod_produtoCaixa').val();
+            let desc = $('#id_desc_prodCaixa').val();
+
+            if(produto && desc){
+                $('#btnAddProduto').click();
+            }
+        }, 200);
+    });
     /* ADD ITEM */
     $('#btnAddProduto').click(function () {
         let item = {
@@ -369,7 +396,7 @@ $(document).ready(function() {
             if (semItens) {
                 e.preventDefault();
                 e.stopImmediatePropagation();
-                toast(`${ic_amarelo} Adicione produtos para aplicar desconto ou acréscimo!`, cor_amarelo);
+                toast(`Adicione produtos para aplicar desconto ou acréscimo!`, "yellow");
                 $('#listaItens').addClass('border border-warning');
                 setTimeout(() => {
                     $('#listaItens').removeClass('border border-warning');
@@ -495,7 +522,7 @@ $(document).ready(function() {
         if (dadoTbPrec && dadoTbPrec != tabelaAntiga) {
             atualizarPrecosItens();
         }
-        toast(`${ic_verde} Dados da venda atualizados!`, cor_verde);
+        toast(`Dados da venda atualizados!`, "green");
         $('#mdDadosVenda').modal('hide');
         atualizarResumoVenda();
         fecharLoading();
@@ -532,7 +559,7 @@ $(document).ready(function() {
                 item.total = item.qtd * item.preco;
             });
             renderItens();
-            toast(`${ic_verde} Preços atualizados pela tabela`, cor_verde);
+            toast(`Preços atualizados pela tabela`, "green");
             fecharLoading();
         });
     }
@@ -543,39 +570,36 @@ $(document).ready(function() {
 
         if (itens.length === 0) {
             html = `
-                <tr>
-                    <td colspan="7" class="text-center text-muted fw-bold" style="height: 200px; font-size: 60px;">
-                        <span style="color: green;">CAIXA LIVRE</span>
-                    </td>
-                </tr>
+                <div class="col-12 fw-bold text-center text-success descricao-col">
+                    <h1><strong>CAIXA LIVRE</strong></h1>
+                </div>
             `;
         } else {
             itens.forEach((i, index) => {
                 total += i.total;
 
                 html += `
-                    <tr>
-                        <td>${index + 1}</td>
-                        <td>${i.produto_id}</td>
-                        <td>${i.desc}</td>
-                        <td>${formatBR(i.preco)}</td>
-                        <td>${formatBR(i.qtd)}</td>
-                        <td>
-                            ${formatBR(i.total)}
-                            ${i.ajuste ? `<br>
-                                <small style="color:${i.ajuste < 0 ? 'red' : 'green'}">
-                                    (${i.ajuste < 0 ? '-' : '+'} ${formatBR(Math.abs(i.ajuste))})
-                                </small>` : ''}
-                        </td>
-                        <td>
-                            <button class="editarItem btn btn-success btn-sm" data-index="${index}">
-                                <i class="fa-solid fa-pen-to-square"></i>
-                            </button>
-                            <button class="btn-remover btn btn-danger btn-sm" data-index="${index}">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
+                    <div class="col-md-1 fw-bold codigo-col">${index + 1}</div>
+                    <div class="col-md-2 fw-bold codigo-col">${i.produto_id}</div>
+                    <div class="col-md-3 fw-bold descricao-col">${i.desc}</div>
+                    <div class="col-md-1 fw-bold codigo-col" style="font-size: 0.91rem;">${formatBR(i.preco)}</div>
+                    <div class="col-md-1 fw-bold codigo-col">${formatBR(i.qtd)}</div>
+                    <div class="col-md-2 fw-bold codigo-col">
+                        ${formatBR(i.total)}
+                        ${i.ajuste ? `
+                            <br>
+                            <small style="color:${i.ajuste < 0 ? 'red' : 'green'}">
+                                (${i.ajuste < 0 ? '-' : '+'} ${formatBR(Math.abs(i.ajuste))})
+                            </small>` : ''}
+                    </div>
+                    <div class="col-sm-2 fw-bold acoes-col">
+                        <button class="editarItem btn btn-light border" data-index="${index}">
+                            <i class="fa-solid fa-pen-to-square text-success"></i>
+                        </button>
+                        <button class="btn-remover btn btn-light border" data-index="${index}">
+                            <i class="fa-solid fa-trash text-danger"></i>
+                        </button>
+                    </div>
                 `;
             });
         }
@@ -639,7 +663,7 @@ $(document).ready(function() {
         let qtd = parseBR($('#id_quantidadeEd').val());
         let preco = parseBR($('#id_preco_unitEd').val());
         if (qtd <= 0) {
-            toast(`${ic_amarelo} Quantidade inválida!`, cor_amarelo);
+            toast(`Quantidade inválida!`, "yellow");
             return;
         }
         // 🔥 atualiza item
@@ -654,8 +678,8 @@ $(document).ready(function() {
         // 🔥 fecha modal
         $('#edProdModalItem').modal('hide');
         // 🔥 limpa índice
+        toast(`Item ${editIndex + 1} atualizado!`, "green");
         editIndex = null;
-        toast(`${ic_verde} Item atualizado!`, cor_verde);
     });
     /* LIMPAR CAMPOS AO FECHAR MODAL */
     $('#edProdModalItem').on('hidden.bs.modal', function () {
@@ -682,7 +706,7 @@ $(document).ready(function() {
     }
     $("#finalizarVendaBtn").click(function () {
         if (itens.length === 0) {
-            toast(`${ic_amarelo} Adicione ao menos um item para finalizar a venda!`, cor_amarelo);
+            toast(`Adicione ao menos um item para finalizar a venda!`, "yellow");
             return;
         }
         iniciarLoading();
@@ -745,7 +769,7 @@ $(document).ready(function() {
             .then(resp => {
 
                 if (resp.erro) {
-                    toast(`${ic_vermelho} ${resp.erro}`, cor_vermelho);
+                    toast(`${resp.erro}`, "red");
                     return;
                 }
 
@@ -847,22 +871,22 @@ $(document).ready(function() {
                 });
 
                 // 🔹 SAÍDAS
-                resp.saidas.forEach(s => {
+                resp.saidas.forEach(sai => {
                     $('#tblSaidas').append(`
                         <tr>
-                            <td>${s.descricao}</td>
-                            <td>${s.forma}</td>
-                            <td class="text-end text-danger">${formatBR(s.valor)}</td>
+                            <td>${sai.descricao}</td>
+                            <td>${sai.forma}</td>
+                            <td class="text-end text-danger">${formatBR(sai.valor)}</td>
                         </tr>
                     `);
                 });
 
                 // 🔹 RESUMO SAÍDAS
-                resp.resumo_saidas.forEach(r => {
+                resp.resumo_saidas.forEach(res => {
                     $('#tblResumoSaidas').append(`
                         <tr>
-                            <td>${r.forma}</td>
-                            <td class="text-end text-danger">${formatBR(r.total)}</td>
+                            <td>${res.forma}</td>
+                            <td class="text-end text-danger">${formatBR(res.total)}</td>
                         </tr>
                     `);
                 });
@@ -883,34 +907,61 @@ $(document).ready(function() {
         const caixaId = $(this).data('caixa-id');
 
         if (!caixaId) {
-            toast('ID do caixa não encontrado!', 'warning');
+            toast('ID do caixa não encontrado!', 'yellow');
             return;
         }
 
         abrirMovCaixa(caixaId);
     });
-    // Função do Toastify
-    let cor_verde = "linear-gradient(to right, #00b09b, #96c93d)";
-    let cor_vermelho = "linear-gradient(to right, #ff416c, #ff4b2b)";
-    let cor_amarelo = "linear-gradient(to right, #ff9f00, #ff6f00)";
-    let cor_info = "linear-gradient(to right, #02202B, #017AB1)";
-    let cor_padrao = "linear-gradient(to right, #333, #555)";
-    // Ícones do Toast
-    let ic_verde = "<i class='fa-solid fa-circle-check'></i>";
-    let ic_vermelho = "<i class='fa-solid fa-circle-xmark' style='float: none; color: white; margin: 0;'></i>";
-    let ic_amarelo = "<i class='fa-solid fa-triangle-exclamation'></i>";
-    let ic_info = "<i class='fa-solid fa-circle-exclamation'></i>";
-    let ic_padrao = "<i class='fa-solid fa-hourglass-end'></i>";
-    function toast(msg, cor="#333") {
-        Toastify({text: msg, duration: 5000, gravity: "top", position: "center", style:{background: cor}, stopOnFocus: true, escapeMarkup: false,
-            onClick: function () {
-                let toastElements = document.querySelectorAll(".toastify");
-                toastElements.forEach(el => {
-                    el.style.transition = "opacity 0.5s ease-out";
+    // Configuração dos tipos de toast
+    const TOASTS = {
+        green: {
+            cor: "linear-gradient(to right, #00b09b, #96c93d)",
+            icone: "<i class='fa-solid fa-circle-check'></i>"
+        },
+        red: {
+            cor: "linear-gradient(to right, #ff416c, #ff4b2b)",
+            icone: "<i class='fa-solid fa-circle-xmark'></i>"
+        },
+        yellow: {
+            cor: "linear-gradient(to right, #ff9f00, #ff6f00)",
+            icone: "<i class='fa-solid fa-triangle-exclamation'></i>"
+        },
+        info: {
+            cor: "linear-gradient(to right, #02202B, #017AB1)",
+            icone: "<i class='fa-solid fa-circle-exclamation'></i>"
+        },
+        default: {
+            cor: "linear-gradient(to right, #333, #555)",
+            icone: "<i class='fa-solid fa-hourglass-end'></i>"
+        }
+    };
+
+    function toast(texto, tipo = "default") {
+        const toastCfg = TOASTS[tipo] || TOASTS.default;
+
+        Toastify({
+            text: `
+                <span style="display:flex;align-items:center;gap:8px;">
+                    ${toastCfg.icone}
+                    ${texto}
+                </span>
+            `,
+            duration: 5000,
+            gravity: "top",
+            position: "center",
+            style: {
+                background: toastCfg.cor
+            },
+            stopOnFocus: true,
+            escapeMarkup: false,
+            onClick() {
+                document.querySelectorAll(".toastify").forEach(el => {
+                    el.style.transition = "opacity .5s";
                     el.style.opacity = "0";
                     setTimeout(() => el.remove(), 500);
                 });
-            },
+            }
         }).showToast();
     }
     $(document).on('submit', '.form-excluir', function(e){
@@ -978,7 +1029,7 @@ $(document).ready(function() {
             url: "/orcamentos/alterar-status/", method: "POST", data: {id: id, status: novoStatus, csrfmiddlewaretoken: $("input[name=csrfmiddlewaretoken]").val()},
             success: function () {
                 iniciarLoading();
-                toast(`${ic_verde} Status atualizado com sucesso!`, cor_verde);
+                toast(`Status atualizado com sucesso!`, "green");
                 $select.prop("disabled", true);
                 $(`#cancel-status-${id}`).hide();
                 const bsModal = bootstrap.Modal.getInstance(document.getElementById(`modalConfirmacaoStatus${id}`));
@@ -989,7 +1040,7 @@ $(document).ready(function() {
                     window.location.href = `/orcamentos/lista/?s=${id}&sit=Faturado`;
                 }, 1500);
             },
-            error: function () {toast(`${ic_vermelho} Erro ao atualizar o status!`, cor_vermelho);}
+            error: function () {toast(`Erro ao atualizar o status!`, "red");}
         });
     });
     $(function () {$('[data-bs-toggle="tooltip"]').each(function () {new bootstrap.Tooltip(this);});});
@@ -1129,7 +1180,7 @@ $(document).ready(function() {
     $('#add-linha').on('click', function () {
         const tipo = $('#id_tipo_regra').val();
         if (!tipo) {
-            toast(`${ic_amarelo} Selecione o tipo primeiro!`, cor_amarelo);
+            toast(`Selecione o tipo primeiro!`, "yellow");
             return;
         }
         const $linha = $(novaLinha(tipo));
@@ -1227,7 +1278,7 @@ $(document).ready(function() {
         const checkboxesMarcados = $('.task-checkbox:checked');
         if (checkboxesMarcados.length === 0) {
             e.preventDefault(); // impede o modal de abrir
-            toast(`${ic_amarelo} Selecione ao menos um produto antes de continuar!`, cor_amarelo);
+            toast(`Selecione ao menos um produto antes de continuar!`, "yellow");
             return;
         }
         $('#attTbPrecModal').modal('show');
@@ -1428,9 +1479,9 @@ $(document).ready(function() {
             const formaTxt = select.find('option:selected').text();
             const valor = parseBR(valorInput.val());
             const restante = atualizarRestante(modal);
-            if (!formaId) return toast('Selecione uma forma!', cor_amarelo);
-            if (valor <= 0) return toast('Valor inválido!', cor_amarelo);
-            if (valor > restante) return toast('Valor maior que restante!', cor_amarelo);
+            if (!formaId) return toast('Selecione uma forma!', "yellow");
+            if (valor <= 0) return toast('Valor inválido!', "yellow");
+            if (valor > restante) return toast('Valor maior que restante!', "yellow");
             const gateway = select.data('gateway') || 'nenhum';
             const credencial = JSON.stringify(select.data('credencial') || {});
             tbody.append(`
@@ -1497,7 +1548,7 @@ $(document).ready(function() {
                     },
                     success: function (resp) {
                         if (resp.erro) {
-                            toast(resp.erro, cor_vermelho);
+                            toast(resp.erro, "red");
                             return;
                         }
                         fecharLoading();
@@ -1545,7 +1596,7 @@ $(document).ready(function() {
             `);
             $(document).off('click.copiarPix').on('click.copiarPix', '.btn-copiar', function () {
                 navigator.clipboard.writeText($(this).data('code'));
-                toast('Código PIX copiado!', cor_verde);
+                toast('Código PIX copiado!', "green");
             });
             const modalPix = new bootstrap.Modal(document.getElementById('modalPixPagamento'));
             modalPix.show();
@@ -1566,7 +1617,7 @@ $(document).ready(function() {
                                 <p class="text-muted mb-0">Finalizando baixa...</p>
                             </div>
                         `);
-                        toast(`${ic_verde} ${mensagem}`, cor_verde);
+                        toast(`${mensagem}`, "green");
                         setTimeout(() => {
                             modalPix.hide();
                             iniciarLoading();
@@ -1629,7 +1680,7 @@ $(document).ready(function() {
                 e.preventDefault();
                 const novoValorRaw = $input.val().trim();
                 if (novoValorRaw === "") {
-                    toast(`${ic_amarelo} Campo (Frete) é obrigatório!`, cor_amarelo);
+                    toast(`Campo (Frete) é obrigatório!`, "yellow");
                     $input.focus();
                     return;
                 }
@@ -1692,7 +1743,7 @@ $(document).ready(function() {
                 e.preventDefault();
                 const novoValorRaw = $input.val().trim();
                 if (novoValorRaw === "") {
-                    toast(`${ic_amarelo} Campo (Frete) é obrigatório!`, cor_amarelo);
+                    toast(`Campo (Frete) é obrigatório!`, "yellow");
                     $input.focus();
                     return;
                 }
@@ -1749,7 +1800,7 @@ $(document).ready(function() {
     let ident = 0;
     $("#add-cod-sec-tab").click(function () {
         let cod = $('#cod-sec').val();
-        if (cod === "") {toast(`${ic_amarelo} Código deve ser informado!`, cor_amarelo);}
+        if (cod === "") {toast(`Código deve ser informado!`, "yellow");}
         else {
             let idx = ident++;
             let codigoJaExiste = false;
@@ -1759,7 +1810,7 @@ $(document).ready(function() {
                     return false; // sai do each
                 }
             });
-            if (codigoJaExiste) {toast(`${ic_amarelo} O código "${cod}" já está incluso na listagem!`, cor_amarelo);}
+            if (codigoJaExiste) {toast(`O código "${cod}" já está incluso na listagem!`, "yellow");}
             else {
                 $("#tb-cod-sec tbody").append(`
                     <tr data-id="${idx}">
@@ -1835,7 +1886,7 @@ $(document).ready(function() {
                     let calc = precoCompra * (1 + response.margem / 100);
                     $('#id_vl_tab').val(formatInputBR(calc));
                 }
-            }, error: function() {toast(`${ic_vermelho} Erro ao buscar a tabela de preço!`, cor_vermelho);}
+            }, error: function() {toast(`Erro ao buscar a tabela de preço!`, "red");}
         });
     });
     $('#tb-prec').on('change', function () {
@@ -1852,7 +1903,7 @@ $(document).ready(function() {
                     let calc = precoCompra * (1 + response.margem / 100);
                     $('#id_vl_tab').val(formatInputBR(calc));
                 }
-            }, error: function() {toast(`${ic_vermelho} Erro ao buscar a tabela de preço!`, cor_vermelho);}
+            }, error: function() {toast(`Erro ao buscar a tabela de preço!`, "red");}
         });
     });
     let bloqueioEnt = false;
@@ -1907,7 +1958,7 @@ $(document).ready(function() {
                     $('#id_vl_tabEnt').val(formatInputBR(valorVenda));
                 }
             },
-            error: function () {toast(`${ic_vermelho} Erro ao buscar a tabela de preço!`, cor_vermelho);}
+            error: function () {toast(`Erro ao buscar a tabela de preço!`, "red");}
         });
     });
     // ======= ADD / EDIT / REMOVE =======
@@ -1924,11 +1975,11 @@ $(document).ready(function() {
         let mrg = $("#id_margem").val();
         let vl_p = $("#id_vl_tab").val();
         if (!tabId) {
-            toast(`${ic_amarelo} Selecione uma tabela antes de adicionar!`, cor_amarelo);
+            toast(`Selecione uma tabela antes de adicionar!`, "yellow");
             return;
         }
         if (vl_p === "0,00" || vl_p === "" || vl_p === "0") {
-            toast(`${ic_amarelo} Preço de Venda deve ser informado!`, cor_amarelo);
+            toast(`Preço de Venda deve ser informado!`, "yellow");
             return;
         }
         if (trEdit) {
@@ -1949,7 +2000,7 @@ $(document).ready(function() {
                     return false;
                 }
             });
-            if (tabelaJaExiste) {toast(`${ic_amarelo} Tabela "${tabNome}" já está inclusa na listagem!`, cor_amarelo);}
+            if (tabelaJaExiste) {toast(`Tabela "${tabNome}" já está inclusa na listagem!`, "yellow");}
             else {
                 $("#tab-prec tbody").append(`
                     <tr data-id="${idx}">
@@ -2037,11 +2088,11 @@ $(document).ready(function() {
         let mrg = parseBR($("#id_margem").val() || "0");
         let vl_p = parseBR($("#id_vl_tabEnt").val() || "0");
         if (!tabId) {
-            toast(`${ic_amarelo} Selecione uma tabela antes de adicionar!`, cor_amarelo);
+            toast(`Selecione uma tabela antes de adicionar!`, "yellow");
             return;
         }
         if (vl_p === "0,00" || vl_p === "" || vl_p === "0") {
-            toast(`${ic_amarelo} Preço de Venda deve ser informado!`, cor_amarelo);
+            toast(`Preço de Venda deve ser informado!`, "yellow");
             return;
         }
         if (trEditTabEnt !== null) {
@@ -2050,7 +2101,7 @@ $(document).ready(function() {
         } else {
             let tabelaJaExiste = tabelasEntTmp.some(t => String(t.tabela_id) === String(tabId));
             if (tabelaJaExiste) {
-                toast(`${ic_amarelo} Tabela "${tabNome}" já está inclusa na listagem!`, cor_amarelo);
+                toast(`Tabela "${tabNome}" já está inclusa na listagem!`, "yellow");
                 return;
             }
             tabelasEntTmp.push({tabela_id: tabId, tabela_nome: tabNome, margem: parseBR(mrg || 0), valor: parseBR(vl_p || 0)});
@@ -2134,22 +2185,22 @@ $(document).ready(function() {
         let dsctNum = parseBR(dsct);
         let total = ((precoNum * qtdNum) - dsctNum);
         if (!cod) {
-            toast(`${ic_amarelo} Informe o código do produto!`, cor_amarelo);
+            toast(`Informe o código do produto!`, "yellow");
             return;
         }
         if (precoNum <= 0) {
-            toast(`${ic_amarelo} Preço Unitário deve ser informado!`, cor_amarelo);
+            toast(`Preço Unitário deve ser informado!`, "yellow");
             return;
         }
         if (qtdNum <= 0) {
-            toast(`${ic_amarelo} Quantidade deve ser informada!`, cor_amarelo);
+            toast(`Quantidade deve ser informada!`, "yellow");
             return;
         }
         try {
             await salvarTabelasProdutoAjax(cod, tabelasEntTmp);
         } catch (xhr) {
             let msg = xhr.responseJSON?.msg || "Erro ao salvar tabelas no produto.";
-            toast(`${ic_vermelho} ${msg}`, cor_vermelho);
+            toast(`${msg}`, "red");
             return;
         }
         let resumoTabelas = montarResumoTabelasEnt(tabelasEntTmp);
@@ -2176,7 +2227,7 @@ $(document).ready(function() {
                 }
             });
             if (codigoJaExiste) {
-                toast(`${ic_amarelo} O código "${cod}" já está incluso na listagem!`, cor_amarelo);
+                toast(`O código "${cod}" já está incluso na listagem!`, "yellow");
                 return;
             }
             $("#tabela-produtos tbody").append(`
@@ -2216,7 +2267,7 @@ $(document).ready(function() {
         trEditTabEnt = null;
         renderTabelasEntModal();
         $('#edProdModal').modal('hide');
-        toast(`${ic_verde} Registro salvo com sucesso!`, cor_verde);
+        toast(`Registro salvo com sucesso!`, "green");
     });
     $("#cancelar-produto-lista").click(function () {
         trEditando = null;
@@ -2270,7 +2321,7 @@ $(document).ready(function() {
             $("#id_marcaProd").val("");
             $("#id_grupoProd").val("");
             tabelasEntTmp = [];
-            toast(`${ic_vermelho} ${e.message}`, cor_vermelho);
+            toast(`${e.message}`, "red");
         }
         renderTabelasEntModal();
         resetBtnTabEnt();
@@ -2330,15 +2381,15 @@ $(document).ready(function() {
         }
         // 🔴 VALIDAÇÕES
         if (!cod) {
-            toast(`${ic_amarelo} Informe o código do produto!`, cor_amarelo);
+            toast(`Informe o código do produto!`, "yellow");
             return;
         }
         if (precoNum <= 0) {
-            toast(`${ic_amarelo} Preço Unitário deve ser informado!`, cor_amarelo);
+            toast(`Preço Unitário deve ser informado!`, "yellow");
             return;
         }
         if (qtdNum <= 0) {
-            toast(`${ic_amarelo} Quantidade deve ser informada!`, cor_amarelo);
+            toast(`Quantidade deve ser informada!`, "yellow");
             return;
         }
         // ✏️ EDITAR
@@ -2375,7 +2426,7 @@ $(document).ready(function() {
                 }
             });
             if (codigoJaExiste) {
-                toast(`${ic_amarelo} O código "${cod}" já está incluso na listagem!`, cor_amarelo);
+                toast(`O código "${cod}" já está incluso na listagem!`, "yellow");
                 return;
             }
             $("#tabela-produtos tbody").append(`
@@ -2406,7 +2457,7 @@ $(document).ready(function() {
                     </td>
                 </tr>
             `);
-            toast(`${ic_verde} Produto inserido com sucesso!`, cor_verde);
+            toast(`Produto inserido com sucesso!`, "green");
         }
         // 🔄 RESET
         calcTotalPedido();
@@ -2468,7 +2519,7 @@ $(document).ready(function() {
             $("#id_unidProdutoP").val("");
             $("#id_marcaProdP").val("");
             $("#id_grupoProdP").val("");
-            toast(`${ic_vermelho} ${e.message}`, cor_vermelho);
+            toast(`${e.message}`, "red");
         }
         setTimeout(() => $('#edProdModalP').modal('show'), 200);
     });
@@ -2528,7 +2579,7 @@ $(document).ready(function() {
         let operacao = $('#operacao').val(); // desconto | acrescimo
         let valor = parseBR($('#campo_desconto').val()) || 0;
         if (valor < 0) {
-            toast(`${ic_amarelo} Informe um valor válido!`, cor_amarelo);
+            toast(`Informe um valor válido!`, "yellow");
             return;
         }
         let totalBase = 0;
@@ -2601,7 +2652,7 @@ $(document).ready(function() {
         // 🔄 RECALCULA TOTAL
         calcTotalPedido();
         $('#modalDesconto').modal('hide');
-        toast(`${ic_verde} ${operacao === "desconto" ? "Desconto" : "Acréscimo"} aplicado com sucesso!`, cor_verde);
+        toast(`${operacao === "desconto" ? "Desconto" : "Acréscimo"} aplicado com sucesso!`, "green");
     });
     function getCookie(name) {
         let cookieValue = null;
@@ -2666,13 +2717,13 @@ $(document).ready(function() {
                         fecharLoading();
                         if (focoFinal) $(focoFinal).focus();
                     } else {
-                        toast(`${ic_amarelo} Código de produto não encontrado!`, cor_amarelo);
+                        toast(`Código de produto não encontrado!`, "yellow");
                         $(desc + ',' + marca + ',' + unid + ',' + grupo + ',' + preco).val('');
                         fecharLoading();
                     }
                 },
                 error: function () {
-                    toast(`${ic_vermelho} Erro ao buscar o produto. Tente novamente!`, cor_vermelho);
+                    toast(`Erro ao buscar o produto. Tente novamente!`, "red");
                     $(desc + ',' + marca + ',' + unid + ',' + grupo + ',' + preco).val('');
                     fecharLoading();
                 }
@@ -2729,12 +2780,12 @@ $(document).ready(function() {
                         }
                         if (focoFinal) $(focoFinal).focus();
                     } else {
-                        toast(`${ic_amarelo} Código de produto não encontrado!`, cor_amarelo);
+                        toast(`Código de produto não encontrado!`, "yellow");
                         $(desc + ',' + marca + ',' + unid + ',' + grupo + ',' + preco).val('');
                     }
                 },
                 error: function () {
-                    toast(`${ic_vermelho} Erro ao buscar o produto. Tente novamente!`, cor_vermelho);
+                    toast(`Erro ao buscar o produto. Tente novamente!`, "red");
                     $(desc + ',' + marca + ',' + unid + ',' + grupo + ',' + preco).val('');
                 }
             });
@@ -2878,7 +2929,7 @@ $(document).ready(function() {
             url: '/entradas/ler_xml/', method: 'POST', data: formData, processData: false, contentType: false,
             success: function (resp) {
                 if (!resp.ok) {
-                    toast(`${ic_vermelho} ${resp.erro ? resp.erro : 'Erro ao ler XML.'}`, cor_vermelho);
+                    toast(`${resp.erro ? resp.erro : 'Erro ao ler XML.'}`, "red");
                     return;
                 }
                 montarModalXml(resp);
@@ -2887,7 +2938,7 @@ $(document).ready(function() {
                 fecharLoading();
             },
             error: function (xhr) {
-                toast(`${ic_vermelho} ${xhr.responseJSON?.erro ? xhr.responseJSON?.erro : 'Erro ao ler XML.'}`, cor_vermelho);
+                toast(`${xhr.responseJSON?.erro ? xhr.responseJSON?.erro : 'Erro ao ler XML.'}`, "red");
                 $('#input-xml').val('');
                 fecharLoading();
             }
@@ -3042,7 +3093,7 @@ $(document).ready(function() {
     $(document).on('click', '#mdAttTbPreco', function () {
         const produtos = getProdutosSelecionados();
         if (!produtos.length) {
-            toast("Selecione pelo menos um produto!", cor_amarelo);
+            console.warn("Selecione pelo menos um produto!");
             return;
         }
         $('#campo_1').val('0,00');
@@ -3059,22 +3110,22 @@ $(document).ready(function() {
         e.preventDefault();
         const produtos = getProdutosSelecionados();
         if (!produtos.length) {
-            toast("Selecione pelo menos um produto!", cor_amarelo);
+            toast("Selecione pelo menos um produto!", "yellow");
             return;
         }
         const tipo = $('#tp-atrib').val();
         const campo1 = parseBR($('#campo_1').val());
         const campo2 = parseBR($('#campo_2').val());
         if (!$('#tb-prec').val()) {
-            toast("Selecione uma tabela de preço!", cor_amarelo);
+            toast("Selecione uma tabela de preço!", "yellow");
             return;
         }
         if (tipo === '0' && campo1 <= 0) {
-            toast("Informe uma margem válida!", cor_amarelo);
+            toast("Informe uma margem válida!", "yellow");
             return;
         }
         if (tipo === '1' && campo2 <= 0) {
-            toast("Informe um valor válido!", cor_amarelo);
+            toast("Informe um valor válido!", "yellow");
             return;
         }
         const payload = {tabela_id: $('#tb-prec').val(), tipo, campo_1: campo1, campo_2: campo2, produtos: produtos.map(p => ({id: p.codigo, base_calculo: p.base_calculo}))};
@@ -3083,7 +3134,7 @@ $(document).ready(function() {
             const resp = await fetch('/produtos/att-tb-preco-lt/', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()}, body: JSON.stringify(payload)});
             const data = await resp.json();
             if (!data.ok) {
-                toast(data.msg || 'Erro ao atualizar tabela.', cor_vermelho);
+                toast(data.msg || 'Erro ao atualizar tabela.', "red");
                 return;
             }
             produtos.forEach(p => {
@@ -3092,12 +3143,12 @@ $(document).ready(function() {
             });
             $('#select-all').prop('checked', false).prop('indeterminate', false);
             updateMassChangesButton();
-            toast("Tabela aplicada com sucesso!", cor_verde);
+            toast("Tabela aplicada com sucesso!", "green");
             bootstrap.Modal.getInstance(document.getElementById('attTbPrecModal'))?.hide();
             finalizarLoading();
         } catch (e) {
             console.error(e);
-            toast("Erro na requisição", cor_vermelho);
+            toast("Erro na requisição", "red");
         } finally {
             fecharLoadingCompleto();
             finalizarLoading();
@@ -3161,7 +3212,7 @@ $(document).ready(function() {
     $(document).on('click', '#mdAttTbPrecoEnt', function () {
         const produtos = getProdutosSelecionadosEnt();
         if (!produtos.length) {
-            toast("Selecione pelo menos um produto!", cor_amarelo);
+            toast("Selecione pelo menos um produto!", "yellow");
             return;
         }
         $('#campo_1').val('0,00');
@@ -3195,22 +3246,22 @@ $(document).ready(function() {
         e.preventDefault();
         const produtos = getProdutosSelecionadosEnt();
         if (!produtos.length) {
-            toast("Selecione pelo menos um produto!", cor_amarelo);
+            toast("Selecione pelo menos um produto!", "yellow");
             return;
         }
         const tipo = $('#tp-atrib').val();
         const campo1 = parseBR($('#campo_1').val());
         const campo2 = parseBR($('#campo_2').val());
         if (!$('#tb-prec').val()) {
-            toast("Selecione uma tabela de preço!", cor_amarelo);
+            toast("Selecione uma tabela de preço!", "yellow");
             return;
         }
         if (tipo === '0' && campo1 <= 0) {
-            toast("Informe uma margem válida!", cor_amarelo);
+            toast("Informe uma margem válida!", "yellow");
             return;
         }
         if (tipo === '1' && campo2 <= 0) {
-            toast("Informe um valor válido!", cor_amarelo);
+            toast("Informe um valor válido!", "yellow");
             return;
         }
         const payload = {tabela_id: $('#tb-prec').val(), tipo: $('#tp-atrib').val(), campo_1: parseBR($('#campo_1').val()), campo_2: parseBR($('#campo_2').val()),
@@ -3223,7 +3274,7 @@ $(document).ready(function() {
             });
             const data = await resp.json();
             if (!data.ok) {
-                toast(data.msg || 'Erro ao atualizar tabela.', cor_vermelho);
+                toast(data.msg || 'Erro ao atualizar tabela.', "red");
                 return;
             }
             produtos.forEach(p => {
@@ -3232,12 +3283,12 @@ $(document).ready(function() {
                 $('#select-all').prop('checked', false).prop('indeterminate', false);
                 updateMassChangesButton();
             });
-            toast("Tabela aplicada com sucesso!", cor_verde);
+            toast("Tabela aplicada com sucesso!", "green");
             bootstrap.Modal.getInstance(document.getElementById('attTbPrecModalEnt')).hide();
             finalizarLoading();
         } catch (e) {
             console.error(e);
-            toast("Erro na requisição", cor_vermelho);
+            toast("Erro na requisição", "red");
         } finally {
             fecharLoadingCompleto();
             finalizarLoading();
@@ -3259,12 +3310,12 @@ $(document).ready(function() {
         const itens = getItensSelecionados();
         const produtos = getProdutosSelecionados();
         if (!itens.length && !produtos.length) {
-            toast(`${ic_amarelo} Selecione pelo menos um item!`, cor_amarelo);
+            toast(`Selecione pelo menos um item!`, "yellow");
             return;
         }
         const temVinculado = itens.some(obj => {return obj.item.produto_vinculado && Number(obj.item.produto_vinculado.id);});
         if (temVinculado) {
-            toast(`${ic_amarelo} Existem itens já vinculados. Desmarque-os antes de continuar!`, cor_amarelo);
+            toast(`Existem itens já vinculados. Desmarque-os antes de continuar!`, "yellow");
             return;
         }
         new bootstrap.Modal(document.getElementById('updateModal')).show();
@@ -3273,12 +3324,12 @@ $(document).ready(function() {
         const itens = getItensSelecionados();
         const produtos = getProdutosSelecionados();
         if (!itens.length && !produtos.length) {
-            toast(`${ic_amarelo} Selecione pelo menos um item!`, cor_amarelo);
+            toast(`Selecione pelo menos um item!`, "yellow");
             return;
         }
         const temVinculado = itens.some(obj => {return obj.item.produto_vinculado && Number(obj.item.produto_vinculado.id);});
         if (temVinculado) {
-            toast(`${ic_amarelo} Existem itens já vinculados. Desmarque-os antes de continuar!`, cor_amarelo);
+            toast(`Existem itens já vinculados. Desmarque-os antes de continuar!`, "yellow");
             return;
         }
         new bootstrap.Modal(document.getElementById('modalCriarProdutoMassa')).show();
@@ -3302,7 +3353,7 @@ $(document).ready(function() {
                 method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()}, body: JSON.stringify({ produtos })});
             const data = await resp.json();
             if (!data.ok) {
-                toast(data.erro || 'Erro ao criar produtos.', cor_vermelho);
+                toast(data.erro || 'Erro ao criar produtos.', "red");
                 return;
             }
             // 🔄 atualiza tela com retorno
@@ -3312,10 +3363,10 @@ $(document).ready(function() {
                 const $tr = $(`#xml-itens-body tr[data-idx="${r.idx}"]`);
                 atualizarStatusProdutoVinculado($tr, produto.id, produto.descricao);
             });
-            toast(`${ic_verde} Produtos processados com sucesso!`, cor_verde);
+            toast(`Produtos processados com sucesso!`, "green");
         } catch (e) {
             console.error(e);
-            toast('Erro na requisição', cor_vermelho);
+            toast('Erro na requisição', "red");
         } finally {
             finalizarLoading();
             bootstrap.Modal.getInstance(document.getElementById('modalCriarProdutoMassa')).hide();
@@ -3325,7 +3376,7 @@ $(document).ready(function() {
     });
     $(document).on('click', '#btn-criar-fornecedor-xml', function () {
         if (!xmlArquivoSelecionado) {
-            toast(`${ic_amarelo} Arquivo XML não encontrado para criar o fornecedor!`, cor_vermelho);
+            toast(`Arquivo XML não encontrado para criar o fornecedor!`, "red");
             return;
         }
         const formData = new FormData();
@@ -3337,7 +3388,7 @@ $(document).ready(function() {
             url: '/entradas/criar_fornecedor_xml/', method: 'POST', data: formData, processData: false, contentType: false,
             success: function (resp) {
                 if (!resp.ok) {
-                    toast(resp.erro || 'Erro ao criar fornecedor.', cor_vermelho);
+                    toast(resp.erro || 'Erro ao criar fornecedor.', "red");
                     return;
                 }
                 xmlImportado.fornecedor.id = resp.fornecedor.id;
@@ -3348,9 +3399,9 @@ $(document).ready(function() {
                     <span class="badge bg-success w-100 py-2">Já cadastrado</span>
                 `;
                 $('#btn-criar-fornecedor-xml').closest('.col-md-2').html(badgeHtml);
-                toast(resp.fornecedor.ja_existia ? 'Fornecedor já existia e foi vinculado.' : 'Fornecedor criado com sucesso.', cor_verde);
+                toast(resp.fornecedor.ja_existia ? 'Fornecedor já existia e foi vinculado.' : 'Fornecedor criado com sucesso.', "green");
             },
-            error: function (xhr) {toast(xhr.responseJSON?.erro || 'Erro ao criar fornecedor.', cor_vermelho);},
+            error: function (xhr) {toast(xhr.responseJSON?.erro || 'Erro ao criar fornecedor.', "red");},
             complete: function () {$btn.prop('disabled', false).text('Criar fornecedor');}
         });
     });
@@ -3373,7 +3424,7 @@ $(document).ready(function() {
             marca_id: $('#xml-produto-marca').val() || null, tp_prod: $('#xml-produto-tipo').val() || 'Principal', codigo_fornecedor: item.codigo_fornecedor || '', descricao_fornecedor: item.descricao || '', ean: item.ean || '', ncm: item.ncm || ''
         };
         if (!payload.descricao) {
-            toast(`${ic_amarelo} Informe a descrição do produto!`, cor_amarelo);
+            toast(`Informe a descrição do produto!`, "yellow");
             return;
         }
         $.ajax({
@@ -3381,7 +3432,7 @@ $(document).ready(function() {
             data: JSON.stringify(payload),
             success: function (resp) {
                 if (!resp.ok) {
-                    toast(resp.erro || 'Erro ao cadastrar produto.', cor_vermelho);
+                    toast(resp.erro || 'Erro ao cadastrar produto.', "red");
                     return;
                 }
                 const produto = resp.produto;
@@ -3389,9 +3440,9 @@ $(document).ready(function() {
                 const $tr = $(`#xml-itens-body tr[data-idx="${idx}"]`);
                 atualizarStatusProdutoVinculado($tr, produto.id, produto.descricao);
                 bootstrap.Modal.getInstance(document.getElementById('modalCriarProdutoXml')).hide();
-                toast(`${ic_verde} Produto cadastrado e vinculado!`, cor_verde);
+                toast(`Produto cadastrado e vinculado!`, "green");
             },
-            error: function () {toast('Erro ao cadastrar produto.', cor_vermelho);}
+            error: function () {toast('Erro ao cadastrar produto.', "red");}
         });
     });
     $('#btn-confirmar-vinculo-produto').on('click', function () {
@@ -3399,7 +3450,7 @@ $(document).ready(function() {
         const produtoId = $('#vincular-produto-select').val();
         const produtoDesc = $('#vincular-produto-select option:selected').text().trim();
         if (!produtoId) {
-            toast(`${ic_amarelo} Selecione um produto para vincular`, cor_amarelo);
+            toast(`Selecione um produto para vincular`, "yellow");
             return;
         }
         xmlImportado.itens[idx].produto_vinculado = {id: produtoId, descricao: produtoDesc};
@@ -3407,7 +3458,7 @@ $(document).ready(function() {
         atualizarStatusProdutoVinculado($tr, produtoId, produtoDesc);
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalVincularProdutoXml'));
         if (modal) modal.hide();
-        toast(`${ic_verde} Produto vinculado com sucesso!`, cor_verde);
+        toast(`Produto vinculado com sucesso!`, "green");
     });
     $(document).on('click', '.acao-criar-produto', function (e) {
         e.preventDefault();
@@ -3420,7 +3471,7 @@ $(document).ready(function() {
         xmlImportado.itens[idx].produto_vinculado = null;
         const $tr = $(`#xml-itens-body tr[data-idx="${idx}"]`);
         atualizarStatusProdutoVinculado($tr, null, null);
-        toast('Vínculo removido.', cor_amarelo);
+        toast('Vínculo removido.', "yellow");
     });
     function atualizarStatusProdutoVinculado($tr, produtoId, descricao) {
         const $cell = $tr.find('.produto-vinculado-cell');
@@ -3492,7 +3543,7 @@ $(document).ready(function() {
     $('#confirmar-importacao-xml').on('click', async function () {
         if (!xmlImportado) return;
         if (!xmlImportado.fornecedor || !xmlImportado.fornecedor.id) {
-            toast(`${ic_amarelo} Cadastre o fornecedor antes de confirmar a importação!`, cor_amarelo);
+            toast(`Cadastre o fornecedor antes de confirmar a importação!`, "yellow");
             return;
         }
         $('#id_numeracao').val(xmlImportado.nota.numero || '');
@@ -3515,7 +3566,7 @@ $(document).ready(function() {
         let itensOrdenados = xmlImportado.itens.filter(item => item.produto_vinculado && Number(item.produto_vinculado.id)).sort((a, b) => Number(a.produto_vinculado.id) - Number(b.produto_vinculado.id));
         if (!itensOrdenados.length) {
             fecharLoadingCompleto();
-            toast(`${ic_amarelo} Vincule ou cadastre os produtos antes de confirmar`, cor_amarelo);
+            toast(`Vincule ou cadastre os produtos antes de confirmar`, "yellow");
             return;
         }
         iniciarLoading();
@@ -3528,14 +3579,14 @@ $(document).ready(function() {
         if (previewModal) {
             $(previewEl).one('hidden.bs.modal', function () {
                 fecharLoadingCompleto(function () {
-                    toast('Dados do XML carregados no formulário.', cor_verde);
+                    toast('Dados do XML carregados no formulário.', "green");
                     finalizarLoading();
                 });
             });
             previewModal.hide();
         } else {
             fecharLoadingCompleto(function () {
-                toast('Dados do XML carregados no formulário.', cor_verde);
+                toast('Dados do XML carregados no formulário.', "green");
                 finalizarLoading();
             });
         }
@@ -3641,7 +3692,7 @@ $(document).ready(function() {
                         const temProdutos = $('.tabela-produtos tbody tr:not(.vazio)').length > 0;
                         const temAdicionais = $('.tabela-adicionais tbody tr:not(.vazio)').length > 0;
                         if (!temProdutos && !temAdicionais) {
-                            toast(`${ic_amarelo} Insira ao menos um item antes de continuar!`, cor_amarelo);
+                            toast(`Insira ao menos um item antes de continuar!`, "yellow");
                             $('.tabela-produtos').addClass('border border-warning');
                             setTimeout(() => {
                                 $('.tabela-produtos').removeClass('border border-warning');
@@ -3654,7 +3705,7 @@ $(document).ready(function() {
                         const semItensArray = !itens || itens.length === 0;
                         const semItensDOM = $('#listaItens td[colspan]').length > 0;
                         if (semItensArray || semItensDOM) {
-                            toast(`${ic_amarelo} Insira ao menos um produto antes de continuar!`, cor_amarelo);
+                            toast(`Insira ao menos um produto antes de continuar!`, "yellow");
                             $('#listaItens').addClass('border border-warning');
                             setTimeout(() => {
                                 $('#listaItens').removeClass('border border-warning');
@@ -3666,7 +3717,7 @@ $(document).ready(function() {
                     else {
                         if ($('#tabela-produtos tbody tr').length === 0 ||
                             $('#tabela-produtos tbody tr.vazio').length) {
-                            toast(`${ic_amarelo} Insira ao menos um produto antes de continuar!`, cor_amarelo);
+                            toast(`Insira ao menos um produto antes de continuar!`, "yellow");
                             $('#tabela-produtos').addClass('border border-warning');
                             setTimeout(() => {
                                 $('#tabela-produtos').removeClass('border border-warning');
@@ -3683,7 +3734,7 @@ $(document).ready(function() {
                 else if (url) {
                     iniciarLoading();
                     $.post(url, function () {location.reload();}).fail(function () {
-                        toast(`${ic_vermelho} Erro ao tentar executar a ação!`, cor_vermelho);
+                        toast(`Erro ao tentar executar a ação!`, "red");
                     });
                 }
                 else if (href) {window.location.href = href;}
@@ -3733,11 +3784,146 @@ $(document).ready(function() {
             },
             function () {
                 fecharLoading();
-                toast(`${ic_amarelo} ${msgNegado}`, cor_amarelo);
-                $('#confirmModal').modal('show');
+                toast(`${msgNegado}`, "yellow");
+                if (acaoSelecionada) {
+                    $('#confirmModal').modal('show');
+                }
             }
         );
     });
+    $("#formEntrada").submit(function(e){
+
+        e.preventDefault();
+
+        $.ajax({
+            url: $(this).attr("action"),
+            type: "POST",
+            data: $(this).serialize(),
+            success: function(data){
+                if(data.sucesso){
+                    $("#modalEntrada").modal("hide");
+                    imprimirComprovanteEntrada(data);
+                    toast(`Entrada registrada com sucesso!`, "green");
+                }
+            },
+
+            error: function(xhr){
+
+                toastr.error(xhr.responseJSON.erro);
+
+            }
+
+        });
+
+    });
+    function imprimirComprovanteEntrada(dados){
+
+        let frame = document.getElementById("frameImpressao");
+        let doc = frame.contentWindow.document;
+
+        doc.open();
+
+        doc.write(`
+            <html>
+            <body style="width:80mm;font-family:monospace;font-size:12px;text-align:center">
+
+                <h3>${dados.categoria.toUpperCase()}</h3>
+
+                Data: ${dados.data}<br>
+                Operador: ${dados.usuario}<br>
+
+                <hr>
+
+                Tipo: ${dados.tipo}<br>
+                Forma: ${dados.forma}<br>
+
+                <hr>
+
+                <h2>R$ ${formatBR(dados.valor)}</h2>
+
+                <hr>
+
+                ${dados.descricao}
+
+            </body>
+            </html>
+        `);
+
+        doc.close();
+
+        frame.contentWindow.focus();
+        frame.contentWindow.print();
+    }
+    $("#formSaida").submit(function(e){
+
+        e.preventDefault();
+
+        $.ajax({
+
+            url: $(this).attr("action"),
+            type: "POST",
+            data: $(this).serialize(),
+
+            success: function(data){
+
+                if(data.sucesso){
+
+                    $("#modalSaida").modal("hide");
+
+                    imprimirComprovanteSaida(data);
+                    toast(`Saída registrada com sucesso!`, "green");
+
+                }
+            },
+
+            error: function(xhr){
+
+                toastr.error(xhr.responseJSON.erro);
+
+            }
+
+        });
+
+    });
+    function imprimirComprovanteSaida(dados){
+
+        let frame = document.getElementById("frameImpressaoSaida");
+        let doc = frame.contentWindow.document;
+
+        doc.open();
+
+        doc.write(`
+            <html>
+            <body style="width:80mm;font-family:monospace;font-size:12px;text-align:center">
+
+                <h3>${dados.categoria.toUpperCase()}</h3>
+
+                Data: ${dados.data}<br>
+                Operador: ${dados.usuario}<br>
+
+                <hr>
+
+                Tipo: ${dados.tipo}<br>
+                Forma: ${dados.forma}<br>
+
+                <hr>
+
+                <h2>R$ ${formatBR(dados.valor)}</h2>
+
+                <hr>
+
+                ${dados.descricao}
+
+            </body>
+            </html>
+        `);
+
+        doc.close();
+
+        frame.contentWindow.focus();
+        frame.contentWindow.print();
+
+    }
     $('#confirmSend').on('click', function() {
         $('#confirmModal').modal('hide');
         $('#userSelectModal').modal('show');
@@ -3767,7 +3953,7 @@ $(document).ready(function() {
                 clearInterval(timer);
                 $.post('/orcamentos/expirar-solicitacao/', {id: solicitacaoId, csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()});
                 if (toastAguardando) toastAguardando.hideToast();
-                toast(`${ic_padrao} Tempo expirado. A solicitação não foi respondida!`, cor_padrao);
+                toast(`Tempo expirado. A solicitação não foi respondida!`, "default");
                 carregarNotificacoes();
                 return;
             }
@@ -3775,7 +3961,7 @@ $(document).ready(function() {
                 if (data.status === 'Aprovada') {
                     clearInterval(timer);
                     if (toastAguardando) toastAguardando.hideToast();
-                    toast(`${ic_verde} Solicitação Concedida ao usuário!`, cor_verde);
+                    toast(`Solicitação Concedida ao usuário!`, "green");
                     if (acaoSelecionada === "atribuir_desconto") {$('#modalDesconto').modal('show');}
                     else if (acaoSelecionada === "atribuir_acrescimo") {$('#modalAcrescimo').modal('show');}
                     else if (acaoSelecionada === "atribuir_desconto_ped") {
@@ -3791,11 +3977,11 @@ $(document).ready(function() {
                 } else if (data.status === 'Negada') {
                     clearInterval(timer);
                     if (toastAguardando) toastAguardando.hideToast();
-                    toast(`${ic_vermelho} Solicitação Negada ao usuário!`, cor_vermelho);
+                    toast(`Solicitação Negada ao usuário!`, "red");
                 } else if (data.status === 'Expirada') {
                     clearInterval(timer);
                     if (toastAguardando) toastAguardando.hideToast();
-                    toast(`${ic_info} A solicitação expirou!`, cor_padrao);
+                    toast(`A solicitação expirou!`, "default");
                 }
             });
         }, 5000);
@@ -3816,11 +4002,11 @@ $(document).ready(function() {
         const usuarioId = $('#userSelect').val();
         const senha = $('#senhaLiberacao').val();
         if (!usuarioId) {
-            toast(`${ic_amarelo} Usuário deve ser informado!`, cor_amarelo);
+            toast(`Usuário deve ser informado!`, "yellow");
             return;
         }
         if (!senha) {
-            toast(`${ic_amarelo} Digite a senha do Usuário Autorizador!`, cor_amarelo);
+            toast(`Digite a senha do Usuário Autorizador!`, "yellow");
             return;
         }
         $.ajax({
@@ -3828,7 +4014,7 @@ $(document).ready(function() {
             success: function (resp) {
                 if (resp.status === 'Aprovada') {
                     $('#userSelectModal').modal('hide');
-                    toast(`${ic_verde} Solicitação Concedida ao usuário!`, cor_verde);
+                    toast(`Solicitação Concedida ao usuário!`, "green");
                     fecharLoading();
                     console.log("acaoSelecionada =", acaoSelecionada);
                     if (acaoSelecionada === "atribuir_desconto") {$('#modalDesconto').modal('show');}
@@ -3846,7 +4032,7 @@ $(document).ready(function() {
                     if (window.acaoCallback) {window.acaoCallback();}
                 }
                 else {
-                    toast(`${ic_vermelho} Senha inserida incorreta!`, cor_vermelho);
+                    toast(`Senha inserida incorreta!`, "red");
                     fecharLoading();
                 }
             }
@@ -3870,7 +4056,7 @@ $(document).ready(function() {
         const solicitacaoId = match ? match[1] : null;
         console.log('ID capturado:', solicitacaoId);
         if (!solicitacaoId) {
-            toast(`${ic_info} ID da solicitação não encontrado!`, cor_info);
+            toast(`ID da solicitação não encontrado!`, "default");
             return;
         }
         $('#descricaoSolicitacao').text(descricao);
@@ -3894,8 +4080,8 @@ $(document).ready(function() {
         console.log('Enviando resposta:', {id, acao});
         $.post('/orcamentos/responder-solicitacao/', {id: id, acao: acao, csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()}, function(response) {
             $('#modalSolicitacao').modal('hide');
-            if (response.status === "Aprovada") {toast(`${ic_verde} Solicitação Concedida ao usuário!`, cor_verde);}
-            else {toast(`${ic_vermelho} Solicitação Negada ao usuário!`, cor_vermelho);}
+            if (response.status === "Aprovada") {toast(`Solicitação Concedida ao usuário!`, "green");}
+            else {toast(`Solicitação Negada ao usuário!`, "red");}
         });
         carregarNotificacoes();
     }
@@ -3937,7 +4123,7 @@ $(document).ready(function() {
             vals.push(parseBR((total - soma)));
             return vals;
         }
-        function montarNumeroConta(numOrc, totalParc, parcAtual) {return `${numOrc}/${String(totalParc).padStart(2, '0')}-${String(parcAtual).padStart(2, '0')}`;}
+        function montarNumeroConta(numOrc, totalParc, parcAtual) {return `${numOrc}/${String(totalParc).padStart(2, '0')}-${String(parcAtual).padStart(1, '0')}`;}
         function initDatepickerCampo($campo) {
             if (!$campo.length || $campo.hasClass('hasDatepicker')) return;
             $campo.datepicker({
@@ -4092,7 +4278,7 @@ $(document).ready(function() {
                     if (editando) {atualizarPreviewJson(orcamentoId);}
                 },
                 function () {
-                    toast(`${ic_amarelo} ${msgNegado}`, cor_amarelo);
+                    toast(`${msgNegado}`, "yellow");
                     $('#confirmModal').modal('show');
                 }
             );
@@ -4138,7 +4324,7 @@ $(document).ready(function() {
                     setEstadoBotaoDataFat($modal, !editando);
                     if (!editando) {$modal.find('.dt-fat-orcamento').focus();}
                 },
-                function () {toast(`${ic_amarelo} ${msgNegado}`, cor_amarelo);}
+                function () {toast(`${msgNegado}`, "yellow");}
             );
         });
         $(document).off('focus.orcamentos', '.dt-fat-orcamento').on('focus.orcamentos', '.dt-fat-orcamento', function () {$(this).data('valorAnterior', $(this).val());});
@@ -4210,14 +4396,14 @@ $(document).ready(function() {
                 success: function (resp) {
                     fecharLoading();
                     if (!resp.pagamentos || !resp.pagamentos.length) {
-                        toast(`${ic_vermelho} Nenhum pagamento foi gerado!`, cor_vermelho);
+                        toast(`Nenhum pagamento foi gerado!`, "red");
                         return;
                     }
                     // 👉 abre modal PIX
                     abrirModalPixOrcamento(resp.pagamentos, orcamentoId);
                 },
                 error: function () {
-                    toast(`${ic_vermelho} Erro ao gerar pagamento!`, cor_vermelho);
+                    toast(`Erro ao gerar pagamento!`, "red");
                 }
             });
         });
@@ -4251,7 +4437,7 @@ $(document).ready(function() {
         $(document).on('click', '.btn-copiar', function () {
             const code = $(this).data('code');
             navigator.clipboard.writeText(code).then(() => {
-                toast(`${ic_verde} Código PIX copiado!`, cor_verde);
+                toast(`Código PIX copiado!`, "green");
             });
         });
         function monitorarPagamentoOrcamento(orcamentoId, modalPix) {
@@ -4275,7 +4461,7 @@ $(document).ready(function() {
                                 <p class="text-muted mb-0">Finalizando Orçamento...</p>
                             </div>
                         `;
-                        toast(`${ic_verde} Pagamento aprovado!`, cor_verde);
+                        toast(`Pagamento aprovado!`, "green");
                         // 🔥 chama faturamento automático
                         faturarOrcamentoAposPagamento(orcamentoId, modalPix);
                     }
@@ -4287,7 +4473,7 @@ $(document).ready(function() {
                 csrfmiddlewaretoken: getCSRFToken()
             })
             .done(function () {
-                toast(`${ic_verde} Orçamento faturado com sucesso!`, cor_verde);
+                toast(`Orçamento faturado com sucesso!`, "green");
                 setTimeout(() => {
                     modalPix.hide();
                     $('.modal-faturar-orcamento').modal('hide');
@@ -4298,7 +4484,7 @@ $(document).ready(function() {
                 }, 1500);
             })
             .fail(function () {
-                toast(`${ic_vermelho} Erro ao faturar orçamento!`, cor_vermelho);
+                toast(`Erro ao faturar orçamento!`, "red");
             });
         }
     });
@@ -4445,9 +4631,10 @@ $(document).ready(function() {
                 for (let i = 1; i <= parcelas; i++) {
                     let dt = new Date(baseDate);
                     dt.setDate(dt.getDate() + (dias * i));
+                    const numeroParcela = `${String(parcelas).padStart(2, '0')}-${i}`;
                     $tbody.append(`
                         <tr>
-                            <td>${i}/${parcelas}</td>
+                            <td>${i}/${numeroParcela}</td>
                             <td><input class="form-control form-control-sm inp-valor" value="${formatBR(valores[i - 1])}" readonly></td>
                             <td><input class="form-control form-control-sm inp-vencimento" value="${formatDateInput(dt)}" readonly></td>
                             <td><button class="btn btn-warning btn-sm btn-edit-parcela"><i class="fa fa-pen"></i></button></td>
@@ -4487,8 +4674,8 @@ $(document).ready(function() {
                 },
                 function () {
                     toast(
-                        `${ic_amarelo} ${msgNegado}`,
-                        cor_amarelo
+                        `${msgNegado}`,
+                        "yellow"
                     );
                 }
             );
@@ -4597,19 +4784,19 @@ $(document).ready(function() {
             const gateway = $select.data('gateway') || 'nenhum';
             const credencial = $select.data('credencial');
             if (!formaId || !valor) {
-                toast(`${ic_amarelo} Informe a forma e o valor!`, cor_amarelo);
+                toast(`Informe a forma e o valor!`, "yellow");
                 return;
             }
             if ($select.data('troco') === undefined) {
-                toast(`${ic_info} Aguarde o carregamento dos dados da forma!`, cor_info);
+                toast(`Aguarde o carregamento dos dados da forma!`, "default");
                 return;
             }
             if ($select.data('gateway') === undefined) {
-                toast(`${ic_info} Aguarde o carregamento dos dados da forma!`, cor_info);
+                toast(`Aguarde o carregamento dos dados da forma!`, "default");
                 return;
             }
             if (valorNum <= 0) {
-                toast(`${ic_amarelo} Valor informado inválido!`, cor_amarelo);
+                toast(`Valor informado inválido!`, "yellow");
                 return;
             }
             iniciarLoading();
@@ -4654,7 +4841,7 @@ $(document).ready(function() {
             if (saldo < 0) {
 
                 if (!permiteTrocos) {
-                    toast(`${ic_amarelo} Forma de pagamento não permite troco!`, cor_amarelo);
+                    toast(`Forma de pagamento não permite troco!`, "yellow");
                     return;
                 }
 
@@ -4825,7 +5012,7 @@ $(document).ready(function() {
                             const modalPix = abrirModalPix(resp.pagamentos, 0);
                             monitorarPagamentoCaixa(modalPix);
                         } else {
-                            toast(`${ic_vermelho} Erro ao gerar PIX!`, cor_vermelho);
+                            toast(`Erro ao gerar PIX!`, "red");
                         }
                     });
                     return;
@@ -4841,12 +5028,12 @@ $(document).ready(function() {
                     }
                 });
                 if (totalPago < totalPedido) {
-                    toast(`${ic_amarelo} Valor Pago é menor que o total!`, cor_amarelo);
+                    toast(`Valor Pago é menor que o total!`, "yellow");
                     return;
                 }
                 if (totalPago > totalPedido) {
                     if (!permiteTroco) {
-                        toast(`${ic_amarelo} Nenhuma forma permite troco!`, cor_amarelo);
+                        toast(`Nenhuma forma permite troco!`, "yellow");
                         return;
                     }
                     troco = totalPago - totalPedido;
@@ -4877,14 +5064,14 @@ $(document).ready(function() {
             parcelas_json: JSON.stringify(parcelas)
         }, function (resp) {
             if (resp.ok) {
-                toast(`${ic_verde} ${resp.msg}`, cor_verde);
+                toast(`${resp.msg}`, "green");
                 bootstrap.Modal.getInstance($modal[0])?.hide();
                 // 🔥 recarrega página
                 setTimeout(() => {
                     window.location.href = `/pedidos/lista/?s=${pedidoId}`;
                 }, 3000);
             } else {
-                toast(`${ic_amarelo} ${resp.msg || 'Erro ao faturar'}`, cor_amarelo);
+                toast(`${resp.msg || 'Erro ao faturar'}`, "yellow");
                 fecharLoading();
             }
         });
@@ -4902,7 +5089,7 @@ $(document).ready(function() {
                 abrirModalPix(resp.pagamentos, pedidoId);
             } else {
                 const msgErro = resp.erro || "Verifique as configurações do gateway.";
-                toast(`${ic_vermelho} Erro: ${msgErro}`, cor_vermelho);
+                toast(`Erro: ${msgErro}`, "red");
             }
         })
         // 🔥 O PULO DO GATO: Captura erros de comunicação, timeout ou crash do Django (Status 400, 404, 500)
@@ -4921,7 +5108,7 @@ $(document).ready(function() {
                 mensagemOriginal = `Erro interno no servidor (${xhr.status}).`;
             }
 
-            toast(`${ic_vermelho} ${mensagemOriginal}`, cor_vermelho);
+            toast(`${mensagemOriginal}`, "red");
         });
     }
     function abrirModalPix(pagamentos, pedidoId) {
@@ -4970,7 +5157,7 @@ $(document).ready(function() {
                             <p class="text-muted mb-0">Finalizando Venda...</p>
                         </div>
                     `;
-                    toast(`${ic_verde} Pedido faturado com sucesso!`, cor_verde);
+                    toast(`Pedido faturado com sucesso!`, "green");
                     setTimeout(() => {
                         modalPix.hide();
                         $('.modal-faturar-pedido').modal('hide');
@@ -4998,7 +5185,7 @@ $(document).ready(function() {
                             <p class="text-muted mb-0">Finalizando Venda...</p>
                         </div>
                     `;
-                    toast(`${ic_verde} Pagamento confirmado! Finalizando venda...`, cor_verde);
+                    toast(`Pagamento confirmado! Finalizando venda...`, "green");
                     // 🔥 USA OS DADOS SALVOS (ESSENCIAL)
                     const dados = window._caixaPagamentoPendente;
                     if (dados) {
@@ -5039,7 +5226,7 @@ $(document).ready(function() {
             if (resp.sucesso) {
                 let url = `/pedidos/cupom/${resp.pedido_id}/`;
                 window.open(url, '_blank');
-                toast(`${ic_verde} Venda finalizada! Pedido ${resp.pedido_id}`, cor_verde);
+                toast(`Venda finalizada! Pedido ${resp.pedido_id}`, "green");
                 $("#num_pedido").val(resp.pedido_id);
                 // 🔥 segurança extra
                 window._caixaPagamentoPendente = null;
@@ -5047,14 +5234,14 @@ $(document).ready(function() {
                 $('.modal-pagamento').modal('hide');
                 $("#id_cod_produtoCaixa").focus();
             } else {
-                toast(`${ic_vermelho} ${resp.erro}`, cor_vermelho);
+                toast(`${resp.erro}`, "red");
             }
         });
     }
     $('#imp_cupom').on('click', function () {
         let id = $('#num_pedido').val();
         if (!id) {
-            toast(`${ic_amarelo} Informe o número do pedido!`, cor_amarelo);
+            toast(`Informe o número do pedido!`, "yellow");
             return;
         }
         let url = `/pedidos/cupom/${id}/`;
@@ -5065,7 +5252,7 @@ $(document).ready(function() {
     });
     const msg = sessionStorage.getItem('msg_sucesso');
     if (msg) {
-        toast(`${ic_verde} ${msg}`, cor_verde);
+        toast(`${msg}`, "green");
         sessionStorage.removeItem('msg_sucesso');
     }
     $(document).on('click', '.btn-abrir-modal-cancelamento', function () {
@@ -5073,7 +5260,7 @@ $(document).ready(function() {
         const motivo = $(`#motivoCancelamento${id}`).val().trim();
         const modalTarget = $(this).data('bs-target');
         if (!motivo) {
-            toast(`${ic_amarelo} Informe o motivo do cancelamento!`, cor_amarelo);
+            toast(`Informe o motivo do cancelamento!`, "yellow");
             $(`#motivoCancelamento${id}`).focus();
             return;
         }
@@ -5087,17 +5274,17 @@ $(document).ready(function() {
         const id = $(this).data('orcamento-id');
         const motivo = $(`#motivoCancelamento${id}`).val().trim();
         if (!motivo) {
-            toast(`${ic_amarelo} Informe o motivo do cancelamento!`, cor_amarelo);
+            toast(`Informe o motivo do cancelamento!`, "yellow");
             return;
         }
         $.ajax({
             url: `/orcamentos/canc.orc/${id}/`, type: 'POST', data: {motivo: motivo,  csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').first().val()},
             success: function () {
-                toast(`${ic_verde} Orçamento cancelado com sucesso!`, cor_verde);
+                toast(`Orçamento cancelado com sucesso!`, "green");
                 iniciarLoading();
                 setTimeout(() => location.reload(), 3000);
             },
-            error: function () {toast(`${ic_vermelho} Erro ao cancelar orçamento!`, cor_vermelho);}
+            error: function () {toast(`Erro ao cancelar orçamento!`, "red");}
         });
     });
     // Pedidos
@@ -5106,7 +5293,7 @@ $(document).ready(function() {
         const motivo = $(`#motivoCancelamento${id}`).val().trim();
         const modalTarget = $(this).data('bs-target');
         if (!motivo) {
-            toast(`${ic_amarelo} Informe o motivo do pedido!`, cor_amarelo);
+            toast(`Informe o motivo do pedido!`, "yellow");
             $(`#motivoCancelamento${id}`).focus();
             return;
         }
@@ -5120,17 +5307,17 @@ $(document).ready(function() {
         const id = $(this).data('orcamento-id');
         const motivo = $(`#motivoCancelamento${id}`).val();
         if (!motivo) {
-            toast(`${ic_amarelo} Informe o motivo do pedido!`, cor_amarelo);
+            toast(`Informe o motivo do pedido!`, "yellow");
             return;
         }
         $.ajax({
             url: `/pedidos/cancelar/${id}/`, type: 'POST', data: {motivo: motivo,  csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').first().val()},
             success: function () {
-                toast(`${ic_verde} Pedido cancelado com sucesso!`, cor_verde);
+                toast(`Pedido cancelado com sucesso!`, "green");
                 iniciarLoading();
                 setTimeout(() => location.reload(), 3000);
             },
-            error: function () {toast(`${ic_vermelho} Erro ao cancelar pedido!`, cor_vermelho);}
+            error: function () {toast(`Erro ao cancelar pedido!`, "red");}
         });
     });
     // Contador de confirmação
@@ -5176,7 +5363,7 @@ $(document).ready(function() {
             url: "/ajax/verificar-parcelas/", type: "GET", data: {parcelas: parcelas},
             success: function(data){
                 if(!data.permitido){
-                    toast(`${ic_info} Quantidade de parcelas superior ao Permitido na Filial! Máximo: ${data.maximo} parcelas.`, cor_info);
+                    toast(`Quantidade de parcelas superior ao Permitido na Filial! Máximo: ${data.maximo} parcelas.`, "default");
                     $("#id_parcelas").val(data.maximo);
                     $("#id_parcelas").focus();
                 }
@@ -5195,7 +5382,7 @@ $(document).ready(function() {
             url: "/ajax/verificar-parcelas/", type: "GET", data: {dias: dias},
             success: function(data){
                 if(!data.permitido){
-                    toast(`${ic_info} Quantidade de dias superior ao Permitido na Filial! Máximo: ${data.maximo} dias.`, cor_info);
+                    toast(`Quantidade de dias superior ao Permitido na Filial! Máximo: ${data.maximo} dias.`, "default");
                     $("#id_dias").val(data.maximo);
                     $("#id_dias").focus();
                 }
@@ -5241,7 +5428,7 @@ $(document).ready(function() {
 
             success: function (data) {
                 if (!data.permitido) {
-                    toast(`${ic_info} Máximo permitido: ${data.maximo} parcelas.`, cor_info);
+                    toast(`Máximo permitido: ${data.maximo} parcelas.`, "default");
                     $input.val(data.maximo);
                     $input.focus();
                 }
@@ -5270,7 +5457,7 @@ $(document).ready(function() {
 
             success: function (data) {
                 if (!data.permitido) {
-                    toast(`${ic_info} Máximo permitido: ${data.maximo} dias.`, cor_info);
+                    toast(`Máximo permitido: ${data.maximo} dias.`, "default");
                     $input.val(data.maximo);
                     $input.focus();
                 }
@@ -5566,7 +5753,7 @@ $(document).ready(function() {
     function gerarPortas() {
         const qtd = parseInt($('#qtd_portas').val());
         if (isNaN(qtd) || qtd < 1) {
-            toast(`${ic_amarelo} Informe uma quantidade válida de Portas!`, cor_amarelo);
+            toast(`Informe uma quantidade válida de Portas!`, "yellow");
             return;
         }
         if (window.prodManager?.data) prodManager.data = {};
@@ -5915,7 +6102,7 @@ $(document).ready(function() {
         const qtd  = parseBR($(`.qtd-prod[data-porta="${porta}"]`).val()) || 0;
         const vl   = parseBR($(`.valor-prod[data-porta="${porta}"]`).val()) || 0;
         if (!cod || !desc || qtd <= 0) {
-            toast(`${ic_amarelo} Produto principal incompleto!`, cor_amarelo);
+            toast(`Produto principal incompleto!`, "yellow");
             return;
         }
         adicionarProdutoNaTabela(porta, { cod, desc, unid, qtd, vl });
@@ -5938,11 +6125,11 @@ $(document).ready(function() {
         console.log('ADD ADC', { cod, desc, unid, qtd, vl, vl_compra, vl_compra_raw });
         const precisaLado = ['Portinhola', 'Alçapão', 'Coluna Removível'].includes(especifico);
         if (!cod || !desc || qtd <= 0) {
-            toast(`${ic_amarelo} Produto adicional incompleto!`, cor_amarelo);
+            toast(`Produto adicional incompleto!`, "yellow");
             return;
         }
         if (precisaLado && !lado) {
-            toast(`${ic_amarelo} Selecione o lado do produto adicional!`, cor_amarelo);
+            toast(`Selecione o lado do produto adicional!`, "yellow");
             $(`.lado-adc[data-porta="${porta}"]`).focus();
             return;
         }
@@ -5998,7 +6185,7 @@ $(document).ready(function() {
     $(document).on("blur", ".alt", async function () {
         const idTabela = $('#id_tabela_preco').val();
         if (!idTabela) {
-            toast(`${ic_amarelo} Selecione a Tabela de Preço antes de gerar portas!`, cor_amarelo);
+            toast(`Selecione a Tabela de Preço antes de gerar portas!`, "yellow");
             $(this).val('');
             return;
         }
@@ -6389,42 +6576,42 @@ $(document).ready(function() {
         if (campoInvalido) {
             campoInvalido.addClass('is-invalid');
             campoInvalido.focus();
-            toast(`${ic_amarelo} ${nomeCampo} deve ser preenchido!`, cor_amarelo);
+            toast(`${nomeCampo} deve ser preenchido!`, "yellow");
             return false; // 🚨 ESSENCIAL
         }
         if (temPintura === "Sim" && (!corSelecionada || corSelecionada === "")) {
-            toast(`${ic_amarelo} Escolha uma cor da pintura antes de gravar!`, cor_amarelo);
+            toast(`Escolha uma cor da pintura antes de gravar!`, "yellow");
             $("#medidasBtn").click();
             return false;
         }
         if (filial !== undefined && !filial) {
-            toast(`${ic_amarelo} Filial deve ser informada!`, cor_amarelo);
+            toast(`Filial deve ser informada!`, "yellow");
             $("#clienteBtn").click();
             return false;
         }
         if (fornecedor !== undefined && !fornecedor) {
-            toast(`${ic_amarelo} Fornecedor deve ser informado!`, cor_amarelo);
+            toast(`Fornecedor deve ser informado!`, "yellow");
             return false;
         }
         if ((!numeracao || numeracao === "") && tipoPedido === "Pedido") {
-            toast(`${ic_amarelo} Numeração do Pedido deve ser informada!`, cor_amarelo);
+            toast(`Numeração do Pedido deve ser informada!`, "yellow");
             return false;
         } else if ((!numeracao || numeracao === "") && tipoPedido === "Nota Fiscal") {
-            toast(`${ic_amarelo} Numeração da Nota Fiscal deve ser informada!`, cor_amarelo);
+            toast(`Numeração da Nota Fiscal deve ser informada!`, "yellow");
             return false;
         }
         if (solicitante !== undefined && !solicitante) {
-            toast(`${ic_amarelo} Solicitante deve ser informado!`, cor_amarelo);
+            toast(`Solicitante deve ser informado!`, "yellow");
             $("#clienteBtn").click();
             return false;
         }
         if (cliente !== undefined && !cliente) {
-            toast(`${ic_amarelo} Cliente deve ser informado!`, cor_amarelo);
+            toast(`Cliente deve ser informado!`, "yellow");
             $("#clienteBtn").click();
             return false;
         }
         if (!verificarTotalFormas()) {
-            toast(`${ic_amarelo} Total das formas de pagamento não corresponde ao valor total!`, cor_amarelo);
+            toast(`Total das formas de pagamento não corresponde ao valor total!`, "yellow");
             return false;
         }
         $('#staticBackdrop').modal('show');
@@ -6443,7 +6630,7 @@ $(document).ready(function() {
         const selectData = $('#id_tabela_preco').select2('data');
         const tabelaPreco = selectData[0]?.id;
         if (!tabelaPreco) {
-            toast(`${ic_amarelo} Tabela de Preço deve ser informada!`, cor_amarelo);
+            toast(`Tabela de Preço deve ser informada!`, "yellow");
             $("#id_tabela_preco").click();
             return;
         }
@@ -6714,8 +6901,12 @@ $(document).ready(function() {
     }
     $('#confirmBtn').on('click', function () {
         gerarJSONFormas();
-        const modalConfirm = bootstrap.Modal.getInstance(document.getElementById('staticBackdrop'));
-        modalConfirm.hide();
+        const modalElement = document.getElementById('staticBackdrop');
+        const modalConfirm = bootstrap.Modal.getInstance(modalElement);
+
+        if (modalConfirm) {
+            modalConfirm.hide();
+        }
         iniciarLoading();
         setTimeout(() => {
             $('#createForm')[0].submit();
@@ -6742,16 +6933,16 @@ $(document).ready(function() {
         const parcelas = parseInt($('#id_parcelas').val()) || 1;
         const dias     = parseInt($('#id_dias').val()) || 30;
         if (!formaPgto) {
-            toast(`${ic_amarelo} Forma de Pagamento deve ser informada!`, cor_amarelo);
+            toast(`Forma de Pagamento deve ser informada!`, "yellow");
             $("#form_pgtoBtn").click();
             return;
         }
         if (valor <= 0) {
-            toast(`${ic_amarelo} Informe um valor válido!`, cor_amarelo);
+            toast(`Informe um valor válido!`, "yellow");
             return;
         }
         if (formaJaExiste(formaPgto)) {
-            toast(`${ic_amarelo} Forma de pagamento já inclusa na tabela!`, cor_amarelo);
+            toast(`Forma de pagamento já inclusa na tabela!`, "yellow");
             return;
         }
         $.ajax({
@@ -6796,7 +6987,7 @@ $(document).ready(function() {
         const valor = parseBR($('#id_vl_prod').val().trim());
         const quantidade = parseBR($('#id_qtd_prod').val().trim());
         if (!codigo || !descricao || !unidade || isNaN(valor) || isNaN(quantidade) || quantidade <= 0) {
-            return toast(`${ic_amarelo} Preencha todos os campos corretamente!`, cor_amarelo);
+            return toast(`Preencha todos os campos corretamente!`, "yellow");
         }
         prodAdcManager.addItem([codigo, descricao, unidade, valor, valor, quantidade]);
         $('#id_cod_prod, #id_desc_prod, #id_unidProd, #id_vl_prod, #id_qtd_prod').val('');
@@ -6808,7 +6999,7 @@ $(document).ready(function() {
         const unidade = $('#id_unidProd_adc').val().trim();
         const valor = parseBR($('#id_vl_prod_adc').val().trim());
         const quantidade = parseBR($('#id_qtd_prod_adc').val().trim());
-        if (!codigo || !descricao || !unidade || isNaN(valor) || isNaN(quantidade) || quantidade <= 0) {return toast(`${ic_amarelo} Preencha todos os campos corretamente!`, cor_amarelo);}
+        if (!codigo || !descricao || !unidade || isNaN(valor) || isNaN(quantidade) || quantidade <= 0) {return toast(`Preencha todos os campos corretamente!`, "yellow");}
         prodAdcManager.addItem([codigo, descricao, unidade, 0.00, valor, quantidade, 0.00, (valor * quantidade)]);
         $('#id_cod_prod_adc, #id_desc_prod_adc, #id_unidProd_adc, #id_vl_prod_adc, #id_qtd_prod_adc').val('');
         $('#id_cod_prod_adc').focus();
@@ -6848,8 +7039,8 @@ $(document).ready(function() {
                         if (produto.vl_prod === "0,00" || produto.vl_prod === "") {$('#id_vl_prod').focus();}
                         else {$('#id_qtd_prod').focus();}
                     }
-                    else {toast(`${ic_amarelo} Código de produto não encontrado!`, cor_amarelo);}
-                }, error: function() {toast(`${ic_vermelho} Erro ao buscar o produto. Tente novamente!`, cor_vermelho);}
+                    else {toast(`Código de produto não encontrado!`, "yellow");}
+                }, error: function() {toast(`Erro ao buscar o produto. Tente novamente!`, "red");}
             });
         }
     });
@@ -6880,7 +7071,7 @@ $(document).ready(function() {
             url: '/produtos/lista_ajax/', method: 'GET',  data: {s: cod, tp: 'cod', tp_prod: tipo, tabela_id: getTabelaPreco(), auto: 0},
             success(response) {
                 if (!response.produtos?.length) {
-                    toast(`${ic_amarelo} Código de produto não encontrado!`, cor_amarelo);
+                    toast(`Código de produto não encontrado!`, "yellow");
                     return;
                 }
                 const produto = response.produtos[0];
@@ -6897,7 +7088,7 @@ $(document).ready(function() {
                 toggleCampoLado($form, produto, isAdicional);
                 $form.find(map.valor).focus();
             },
-            error() {toast(`${ic_vermelho} Erro ao buscar o produto. Tente novamente!`, cor_vermelho);}
+            error() {toast(`Erro ao buscar o produto. Tente novamente!`, "red");}
         });
     }
     $(document).on('blur', '.cod-prod', function () {buscarProdutoPorCodigo($(this), 'Principal');});
@@ -7072,7 +7263,7 @@ $(document).ready(function() {
                     $('#id_alt_vlEd').val('Não');
                     $('#id_preco_unitP').prop('disabled', true);
                     $('#id_preco_unitEd').prop('disabled', true);
-                    toast(`${ic_amarelo} Seu usuário não pode alterar valor de produtos no caixa/pedidos!`, cor_amarelo);
+                    toast(`Seu usuário não pode alterar valor de produtos no caixa/pedidos!`, "yellow");
                 }
             );
         } else {
@@ -7444,44 +7635,9 @@ $(document).ready(function() {
             });
         }
     }
-    let messageContainer = $("#django-messages");
-    if (messageContainer.length) {
-        let messages = JSON.parse(messageContainer.attr("data-messages"));
-        messages.forEach(msg => {
-            let bgColor, icon;
-            switch (msg.tag) {
-                case "success":
-                    bgColor = "linear-gradient(to right, #00b09b, #96c93d)";
-                    icon = `<i class="fa-solid fa-check"></i>`;// Ícone de confirmação (success)
-                    break;
-                case "error":
-                    bgColor = "linear-gradient(to right, #ff416c, #ff4b2b)";
-                    icon = `<i class="fa-solid fa-xmark"></i>`;// Ícone de erro (error)
-                    break;
-                case "warning":
-                    bgColor = "linear-gradient(to right, #ff9f00, #ff6f00)";
-                    icon = `<i class="fa-solid fa-triangle-exclamation"></i>`; // Ícone de atenção (warning)
-                    break;
-                case "info":
-                    bgColor = "linear-gradient(to right, #02202B, #017AB1)";
-                    icon = `<i class="fa-solid fa-exclamation"></i>`; // Ícone de atenção (warning)
-                    break;
-                default:
-                    bgColor = "linear-gradient(to right, #333, #555)";
-                    icon = `<i class="fa-solid fa-exclamation"></i>`; // Ícone de informação/exclamação (default)
-            }
-            Toastify({text: `<span style="display: flex; align-items: center; gap: 8px;"><strong>${icon}</strong> ${msg.text}</span>`, duration: 5000, gravity: "top", position: "center", style:{background: bgColor}, stopOnFocus: true, escapeMarkup: false,
-                onClick: function () {
-                    let toastElements = document.querySelectorAll(".toastify");
-                    toastElements.forEach(el => {
-                        el.style.transition = "opacity 0.5s ease-out";
-                        el.style.opacity = "0";
-                        setTimeout(() => el.remove(), 500);
-                    });
-                },
-            }).showToast();
-        });
-    }
+    $("#django-messages").length &&
+    JSON.parse($("#django-messages").attr("data-messages"))
+        .forEach(msg => toast(msg.text, msg.tag));
     $(".copiar").on("click", function () {
         let link = $(this).closest(".btn-group").find(".link-rillpay").attr("href");
         if (!link) {
@@ -7490,7 +7646,7 @@ $(document).ready(function() {
         }
         if (navigator.clipboard) {
             navigator.clipboard.writeText(link).then(() => {
-                toast(`${ic_verde} Link copiado!`, cor_verde);
+                toast(`Link copiado!`, "green");
             }).catch(err => console.error("Erro ao copiar: ", err));
         } else {
             let tempInput = $("<input>");
@@ -7498,7 +7654,7 @@ $(document).ready(function() {
             tempInput.val(link).select();
             document.execCommand("copy");
             tempInput.remove();
-            toast(`${ic_verde} Link copiado!`, cor_verde);
+            toast(`Link copiado!`, "green");
         }
     });
     document.addEventListener("DOMContentLoaded", function() {
@@ -7641,9 +7797,13 @@ $(document).ready(function() {
         $("body").removeClass("modal-open");
         $(".modal-backdrop").remove();
         $("body").css({overflow: "", paddingRight: ""});
+        setTimeout(() => {
+            limparBackdropsDuplicados();
+        }, 450);
     }
-    // Botão "Não" no modal 'staticBackdrop'
-    $("#btnRecusa").on("click", function () {closeStaticBackdrop();});
+    $(document).on('shown.bs.modal', '.modal', function () {
+        limparBackdropsDuplicados();
+    });
     // Modal de filial
     $(".btn-delete").on("click", function() {
         let orcamentoId = $(this).attr("data-orcamento-id");
@@ -7679,12 +7839,37 @@ $(document).ready(function() {
     $("#staticBackdrop").on("keydown", function (e) {
         var keyCode = e.which || e.keyCode;
         if (keyCode === 83) {$("#confirmBtn").click();}
-        else if (keyCode === 78 || keyCode === 27) {closeStaticBackdrop();}
+        else if (keyCode === 78 || keyCode === 27) {
+            closeStaticBackdrop();
+            limparBackdropsDuplicados();
+        }
     });
-    $("[id^='modal-']").on("keydown", function (e) {
+    $(document).on('keydown', function (e) {
+
+        if (
+            $(e.target).is('input') ||
+            $(e.target).is('textarea') ||
+            $(e.target).is('select') ||
+            $(e.target).prop('contenteditable')
+        ){
+            return;
+        }
+
+        const modalAberto = $('.modal.show');
+
+        if (!modalAberto.length) return;
+
         const key = e.which || e.keyCode;
-        if (key === 83) {$("#confirmBtn").click();}
-        else if (key === 78 || key === 27) {closeStaticBackdrop();}
+
+        if (key === 83) {
+            modalAberto.find('.btn-confirmar').trigger('click');
+        }
+        else if (key === 78 || key === 27) {
+            closeStaticBackdrop();
+            limparBackdropsDuplicados();
+            modalAberto.find('[data-bs-dismiss="modal"]').trigger('click');
+        }
+
     });
     // Função de Desconto - Orçamentos
     function extrairNumero(str) {return parseBR(str) || 0;}
@@ -7806,15 +7991,6 @@ $(document).ready(function() {
     $('#confirmBtn, #confirmBtn1').click(function () {
         $('#staticBackdrop2').modal('hide');
         $('#gerarVisitasModal').modal('hide');
-    });
-    $('#btnRecusa1').click(function () {
-        $('#staticBackdrop2').modal('hide');
-        $('#gerarVisitasModal').modal('show');
-    });
-    $('#staticBackdrop2').on("keydown", function (e) {
-        var keyCode = e.which || e.keyCode;
-        if (keyCode === 83) {$("#confirmBtn1").click();}
-        else if (keyCode === 78 || keyCode === 27) {$("#btnRecusa1").click();}
     });
     $('#logo-preview').on('click', function() {$('#id_logo').click();});
     $('#id_logo').on('change', function(event) {
@@ -8160,7 +8336,7 @@ $(document).ready(function() {
     $('#id_banco_fil').select2({
         placeholder:'Selecione um banco', allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/bancos/lista_ajax/')}).on('select2:open', focSel2);
     // Formas de Pagamento
-    $('.forma-pgto, #id_formas_pgto, #id_form_pgto, [id^="formas_pgto_cr"], [id^="formaPgtoSelect-"]').select2({
+    $('#forma_entrada, .forma-pgto, #id_formas_pgto, #id_form_pgto, [id^="formas_pgto_cr"], [id^="formaPgtoSelect-"]').select2({
         placeholder:'Selecione uma forma', allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/formas_pgto/lista_ajax/')}).on('select2:open', focSel2);
     // Tipos de Cobrança
     $('#selTpCob').select2({
@@ -8199,7 +8375,7 @@ $(document).ready(function() {
         function create() {
             const nome = $.trim($input.val());
             if (!nome) {
-                toast(`${ic_amarelo} Digite o nome do ${entityName.toLowerCase()}!`, cor_amarelo);
+                toast(`Digite o nome do ${entityName.toLowerCase()}!`, "yellow");
                 return $input.focus();
             }
             $btnOk.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
@@ -8209,10 +8385,10 @@ $(document).ready(function() {
                     const option = new Option(data.nome, data.id, true, true);
                     $select.append(option).trigger('change');
                     setTimeout(() => {$select.trigger('change.select2');}, 150);
-                    toast(`${ic_verde} ${entityName} criado com sucesso!`, cor_verde);
+                    toast(`${entityName} criado com sucesso!`, "green");
                 },
                 error: function () {
-                    toast(`${ic_vermelho} Erro ao criar ${entityName.toLowerCase()}!`, cor_vermelho);
+                    toast(`Erro ao criar ${entityName.toLowerCase()}!`, "red");
                     $btnOk.prop('disabled', false).html('<i class="fa fa-check"></i>');
                 }
             });
@@ -8333,23 +8509,49 @@ $(document).ready(function() {
         }
         return formatInputBR(num);
     }
-    let selectors = '#id_vl_p_s, #editValorItemInput, #editValorItemAdcInput, #valorPgto, .money, #id_quantidadeP, #id_quantidadeEd, #id_vl_form_pgto, #id_multi_m2, #id_multi_lg_corte1, #id_multi_lg_corte2, #id_multi_lg_corte3, .inp-valor-pgto, #id_desc_acres, #id_preco_unitP, [id^=desc_m_cr], [id^=desc_j_cr], [id^=juros_cr], [id^=multa_cr], [id^=vl_pg_cr], .inp-valor, #id_valor, #id_juros, #id_multa, #id_vl_juros, #id_vl_multa, #id_ft_juros, #id_ft_multa, .valor-prod, .valor-prod-adc, .qtd-prod-adc, .qtd-prod, #campo_1, #campo_2, #id_margem, #id_vl_prod, #id_vl_tab, #id_vl_tabEnt, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
+    if ($("#id_qtd_usu, #id_qtd_ass").val() === '') {
+        $("#id_qtd_usu, #id_qtd_ass").val('1');
+    }
+    if ($("#id_desc_imp").val() === '') {
+        $("#id_desc_imp").val('IMPLANTAÇÃO/TREINAMENTO');
+    }
+    if ($("#id_desc_ass").val() === '') {
+        $("#id_desc_ass").val('ASSESSORIA MENSAL');
+    }
+    let selectors = '#vl_saida, #vl_entrada, #id_vl_imp, #id_dsct_imp, #id_vl_fin_imp, #id_vl_ass, #id_dsct_ass, #id_vl_fin_ass, #id_vl_p_s, #editValorItemInput, #editValorItemAdcInput, #valorPgto, .money, #id_quantidadeP, #id_quantidadeEd, #id_vl_form_pgto, #id_multi_m2, #id_multi_lg_corte1, #id_multi_lg_corte2, #id_multi_lg_corte3, .inp-valor-pgto, #id_desc_acres, #id_preco_unitP, [id^=desc_m_cr], [id^=desc_j_cr], [id^=juros_cr], [id^=multa_cr], [id^=vl_pg_cr], .inp-valor, #id_valor, #id_juros, #id_multa, #id_vl_juros, #id_vl_multa, #id_ft_juros, #id_ft_multa, .valor-prod, .valor-prod-adc, .qtd-prod-adc, .qtd-prod, #campo_1, #campo_2, #id_margem, #id_vl_prod, #id_vl_tab, #id_vl_tabEnt, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
+    function calcDscoImp() {
+        const imp = parseBR($("#id_vl_imp").val());
+        const dsct = parseBR($("#id_dsct_imp").val());
+        const calc = imp - dsct;
+        $("#id_vl_fin_imp").val(formatBR(calc));
+    }
+    calcDscoImp();
+    $('#id_vl_imp, #id_dsct_imp').on('input keyup change', function () {
+        calcDscoImp();
+    });
+    function calcDscoAss() {
+        const ass = parseBR($("#id_vl_ass").val());
+        const dsct = parseBR($("#id_dsct_ass").val());
+        const calc = ass - dsct;
+        $("#id_vl_fin_ass").val(formatBR(calc));
+    }
+    calcDscoAss();
+    $('#id_vl_ass, #id_dsct_ass').on('input keyup change', function () {
+        calcDscoAss();
+    });
     $(document).on('input', selectors, function() {
         aplicarMascaraMoney(this);
     });
-
     $(document).on('blur', selectors, function() {
         const valor = parseBR($(this).val()) || 0;
         $(this).val(formatBR(valor));
     });
-
     // Inicializa valores existentes
     $(selectors).each(function() {
         if ($(this).val()) {
             $(this).val(formatBR(parseBR($(this).val())));
         }
     });
-
     $(selectors).each(function () {
         $(this).val(normalizarNumero($(this).val()));
     });
@@ -8365,12 +8567,7 @@ $(document).ready(function() {
     function aplicarFormatoInicialBR(contexto = document) {
         $(contexto).find(selectors).each(function () {
             const valor = $(this).val();
-
-            if (
-                valor !== '' &&
-                valor !== null &&
-                valor !== undefined
-            ) {
+            if (valor !== '' && valor !== null && valor !== undefined) {
                 $(this).val(formatBR(valor));
             }
         });
@@ -8388,22 +8585,43 @@ $(document).ready(function() {
         let linhas = "";
         itens.forEach(function(item) {
             linhas += `
-                <tr>
-                    <td>${item.item}</td><td>${item.codigo}</td><td>${item.produto}</td><td>${item.unidade || ''}</td>
-                    <td style="font-weight:bold;color:#2E8B57;">R$ ${formatBR(item.valor_unit)}</td><td>${formatBR(item.qtd)}</td><td style="font-weight:bold;color:#2E8B57;">R$ ${formatBR(item.valor_total)}</td>
-                </tr>
+                <div class="list-group-item py-1 item-lista">
+                    <div class="row align-items-center linha-lista">
+                        <!-- Itens -->
+                        <div class="col-md-1 fw-bold codigo-col" data-label="Item:"><small>${item.item}</small></div>
+                        <!-- Código -->
+                        <div class="col-md-1 text-center fw-bold text-secondary codigo-col" data-label="Código:"><small>#${item.codigo}</small></div>
+                        <!-- Descrição -->
+                        <div class="col-md-3 fw-semibold descricao-col" data-label="Descrição:"><small>${item.produto}</small></div>
+                        <!-- Unidade -->
+                        <div class="col-md-1 fw-bold codigo-col" data-label="Unidade:"><small>${item.unidade || ''}</small></div>
+                        <!-- Valor Unitário -->
+                        <div class="col-md-2 fw-bold text-success codigo-col" data-label="Vl. Unit.:"><small>R$ ${formatBR(item.valor_unit)}</small></div>
+                        <!-- Quantidade -->
+                        <div class="col-md-2 fw-bold codigo-col" data-label="Qtde.:"><small>${formatBR(item.qtd)}</small></div>
+                        <!-- Valor Total -->
+                        <div class="col-md-2 fw-bold text-success codigo-col" data-label="Vl. Total:"><small>R$ ${formatBR(item.valor_total)}</small></div>
+                    </div>
+                </div>
             `;
         });
         return `
-            <div class="table-responsive" style="max-height: 150px; overflow-y: auto;">
-                <table class="table table-sm table-bordered table-responsive-sm table-rounded table-striped w-100 mb-0">
-                    <thead class="table-dark">
-                        <tr>
-                            <th style="width: 1%;">Itens</th> <th style="width: 1%;">Código</th> <th style="width: 30%;">Descrição</th> <th style="width: 4%;">Unidade</th> <th style="width: 14%;">Vl. Unit.</th> <th style="width: 6%;">Qtde</th> <th>Vl. Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>${linhas}</tbody>
-                </table>
+            <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+                <div class="list-group" style="max-height: 150px; overflow-y: auto;">
+                    <!-- Cabeçalho -->
+                    <div class="list-group-item bg-light fw-bold cabecalho-lista">
+                        <div class="row align-items-center">
+                            <div class="col-md-1 text-center border-end"><small>Itens</small></div>
+                            <div class="col-md-1 text-center border-end"><small>Cód.</small></div>
+                            <div class="col-md-3 border-end"><small>Descrição</small></div>
+                            <div class="col-md-1 border-end"><small>UN</small></div>
+                            <div class="col-md-2 border-end"><small>Vl. Unit.</small></div>
+                            <div class="col-md-2 border-end"><small>Qtde.</small></div>
+                            <div class="col-md-2"><small>Vl. Total</small></div>
+                        </div>
+                    </div>
+                    ${linhas}
+                </div>
             </div>
         `;
     }
@@ -8472,54 +8690,54 @@ $(document).ready(function() {
                 const produtosAccordion = montarAccordionPortas(response.portas, 'produtos', response.id);
                 const adicionaisAccordion = montarAccordionPortas(response.portas, 'adicionais', response.id);
                 $(`#infoEntBody`).html(`
-                    <div class="row g-3">
+                    <div class="row">
                         <div class="col-md-2">
                             <label class="form-label">Nº Orçamento</label>
-                            <input class="form-control form-control-sm fw-bold" value="${response.id}" disabled>
+                            <input class="form-control form-control-sm fw-semibold" value="${response.id}" disabled>
                         </div>
                         <div class="col-md-5">
                             <label class="form-label">Filial</label>
-                            <input class="form-control form-control-sm fw-bold" value="${response.cliente.empresa.nome}" disabled>
+                            <input class="form-control form-control-sm fw-semibold" value="${response.cliente.empresa.nome}" disabled>
                         </div>
                         <div class="col-md-5">
                             <label class="form-label">Cliente</label>
-                            <input class="form-control form-control-sm fw-bold" value="${response.cliente.nome}" disabled>
+                            <input class="form-control form-control-sm fw-semibold" value="${response.cliente.nome}" disabled>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Solicitante</label>
-                            <input class="form-control form-control-sm fw-bold" value="${response.colaborador}" disabled>
+                            <input class="form-control form-control-sm fw-semibold" value="${response.colaborador}" disabled>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Data Emissão</label>
-                            <input class="form-control form-control-sm fw-bold" value="${response.data_emissao}" disabled>
+                            <input class="form-control form-control-sm fw-semibold" value="${response.data_emissao}" disabled>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Data Entrega</label>
-                            <input class="form-control form-control-sm fw-bold" value="${response.data_entrega}" disabled>
+                            <input class="form-control form-control-sm fw-semibold" value="${response.data_entrega}" disabled>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Valor Total</label>
-                            <input class="form-control form-control-sm fw-bold" style="color:#2E8B57" value="R$ ${formatBR(response.vl_tot)}" disabled>
+                            <input class="form-control form-control-sm fw-semibold" style="color:#2E8B57" value="R$ ${formatBR(response.vl_tot)}" disabled>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Situação</label>
-                            <input class="form-control form-control-sm fw-bold" style="background:${situacaoColor};color:white;text-align:center" value="${situacaoTexto}" disabled>
+                            <input class="form-control form-control-sm fw-semibold" style="background:${situacaoColor};color:white;text-align:center" value="${situacaoTexto}" disabled>
                         </div>
                     </div>
-                    <div class="col-12 mt-3">
+                    <div class="col-12 mt-2">
                         <div class="card" style="margin: 0;">
                             <div class="card-header bg-secondary-subtle d-flex align-items-center gap-2 flex-wrap">
                                 <button type="button" class="btn btn-dark btn-sm" id="medidasBtn${response.id}">Produtos</button>
                                 <button type="button" class="btn btn-dark btn-sm" id="clienteBtn${response.id}">Adicionais</button>
                                 ${statusHTML}
                             </div>
-                            <div class="card-body">
+                            <div class="card-body p-1">
                                 <div class="form-section" id="medidas${response.id}">${produtosAccordion}</div>
                                 <div class="form-section" id="clientes${response.id}" style="display:none;">${adicionaisAccordion}</div>
                             </div>
                         </div>
                     </div>
-                    <div class="row mt-3">
+                    <div class="row mt-2">
                         <div class="col-md-12">
                             <label class="form-label">Observações</label>
                             <textarea class="form-control" disabled>${response.obs || ''}</textarea>
@@ -8549,31 +8767,19 @@ $(document).ready(function() {
         itens.forEach(function(item) {
             const valor = parseBR(item.desconto_acrescimo || 0);
             let sinal = '';
-
             if (valor !== 0) {
                 sinal = item.tp_desc_acres === 'Desconto' ? '-' : '+';
             }
-
             linhas += `
                 <tr>
                     <td>${item.item}</td>
                     <td>${item.codigo}</td>
                     <td>${item.produto}</td>
                     <td>${item.unidade || ''}</td>
-
-                    <td style="font-weight:bold;color:#2E8B57;">
-                        R$ ${formatBR(item.valor_unit)}
-                    </td>
-
+                    <td style="font-weight:bold;color:#2E8B57;">R$ ${formatBR(item.valor_unit)}</td>
                     <td>${formatBR(item.qtd)}</td>
-
-                    <td>
-                        ${valor !== 0 ? `${sinal} R$ ${formatBR(valor)}` : ''}
-                    </td>
-
-                    <td style="font-weight:bold;color:#2E8B57;">
-                        R$ ${formatBR(item.subtotal)}
-                    </td>
+                    <td>${valor !== 0 ? `${sinal} R$ ${formatBR(valor)}` : ''}</td>
+                    <td style="font-weight:bold;color:#2E8B57;">R$ ${formatBR(item.subtotal)}</td>
                 </tr>
             `;
         });
@@ -8655,9 +8861,7 @@ $(document).ready(function() {
                             <div class="card-header bg-secondary-subtle text-dark">
                                 <strong>Itens do Pedido</strong>
                             </div>
-                            <div class="card-body">
-                                ${tabelaItens}
-                            </div>
+                            <div class="card-body">${tabelaItens}</div>
                         </div>
                     </div>
                     <div class="row mt-3">
@@ -8682,33 +8886,37 @@ $(document).ready(function() {
         if (!formas || !formas.length) {
             return `<div class="text-center text-muted py-3">Nenhuma baixa registrada.</div>`;
         }
-
         let linhas = "";
-
         formas.forEach(f => {
             linhas += `
-                <tr>
-                    <td>${f.item}</td>
-                    <td>${f.forma}</td>
-                    <td class="text-end fw-bold text-success">
-                        R$ ${formatBR(f.valor)}
-                    </td>
-                </tr>
+                <div class="col-md-1 border-end text-secondary border-bottom fw-bold descricao-col" data-label="#:">
+                    ${f.item}
+                </div>
+                <div class="col-md-5 border-end border-bottom fw-bold descricao-col" data-label="Forma de Pagamento:">
+                    ${f.forma}
+                </div>
+                <div class="col-md-6 border-bottom fw-bold descricao-col" data-label="Valor:">
+                    R$ ${formatBR(f.valor)}
+                </div>
             `;
         });
-
         return `
-            <div class="table-responsive" style="max-height: 200px;">
-                <table class="table table-sm table-bordered table-striped mb-0">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>#</th>
-                            <th>Forma</th>
-                            <th>Valor</th>
-                        </tr>
-                    </thead>
-                    <tbody>${linhas}</tbody>
-                </table>
+            <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+                <div class="list-group">
+                    <!-- Cabeçalho -->
+                    <div class="list-group-item bg-light fw-bold cabecalho-lista">
+                        <div class="row align-items-center">
+                            <div class="col-md-1 border-end">#</div>
+                            <div class="col-md-5 border-end">Forma</div>
+                            <div class="col-md-6">Valor</div>
+                        </div>
+                    </div>
+                    <div class="list-group-item py-1 item-lista">
+                        <div class="row align-items-center linha-lista">
+                            ${linhas}
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
     }
@@ -8719,101 +8927,73 @@ $(document).ready(function() {
     });
     function listarContaReceber(id) {
         $.ajax({
-            url: '/contas_receber/detalhes_ajax/' + id + '/',
-            type: 'GET',
-
+            url: '/contas_receber/detalhes_ajax/' + id + '/', type: 'GET',
             success: function(response) {
-
                 let cor = "#005eff";
-
-                if (response.situacao === "Paga") {
+                if (response.situacao === "Aberta") {
+                    cor = "#005eff";
+                } else if (response.situacao === "Paga") {
                     cor = "#3CB371";
                 } else if (response.vencido) {
                     cor = "#B22222";
                 }
-
                 const tabelaFormas = montarTabelaFormasCR(response.formas);
-
-                $('#infoEntModalLabel').html(
-                    `<strong><i class="fa-solid fa-file-invoice-dollar text-white"></i> Conta Nº ${response.num_conta}</strong>`
-                );
-
+                $('#infoEntModalLabel').html(`<strong><i class="fa-solid fa-file-invoice-dollar text-white"></i> Conta à Receber - Nº ${response.num_conta}</strong>`);
                 $('#infoEntBody').html(`
                     <div class="row g-3">
-
                         <div class="col-md-2">
                             <label>Nº Conta</label>
                             <input class="form-control form-control-sm fw-bold" value="${response.num_conta}" disabled>
                         </div>
-
                         <div class="col-md-5">
                             <label>Filial</label>
                             <input class="form-control form-control-sm fw-bold" value="${response.filial}" disabled>
                         </div>
-
                         <div class="col-md-5">
                             <label>Cliente</label>
                             <input class="form-control form-control-sm fw-bold" value="${response.cliente}" disabled>
                         </div>
-
                         <div class="col-md-3">
                             <label>Emissão</label>
                             <input class="form-control form-control-sm fw-bold" value="${response.data_emissao}" disabled>
                         </div>
-
                         <div class="col-md-3">
                             <label>Vencimento</label>
                             <input class="form-control form-control-sm fw-bold" value="${response.data_vencimento}" disabled>
                         </div>
-
                         <div class="col-md-3">
                             <label>Pagamento</label>
                             <input class="form-control form-control-sm fw-bold" value="${response.data_pagamento || '-'}" disabled>
                         </div>
-
                         <div class="col-md-3">
                             <label>Situação</label>
-                            <input class="form-control form-control-sm fw-bold text-center"
-                                style="background:${cor};color:white"
-                                value="${response.situacao}" disabled>
+                            <input class="form-control form-control-sm fw-bold text-center" style="background:${cor};color:white" value="${response.situacao}" disabled>
                         </div>
-
                         <div class="col-md-3">
                             <label>Valor</label>
-                            <input class="form-control form-control-sm fw-bold text-success"
-                                value="R$ ${formatBR(response.valor)}" disabled>
+                            <input class="form-control form-control-sm fw-bold text-success" value="R$ ${formatBR(response.valor)}" disabled>
                         </div>
-
                         <div class="col-md-3">
                             <label>Juros</label>
-                            <input class="form-control form-control-sm"
-                                value="R$ ${formatBR(response.juros)}" disabled>
+                            <input class="form-control form-control-sm" value="R$ ${formatBR(response.juros)}" disabled>
                         </div>
-
                         <div class="col-md-3">
                             <label>Multa</label>
-                            <input class="form-control form-control-sm"
-                                value="R$ ${formatBR(response.multa)}" disabled>
+                            <input class="form-control form-control-sm" value="R$ ${formatBR(response.multa)}" disabled>
                         </div>
-
                         <div class="col-md-3">
                             <label>Desconto</label>
-                            <input class="form-control form-control-sm text-danger"
-                                value="R$ ${formatBR(response.desconto)}" disabled>
+                            <input class="form-control form-control-sm text-danger" value="R$ ${formatBR(response.desconto)}" disabled>
                         </div>
                     </div>
-
                     <div class="col-12 mt-3">
                         <div class="card">
                             <div class="card-header bg-secondary-subtle text-dark">
                                 <strong>Formas de Pagamento</strong>
                             </div>
-                            <div class="card-body">
-                                ${tabelaFormas}
-                            </div>
+                            <div class="card-body">${tabelaFormas}</div>
                         </div>
                     </div>
-
                     <div class="mt-3">
                         <label>Observações</label>
                         <textarea class="form-control" disabled>${response.obs}</textarea>
@@ -8823,11 +9003,9 @@ $(document).ready(function() {
                         <textarea class="form-control" disabled>${response.obs_internas}</textarea>
                     </div>
                 `);
-
                 fecharLoading();
                 $('#infoEntModal').modal('show');
             },
-
             error: function(xhr) {
                 fecharLoading();
                 console.error('Erro:', xhr.responseText);

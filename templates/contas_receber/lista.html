@@ -3,18 +3,20 @@
 {% load custom_filters %}
 {% block title %}Lista - Contas à Receber{% endblock %}
 {% block content %}
-    <div class="container-fluid bg-white">
-        <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Listagem de Contas à Receber</li>
+    <div class="container-fluid py-3 min-vh-100">
+        <nav class="mt-5" aria-label="breadcrumb">
+            <ol class="breadcrumb p-2 m-2">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'inicio' %}" class="text-decoration-none text-secondary" id="item-naveg"><i class="fas fa-home me-1"></i> Principal</a>
+                </li>
+                <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">Listagem de Contas à Receber</li>
             </ol>
         </nav>
         {% if messages %}
             <div id="django-messages" data-messages='[
                 {% for message in messages %}
                     {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
-                    {% if not forloop.last %},{% endif %}
+                    {% if not forloocr.last %},{% endif %}
                 {% endfor %}
             ]'></div>
         {% endif %}
@@ -23,458 +25,497 @@
                 Usuário não autorizado para realizar esta função.
             </div>
         {% endif %}
-        <form method="GET" id="search-form" style="margin-left: 1%; margin-right: 1%;">
-            <div class="row g-3 align-items-end">
-                <div class="col-md-2 search-div flex-md-fill">
-                    <label class="form-label">Filial:</label>
-                    <select class="form-control" id="id_filial_user" name="fil">
-                        <option value="">Selecione uma Filial</option>
-                        {% for f in filiais %}
-                            <option value="{{ f.codigo }}"
-                                {% if request.GET.fil == f.codigo|stringformat:"s" %}selected{% endif %}>
-                                {{ f.fantasia }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2 search-div flex-md-fill">
-                    <label class="form-label">Cliente:</label>
-                    <select class="form-control" id="cliente" name="cl">
-                        <option value="">Selecione um cliente</option>
-                        {% for c in clientes %}
-                            <option value="{{ c.codigo }}"
-                                {% if request.GET.cl == c.codigo|stringformat:"s" %}selected{% endif %}>
-                                {{ c.fantasia }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Situação:</label>
-                    <div class="d-flex">
-                        <select class="form-control" name="sit" id="situacao">
-                            <option value="Aberta" {% if request.GET.sit == 'Aberta' %}selected{% endif %}>Aberta</option>
-                            <option value="Paga" {% if request.GET.sit == 'Paga' %}selected{% endif %}>Paga</option>
-                            <option value="todas" {% if request.GET.sit == 'todas' %}selected{% endif %}>Todas</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Período:</label>
-                    <select class="form-control" id="usar-data" name="p_dt">
-                        <option value="Sim" {% if p_dt == 'Sim' %}selected{% endif %}>Sim</option>
-                        <option value="Nao" {% if p_dt == 'Nao' %}selected{% endif %}>Não</option>
-                    </select>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Listar por:</label>
-                    <div class="d-flex">
-                        <select class="form-control" name="list_p" id="list_p">
-                            <option value="dt_v" {% if list_p == 'dt_v' %}selected{% endif %}>Dt. Vencimento</option>
-                            <option value="dt_e" {% if list_p == 'dt_e' %}selected{% endif %}>Dt. Emissão</option>
-                            <option value="dt_p" {% if list_p == 'dt_p' %}selected{% endif %}>Dt. Pagamento</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-3 search-div">
-                    <div class="row">
-                        <div class="col">
-                            <label class="form-label">De:</label>
-                            <input class="form-control" type="text" name="dt_ini" id="data_inicio1" value="{{ dt_ini }}">
+        <div class="card border-0 shadow-sm rounded-3 mb-2">
+            <div class="card-body p-0 mb-2">
+                <form method="GET" id="search-form">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-xl-2 col-md-4 flex-md-fill">
+                            <label for="vinc_emp" class="form-label small text-secondary fw-semibold">Filial</label>
+                            <select name="fil" id="vinc_emp" class="form-select form-select-sm">
+                                <option value="">Escolha uma opção</option>
+                                {% for f in filiais %}
+                                    <option value="{{ f.codigo }}" {% if request.GET.fil == f.codigo|stringformat:"s" %}selected{% endif %}>{{ f }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                        <div class="col">
-                            <label class="form-label">Até:</label>
-                            <input class="form-control" type="text" name="dt_fim" id="data_fim1" value="{{ dt_fim }}">
+                        <div class="col-xl-2 col-md-4 flex-md-fill">
+                            <label for="cliente" class="form-label small text-secondary fw-semibold">Cliente</label>
+                            <select class="form-select form-select-sm" id="cliente" name="cl">
+                                <option value="">Escolha uma opção</option>
+                                {% for c in clientes %}
+                                    <option value="{{ c.codigo }}" {% if request.GET.cl == c.codigo|stringformat:"s" %}selected{% endif %}>{{ c }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label for="situacao" class="form-label small text-secondary fw-semibold">Situação</label>
+                            <select class="form-select" name="sit" id="situacao">
+                                <option value="Aberta" {% if request.GET.sit == 'Aberta' %}selected{% endif %}>Aberta</option>
+                                <option value="Paga" {% if request.GET.sit == 'Paga' %}selected{% endif %}>Paga</option>
+                                <option value="todas" {% if request.GET.sit == 'todas' %}selected{% endif %}>Todas</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label for="list_p" class="form-label small text-secondary fw-semibold">Data de</label>
+                            <select class="form-select" name="list_p" id="list_p">
+                                <option value="dt_v" {% if list_p == 'dt_v' %}selected{% endif %}>Dt. Vencimento</option>
+                                <option value="dt_e" {% if list_p == 'dt_e' %}selected{% endif %}>Dt. Emissão</option>
+                                <option value="dt_p" {% if list_p == 'dt_p' %}selected{% endif %}>Dt. Pagamento</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label for="usar-data" class="form-label small text-secondary fw-semibold">Filtrar Data</label>
+                            <select class="form-select" id="usar-data" name="p_dt">
+                                <option value="Sim" {% if request.GET.p_dt == 'Sim' %}selected{% endif %}>Sim</option>
+                                <option value="Nao" {% if request.GET.p_dt == 'Nao' %}selected{% endif %}>Não</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-md-4">
+                            <label class="form-label small text-secondary fw-semibold">Período</label>
+                            <div class="input-group">
+                                <input class="form-control" type="text" name="dt_ini" id="data_inicio1" placeholder="De" value="{{ request.GET.dt_ini }}">
+                                <span class="input-group-text bg-white text-secondary"><i class="fas fa-calendar-alt"></i></span>
+                                <input class="form-control" type="text" name="dt_fim" id="data_fim1" placeholder="Até" value="{{ request.GET.dt_fim }}">
+                            </div>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label class="form-label small text-secondary fw-semibold">Exibir</label>
+                            <select class="form-select" id="qtd_reg" name="reg">
+                                <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
+                                <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
+                                <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
+                                <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
+                                <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
+                                <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label class="form-label small text-secondary fw-semibold">Ordem</label>
+                            <select class="form-select" id="ordem" name="ordem">
+                                <option value="vinc_fil__fantasia" {% if request.GET.ordem == 'vinc_fil__fantasia' %}selected{% endif %}>Filial</option>
+                                <option value="cliente__fantasia" {% if request.GET.ordem == 'cliente__fantasia' %}selected{% endif %}>Cliente</option>
+                                <option value="data_vencimento" {% if request.GET.ordem == 'data_vencimento' %}selected{% endif %}>Dt. Venc.</option>
+                                <option value="data_emissao" {% if request.GET.ordem == 'data_emissao' %}selected{% endif %}>Dt. Emissão</option>
+                                <option value="data_pagamento" {% if request.GET.ordem == 'data_pagamento' %}selected{% endif %}>Dt. Pgto.</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-auto col-md-12 d-grid">
+                            <button class="btn btn-dark px-4" title="Consultar" type="submit" id="data-btn">
+                                <i class="fa-solid fa-magnifying-glass"></i> Filtrar
+                            </button>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Ordem:</label>
-                    <div class="d-flex">
-                        <select class="form-control" name="ordem" id="ordem">
-                            <option value="vinc_fil__fantasia" {% if request.GET.ordem == 'vinc_fil__fantasia' %}selected{% endif %}>Filial</option>
-                            <option value="cliente__fantasia" {% if request.GET.ordem == 'cliente__fantasia' %}selected{% endif %}>Cliente</option>
-                            <option value="data_vencimento" {% if request.GET.ordem == 'data_vencimento' %}selected{% endif %}>Dt. Venc.</option>
-                            <option value="data_emissao" {% if request.GET.ordem == 'data_emissao' %}selected{% endif %}>Dt. Emissão</option>
-                            <option value="data_pagamento" {% if request.GET.ordem == 'data_pagamento' %}selected{% endif %}>Dt. Pgto.</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Reg.:</label>
-                    <select class="form-control" id="qtd_reg" name="reg">
-                        <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
-                        <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
-                        <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
-                        <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
-                        <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
-                        <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
-                    </select>
-                </div>
-                <div class="col search-div d-flex justify-content-start">
-                    <button class="btn btn-dark" title="Consultar mensalidades" type="submit" id="data-btn" data-bs-toggle="modal" data-bs-target="#loadingModal">🔎</button>
-                </div>
+                </form>
             </div>
-        </form>
-        <div class="table-container" style="margin-left: 1%; margin-right: 1%;">
-            <table class="table table-bordered table-responsive-sm table-rounded table-striped" id="tabelas-lista">
-                <thead class="table-dark">
-                    <tr>
-                        <th scope="col" style="text-align: center; width: 3%;">Opções</th>
-                        <th scope="col" style="text-align: justify;">Nr. Conta</th>
-                        <th scope="col" style="text-align: center; width: 7%;">Situação</th>
-                        <th scope="col" style="text-align: justify;">Filial</th>
-                        <th scope="col" style="text-align: justify;">Cliente</th>
-                        <th scope="col" style="align-items: center; width: 7%;">Dt. Emissão</th>
-                        <th scope="col" style="align-items: center; width: 8%;">Dt. Vencimento</th>
-                        <th scope="col" style="align-items: center; width: 6%;">Vl. Título</th>
-                        <th scope="col" style="align-items: center;">Vl. Restante</th>
-                        <th scope="col" style="align-items: center; width: 7%;">Dias Atraso</th>
-                        <th scope="col" style="align-items: center; width: 6.5%;">Vl. Juros</th>
-                        <th scope="col" style="align-items: center; width: 6.5%;">Vl. Multa</th>
-                        <th scope="col" style="align-items: center;">Vl. Pago</th>
-                        <th scope="col" style="align-items: center; width: 10%;">Dt. Pagamento</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for cr in contas_receber %}
-                        <tr>
-                            <td data-label="Opções:" class="mobile-2col">
-                                <div style="text-align: center;">
-                                    <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#menuModal{{ cr.codigo }}" title="Opções">
+        </div>
+        <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+            <div class="list-group">
+                <!-- Cabeçalho -->
+                <div class="list-group-item bg-light fw-bold cabecalho-lista">
+                    <div class="row align-items-center">
+                        <div class="col-md-1 text-center border-end"><div class="border-bottom">Ações</div>Nº Conta</div>
+                        <div class="col-md-1 text-center border-end">Situação</div>
+                        <div class="col-md-2 border-end">Filial</div>
+                        <div class="col-md-3 border-end">Cliente</div>
+                        <div class="col-md-1 text-center border-end" style="font-size: 0.9rem;"><div class="border-bottom">Dt. Emissão</div>Dt. Vencimento</div>
+                        <div class="col-md-1 text-center border-end"><div class="border-bottom">Vl. Parcela</div>Vl. Restante</div>
+                        <div class="col-md-1 text-center border-end">Dias Atraso</div>
+                        <div class="col-md-1 text-center border-end"><div class="border-bottom">Vl. Juros</div>Vl. Multa</div>
+                        <div class="col-md-1 text-center" style="font-size: 0.95rem;"><div class="border-bottom">Vl. Pago</div>Dt. Pagamento</div>
+                    </div>
+                </div>
+                <!-- Registros -->
+                {% for cr in contas_receber %}
+                    <div class="list-group-item py-1 item-lista">
+                        <div class="row align-items-center linha-lista">
+                            <div class="col-md-1 text-center border-end">
+                                <div class="border-bottom acoes-col">
+                                    <button class="btn btn-dark btn-sm mb-1" data-bs-toggle="modal" data-bs-target="#menuModal{{ cr.codigo }}" title="Opções">
                                         <i class="fa-solid fa-bars"></i>
                                     </button>
                                 </div>
-                                <!-- Modal de opções de contas a receber -->
-                                <div class="modal fade modal-sm" id="menuModal{{ cr.codigo }}" data-orcamento-id="{{ cr.codigo }}" tabindex="-1" aria-labelledby="menuModalLabel{{ cr.codigo }}" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header titulo-modal">
-                                                <h5 class="modal-title fw-bold mx-auto" id="menuModalLabel{{ cr.codigo }}">Opções - {{ cr.num_conta }}</h5>
+                                <div class="border-bottom text-center fw-bold text-secondary descricao-col" data-label="Código:">
+                                    <small class="f-flex d-md-none">Código:</small> #{{ cr.num_conta }}
+                                </div>
+                            </div>
+                            <div class="col-1 text-center codigo-col" style="min-width: 90px;" data-label="Situação:">
+                                {% if cr.situacao == 'Aberta' %}
+                                    <span class="badge bg-primary">{{ cr.situacao }}</span>
+                                {% else %}
+                                    <span class="badge bg-success">{{ cr.situacao }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-2 fw-bold codigo-col" data-label="Filial:">
+                                {{ cr.vinc_fil.fantasia }}
+                            </div>
+                            <div class="col-md-3 fw-bold descricao-col" data-label="Cliente:">
+                                {{ cr.cliente.fantasia }}
+                            </div>
+                            <div class="col-md-1 text-center fw-bold" style="font-size: 0.9rem;">
+                                <div class="border-bottom descricao-col" data-label="Dt. Emissão:">
+                                    <small class="f-flex d-md-none">Dt. Emissão:</small> {{ cr.data_emissao|date:"d/m/Y" }}
+                                </div>
+                                <div class="border-bottom descricao-col" data-label="Dt. Vencimento:">
+                                    <small class="f-flex d-md-none">Dt. Vencimento:</small> {{ cr.data_vencimento|date:"d/m/Y" }}
+                                </div>
+                            </div>
+                            <div class="col-md-1 text-center fw-bold">
+                                <div class="border-bottom descricao-col text-success" data-label="Vl. Parcela:">
+                                    <small class="f-flex d-md-none">Vl. Parcela:</small> {{ cr.valor|moeda_br}}
+                                </div>
+                                <div class="border-bottom descricao-col text-secondary" data-label="Vl. Restante:">
+                                    <small class="f-flex d-md-none">Vl. Restante:</small> {% if cr.saldo %} {{ cr.saldo|moeda_br }} {% else %} 0,00 {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-1 text-center fw-bold descricao-col" data-label="Dias Atraso:">
+                                {% if cr.dias_atraso > 0 %}
+                                    <span class="fw-bold text-danger">{{ cr.dias_atraso }}</span>
+                                {% else %}
+                                    <span class="fw-bold text-secondary">{{ cr.dias_atraso }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-1 text-center fw-bold">
+                                <div class="border-bottom descricao-col" data-label="Vl. Juros:">
+                                    <small class="f-flex d-md-none">Vl. Juros:</small> {{ cr.valor_juros|moeda_br }}
+                                </div>
+                                <div class="border-bottom descricao-col" data-label="Vl. Multa:">
+                                    <small class="f-flex d-md-none">Vl. Multa:</small> {{ cr.valor_multa|moeda_br }}
+                                </div>
+                            </div>
+                            <div class="col-md-1 fw-bold">
+                                {% if cr.situacao == "Paga" %}
+                                    <div class="border-bottom descricao-col text-success text-center" data-label="{% if cr.situacao != 'Aberta' %}Vl. Pago:{% endif %}">
+                                        <small class="f-flex d-md-none">Vl. Pago:</small> {{ cr.valor_pago|moeda_br }}
+                                    </div>
+                                    <div class="border-bottom descricao-col text-center" data-label="{% if cr.situacao != 'Aberta' %}Dt. Pagamento:{% endif %}">
+                                        <small class="f-flex d-md-none">Dt. Pagamento:</small> {{ cr.data_pagamento|date:"d/m/Y" }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Modal ÚNICO para cada pedido -->
+                    <div class="modal fade" id="modal-{{ cr.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ cr.codigo }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title" id="modalLabel-{{ cr.codigo }}">
+                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                    </h5>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Você confirma a EXCLUSÃO DA CONTA À RECEBER <strong>{{ cr.num_conta }}</strong>?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post" action="{% url 'del-conta-receber' cr.codigo %}" class="form-excluir">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-confirmar" id="confirmBtn" disabled>
+                                            <u>S</u>im <span class="contador">3</span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnRecusa">
+                                            <u>N</u>ão
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Modal de opções do pedido -->
+                    <div class="modal fade modal-sm" id="menuModal{{ cr.codigo }}" data-orcamento-id="{{ cr.codigo }}" tabindex="-1" aria-labelledby="menuModalLabel{{ cr.codigo }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal"><h5 class="modal-title fw-bold mx-auto" id="menuModalLabel{{ cr.codigo }}">Opções - {{ cr.codigo }}</h5></div>
+                                <div class="modal-body p-2">
+                                    <a href="{% url 'att-conta-receber' cr.codigo %}?next={{ request.get_full_path|urlencode }}" data-permissao="contas_receber.change_contareceber" data-msg-negado="Seu usuário não pode editar contas à receber!" class="btn btn-light w-100 text-start menu-opcao op-editar border border-secondary btn-permissao" >
+                                        <i class="fas fa-edit"></i> Editar
+                                    </a>
+                                    {% if cr.situacao == 'Aberta' %}
+                                        <button class="btn btn-light w-100 text-start menu-opcao op-deletar btn-delete border border-secondary btn-permissao" data-orcamento-id="{{ cr.codigo }}" data-permissao="contas_receber.delete_contareceber" data-msg-negado="Seu usuário não pode deletar contas à receber!">
+                                            <i class="fas fa-trash"></i> Deletar
+                                        </button>
+                                        <button class="btn btn-light w-100 text-start menu-opcao op-faturar border border-secondary btn-permissao" data-id="{{ cr.codigo }}" data-permissao="contas_receber.baixar_cr" data-msg-negado="Seu usuário não pode realizar baixas em contas à receber!" data-bs-toggle="modal" data-bs-target="#mdInfoBaixa-{{ cr.codigo }}">
+                                            <i class="fa-solid fa-circle-down"></i> Pagar
+                                        </button>
+                                    {% else %}
+                                        <button class="btn btn-light w-100 text-start menu-opcao op-estornar border border-secondary btn-permissao" data-id="{{ cr.codigo }}" data-permissao="contas_receber.estornar_cr" data-msg-negado="Seu usuário não pode realizar estornos em contas à receber!" data-bs-toggle="modal" data-bs-target="#mdEstorno-{{ cr.codigo }}">
+                                            <i class="fa-solid fa-arrow-rotate-left"></i> Estornar
+                                        </button>
+                                    {% endif %}
+                                    <button class="btn btn-light w-100 text-start menu-opcao op-detalhe-cr border border-secondary" data-id="{{ cr.codigo }}" data-bs-toggle="modal" data-bs-target="#infoEntModalP{{ cr.codigo }}">
+                                        <i class="fa-solid fa-circle-info"></i> Detalhes
+                                    </button>
+                                    <div class="dropdown w-100">
+                                        <button class="btn btn-light w-100 text-start menu-opcao op-imprimir border border-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="true">
+                                            <i class="fa-solid fa-print"></i> Impressão
+                                        </button>
+                                        <ul class="dropdown-menu w-100">
+                                            <li><a href="{% url 'imprimir-carne' cr.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Carnê</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary btn-sm mx-auto" data-bs-dismiss="modal">Fechar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="mdEstorno-{{ cr.codigo }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title"><i class="fa-regular fa-circle-question"></i>Confirmação</h5>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Ao estornar esta conta à receber, todos os pagamentos associados a este título serão cancelados.</p>
+                                    <p class="mb-2">Você confirma o ESTORNO DA CONTA À RECEBER <strong>{{ cr.num_conta }}</strong>?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post" action="{% url 'estornar-conta-receber' cr.codigo %}" class="form-excluir">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                            <u>S</u>im <span class="contador">3</span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                            <u>N</u>ão
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="mdBaixa-{{ cr.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="mdBaixaLabel-{{ cr.codigo }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title" id="mdBaixaLabel-{{ cr.codigo }}">
+                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                    </h5>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Você confirma o PAGAMENTO DA MENSALIDADE <strong>{{ cr.num_conta }}</strong>?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post" action="{% url 'pagar-conta-receber' cr.codigo %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                            <u>S</u>im <span class="contador">3</span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                            <u>N</u>ão
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="infoEntModal" tabindex="-1" aria-labelledby="infoEntModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title" id="infoEntModalLabel"></h5>
+                                </div>
+                                <div class="modal-body" id="infoEntBody"></div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="mdInfoBaixa-{{ cr.codigo }}" data-bs-backdrop="true" data-bs-keyboard="false" tabindex="-1" aria-labelledby="mdInfoBaixaLabel{{ cr.codigo }}" aria-hidden="true">
+                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title" id="mdInfoBaixaLabel{{ cr.codigo }}"><i class="fa-solid fa-cash-register"></i> Baixa de Contas à Receber</h5>
+                                </div>
+                                <div class="modal-body">
+                                    <form>
+                                        <div class="row">
+                                            <div class="col-md-2">
+                                                <label for="num_conta_cr" class="col-form-label">Nº Conta:</label>
+                                                <input type="text" class="form-control form-control-sm" disabled="disabled" id="num_conta_cr{{ cr.codigo }}" value="{{ cr.num_conta }}" name="num_conta_cr">
                                             </div>
-                                            <div class="modal-body p-2">
-                                                {% if cr.situacao == 'Aberta' %}
-                                                    <a href="{% url 'att-conta-receber' cr.codigo %}?next={{ request.get_full_path|urlencode }}"
-                                                       class="btn btn-light w-100 text-start menu-opcao op-editar border border-secondary">
-                                                        <i class="fas fa-edit"></i> Editar
-                                                    </a>
-                                                    <button class="btn btn-light w-100 text-start menu-opcao op-deletar btn-delete border border-secondary"
-                                                            data-orcamento-id="{{ cr.codigo }}">
-                                                        <i class="fas fa-trash"></i> Deletar
-                                                    </button>
-                                                    <button class="btn btn-light w-100 text-start menu-opcao op-faturar border border-secondary"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#mdInfoBaixa-{{ cr.codigo }}">
-                                                        <i class="fa-solid fa-circle-down" style="margin: 5px; font-size: 16px; float: right;"></i> Pagar
-                                                    </button>
-                                                {% else %}
-                                                    <a href="{% url 'estornar-conta-receber' cr.codigo %}?next={{ request.get_full_path|urlencode }}"
-                                                       class="btn btn-light w-100 text-start menu-opcao op-estornar border border-secondary">
-                                                        <i class="fa-solid fa-arrow-rotate-left"></i> Estornar
-                                                    </a>
-                                                {% endif %}
-                                                <button class="btn btn-light w-100 text-start menu-opcao op-detalhe-cr border border-secondary" data-id="{{ cr.codigo }}" data-bs-toggle="modal" data-bs-target="#infoEntModalP{{ cr.codigo }}">
-                                                    <i class="fa-solid fa-circle-info"></i> Detalhes
+                                            <div class="col-md-6">
+                                                <label for="filial_cr" class="col-form-label">Filial:</label>
+                                                <select class="form-select form-select-sm filial-select" id="filial_cr{{ cr.codigo }}" name="filial_cr">
+                                                    {% if cr.vinc_fil %}
+                                                        <option value="{{ cr.vinc_fil.codigo }}" selected>
+                                                            {{ cr.vinc_fil.fantasia }}
+                                                        </option>
+                                                    {% endif %}
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="dt_pag_cr" class="col-form-label">Dt. Pagamento:</label>
+                                                <input type="text" class="form-control form-control-sm" id="dt_pag_cr-{{ cr.codigo }}" name="dt_pag_cr">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="cliente_cr" class="col-form-label">Cliente:</label>
+                                                <input type="text" class="form-control form-control-sm" disabled="disabled" id="cliente_cr{{ cr.codigo }}" value="{{ cr.cliente.fantasia }}" name="cliente_cr">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="valor_cr" class="col-form-label">Valor Conta:</label>
+                                                <input type="text" class="form-control form-control-sm text-end" disabled="disabled" id="valor_cr{{ cr.codigo }}" value="{{ cr.valor }}" name="valor_cr">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="tot_juros_cr" class="col-form-label">Total Juros:</label>
+                                                <input type="text" class="form-control form-control-sm text-end" disabled="disabled" id="tot_juros_cr{{ cr.codigo }}" value="{{ cr.valor_juros|moeda_br }}" name="tot_juros_cr">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="tot_multa_cr" class="col-form-label">Total Multa:</label>
+                                                <input type="text" class="form-control form-control-sm text-end" disabled="disabled" id="tot_multa_cr{{ cr.codigo }}" value="{{ cr.valor_multa|moeda_br }}" name="tot_multa_cr">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="desc_j_cr" class="col-form-label">Desconto Juros (%):</label>
+                                                <input type="text" class="form-control form-control-sm text-end" id="desc_j_cr{{ cr.codigo }}" value="0.00" name="desc_j_cr">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="juros_cr" class="col-form-label">Valor Juros:</label>
+                                                <input type="text" class="form-control form-control-sm text-end" id="juros_cr{{ cr.codigo }}" value="{{ cr.valor_juros|moeda_br }}" name="juros_cr">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="desc_m_cr" class="col-form-label">Desconto Multa (%):</label>
+                                                <input type="text" class="form-control form-control-sm text-end" id="desc_m_cr{{ cr.codigo }}" value="0.00" name="desc_m_cr">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label for="multa_cr" class="col-form-label">Valor Multa:</label>
+                                                <input type="text" class="form-control form-control-sm text-end" id="multa_cr{{ cr.codigo }}" value="{{ cr.valor_multa|moeda_br }}" name="multa_cr">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="vl_tot_cr" class="col-form-label">Total à Pagar:</label>
+                                                <input type="text" class="form-control form-control-sm text-end fw-bold text-primary" disabled="disabled" id="vl_tot_cr{{ cr.codigo }}" value="{{ cr.valor_total|moeda_br }}" name="vl_tot_cr">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="formas_pgto_cr" class="col-form-label">Formas de Pagamento</label>
+                                                <select id="formas_pgto_cr{{ cr.codigo }}" class="form-select form-select-sm" name="formas_pgto_cr">
+                                                    <option selected value="">Selecione uma Forma</option>
+                                                    {% for fp in formas_pgto %}
+                                                        <option value="{{ fcr.codigo }}">{{ fcr.descricao }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label for="vl_pg_cr" class="col-form-label">Vl. Pagamento:</label>
+                                                <input type="text" class="form-control form-control-sm text-end" id="vl_pg_cr{{ cr.codigo }}" value="{{ cr.valor_total|moeda_br }}" name="vl_pg_cr">
+                                            </div>
+                                            <div class="col-sm-12 col-md-1 col-lg-1">
+                                                <button type="button" id="btn_inc_forma{{ cr.codigo }}" class="btn btn-dark btn-sm" style="width: 100%; margin-top: 35.5px;">
+                                                    <i class="fa fa-plus"></i>
                                                 </button>
                                             </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary btn-sm mx-auto" data-bs-dismiss="modal">Fechar</button>
-                                            </div>
                                         </div>
+                                        <div class="mt-2">
+                                            <table class="table table-sm table-bordered table-responsive-sm table-rounded table-striped" id="tb_formas_{{ cr.codigo }}">
+                                                <thead class="table-dark">
+                                                    <tr>
+                                                        <th>Forma de Pagamento</th>
+                                                        <th class="text-end">Valor</th>
+                                                        <th width="70">Ação</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody></tbody>
+                                                <tfoot>
+                                                    <tr>
+                                                        <th>Restante</th>
+                                                        <th class="text-end text-danger" id="restante_cr{{ cr.codigo }}">0,00</th>
+                                                        <th></th>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-dark btn-sm btn-baixar-cr">Baixar</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="modalPixPagamento" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content border-0 shadow-lg">
+                                <div class="modal-header titulo-modal text-white" style="max-height: 30px;">
+                                    <h5 class="modal-title"><i class="fa-brands fa-pix"></i> Pagamento via PIX</h5>
+                                </div>
+                                <div class="modal-body text-center">
+                                    <!-- QR -->
+                                    <div id="pixQrContainer" class="mb-3"></div>
+                                    <!-- Status -->
+                                    <div id="statusPix" class="mt-3">
+                                        <div class="spinner-border text-success mb-2"></div>
+                                        <div class="fw-semibold">Aguardando pagamento...</div>
+                                    </div>
+                                    <!-- Sucesso -->
+                                    <div id="statusSucesso" class="d-none mt-3">
+                                        <div class="check-anim">✔</div>
+                                        <div class="fw-bold text-success">Pagamento confirmado!</div>
                                     </div>
                                 </div>
-                                <!-- Modal ÚNICO para cada mensalidade -->
-                                <div class="modal fade" id="modal-{{ cr.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ cr.codigo }}" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header titulo-modal">
-                                                <h1 class="modal-title fs-5" id="modalTitle-{{ cr.codigo }}">
-                                                    <i class="fa-regular fa-circle-question"></i> Confirmação!
-                                                </h1>
-                                            </div>
-                                            <div class="modal-body">
-                                                <p>Você confirma a EXCLUSÃO DA CONTA À RECEBER <strong>{{ cr.num_conta }}</strong>?</p>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <form method="post" action="{% url 'del-conta-receber' cr.codigo %}" class="form-excluir">
-                                                    {% csrf_token %}
-                                                    <button type="submit" class="btn btn-primary btn-confirmar" disabled>
-                                                        <u>S</u>im <span class="contador">3</span>
-                                                    </button>
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                                        <u>N</u>ão
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!--<span><i class="fa-solid fa-circle-down" style="float: right; font-size: 20px; margin: 5px; color: #2E8B57; cursor: pointer;" title="Baixar Conta à Receber" data-bs-toggle="modal" data-bs-target="#mdBaixa-{{ cr.codigo }}"></i></span>-->
-                                <div class="modal fade" id="mdBaixa-{{ cr.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="mdBaixaLabel-{{ cr.codigo }}" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header titulo-modal">
-                                                <h5 class="modal-title" id="mdBaixaLabel-{{ cr.codigo }}">
-                                                    <i class="fa-regular fa-circle-question"></i> Confirmação!
-                                                </h5>
-                                            </div>
-                                            <div class="modal-body">
-                                                <p>Você confirma o PAGAMENTO DA MENSALIDADE <strong>{{ cr.num_conta }}</strong>?</p>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <form method="post" action="{% url 'pagar-conta-receber' cr.codigo %}">
-                                                    {% csrf_token %}
-                                                    <button type="submit" class="btn btn-primary btn-confirmar" disabled>
-                                                        <u>S</u>im <span class="contador">3</span>
-                                                    </button>
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                                        <u>N</u>ão
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal fade" id="infoEntModal" tabindex="-1" aria-labelledby="infoEntModalLabel" aria-hidden="true">
-                                    <div class="modal-dialog modal-lg">
-                                        <div class="modal-content">
-                                            <div class="modal-header titulo-modal">
-                                                <h5 class="modal-title" id="infoEntModalLabel"></h5>
-                                            </div>
-                                            <div class="modal-body" id="infoEntBody"></div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal fade" id="mdInfoBaixa-{{ cr.codigo }}" data-bs-backdrop="true" data-bs-keyboard="false" tabindex="-1" aria-labelledby="mdInfoBaixaLabel{{ cr.codigo }}" aria-hidden="true">
-                                    <div class="modal-dialog modal-lg modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header titulo-modal">
-                                                <h5 class="modal-title" id="mdInfoBaixaLabel{{ cr.codigo }}"><i class="fa-solid fa-cash-register"></i> Baixa de Contas à Receber</h5>
-                                            </div>
-                                            <div class="modal-body">
-                                                <form>
-                                                    <div class="row">
-                                                        <div class="col-md-2">
-                                                            <label for="num_conta_cr" class="col-form-label">Nº Conta:</label>
-                                                            <input type="text" class="form-control form-control-sm" disabled="disabled" id="num_conta_cr{{ cr.codigo }}" value="{{ cr.num_conta }}" name="num_conta_cr">
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <label for="filial_cr" class="col-form-label">Filial:</label>
-                                                            <select class="form-select form-select-sm filial-select" id="filial_cr{{ cr.codigo }}" name="filial_cr">
-                                                                {% if cr.vinc_fil %}
-                                                                    <option value="{{ cr.vinc_fil.codigo }}" selected>
-                                                                        {{ cr.vinc_fil.fantasia }}
-                                                                    </option>
-                                                                {% endif %}
-                                                            </select>
-                                                        </div>
-                                                        <div class="col-md-4">
-                                                            <label for="dt_pag_cr" class="col-form-label">Dt. Pagamento:</label>
-                                                            <input type="text" class="form-control form-control-sm" id="dt_pag_cr-{{ cr.codigo }}" name="dt_pag_cr">
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <label for="cliente_cr" class="col-form-label">Cliente:</label>
-                                                            <input type="text" class="form-control form-control-sm" disabled="disabled" id="cliente_cr{{ cr.codigo }}" value="{{ cr.cliente.fantasia }}" name="cliente_cr">
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <label for="valor_cr" class="col-form-label">Valor Conta:</label>
-                                                            <input type="text" class="form-control form-control-sm text-end" disabled="disabled" id="valor_cr{{ cr.codigo }}" value="{{ cr.valor }}" name="valor_cr">
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <label for="tot_juros_cr" class="col-form-label">Total Juros:</label>
-                                                            <input type="text" class="form-control form-control-sm text-end" disabled="disabled" id="tot_juros_cr{{ cr.codigo }}" value="{{ cr.valor_juros|moeda_br }}" name="tot_juros_cr">
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <label for="tot_multa_cr" class="col-form-label">Total Multa:</label>
-                                                            <input type="text" class="form-control form-control-sm text-end" disabled="disabled" id="tot_multa_cr{{ cr.codigo }}" value="{{ cr.valor_multa|moeda_br }}" name="tot_multa_cr">
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <label for="desc_j_cr" class="col-form-label">Desconto Juros (%):</label>
-                                                            <input type="text" class="form-control form-control-sm text-end" id="desc_j_cr{{ cr.codigo }}" value="0.00" name="desc_j_cr">
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <label for="juros_cr" class="col-form-label">Valor Juros:</label>
-                                                            <input type="text" class="form-control form-control-sm text-end" id="juros_cr{{ cr.codigo }}" value="{{ cr.valor_juros|moeda_br }}" name="juros_cr">
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <label for="desc_m_cr" class="col-form-label">Desconto Multa (%):</label>
-                                                            <input type="text" class="form-control form-control-sm text-end" id="desc_m_cr{{ cr.codigo }}" value="0.00" name="desc_m_cr">
-                                                        </div>
-                                                        <div class="col-md-2">
-                                                            <label for="multa_cr" class="col-form-label">Valor Multa:</label>
-                                                            <input type="text" class="form-control form-control-sm text-end" id="multa_cr{{ cr.codigo }}" value="{{ cr.valor_multa|moeda_br }}" name="multa_cr">
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <label for="vl_tot_cr" class="col-form-label">Total à Pagar:</label>
-                                                            <input type="text" class="form-control form-control-sm text-end fw-bold text-primary" disabled="disabled" id="vl_tot_cr{{ cr.codigo }}" value="{{ cr.valor_total|moeda_br }}" name="vl_tot_cr">
-                                                        </div>
-                                                        <div class="col-md-4">
-                                                            <label for="formas_pgto_cr" class="col-form-label">Formas de Pagamento</label>
-                                                            <select id="formas_pgto_cr{{ cr.codigo }}" class="form-select form-select-sm" name="formas_pgto_cr">
-                                                                <option selected value="">Selecione uma Forma</option>
-                                                                {% for fp in formas_pgto %}
-                                                                    <option value="{{ fp.codigo }}">{{ fp.descricao }}</option>
-                                                                {% endfor %}
-                                                            </select>
-                                                        </div>
-                                                        <div class="col-md-2">
-                                                            <label for="vl_pg_cr" class="col-form-label">Vl. Pagamento:</label>
-                                                            <input type="text" class="form-control form-control-sm text-end" id="vl_pg_cr{{ cr.codigo }}" value="{{ cr.valor_total|moeda_br }}" name="vl_pg_cr">
-                                                        </div>
-                                                        <div class="col-sm-12 col-md-1 col-lg-1">
-                                                            <button type="button" id="btn_inc_forma{{ cr.codigo }}" class="btn btn-dark btn-sm" style="width: 100%; margin-top: 35.5px;">
-                                                                <i class="fa fa-plus"></i>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                    <div class="mt-2">
-                                                        <table class="table table-sm table-bordered table-responsive-sm table-rounded table-striped" id="tb_formas_{{ cr.codigo }}">
-                                                            <thead class="table-dark">
-                                                                <tr>
-                                                                    <th>Forma de Pagamento</th>
-                                                                    <th class="text-end">Valor</th>
-                                                                    <th width="70">Ação</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody></tbody>
-                                                            <tfoot>
-                                                                <tr>
-                                                                    <th>Restante</th>
-                                                                    <th class="text-end text-danger" id="restante_cr{{ cr.codigo }}">0,00</th>
-                                                                    <th></th>
-                                                                </tr>
-                                                            </tfoot>
-                                                        </table>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-dark btn-sm btn-baixar-cr">Baixar</button>
-                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal fade" id="modalPixPagamento" tabindex="-1">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content border-0 shadow-lg">
-                                            <div class="modal-header titulo-modal text-white" style="max-height: 30px;">
-                                                <h5 class="modal-title"><i class="fa-brands fa-pix"></i> Pagamento via PIX</h5>
-                                            </div>
-                                            <div class="modal-body text-center">
-                                                <!-- QR -->
-                                                <div id="pixQrContainer" class="mb-3"></div>
-                                                <!-- Status -->
-                                                <div id="statusPix" class="mt-3">
-                                                    <div class="spinner-border text-success mb-2"></div>
-                                                    <div class="fw-semibold">Aguardando pagamento...</div>
-                                                </div>
-                                                <!-- Sucesso -->
-                                                <div id="statusSucesso" class="d-none mt-3">
-                                                    <div class="check-anim">✔</div>
-                                                    <div class="fw-bold text-success">Pagamento confirmado!</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td data-label="Nº Conta:" class="mobile-2col" style="align-items: center;">{{ cr.num_conta }}</td>
-                            <td data-label="Opções:" class="mobile-2col" style="text-align: center; padding: 5px;">
-                                {% if cr.situacao == 'Aberta' %}
-                                    <div style="background-color: #2c2c2c; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
-                                        <strong>{{ cr.situacao }}</strong>
-                                    </div>
-                                {% else %}
-                                    <div style="background-color: #66CDAA; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
-                                        <strong>{{ cr.situacao }}</strong><br>
-                                    </div>
-                                {% endif %}
-                            </td>
-                            <td data-label="Filial:" class="mobile-2col" style="align-items: center;" class="text-uppercase">{{ cr.vinc_fil.fantasia }}</td>
-                            <td data-label="Cliente:" class="mobile-2col" style="align-items: center;" class="text-uppercase">{{ cr.cliente.fantasia }}</td>
-                            <td data-label="Dt. Emissão:" class="mobile-2col" style="text-align: center;">{{ cr.data_emissao|date:"d/m/Y" }}</td>
-                            <td data-label="Dt. Vencimento:" class="mobile-2col" style="text-align: center;">{{ cr.data_vencimento|date:"d/m/Y" }}</td>
-                            <td data-label="Valor:" class="mobile-2col" style="align-items: center;"><span class="fw-bold text-success">{{ cr.valor|moeda_br }}</span></td>
-                            <td data-label="Saldo:" class="mobile-2col" style="text-align: center;"><span class="fw-bold text-secondary">{% if cr.saldo %} {{ cr.saldo|moeda_br }} {% else %} - {% endif %}</span></td>
-                            <td data-label="Dias de Atraso:" class="mobile-2col" style="text-align: center;">
-                                {% if cr.dias_atraso > 0 %}
-                                    <span class="fw-bold text-danger">
-                                        {{ cr.dias_atraso }}
-                                    </span>
-                                {% else %}
-                                    <span class="fw-bold text-secondary">
-                                        {{ cr.dias_atraso }}
-                                    </span>
-                                {% endif %}
-                            </td>
-                            <td data-label="Juros:" class="mobile-2col" style="align-items: center;">{{ cr.valor_juros|moeda_br }}</td>
-                            <td data-label="Multa:" class="mobile-2col" style="align-items: center;">{{ cr.valor_multa|moeda_br }}</td>
-                            <td data-label="{% if cr.situacao != 'Aberta' %}Valor Pago:{% endif %}" class="mobile-2col" style="text-align: center;"><span class="fw-bold text-success">{% if cr.situacao == "Paga" %} {{ cr.valor_pago|moeda_br }} {% else %}  {% endif %}</span></td>
-                            <td data-label="{% if cr.situacao != 'Aberta' %}Dt. Pagamento:{% endif %}" class="mobile-2col" style="text-align: center;">{% if cr.situacao == 'Aberta' %}{% else %}{{ cr.data_pagamento|date:"d/m/Y" }}{% endif %}</td>
-                        </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="14" class="mobile-full-center" style="text-align: center;">
-                            Nenhuma conta à receber encontrada.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <div class="card">
-            <div class="card-body" style="max-height: 50px;">
-                <strong>Total de Contas à Receber: {{ contas_receber|length }}</strong>
-                <a id="add-link" href="{% url 'add-conta-receber' %}" style="margin-left: 1%; margin-right: 1%; float: right;" class="btn-permissao" data-permissao="contas_receber.add_contareceber" data-msg-negado="Seu usuário não pode adicionar contas à receber!">
-                    <button type="button" class="btn btn-primary btn-sm" id="add-conta-receber"><i class="fas fa-plus"></i> Novo</button>
-                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="list-group-item text-center py-3 text-muted">
+                        <i class="fas fa-folder-open fs-2 d-block mb-3 opacity-50"></i> Nenhuma conta à receber encontrada.
+                    </div>
+                {% endfor %}
             </div>
-            <div class="card-footer text-body-secondary">
-                <nav aria-label="Page navigation example" style="padding-bottom: 1px;">
-                    <ul class="pagination justify-content-center">
-                        {% if contas_receber.number > 1 and contas_receber.number > 3 %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="First">
-                                    <span aria-hidden="true" style="color: #0f1d2b;">1</span>
-                                </a>
-                            </li>
+            <div class="card-footer bg-white border-top p-1">
+                <div class="row align-items-center">
+                    <div class="col-md-4 text-center text-md-start d-flex justify-content-center justify-content-md-start">
+                        <ul class="list-group list-group-horizontal-sm">
+                            <li class="list-group-item"><small>Vencidas:</small> <span class="badge bg-danger ms-1">R$ {{ tot_vencido|moeda_br }}</span></li>
+                            <li class="list-group-item"><small>À Vencer:</small> <span class="badge bg-dark ms-1">R$ {{ tot_vencer|moeda_br }}</span></li>
+                            <li class="list-group-item"><small>Juros:</small> <span class="badge bg-info ms-1">R$ {{ tot_j|moeda_br }}</span></li>
+                            <li class="list-group-item"><small>Multa:</small> <span class="badge bg-warning ms-1">R$ {{ tot_m|moeda_br }}</span></li>
+                            <li class="list-group-item"><small>Total Geral:</small> <span class="badge bg-success ms-1">R$ {{ tot_g|moeda_br }}</span></li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4 mt-1 d-flex justify-content-center">
+                        {% if contas_receber.paginator.num_pages > 1 %}
+                            <nav aria-label="Navegação de páginas">
+                                <ul class="pagination pagination-sm m-0 gap-1 border-0">
+                                    {% if contas_receber.number > 3 %}
+                                        <li class="page-item">
+                                            <a class="page-link rounded border-0 text-dark" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">1</a>
+                                        </li>
+                                    {% endif %}
+                                    {% if contas_receber.number > 4 %}
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    {% endif %}
+                                    {% for num in contas_receber.paginator.page_range %}
+                                        {% if num >= contas_receber.number|add:'-2' and num <= contas_receber.number|add:'2' %}
+                                            {% if contas_receber.number == num %}
+                                                <li class="page-item active" aria-current="page">
+                                                    <span class="page-link rounded border-0 bg-dark text-white fw-bold">{{ num }}</span>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item">
+                                                    <a class="page-link rounded border-0 text-dark" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                                                </li>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if contas_receber.number < contas_receber.paginator.num_pages|add:'-3' %}
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    {% endif %}
+                                    {% if contas_receber.number < contas_receber.paginator.num_pages and contas_receber.number < contas_receber.paginator.num_pages|add:'-2' %}
+                                        <li class="page-item">
+                                            <a class="page-link rounded border-0 text-dark" href="?page={{ contas_receber.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ contas_receber.paginator.num_pages }}</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
                         {% endif %}
-                        {% if contas_receber.number > 4 %}
-                            <li class="page-item disabled">
-                                <a class="page-link">...</a>
-                            </li>
-                        {% endif %}
-                        {% for num in contas_receber.paginator.page_range %}
-                            {% if num >= contas_receber.number|add:'-2' and num <= contas_receber.number|add:'2' %}
-                                {% if contas_receber.number == num %}
-                                    <li class="page-item active" aria-current="page">
-                                        <span class="page-link" style="background-color: #0f1d2b; color: white;">{{ num }}</span>
-                                    </li>
-                                {% else %}
-                                    <li class="page-item">
-                                        <a class="page-link" style="color: #0f1d2b;" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
-                                    </li>
-                                {% endif %}
-                            {% endif %}
-                        {% endfor %}
-                        {% if contas_receber.number < contas_receber.paginator.num_pages|add:'-3' %}
-                            <li class="page-item disabled">
-                                <a class="page-link">...</a>
-                            </li>
-                        {% endif %}
-                        {% if contas_receber.number < contas_receber.paginator.num_pages and contas_receber.number < contas_receber.paginator.num_pages|add:'-2' %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ contas_receber.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                                    <span aria-hidden="true" style="color: #0f1d2b;">{{ contas_receber.paginator.num_pages }}</span>
-                                </a>
-                            </li>
-                        {% endif %}
-                    </ul>
-                </nav>
+                    </div>
+                    <div class="col-md-4 mt-1 text-center text-md-end">
+                        <a id="add-link" href="{% url 'add-conta-receber' %}" class="btn-permissao" data-permissao="contas_receber.add_contareceber" data-msg-negado="Seu usuário não pode adicionar contas à receber!">
+                            <button type="button" class="btn btn-primary btn-sm px-3 shadow-sm fw-semibold" id="add-conta-receber">
+                                <i class="fas fa-plus me-1"></i> Novo
+                            </button>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

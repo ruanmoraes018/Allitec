@@ -5,6 +5,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from collections import OrderedDict
 from django.contrib.auth import get_user_model
 Usuario = get_user_model()
+from django.contrib.auth.hashers import make_password
 class SuperuserLoginForm(AuthenticationForm):
     username = forms.CharField(label="Usuário")
     password = forms.CharField(label="Senha", widget=forms.PasswordInput)
@@ -45,7 +46,7 @@ class UsuarioCadastroForm(forms.ModelForm):
         else:
             self.fields['filial_user'].choices = [('', 'Escolha uma filial')]
         ordem_codename = [
-            'view_caixa', 'add_caixa', 'change_caixa', 'delete_caixa',
+            'view_caixa', 'add_caixa', 'change_caixa', 'delete_caixa', 'caixa_outro_user',
             'view_pdv', 'add_pdv', 'change_pdv', 'delete_pdv',
             'view_tabelapreco', 'add_tabelapreco', 'change_tabelapreco', 'delete_tabelapreco',
             'view_formapgto', 'add_formapgto', 'change_formapgto', 'delete_formapgto',
@@ -81,7 +82,7 @@ class UsuarioCadastroForm(forms.ModelForm):
             'PDVs': [], 'Estados': [], 'Grupos': [], 'Bancos': [], 'Marcas': [], 'Unidades': [], 'Filiais': [], 'Fornecedores': [], 'Usuários': [], 'Produtos': [], 'Clientes': [], 'Pedidos': [], 'Orçamentos': [], 'Caixas': [], 'Técnicos': [], 'Vendedores': [],})
         # Permissões por App
         pdvs_perms = ['view_pdv', 'add_pdv', 'change_pdv', 'delete_pdv']
-        caixa_perms = ['view_caixa', 'add_caixa', 'change_caixa', 'delete_caixa']
+        caixa_perms = ['view_caixa', 'add_caixa', 'change_caixa', 'delete_caixa', 'caixa_outro_user']
         entradas_perms = ['view_entrada', 'add_entrada', 'change_entrada', 'delete_entrada', 'efetivar_entrada', 'cancelar_entrada']
         fornecedores_perms = ['view_fornecedor', 'add_fornecedor', 'change_fornecedor', 'delete_fornecedor']
         vendedores_perms = ['view_vendedor', 'add_vendedor', 'change_vendedor', 'delete_vendedor']
@@ -145,7 +146,7 @@ class UsuarioCadastroForm(forms.ModelForm):
             user.password = Usuario.objects.get(pk=user.pk).password
 
         if senha_lib and len(senha_lib.strip()) > 0:
-            user.set_senha_liberacao(senha_lib)
+            user.senha_liberacao = make_password(senha_lib)
         elif user.pk:
             user.senha_liberacao = Usuario.objects.get(pk=user.pk).senha_liberacao
         user.filial_user = self.cleaned_data.get('filial_user')

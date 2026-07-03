@@ -14,8 +14,10 @@ class PDV(models.Model):
             with transaction.atomic():
                 ult = (PDV.objects.select_for_update().filter(vinc_emp=self.vinc_emp).aggregate(models.Max('codigo'))['codigo__max'] or 0)
                 self.codigo = ult + 1
+                self.nome = self.nome.strip().upper()
                 super().save(*args, **kwargs)
         else:
+            self.nome = self.nome.strip().upper()
             super().save(*args, **kwargs)
     class Meta:
         verbose_name_plural = "Pontos de Venda"

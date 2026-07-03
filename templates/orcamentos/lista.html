@@ -3,498 +3,532 @@
 {% load custom_filters %}
 {% block title %}Lista - Orçamentos{% endblock %}
 {% block content %}
-    <div class="container-fluid bg-white">
-        <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Listagem de Orçamentos</li>
+    <div class="container-fluid py-3 min-vh-100">
+        <nav class="mt-5" aria-label="breadcrumb">
+            <ol class="breadcrumb p-2 m-2">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'inicio' %}" class="text-decoration-none text-secondary" id="item-naveg"><i class="fas fa-home me-1"></i> Principal</a>
+                </li>
+                <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">Listagem de Orçamentos</li>
             </ol>
         </nav>
         {% if messages %}
             <div id="django-messages" data-messages='[
             {% for message in messages %}
                 {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
-                {% if not forloop.last %},{% endif %}
+                {% if not forlooo.last %},{% endif %}
             {% endfor %}
             ]'></div>
         {% endif %}
-        <form method="GET" id="search-form" style="margin-left: 1%; margin-right: 1%;">
-            <div class="row align-items-end">
-                <div class="col-md-2 search-div">
-                    <label class="form-label">Nº Orçamento:</label>
-                    <input class="form-control" type="text" name="s" id="s" placeholder="Digite o termo de busca" value="{{ request.GET.s }}">
-                </div>
-                <div class="col-md-2 search-div flex-md-fill">
-                    <label class="form-label">Filial:</label>
-                    <select class="form-control" id="id_filial_user" name="fil">
-                        <option value="">Selecione uma filial</option>
-                        {% for f in filiais %}
-                            <option value="{{ f.codigo }}" {% if request.GET.fil == f.codigo|stringformat:"s" %}selected{% endif %}>{{ f.fantasia }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2 search-div flex-md-fill">
-                    <label class="form-label">Cliente:</label>
-                    <select class="form-control" id="cliente" name="cl">
-                        <option value="">Selecione um cliente</option>
-                        {% for cliente in clientes %}
-                            <option value="{{ cliente.codigo }}" {% if request.GET.cl == cliente.codigo|stringformat:"s" %}selected{% endif %}>{{ cliente.fantasia }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2 search-div flex-md-fill">
-                    <label class="form-label">Técnico/Solicitante:</label>
-                    <select class="form-control" id="tecnico" name="tec">
-                        <option value="">Selecione um técnico</option>
-                        {% for tecnico in tecnicos %}
-                            <option value="{{ tecnico.codigo }}" {% if request.GET.tec == tecnico.codigo|stringformat:"s" %}selected{% endif %}>{{ tecnico.nome }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Situação:</label>
-                    <div class="d-flex">
-                        <select class="form-control" name="sit" id="situacao">
-                            <option value="Aberto" {% if request.GET.sit == 'Aberto' %}selected{% endif %}>Abertos</option>
-                            <option value="Faturado" {% if request.GET.sit == 'Faturado' %}selected{% endif %}>Faturados</option>
-                            <option value="Cancelado" {% if request.GET.sit == 'Cancelado' %}selected{% endif %}>Cancelados</option>
-                            <option value="Todos" {% if request.GET.sit == 'Todos' %}selected{% endif %}>Todos</option>
-                        </select>
+        <div class="card border-0 shadow-sm rounded-3 mb-2">
+            <div class="card-body p-0 mb-2">
+                <form method="GET" id="search-form">
+                    <div class="row align-items-end">
+                        <div class="col-xl-2 col-md-2 flex-md-fill">
+                            <label for="s" class="form-label small text-secondary fw-semibold">Nº Orçamento</label>
+                            <input class="form-control" type="text" name="s" id="s" placeholder="Digite para buscar..." value="{{ request.GET.s }}">
+                        </div>
+                        <div class="col-xl-2 col-md-2 flex-md-fill">
+                            <label for="vinc_emp" class="form-label small text-secondary fw-semibold">Filial</label>
+                            <select name="fil" id="vinc_emp" class="form-select form-select-sm">
+                                <option value="">Escolha uma opção</option>
+                                {% for f in filiais %}
+                                    <option value="{{ f.codigo }}" {% if request.GET.fil == f.codigo|stringformat:"s" %}selected{% endif %}>{{ f }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-md-2 flex-md-fill">
+                            <label for="cliente" class="form-label small text-secondary fw-semibold">Cliente</label>
+                            <select class="form-select form-select-sm" id="cliente" name="cl">
+                                <option value="">Escolha uma opção</option>
+                                {% for c in clientes %}
+                                    <option value="{{ c.codigo }}" {% if request.GET.cl == c.codigo|stringformat:"s" %}selected{% endif %}>{{ c }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-md-2 flex-md-fill">
+                            <label for="tecnico" class="form-label small text-secondary fw-semibold">Técnico</label>
+                            <select class="form-select form-select-sm" id="tecnico" name="tec">
+                                <option value="">Escolha uma opção</option>
+                                {% for t in tecnicos %}
+                                    <option value="{{ t.codigo }}" {% if request.GET.tec == t.codigo|stringformat:"s" %}selected{% endif %}>{{ t }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2 flex-md-fill">
+                            <label for="situacao" class="form-label small text-secondary fw-semibold">Situação</label>
+                            <select class="form-select" name="sit" id="situacao">
+                                <option value="Aberto" {% if request.GET.sit == 'Aberto' %}selected{% endif %}>Abertos</option>
+                                <option value="Faturado" {% if request.GET.sit == 'Faturado' %}selected{% endif %}>Faturados</option>
+                                <option value="Cancelado" {% if request.GET.sit == 'Cancelado' %}selected{% endif %}>Cancelados</option>
+                                <option value="Todos" {% if request.GET.sit == 'Todos' %}selected{% endif %}>Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2 flex-md-fill">
+                            <label for="tp_data" class="form-label small text-secondary fw-semibold">Data de</label>
+                            <select class="form-select" name="tp_dt" id="tp_data">
+                                <option value="Emissão" {% if request.GET.tp_dt == 'Emissão' %}selected{% endif %}>Emissão</option>
+                                <option value="Entrega" {% if request.GET.tp_dt == 'Entrega' %}selected{% endif %}>Entrega</option>
+                                <option value="Fatura" {% if request.GET.tp_dt == 'Fatura' %}selected{% endif %}>Fatura</option>
+                                <option value="Todos" {% if request.GET.tp_dt == 'Todos' %}selected{% endif %}>Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2 flex-md-fill">
+                            <label for="usar-data" class="form-label small text-secondary fw-semibold">Filtrar Data</label>
+                            <select class="form-select" id="usar-data" name="p_dt">
+                                <option value="Sim" {% if request.GET.p_dt == 'Sim' %}selected{% endif %}>Sim</option>
+                                <option value="Nao" {% if request.GET.p_dt == 'Nao' %}selected{% endif %}>Não</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-md-4 flex-md-fill">
+                            <label class="form-label small text-secondary fw-semibold">Período</label>
+                            <div class="input-group">
+                                <input class="form-control" type="text" name="dt_ini" id="data_inicio1" placeholder="De" value="{{ request.GET.dt_ini }}">
+                                <span class="input-group-text bg-white text-secondary"><i class="fas fa-calendar-alt"></i></span>
+                                <input class="form-control" type="text" name="dt_fim" id="data_fim1" placeholder="Até" value="{{ request.GET.dt_fim }}">
+                            </div>
+                        </div>
+                        <div class="col-xl-1 col-md-2 flex-md-fill">
+                            <label class="form-label small text-secondary fw-semibold">Exibir</label>
+                            <select class="form-select form-select-sm" id="qtd_reg" name="reg">
+                                <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
+                                <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
+                                <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
+                                <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
+                                <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
+                                <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2 flex-md-fill">
+                            <label for="ordem" class="form-label small text-secondary fw-semibold">Ordem</label>
+                            <select class="form-select" name="ordem" id="ordem">
+                                <option value="0" {% if request.GET.ordem == '0' %}selected{% endif %}>Nº Orçamento</option>
+                                <option value="1" {% if request.GET.ordem == '1' %}selected{% endif %}>Filial</option>
+                                <option value="2" {% if request.GET.ordem == '2' %}selected{% endif %}>Cliente</option>
+                                <option value="3" {% if request.GET.ordem == '3' %}selected{% endif %}>Técnico</option>
+                                <option value="4" {% if request.GET.ordem == '4' %}selected{% endif %}>Situação</option>
+                                <option value="5" {% if request.GET.ordem == '5' %}selected{% endif %}>Dt. Emissão</option>
+                                <option value="6" {% if request.GET.ordem == '6' %}selected{% endif %}>Dt. Entrega</option>
+                                <option value="7" {% if request.GET.ordem == '7' %}selected{% endif %}>Dt. Fatura</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-auto col-md-12 d-grid">
+                            <button class="btn btn-dark px-4" title="Consultar" type="submit" id="data-btn">
+                                <i class="fa-solid fa-magnifying-glass"></i> Filtrar
+                            </button>
+                        </div>
                     </div>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Dt. de:</label>
-                    <div class="d-flex">
-                        <select class="form-control" name="tp_dt" id="tp_data">
-                            <option value="Emissão" {% if request.GET.tp_dt == 'Emissão' %}selected{% endif %}>Emissão</option>
-                            <option value="Entrega" {% if request.GET.tp_dt == 'Entrega' %}selected{% endif %}>Entrega</option>
-                            <option value="Fatura" {% if request.GET.tp_dt == 'Fatura' %}selected{% endif %}>Fatura</option>
-                            <option value="Todos" {% if request.GET.tp_dt == 'Todos' %}selected{% endif %}>Todos</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Período:</label>
-                    <select class="form-control" id="usar-data" name="p_dt">
-                        <option value="Sim" {% if request.GET.p_dt == 'Sim' %}selected{% endif %}>Sim</option>
-                        <option value="Nao" {% if request.GET.p_dt == 'Nao' %}selected{% endif %}>Não</option>
-                    </select>
-                </div>
-                <div class="col-md-2 search-div">
-                    <div class="col">
-                        <label class="form-label">De:</label>
-                        <input class="form-control" type="text" name="dt_ini" id="data_inicio1" value="{{ request.GET.dt_ini }}">
-                    </div>
-                </div>
-                <div class="col-md-2 search-div">
-                    <div class="col">
-                        <label class="form-label">Até:</label>
-                        <input class="form-control" type="text" name="dt_fim" id="data_fim1" value="{{ request.GET.dt_fim }}">
-                    </div>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Reg.:</label>
-                    <select class="form-control" id="qtd_reg" name="reg">
-                        <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
-                        <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
-                        <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
-                        <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
-                        <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
-                        <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
-                    </select>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Ordem:</label>
-                    <select class="form-control" id="ordem" name="ordem">
-                        <option value="0" {% if request.GET.ordem == '0' %}selected{% endif %}>Nº Orçamento</option>
-                        <option value="1" {% if request.GET.ordem == '1' %}selected{% endif %}>Filial</option>
-                        <option value="2" {% if request.GET.ordem == '2' %}selected{% endif %}>Cliente</option>
-                        <option value="3" {% if request.GET.ordem == '3' %}selected{% endif %}>Técnico</option>
-                        <option value="4" {% if request.GET.ordem == '4' %}selected{% endif %}>Situação</option>
-                        <option value="5" {% if request.GET.ordem == '5' %}selected{% endif %}>Dt. Emissão</option>
-                        <option value="6" {% if request.GET.ordem == '6' %}selected{% endif %}>Dt. Entrega</option>
-                        <option value="7" {% if request.GET.ordem == '7' %}selected{% endif %}>Dt. Fatura</option>
-                    </select>
-                </div>
-                <div class="col search-div d-flex justify-content-start"> <button class="btn btn-dark" title="Consultar" type="submit" id="data-btn" data-bs-toggle="modal" data-bs-target="#loadingModal">🔎</button></div>
+                </form>
             </div>
-        </form>
-        <div class="table-container" style="margin-left: 1%; margin-right: 1%; font-size: 12px;">
-            <table class="table table-sm table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
-                <thead thead class="table-dark">
-                    <tr>
-                        <th style="width: 30px;">Opções</th> <th>Nº Orçamento</th><th style="width: 20px;"></th><th>Situação</th> <th>Filial</th> <th>Cliente</th><th>Solicitante</th> <th>Status</th> <th>Dt. Emissão</th><th>Dt. Fatura</th> <th>Dt. Entrega</th> <th>Valor</th> <th>Formas</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for orcamento in orcamentos %}
-                        <tr>
-                            <td data-label="Opções:" class="mobile-2col">
-                                <div style="text-align: left;">
-                                    <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#menuModal{{ orcamento.codigo }}" title="Opções">
-                                        <i class="fa-solid fa-bars"></i>
-                                    </button>
-                                </div>
-                                <!-- Modal de opções da orcamento -->
-                                <div class="modal fade modal-sm" id="menuModal{{ orcamento.codigo }}" data-orcamento-id="{{ orcamento.codigo }}" tabindex="-1" aria-labelledby="menuModalLabel{{ orcamento.codigo }}" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header titulo-modal"><h5 class="modal-title fw-bold mx-auto" id="menuModalLabel{{ orcamento.codigo }}">Opções - {{ orcamento.codigo }}</h5></div>
-                                            <div class="modal-body p-2">
-                                                <a href="{% url 'att-orcamento' orcamento.codigo %}?next={{ request.get_full_path|urlencode }}" data-permissao="orcamentos.change_orcamento" data-msg-negado="Seu usuário não pode editar orçamentos!" class="btn btn-light w-100 text-start menu-opcao op-editar border border-secondary btn-permissao" >
-                                                    <i class="fas fa-edit"></i> Editar
-                                                </a>
-                                                <a href="{% url 'clonar-orcamento' orcamento.codigo %}?next={{ request.get_full_path|urlencode }}" data-permissao="orcamentos.clonar_orcamento" data-msg-negado="Seu usuário não pode clonar orçamentos!" class="btn btn-light w-100 text-start menu-opcao op-clonar border border-secondary btn-permissao">
-                                                    <i class="fa-solid fa-clone"></i> Clonar
-                                                </a>
-                                                {% if orcamento.situacao == 'Aberto' %}
-                                                <button class="btn btn-light w-100 text-start menu-opcao op-deletar btn-delete border border-secondary btn-permissao" data-orcamento-id="{{ orcamento.codigo }}" data-permissao="orcamentos.delete_orcamento" data-msg-negado="Seu usuário não pode deletar orçamentos!">
-                                                    <i class="fas fa-trash"></i> Deletar
-                                                </button>
-                                                <button class="btn btn-light w-100 text-start menu-opcao op-faturar btn-faturar border border-secondary btn-permissao" data-id="{{ orcamento.codigo }}" data-permissao="orcamentos.faturar_orcamento" data-msg-negado="Seu usuário não pode faturar orçamentos!">
-                                                    <i class="fa-solid fa-money-bill"></i> Faturar
-                                                </button>
-                                                {% endif %}
-                                                <button class="btn btn-light w-100 text-start menu-opcao op-detalhe border border-secondary" data-id="{{ orcamento.codigo }}" data-bs-toggle="modal" data-bs-target="#infoEntModal{{ orcamento.codigo }}">
-                                                    <i class="fa-solid fa-circle-info"></i> Detalhes
-                                                </button>
-                                                {% if orcamento.situacao == 'Faturado' %}
-                                                <button class="btn btn-light w-100 text-start menu-opcao op-cancelar border border-secondary btn-permissao" data-permissao="orcamentos.cancelar_orcamento" data-msg-negado="Seu usuário não pode cancelar orçamentos!" data-collapse="#colCancelar{{ orcamento.codigo }}">
-                                                    <i class="fa-solid fa-circle-xmark"></i> Cancelar
-                                                </button>
-                                                <div class="collapse" id="colCancelar{{ orcamento.codigo }}">
-                                                    <div class="card" style="margin: 0;">
-                                                        <div class="card-body">
-                                                            <label class="form-label fw-bold">Motivo do cancelamento</label>
-                                                            <textarea id="motivoCancelamento{{ orcamento.codigo }}" class="form-control form-control-sm border-dark-subtle text-uppercase" rows="2" required></textarea>
-                                                            <div class="mt-3 d-flex justify-content-end gap-2">
-                                                                <button type="button" class="btn btn-danger btn-sm btn-abrir-modal-cancelamento" data-orcamento-id="{{ orcamento.codigo }}" data-bs-target="#modalConfirmarCancelamento{{ orcamento.codigo }}">
-                                                                    Cancelar orçamento
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="modal fade" id="modalConfirmarCancelamento{{ orcamento.codigo }}" tabindex="-1" aria-hidden="true">
-                                                    <div class="modal-dialog modal-dialog-centered">
-                                                        <div class="modal-content">
-                                                            <div class="modal-header titulo-modal">
-                                                                <h5 class="modal-title"><i class="fa-regular fa-circle-question"></i>Confirmação</h5>
-                                                            </div>
-                                                            <div class="modal-body"><p class="mb-2">Você confirma o CANCELAMENTO DO ORÇAMENTO <strong>{{ orcamento.codigo }}</strong>?</p></div>
-                                                            <div class="modal-footer">
-                                                                <button type="button" class="btn btn-primary btn-confirmar btn-confirmar-cancelamento" data-orcamento-id="{{ orcamento.codigo }}" disabled><u>S</u>im <span class="contador">3</span></button>
-                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                {% endif %}
-                                                <div class="dropdown w-100">
-                                                    <button class="btn btn-light w-100 text-start menu-opcao border border-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="true">
-                                                        <i class="fa-solid fa-print"></i> Impressão
-                                                    </button>
-                                                    <ul class="dropdown-menu w-100">
-                                                        <li>
-                                                            <a href="{% url 'pdf-proposta' orcamento.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Proposta</a>
-                                                        </li>
-                                                        <li>
-                                                            <a href="{% url 'pdf-orcamento' orcamento.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Orçamento</a>
-                                                        </li>
-                                                        <li>
-                                                            <a href="{% url 'pdf-contrato' orcamento.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Contrato</a>
-                                                        </li>
-                                                        <li>
-                                                            <a href="{% url 'pdf-producao' orcamento.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Produção</a>
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary btn-sm mx-auto" data-bs-dismiss="modal">Fechar</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% if orcamento.situacao == 'Aberto' %}
-                                    <!-- Modal ÚNICO para cada cliente -->
-                                    <div class="modal fade" id="modal-{{ orcamento.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ orcamento.codigo }}" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered">
-                                            <div class="modal-content">
-                                                <div class="modal-header titulo-modal">
-                                                    <h5 class="modal-title" id="modalTitle-{{ orcamento.codigo }}"> <i class="fa-regular fa-circle-question"></i> Confirmação! </h5>
-                                                </div>
-                                                <div class="modal-body"> <p>Você confirma a EXCLUSÃO DO ORÇAMENTO <strong>{{ orcamento.codigo }}</strong>?</p> </div>
-                                                <div class="modal-footer">
-                                                    <form method="post" action="{% url 'del-orcamento' orcamento.codigo %}" id="form-del-{{ orcamento.codigo }}">
-                                                        {% csrf_token %}
-                                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled><u>S</u>im <span class="contador">3</span></button>
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                {% endif %}
-                                <div class="modal fade modal-faturar-orcamento" id="faturarModal-{{ orcamento.codigo }}" tabindex="-1" aria-hidden="true" data-orcamento-id="{{ orcamento.codigo }}" data-num-orcamento="{{ orcamento.codigo }}" data-pode-editar-preview="{% if perms.contas_receber.alterar_preview_cr %}1{% else %}0{% endif %}" >
-                                    <div class="modal-dialog modal-dialog-centered modal-lg">
-                                        <div class="modal-content">
-                                            <div class="modal-header bg-success text-white" style="max-height: 30px;">
-                                                <h5 class="modal-title"><i class="fa-solid fa-money-bill" style="float: none;"></i> Faturar Orçamento {{ orcamento.codigo }}</h5>
-                                            </div>
-                                            <div class="modal-body">
-                                                <div class="d-flex gap-2 align-items-end">
-                                                    <div style="flex: 1;">
-                                                        <label class="form-label fw-bold">Cliente:</label>
-                                                        <input class="form-control fw-bold" value="{{ orcamento.cli }}" disabled>
-                                                    </div>
-                                                    <div style="width:150px;">
-                                                        <label class="form-label fw-bold">Data Emissão:</label>
-                                                        <input class="form-control fw-bold dt-emi-orcamento" value="{{ orcamento.dt_emi|date:'d/m/Y' }}" disabled>
-                                                    </div>
-                                                    <div style="width:160px;">
-                                                        <label class="form-label fw-bold">Data Faturamento:</label>
-                                                        <input id="dt-fat-orcamento-{{ orcamento.codigo }}" class="form-control fw-bold dt-fat-orcamento" value="{{ orcamento.dt_fat|date:'d/m/Y' }}" readonly>
-                                                    </div>
-                                                    <div style="width:45px;">
-                                                        <label class="form-label">&nbsp;</label>
-                                                        <button class="btn btn-warning btn-sm w-100 btn-lib-dt-fat" type="button" data-permissao="orcamentos.alterar_dt_fat_orc" data-msg-negado="Seu usuário não pode alterar datas de faturamento ao faturar orçamentos!">
-                                                            <i class="fa-regular fa-pen-to-square"></i>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <h6 class="fw-bold">Resumo das Formas de Pagamento</h6>
-                                                <div style="overflow-x:auto;">
-                                                    <table class="table table-bordered table-striped">
-                                                        <thead class="table-dark">
-                                                            <tr>
-                                                                <th>Item</th> <th>Forma Pgto.</th> <th>Valor</th> <th>Parcelas</th> <th>Intervalo (dias)</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {% for forma in orcamento.formas_pgto.all %}
-                                                                <tr class="linha-forma-pgto"
-                                                                    data-forma-id="{{ forma.formas_pgto.codigo }}"
-                                                                    data-valor="{{ forma.valor }}"
-                                                                    data-parcelas="{{ forma.parcelas|default:1 }}"
-                                                                    data-dias="{{ forma.dias_intervalo|default:0 }}"
-                                                                    data-gera-parcelas="{{ forma.formas_pgto.gera_parcelas|yesno:'1,0' }}"
-                                                                    data-gateway="{{ forma.formas_pgto.gateway|lower|default:'' }}"
-                                                                    data-credencial='{{ forma.formas_pgto.credenciais }}'>
-                                                                    <td>{{ forloop.counter }}</td>
-                                                                    <td>{{ forma.formas_pgto.descricao }}</td>
-                                                                    <td>{{ forma.valor|moeda_br }}</td>
-                                                                    <td>{% if forma.formas_pgto.gera_parcelas %}{{ forma.parcelas }}{% else %} - {% endif %}</td>
-                                                                    <td>{% if forma.formas_pgto.gera_parcelas %}{{ forma.dias_intervalo }}{% else %} - {% endif %}</td>
-                                                                </tr>
-                                                            {% empty %}
-                                                                <tr><td colspan="5" class="text-center">Nenhuma forma de pagamento registrada.</td></tr>
-                                                            {% endfor %}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                                {% if orcamento.tem_forma_com_parcela %}
-                                                    <h6 class="mt-4 fw-bold">Pré-visualização das Contas a Receber</h6>
-                                                    <div style="overflow-x:auto;">
-                                                        <table class="table table-bordered table-striped align-middle" id="previewContasTable-{{ orcamento.codigo }}">
-                                                            <thead class="table-dark">
-                                                                <tr>
-                                                                    <th style="width:120px;">Nº Conta</th> <th>Valor da Parcela</th> <th>Data de Vencimento</th> <th style="width:50px;">Ações</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody></tbody>
-                                                        </table>
-                                                    </div>
-                                                    <div class="d-flex justify-content-end mt-1">
-                                                        <div class="border rounded px-2 py-1 bg-light">
-                                                            <strong>Total das Parcelas: </strong><span class="rounded-pill bg-success fw-bold ps-2 pe-2" id="previewContasTotal-{{ orcamento.codigo }}">0.00</span>
-                                                        </div>
-                                                    </div>
-                                                {% endif %}
-                                            </div>
-                                            <div class="modal-footer">
-                                                <form method="post" action="{% url 'faturar-orcamento' orcamento.codigo %}">
-                                                    {% csrf_token %}
-                                                    {% if orcamento.tem_forma_com_parcela %}<input type="hidden" name="preview_contas_json" id="previewContasJson-{{ orcamento.codigo }}">{% endif %}
-                                                    <button type="button" class="btn btn-success btn-sm btn-confirmar-faturamento" data-id="{{ orcamento.codigo }}">Faturar</button>
-                                                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal fade" id="modalPixPagamento" tabindex="-1">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content border-0 shadow-lg">
-                                            <div class="modal-header titulo-modal text-white" style="max-height: 30px;">
-                                                <h5 class="modal-title"><i class="fa-brands fa-pix"></i> Pagamento via PIX</h5>
-                                            </div>
-                                            <div class="modal-body text-center">
-                                                <!-- QR -->
-                                                <div id="pixQrContainer" class="mb-3"></div>
-                                                <!-- Status -->
-                                                <div id="statusPix" class="mt-3">
-                                                    <div class="spinner-border text-success mb-2"></div>
-                                                    <div class="fw-semibold">Aguardando pagamento...</div>
-                                                </div>
-                                                <!-- Sucesso -->
-                                                <div id="statusSucesso" class="d-none mt-3">
-                                                    <div class="check-anim">✔</div>
-                                                    <div class="fw-bold text-success">Pagamento confirmado!</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal fade" id="infoEntModal" tabindex="-1" aria-labelledby="infoEntModalLabel" aria-hidden="true">
-                                    <div class="modal-dialog modal-lg">
-                                        <div class="modal-content">
-                                            <div class="modal-header titulo-modal">
-                                                <h5 class="modal-title" id="infoEntModalLabel"></h5>
-                                            </div>
-                                            <div class="modal-body" id="infoEntBody"></div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal fade" id="modalConfirmacaoStatus{{ orcamento.codigo }}" tabindex="-1" aria-labelledby="modalConfirmacaoStatusLabel{{ orcamento.codigo }}" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header titulo-modal">
-                                                <h5 class="modal-title" id="modalConfirmacaoStatusLabel{{ orcamento.codigo }}">
-                                                    <i class="fa-regular fa-circle-question"></i> Confirmação!
-                                                </h5>
-                                            </div>
-                                            <div class="modal-body">
-                                                Tem certeza que deseja alterar o status para: <strong id="novoStatusTexto{{ orcamento.codigo }}"></strong>?
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-primary confirm-status"> Sim </button>
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"> Não </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td data-label="Nº Orçamento:" class="mobile-2col">{{ orcamento.codigo }}</td>
-                            <td class="icon-cell mx-auto mobile-2col" data-label=""><i class="fa-solid fa-circle-info" id="info-icon" data-id="{{ orcamento.codigo }}" style="cursor: pointer;" title="Detalhes do Orçamento"></i></td>
-                            <td data-label="Situação:" class="mobile-2col" style="text-align: center;">
-                                {% if orcamento.situacao == 'Aberto' %}
-                                    <div style="background-color: #005eff; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px; font-size: 12px;">
-                                        <strong>{{ orcamento.situacao }}</strong>
-                                    </div>
-                                {% elif orcamento.situacao == 'Faturado' %}
-                                    <div style="background-color: #3CB371; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px; font-size: 12px;">
-                                        <strong>{{ orcamento.situacao }}</strong>
-                                    </div>
+        </div>
+        <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+            <div class="list-group">
+                <!-- Cabeçalho -->
+                <div class="list-group-item bg-light fw-bold cabecalho-lista">
+                    <div class="row align-items-center g-0">
+                        <div class="col-auto pe-3 text-center border-end">Ações</div>
+                        <div class="col-1 text-center border-end">Nº</div>
+                        <div class="col-auto me-5 text-center border-end"></div>
+                        <div class="col-1 text-center border-start border-end">Situação</div>
+                        <div class="col-sm-1 text-center border-end">Filial</div>
+                        <div class="col-sm-2 text-center border-end">Cliente</div>
+                        <div class="col-sm-1 text-center border-end">Técnico</div>
+                        <div class="col-sm-1 text-center border-end">Status</div>
+                        <div class="col-sm-1 text-center text-center border-end">Emissão</div>
+                        <div class="col-sm-1 text-center border-end">Fatura</div>
+                        <div class="col-sm-1 text-center border-end">Valor</div>
+                        <div class="col-sm-1 text-center">Formas</div>
+                    </div>
+                </div>
+                <!-- Registros -->
+                {% for o in orcamentos %}
+                    <div class="list-group-item py-1 item-lista">
+                        <div class="row align-items-center linha-lista">
+                            <!-- Ações -->
+                            <div class="col-auto text-center mb-1 mb-md-0 acoes-col">
+                                <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#menuModal{{ o.codigo }}" title="Opções">
+                                    <i class="fa-solid fa-bars"></i>
+                                </button>
+                            </div>
+                            <!-- Nº Pedido -->
+                            <div class="col-1 text-center fw-bold text-secondary codigo-col" data-label="Código:">#{{ o.codigo }}</div>
+                            <!-- Ícone -->
+                            <div class="icon-cell col-auto text-center fw-bold codigo-col"><i class="fa-solid fa-circle-info" id="info-icon" data-id="{{ o.codigo }}" style="cursor: pointer;" title="Detalhes do Orçamento"></i></div>
+                            <!-- Situação -->
+                            <div class="col-1 text-center codigo-col" data-label="Situação:">
+                                {% if o.situacao == 'Aberto' %}
+                                    <span class="badge bg-primary">{{ o.situacao }}</span>
+                                {% elif o.situacao == 'Faturado' %}
+                                    <span class="badge bg-success">{{ o.situacao }}</span>
                                 {% else %}
-                                    <div style="background-color: #800000; color: white; border-radius: 20px; padding-left: 5px; padding-right: 5px; margin-top: 5px; font-size: 12px;">
-                                        <strong>{{ orcamento.situacao }}</strong>
-                                    </div>
+                                    <span class="badge bg-danger">{{ o.situacao }}</span>
                                 {% endif %}
-                            </td>
-                            <td data-label="Filial:" class="text-uppercase mobile-2col">{{ orcamento.vinc_fil }}</td>
-                            <td data-label="Cliente:" class="mobile-2col" style="color: #36454F; font-weight: bold;">{{ orcamento.cli }}</td>
-                            <td data-label="Solicitante:" class="mobile-2col" style="align-items: center;">{{ orcamento.solicitante }}</td>
-                            <td data-label="Status:" class="mobile-2col" style="text-align: center;">
-                                {% if orcamento.situacao == "Faturado" %}
-                                    {% if orcamento.status == "Em Produção" %}
+                            </div>
+                            <!-- Filial -->
+                            <div class="col-sm-1 fw-bold codigo-col" data-label="Filial:">{{ o.fantasia_emp }}</div>
+                            <!-- Cliente -->
+                            <div class="col-sm-2 fw-bold descricao-col" data-label="Cliente:"><small>{{ o.nome_cli }}</small></div>
+                            <!-- Técnico -->
+                            <div class="col-sm-1 fw-bold codigo-col" data-label="Técnico:">{{ o.nome_solicitante }}</div>
+                            <!-- Status -->
+                            <div class="col-sm-1 fw-bold codigo-col" data-label="Status:">
+                                {% if o.situacao == "Faturado" %}
+                                    {% if o..status == "Em Produção" %}
                                         <span class="status-badge fw-bold">
-                                            {{ orcamento.status }} <i id="gear" class="fa-solid fa-gears"></i>
+                                            {{ o.status }} <i id="gear" class="fa-solid fa-gears"></i>
                                         </span>
-                                    {% elif orcamento.status == "Embalada" %}
+                                    {% elif o.status == "Embalada" %}
                                         <span class="status-badge fw-bold" style="background-color: #3498DB;">
-                                            {{ orcamento.status }} <i id="caixa" class="fa-solid fa-box"></i>
+                                            {{ o.status }} <i id="caixa" class="fa-solid fa-box"></i>
                                         </span>
-                                    {% elif orcamento.status == "Entregue" %}
+                                    {% elif o.status == "Entregue" %}
                                         <span class="status-badge fw-bold" style="background-color: #2ECC71;">
-                                            {{ orcamento.status }} <i id="caminhao" class="fa-solid fa-truck"></i>
+                                            {{ o.status }} <i id="caminhao" class="fa-solid fa-truck"></i>
                                         </span>
-                                    {% elif orcamento.status == "Instalada" %}
+                                    {% elif o.status == "Instalada" %}
                                         <span class="status-badge fw-bold" style="background-color: #9B59B6;">
-                                            {{ orcamento.status }} <i id="ferramenta" class="fa-solid fa-screwdriver-wrench"></i>
+                                            {{ o.status }} <i id="ferramenta" class="fa-solid fa-screwdriver-wrench"></i>
                                         </span>
                                     {% endif %}
                                 {% endif %}
-                            </td>
-                            <td data-label="Dt. Emissão:" class="mobile-2col" style="text-align: center;">
-                                {{ orcamento.dt_emi|date:"d/m/Y H:i" }}
-                            </td>
-                            <td data-label="{% if orcamento.situacao != 'Aberto' %}Dt. Fatura:{% endif %}" class="mobile-2col" style="align-items: center;">{{ orcamento.dt_fat|date:"d/m/Y" }}</td>
-                            <td data-label="Dt. Entrega:" class="mobile-2col" style="align-items: center;">{{ orcamento.dt_ent|date:"d/m/Y" }}</td>
-                            <td data-label="Valor:" class="mobile-2col" style="color: #36454F; font-weight: bold;">{{ orcamento.total|moeda_br }}</td>
-                            <td data-label="Formas:" class="mobile-full" style="align-items: center; font-weight: bold;">
-                                <div style="max-height: 3.5em; overflow-y: auto; white-space: normal; line-height: 0.8em;">
-                                    {% for forma in orcamento.formas_pgto.all %}
-                                        <div class="p-1 mb-1 bg-secondary text-light rounded-3" style="font-size: 0.8rem;">
-                                            {{ forma.formas_pgto.descricao }}
-                                            <span style="float: right; margin-left: 10px;">{{ forma.valor|moeda_br }}</span>
-                                        </div>
-                                    {% endfor %}
+                            </div>
+                            <!-- Dt. Emissão -->
+                            <div class="col-sm-1 text-center fw-bold codigo-col" data-label="Dt. Emissão:">{{ o.dt_emi|date:"d/m/Y - H:i" }}</div>
+                            <!-- Dt. Fatura -->
+                            <div class="col-sm-1 text-center fw-bold codigo-col" data-label="{% if o.situacao == 'Faturado' %}Dt. Fatura:{% endif %}">{% if o.situacao == 'Faturado' %}{{ o.dt_fat|date:"d/m/Y - H:i" }}{% else %} - {% endif %}</div>
+                            <!-- Valor Total -->
+                            <div class="col-sm-1 fw-bold codigo-col" data-label="Valor Total:">{{ o.total|moeda_br}}</div>
+                            <!-- Formas de Pagamento -->
+                            <div class="col-sm-1 fw-bold descricao-col" data-label="Formas:">
+                                {% for f in o.formas_pgto.all %}
+                                    <div class="p-1 mb-1 bg-secondary text-light rounded-3" style="font-size: 0.75rem;">
+                                        <small>{{ f.formas_pgto.descricao }} - {{ f.valor|moeda_br }}</small>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Modal ÚNICO para cada orcamento -->
+                    <div class="modal fade" id="modal-{{ o.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ o.codigo }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title" id="modalLabel-{{ o.codigo }}">
+                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                    </h5>
                                 </div>
-                            </td>
-                        </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="14" class="me-auto" style="text-align: center;">
-                            Nenhum orçamento encontrado.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <div class="card">
-            <div class="card-body" style="max-height: 50px;">
-                <strong>Total de Orçamentos: {{ orcamentos|length }}</strong>
-                <a id="add-link" href="{% url 'add-orcamento' %}" style="margin-left: 1%; margin-right: 1%; float: right;" class="btn-permissao" data-permissao="orcamentos.add_orcamento" data-msg-negado="Seu usuário não pode adicionar orçamentos!">
-                    <button type="button" class="btn btn-primary btn-sm" id="add-orcamento"><i class="fas fa-plus"></i> Novo</button>
-                </a>
+                                <div class="modal-body">
+                                    <p>Você confirma a EXCLUSÃO DO ORÇAMENTO <strong>{{ o.codigo }}</strong>?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post" action="{% url 'del-orcamento' o.codigo %}" class="form-excluir">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-confirmar" id="confirmBtn" disabled>
+                                            <u>S</u>im <span class="contador">3</span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnRecusa">
+                                            <u>N</u>ão
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Modal de opções do orcamento -->
+                    <div class="modal fade modal-sm" id="menuModal{{ o.codigo }}" data-orcamento-id="{{ o.codigo }}" tabindex="-1" aria-labelledby="menuModalLabel{{ o.codigo }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal"><h5 class="modal-title fw-bold mx-auto" id="menuModalLabel{{ o.codigo }}">Opções - {{ o.codigo }}</h5></div>
+                                <div class="modal-body p-2">
+                                    <a href="{% url 'att-orcamento' o.codigo %}?next={{ request.get_full_path|urlencode }}" data-permissao="orcamentos.change_orcamento" data-msg-negado="Seu usuário não pode editar orçamentos!" class="btn btn-light w-100 text-start menu-opcao op-editar border border-secondary btn-permissao" >
+                                        <i class="fas fa-edit"></i> Editar
+                                    </a>
+                                    <a href="{% url 'clonar-orcamento' o.codigo %}?next={{ request.get_full_path|urlencode }}" data-permissao="orcamentos.clonar_orcamento" data-msg-negado="Seu usuário não pode clonar orçamentos!" class="btn btn-light w-100 text-start menu-opcao op-clonar border border-secondary btn-permissao">
+                                        <i class="fa-solid fa-clone"></i> Clonar
+                                    </a>
+                                    {% if o.situacao == 'Aberto' %}
+                                    <button class="btn btn-light w-100 text-start menu-opcao op-deletar btn-delete border border-secondary btn-permissao" data-orcamento-id="{{ o.codigo }}" data-permissao="orcamentos.delete_orcamento" data-msg-negado="Seu usuário não pode deletar orçamentos!">
+                                        <i class="fas fa-trash"></i> Deletar
+                                    </button>
+                                    <button class="btn btn-light w-100 text-start menu-opcao op-faturar btn-faturar border border-secondary btn-permissao" data-id="{{ o.codigo }}" data-permissao="orcamentos.faturar_orcamento" data-msg-negado="Seu usuário não pode faturar orçamentos!">
+                                        <i class="fa-solid fa-money-bill"></i> Faturar
+                                    </button>
+                                    {% endif %}
+                                    <button class="btn btn-light w-100 text-start menu-opcao op-detalhe border border-secondary" data-id="{{ o.codigo }}" data-bs-toggle="modal" data-bs-target="#infoEntModal{{ o.codigo }}">
+                                        <i class="fa-solid fa-circle-info"></i> Detalhes
+                                    </button>
+                                    {% if o.situacao == 'Faturado' %}
+                                    <button class="btn btn-light w-100 text-start menu-opcao op-cancelar border border-secondary btn-permissao" data-permissao="orcamentos.cancelar_orcamento" data-msg-negado="Seu usuário não pode cancelar orçamentos!" data-collapse="#colCancelar{{ o.codigo }}">
+                                        <i class="fa-solid fa-circle-xmark"></i> Cancelar
+                                    </button>
+                                    <div class="collapse" id="colCancelar{{ o.codigo }}">
+                                        <div class="card" style="margin: 0;">
+                                            <div class="card-body">
+                                                <label class="form-label fw-bold">Motivo do cancelamento</label>
+                                                <textarea id="motivoCancelamento{{ o.codigo }}" class="form-control form-control-sm border-dark-subtle text-uppercase" rows="2" required></textarea>
+                                                <div class="mt-3 d-flex justify-content-end gap-2">
+                                                    <button type="button" class="btn btn-danger btn-sm btn-abrir-modal-cancelamento" data-orcamento-id="{{ o.codigo }}" data-bs-target="#modalConfirmarCancelamento{{ o.codigo }}">
+                                                        Cancelar orçamento
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal fade" id="modalConfirmarCancelamento{{ o.codigo }}" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content">
+                                                <div class="modal-header titulo-modal">
+                                                    <h5 class="modal-title"><i class="fa-regular fa-circle-question"></i>Confirmação</h5>
+                                                </div>
+                                                <div class="modal-body"><p class="mb-2">Você confirma o CANCELAMENTO DO ORÇAMENTO <strong>{{ o.codigo }}</strong>?</p></div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-primary btn-confirmar btn-confirmar-cancelamento" data-orcamento-id="{{ o.codigo }}" disabled><u>S</u>im <span class="contador">3</span></button>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    <div class="dropdown w-100">
+                                        <button class="btn btn-light w-100 text-start menu-opcao border border-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="true">
+                                            <i class="fa-solid fa-print"></i> Impressão
+                                        </button>
+                                        <ul class="dropdown-menu w-100">
+                                            <li>
+                                                <a href="{% url 'pdf-proposta' o.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Proposta</a>
+                                            </li>
+                                            <li>
+                                                <a href="{% url 'pdf-orcamento' o.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Orçamento</a>
+                                            </li>
+                                            <li>
+                                                <a href="{% url 'pdf-contrato' o.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Contrato</a>
+                                            </li>
+                                            <li>
+                                                <a href="{% url 'pdf-producao' o.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Produção</a>
+                                            </li>
+                                            <li>
+                                                {% if o.titulos_orc.exists %}
+                                                    <li>
+                                                        {% with conta=o.titulos_orc.first %}
+                                                            {% if conta %}
+                                                                <a href="{% url 'imprimir-carne' conta.codigo %}" target="_blank" class="dropdown-item">
+                                                                    <i class="fa-solid fa-file-pdf text-danger"></i> Carnê
+                                                                </a>
+                                                            {% endif %}
+                                                        {% endwith %}
+                                                    </li>
+                                                {% endif %}
+                                            </li>    
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary btn-sm mx-auto" data-bs-dismiss="modal">Fechar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade modal-faturar-orcamento" id="faturarModal-{{ o.codigo }}" tabindex="-1" aria-hidden="true" data-orcamento-id="{{ o.codigo }}" data-num-orcamento="{{ o.codigo }}" data-pode-editar-preview="{% if perms.contas_receber.alterar_preview_cr %}1{% else %}0{% endif %}" >
+                        <div class="modal-dialog modal-dialog-centered modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header bg-success text-white" style="max-height: 30px;">
+                                    <h5 class="modal-title"><i class="fa-solid fa-money-bill" style="float: none;"></i> Faturar Orçamento {{ o.codigo }}</h5>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="d-flex gap-2 align-items-end">
+                                        <div style="flex: 1;">
+                                            <label class="form-label fw-bold">Cliente:</label>
+                                            <input class="form-control fw-bold" value="{{ o.cli }}" disabled>
+                                        </div>
+                                        <div style="width:150px;">
+                                            <label class="form-label fw-bold">Data Emissão:</label>
+                                            <input class="form-control fw-bold dt-emi-orcamento" value="{{ o.dt_emi|date:'d/m/Y' }}" disabled>
+                                        </div>
+                                        <div style="width:160px;">
+                                            <label class="form-label fw-bold">Data Faturamento:</label>
+                                            <input id="dt-fat-orcamento-{{ o.codigo }}" class="form-control fw-bold dt-fat-orcamento" value="{{ o.dt_fat|date:'d/m/Y' }}" readonly>
+                                        </div>
+                                        <div style="width:45px;">
+                                            <label class="form-label">&nbsp;</label>
+                                            <button class="btn btn-warning btn-sm w-100 btn-lib-dt-fat" type="button" data-permissao="orcamentos.alterar_dt_fat_orc" data-msg-negado="Seu usuário não pode alterar datas de faturamento ao faturar orçamentos!">
+                                                <i class="fa-regular fa-pen-to-square"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <h6 class="fw-bold">Resumo das Formas de Pagamento</h6>
+                                    <div style="overflow-x:auto;">
+                                        <table class="table table-bordered table-striped">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>Item</th> <th>Forma Pgto.</th> <th>Valor</th> <th>Parcelas</th> <th>Intervalo (dias)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for forma in o.formas_pgto.all %}
+                                                    <tr class="linha-forma-pgto"
+                                                        data-forma-id="{{ forma.formas_pgto.codigo }}"
+                                                        data-valor="{{ forma.valor }}"
+                                                        data-parcelas="{{ forma.parcelas|default:1 }}"
+                                                        data-dias="{{ forma.dias_intervalo|default:0 }}"
+                                                        data-gera-parcelas="{{ forma.formas_pgto.gera_parcelas|yesno:'1,0' }}"
+                                                        data-gateway="{{ forma.formas_pgto.gateway|lower|default:'' }}"
+                                                        data-credencial='{{ forma.formas_pgto.credenciais }}'>
+                                                        <td>{{ forloop.counter }}</td>
+                                                        <td>{{ forma.formas_pgto.descricao }}</td>
+                                                        <td>{{ forma.valor|moeda_br }}</td>
+                                                        <td>{% if forma.formas_pgto.gera_parcelas %}{{ forma.parcelas }}{% else %} - {% endif %}</td>
+                                                        <td>{% if forma.formas_pgto.gera_parcelas %}{{ forma.dias_intervalo }}{% else %} - {% endif %}</td>
+                                                    </tr>
+                                                {% empty %}
+                                                    <tr><td colspan="5" class="text-center">Nenhuma forma de pagamento registrada.</td></tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% if o.tem_forma_com_parcela %}
+                                        <h6 class="mt-4 fw-bold">Pré-visualização das Contas a Receber</h6>
+                                        <div style="overflow-x:auto;">
+                                            <table class="table table-bordered table-striped align-middle" id="previewContasTable-{{ o.codigo }}">
+                                                <thead class="table-dark">
+                                                    <tr>
+                                                        <th style="width:120px;">Nº Conta</th> <th>Valor da Parcela</th> <th>Data de Vencimento</th> <th style="width:50px;">Ações</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody></tbody>
+                                            </table>
+                                        </div>
+                                        <div class="d-flex justify-content-end mt-1">
+                                            <div class="border rounded px-2 py-1 bg-light">
+                                                <strong>Total das Parcelas: </strong><span class="rounded-pill bg-success fw-bold ps-2 pe-2" id="previewContasTotal-{{ o.codigo }}">0.00</span>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post" action="{% url 'faturar-orcamento' o.codigo %}">
+                                        {% csrf_token %}
+                                        {% if o.tem_forma_com_parcela %}<input type="hidden" name="preview_contas_json" id="previewContasJson-{{ o.codigo }}">{% endif %}
+                                        <button type="button" class="btn btn-success btn-sm btn-confirmar-faturamento" data-id="{{ o.codigo }}">Faturar</button>
+                                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="modalPixPagamento" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content border-0 shadow-lg">
+                                <div class="modal-header titulo-modal text-white" style="max-height: 30px;">
+                                    <h5 class="modal-title"><i class="fa-brands fa-pix"></i> Pagamento via PIX</h5>
+                                </div>
+                                <div class="modal-body text-center">
+                                    <!-- QR -->
+                                    <div id="pixQrContainer" class="mb-3"></div>
+                                    <!-- Status -->
+                                    <div id="statusPix" class="mt-3">
+                                        <div class="spinner-border text-success mb-2"></div>
+                                        <div class="fw-semibold">Aguardando pagamento...</div>
+                                    </div>
+                                    <!-- Sucesso -->
+                                    <div id="statusSucesso" class="d-none mt-3">
+                                        <div class="check-anim">✔</div>
+                                        <div class="fw-bold text-success">Pagamento confirmado!</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="infoEntModal" tabindex="-1" aria-labelledby="infoEntModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title" id="infoEntModalLabel"></h5>
+                                </div>
+                                <div class="modal-body" id="infoEntBody"></div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="modalConfirmacaoStatus{{ o.codigo }}" tabindex="-1" aria-labelledby="modalConfirmacaoStatusLabel{{ o.codigo }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title" id="modalConfirmacaoStatusLabel{{ o.codigo }}">
+                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                    </h5>
+                                </div>
+                                <div class="modal-body">
+                                    Tem certeza que deseja alterar o status para: <strong id="novoStatusTexto{{ o.codigo }}"></strong>?
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-primary confirm-status"> Sim </button>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"> Não </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="list-group-item text-center py-3 text-muted">
+                        <i class="fas fa-folder-open fs-2 d-block mb-3 opacity-50"></i> Nenhum orçamento encontrado.
+                    </div>
+                {% endfor %}
             </div>
-            <div class="card-footer text-body-secondary">
-                <nav aria-label="Page navigation example" style="padding-bottom: 1px;">
-                    <ul class="pagination justify-content-center">
-                        {% if orcamentos.number > 1 and orcamentos.number > 3 %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value|urlencode }}{% endif %}{% endfor %}" aria-label="First">
-                                    <span aria-hidden="true" style="color: #0f1d2b;">1</span>
-                                </a>
-                            </li>
+            <div class="card-footer bg-white border-top p-1">
+                <div class="row align-items-center">
+                    <div class="col-md-4 text-center text-md-start d-flex justify-content-center justify-content-md-start">
+                        <ul class="list-group list-group-horizontal-sm">
+                            <li class="list-group-item"><small>Orçamentos Abertos:</small> <span class="badge bg-primary ms-1">{{ orc_ab }} - R$ {{ tot_ab|moeda_br }}</span></li>
+                            <li class="list-group-item"><small>Orçamentos Faturados:</small> <span class="badge bg-success ms-1">{{ orc_fat }} - R$ {{ tot_fat|moeda_br }}</span></li>
+                            <li class="list-group-item"><small>Orçamentos Cancelados:</small> <span class="badge bg-danger ms-1">{{ orc_canc }} - R$ {{ tot_canc|moeda_br }}</span></li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4 mt-1 d-flex justify-content-center">
+                        {% if orcamentos.paginator.num_pages > 1 %}
+                            <nav aria-label="Navegação de páginas">
+                                <ul class="pagination pagination-sm m-0 gap-1 border-0">
+                                    {% if orcamentos.number > 3 %}
+                                        <li class="page-item">
+                                            <a class="page-link rounded border-0 text-dark" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">1</a>
+                                        </li>
+                                    {% endif %}
+                                    {% if orcamentos.number > 4 %}
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    {% endif %}
+                                    {% for num in orcamentos.paginator.page_range %}
+                                        {% if num >= orcamentos.number|add:'-2' and num <= orcamentos.number|add:'2' %}
+                                            {% if orcamentos.number == num %}
+                                                <li class="page-item active" aria-current="page">
+                                                    <span class="page-link rounded border-0 bg-dark text-white fw-bold">{{ num }}</span>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item">
+                                                    <a class="page-link rounded border-0 text-dark" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                                                </li>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if orcamentos.number < orcamentos.paginator.num_pages|add:'-3' %}
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    {% endif %}
+                                    {% if orcamentos.number < orcamentos.paginator.num_pages and orcamentos.number < orcamentos.paginator.num_pages|add:'-2' %}
+                                        <li class="page-item">
+                                            <a class="page-link rounded border-0 text-dark" href="?page={{ orcamentos.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ orcamentos.paginator.num_pages }}</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
                         {% endif %}
-                        {% if orcamentos.number > 4 %}
-                            <li class="page-item disabled">
-                                <a class="page-link">...</a>
-                            </li>
-                        {% endif %}
-                        {% for num in orcamentos.paginator.page_range %}
-                            {% if num >= orcamentos.number|add:'-2' and num <= orcamentos.number|add:'2' %}
-                                {% if orcamentos.number == num %}
-                                    <li class="page-item active" aria-current="page">
-                                        <span class="page-link" style="background-color: #0f1d2b; color: white;">{{ num }}</span>
-                                    </li>
-                                {% else %}
-                                    <li class="page-item">
-                                        <a class="page-link" style="color: #0f1d2b;" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value|urlencode }}{% endif %}{% endfor %}">{{ num }}</a>
-                                    </li>
-                                {% endif %}
-                            {% endif %}
-                        {% endfor %}
-                        {% if orcamentos.number < orcamentos.paginator.num_pages|add:'-3' %}
-                            <li class="page-item disabled">
-                                <span class="page-link">...</span>
-                            </li>
-                        {% endif %}
-                        {% if orcamentos.number < orcamentos.paginator.num_pages and orcamentos.number < orcamentos.paginator.num_pages|add:'-2' %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ orcamentos.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value|urlencode }}{% endif %}{% endfor %}">
-                                    <span aria-hidden="true" style="color: #0f1d2b;">{{ orcamentos.paginator.num_pages }}</span>
-                                </a>
-                            </li>
-                        {% endif %}
-                    </ul>
-                </nav>
+                    </div>
+                    <div class="col-md-4 mt-1 text-center text-md-end">
+                        <a id="add-link" href="{% url 'add-orcamento' %}" class="btn-permissao" data-permissao="orcamentos.add_orcamento" data-msg-negado="Seu usuário não pode adicionar orçamentos!">
+                            <button type="button" class="btn btn-primary btn-sm px-3 shadow-sm fw-semibold" id="add-orcamento">
+                                <i class="fas fa-plus me-1"></i> Novo
+                            </button>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

@@ -208,9 +208,11 @@ body, html {
 .op-clonar   { color: #483D8B; }
 .op-deletar  { color: #db1e47; }
 .op-detalhe  { color: #ff8800; }
+.op-detalhe-cr  { color: #ff8800; }
 .op-faturar  { color: #3CB371; }
 .op-estornar { color: #5F9EA0; }
 .op-cancelar { color: #FF0000; }
+.op-imprimir { color: #363636; }
 
 @media (max-width: 768px) {
 
@@ -231,7 +233,7 @@ body, html {
         gap: 6px;                 /* espaço entre colunas */
         padding: 10px;
         border: 1px solid #ddd;
-        border-radius: 10px;
+        border-radius: 20px;
         background: #fafafa;
         margin-bottom: 12px;
     }
@@ -241,6 +243,7 @@ body, html {
         align-items: center;
         gap: 4px;
         border: none !important;
+        border-radius: 20px;
         padding: 4px !important;
         font-size: 13px;
     }
@@ -255,30 +258,94 @@ body, html {
     /* 2 colunas */
     .mobile-2col {
         width: calc(50% - 6px);
+        border-radius: 20px;
     }
 
     /* 3 colunas */
     .mobile-3col {
         width: calc(33.33% - 6px);
+        border-radius: 20px;
     }
 
     /* 4 colunas */
     .mobile-4col {
         width: calc(25% - 6px);
+        border-radius: 20px;
     }
 
     /* 100% da linha */
     .mobile-full {
         width: 100% !important;
+        border-radius: 20px;
     }
     .mobile-full-center {
         width: 100% !important;
         text-align: center;
+        border-radius: 20px;
     }
 
     /* Ícone sem label */
     .icon-cell::before {
         content: "" !important;
+    }
+}
+
+@media (max-width: 768px){
+
+    /* Esconde cabeçalho */
+    .cabecalho-lista{
+        display:none;
+    }
+
+    /* Card */
+    .item-lista{
+        margin-bottom:6px;
+        border-radius:20px !important;
+        background:#fafafa;
+        border:1px solid #ddd !important;
+    }
+
+    /* Linha principal */
+    .linha-lista{
+        display:flex;
+        flex-wrap:wrap;
+        gap:8px;
+    }
+
+    /* Colunas */
+    .linha-lista > div{
+        display:flex;
+        align-items:center;
+        gap:4px;
+        padding:4px;
+        flex:none;
+    }
+
+    /* Label automático */
+    .linha-lista > div::before{
+        content:attr(data-label) " ";
+        font-weight:600;
+        white-space:nowrap;
+    }
+
+    /* Botões ocupam toda a largura */
+    .acoes-col{
+        width:100%;
+        justify-content:center;
+    }
+
+    .acoes-col::before{
+        content:"";
+    }
+
+    /* Código ocupa metade */
+    .codigo-col{
+        width:calc(50% - 4px);
+    }
+
+    /* Descrição ocupa toda a linha */
+    .descricao-col{
+        width:100%;
     }
 }
 
@@ -616,8 +683,11 @@ label {
 .task-list {padding-left: 0;}
 .task-item {list-style: none; font-size: 16px; height: 50px; padding: 0 15px; padding-top: 10px; border-bottom: 1px dashed #ccc;}
 .task-item.done {background-color: #90ee90;}
-.fa-solid.fa-circle-info, .fas.fa-trash, .fas.fa-edit, .fas.fa-check, .fas.fa-sharp.fa-solid.fa-desktop, .fas.fa-sharp.fa-solid.fa-circle-info, .fas.fa-ban, .fas.fa-reply, .fa-solid.fa-file-pdf, .fa-brands.fa-elementor, .fa-solid.fa-print, .fa-solid.fa-user-check, .fa-solid.fa-person-circle-check, .fa-solid.fa-person-circle-minus, .fa-solid.fa-clone, .fa-brands.fa-square-letterboxd, .fa-solid.fa-money-bill, .fa-solid.fa-circle-xmark, .fa-regular.fa-square-check  {cursor: pointer; margin: 2.5px; font-size: 20px;}
+.fa-solid.fa-user-check, .fa-solid.fa-circle-info, .fas.fa-trash, .fas.fa-edit, .fas.fa-check, .fas.fa-sharp.fa-solid.fa-desktop, .fa-solid.fa-desktop, .fas.fa-sharp.fa-solid.fa-circle-info, .fas.fa-ban, .fas.fa-reply, .fa-solid.fa-file-pdf, .fa-brands.fa-elementor, .fa-solid.fa-print, .fa-solid.fa-person-circle-check, .fa-solid.fa-person-circle-minus, .fa-solid.fa-clone, .fa-brands.fa-square-letterboxd, .fa-solid.fa-money-bill, .fa-solid.fa-circle-xmark, .fa-regular.fa-square-check  {cursor: pointer; font-size: 20px;}
 .fa-solid.fa-clone {color: #2F4F4F;}
+.btn-group .btn{
+    width: 40px;
+}
 .fa-solid.fa-circle-info {color: #ff8800;}
 .fa-regular.fa-square-check {color: #2E8B57; font-size: 21px;}
 .fa-solid.fa-circle-xmark {color: red;}

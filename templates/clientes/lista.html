@@ -2,11 +2,13 @@
 {% load static %}
 {% block title %}Lista - Clientes{% endblock %}
 {% block content %}
-    <div class="container-fluid bg-white">
-        <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Listagem de Clientes</li>
+    <div class="container-fluid py-3 min-vh-100">
+        <nav class="mt-5" aria-label="breadcrumb">
+            <ol class="breadcrumb p-2 m-2">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'inicio' %}" class="text-decoration-none text-secondary" id="item-naveg"><i class="fas fa-home me-1"></i> Principal</a>
+                </li>
+                <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">Listagem de Clientes</li>
             </ol>
         </nav>
         {% if messages %}
@@ -17,214 +19,218 @@
                 {% endfor %}
             ]'></div>
         {% endif %}
-        <form method="GET" id="search-form" style="margin-left: 1%; margin-right: 1%;">
-            <div class="row g-3 align-items-end">
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Filtro:</label>
-                    <select name="tp" id="tp" class="form-control">
-                        <option value="desc" {% if request.GET.tp == 'desc' %}selected{% endif %}>Descrição</option>
-                        <option value="cod" {% if request.GET.tp == 'cod' %}selected{% endif %}>Código</option>
-                    </select>
-                </div>
-                <div class="col-md-2 search-div">
-                    <label class="form-label">Conteúdo:</label>
-                    <input class="form-control" type="text" name="s" id="s" placeholder="Digite o termo de busca" value="{{ request.GET.s }}">
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Situação:</label>
-                    <div class="d-flex">
-                        <select class="form-control" name="sit" id="situacao">
-                            <option value="Ativo" {% if request.GET.sit == 'Ativo' %}selected{% endif %}>Ativos</option>
-                            <option value="Inativo" {% if request.GET.sit == 'Inativo' %}selected{% endif %}>Inativos</option>
-                            <option value="Todos" {% if request.GET.sit == 'Todos' %}selected{% endif %}>Todos</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Tp. Pessoa:</label>
-                    <div class="d-flex">
-                        <select class="form-control" name="t_pes" id="t_pes">
-                            <option value="Todas" {% if request.GET.t_pes == 'Todas' %}selected{% endif %}>Todas</option>
-                            <option value="Física" {% if request.GET.t_pes == 'Física' %}selected{% endif %}>Física</option>
-                            <option value="Jurídica" {% if request.GET.t_pes == 'Jurídica' %}selected{% endif %}>Jurídica</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Período:</label>
-                    <select class="form-control" id="usar-data" name="p_dt">
-                        <option value="Nao" {% if request.GET.p_dt == 'Nao' %}selected{% endif %}>Não</option>
-                        <option value="Sim" {% if request.GET.p_dt == 'Sim' %}selected{% endif %}>Sim</option>
-                    </select>
-                </div>
-                <div class="col-md-3 search-div">
-                    <div class="row">
-                        <div class="col">
-                            <label class="form-label">De:</label>
-                            <input class="form-control" type="text" name="dt_ini" id="data_inicio1" value="{{ request.GET.dt_ini }}">
+        <div class="card border-0 shadow-sm rounded-3 mb-2">
+            <div class="card-body p-0 mb-2">
+                <form method="GET" id="search-form">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-xl-1 col-md-4">
+                            <label for="tp" class="form-label small text-secondary fw-semibold">Filtro por</label>
+                            <select name="tp" id="tp" class="form-select">
+                                <option value="desc" {% if request.GET.tp == 'desc' %}selected{% endif %}>Descrição</option>
+                                <option value="cod" {% if request.GET.tp == 'cod' %}selected{% endif %}>Código</option>
+                            </select>
                         </div>
-                        <div class="col">
-                            <label class="form-label">Até:</label>
-                            <input class="form-control" type="text" name="dt_fim" id="data_fim1" value="{{ request.GET.dt_fim }}">
+                        <div class="col-xl-3 col-md-8">
+                            <label for="s" class="form-label small text-secondary fw-semibold">Termo de Busca</label>
+                            <input class="form-control" type="text" name="s" id="s" placeholder="Digite para buscar..." value="{{ request.GET.s }}">
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label for="situacao" class="form-label small text-secondary fw-semibold">Situação</label>
+                            <select class="form-select" name="sit" id="situacao">
+                                <option value="Ativa" {% if request.GET.sit == 'Ativa' %}selected{% endif %}>Ativas</option>
+                                <option value="Inativa" {% if request.GET.sit == 'Inativa' %}selected{% endif %}>Inativas</option>
+                                <option value="Todas" {% if request.GET.sit == 'Todas' %}selected{% endif %}>Todas</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label for="t_pes" class="form-label small text-secondary fw-semibold">Tipo de Pessoa</label>
+                            <select class="form-select" name="t_pes" id="t_pes">
+                                <option value="Todas" {% if request.GET.t_pes == 'Todas' %}selected{% endif %}>Todas</option>
+                                <option value="Física" {% if request.GET.t_pes == 'Física' %}selected{% endif %}>Física</option>
+                                <option value="Jurídica" {% if request.GET.t_pes == 'Jurídica' %}selected{% endif %}>Jurídica</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-4">
+                            <label for="usar-data" class="form-label small text-secondary fw-semibold">Filtrar Data</label>
+                            <select class="form-select" id="usar-data" name="p_dt">
+                                <option value="Nao" {% if request.GET.p_dt == 'Nao' %}selected{% endif %}>Não</option>
+                                <option value="Sim" {% if request.GET.p_dt == 'Sim' %}selected{% endif %}>Sim</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-3 col-md-8">
+                            <label class="form-label small text-secondary fw-semibold">Período</label>
+                            <div class="input-group">
+                                <input class="form-control" type="text" name="dt_ini" id="data_inicio1" placeholder="De" value="{{ request.GET.dt_ini }}">
+                                <span class="input-group-text bg-white text-secondary"><i class="fas fa-calendar-alt"></i></span>
+                                <input class="form-control" type="text" name="dt_fim" id="data_fim1" placeholder="Até" value="{{ request.GET.dt_fim }}">
+                            </div>
+                        </div>
+                        <div class="col-xl-1 col-md-4">
+                            <label class="form-label small text-secondary fw-semibold">Exibir</label>
+                            <select class="form-select" id="qtd_reg" name="reg">
+                                <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
+                                <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
+                                <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
+                                <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
+                                <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
+                                <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-auto col-md-12 d-grid">
+                            <button class="btn btn-dark px-4" title="Consultar" type="submit" id="data-btn">
+                                <i class="fa-solid fa-magnifying-glass"></i> Filtrar
+                            </button>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Reg.:</label>
-                    <select class="form-control" id="qtd_reg" name="reg">
-                        <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
-                        <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
-                        <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
-                        <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
-                        <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
-                        <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
-                    </select>
-                </div>
-                <div class="col search-div d-flex justify-content-start">
-                    <button class="btn btn-dark" title="Consultar clientes" type="submit" id="data-btn" data-bs-toggle="modal" data-bs-target="#loadingModal">🔎</button>
-                </div>
+                </form>
             </div>
-        </form>
-        <div class="table-container" style="margin-left: 1%; margin-right: 1%;">
-            <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
-                <thead thead class="table-dark">
-                    <tr>
-                        <th scope="col">Opções</th>
-                        <th scope="col" style="text-align: center; width: 6%;">Código</th>
-                        <th scope="col" style="text-align: center; width: 7%;">Situação</th>
-                        <th scope="col" style="text-align: center; width: 7%;">Tp. Pessoa</th>
-                        <th scope="col" style="align-items: center;">Nome/Razão Social</th>
-                        <th scope="col" style="align-items: center;">Apelido/Fantasia</th>
-                        <th scope="col" style="align-items: center;">CPF/CNPJ</th>
-                        <th scope="col" style="align-items: center;">Cidade</th>
-                        <th scope="col" style="align-items: center;">Telefone</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for cliente in clientes %}
-                        <tr>
-                            <td data-label="Opções:" class="mobile-2col">
-                                <a href="{% url 'att-cliente' cliente.codigo %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
-                                  data-permissao="clientes.change_cliente"
-                                  data-msg-negado="Seu usuário não pode editar clientes!"><span><i class="fas fa-edit" title="Editar cliente"></i></span></a>
-                                <span>
-                                    <i class="fas fa-trash btn-permissao"
-                                       title="Deletar cliente"
-                                       data-bs-target="#modal-{{ cliente.codigo }}"
-                                       data-permissao="clientes.delete_cliente"
-                                       data-msg-negado="Seu usuário não pode deletar clientes!">
-                                    </i>
-                                </span>
-                                <!-- Modal ÚNICO para cada cliente -->
-                                <div class="modal fade" id="modal-{{ cliente.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ cliente.codigo }}" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header titulo-modal">
-                                                <h1 class="modal-title fs-5" id="modalLabel-{{ cliente.codigo }}">
-                                                    <i class="fa-regular fa-circle-question"></i> Confirmação!
-                                                </h1>
-                                            </div>
-                                            <div class="modal-body">
-                                                <p>Você confirma a EXCLUSÃO DO CLIENTE <strong>{{ cliente.fantasia }}</strong>?</p>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-primary btn-confirmar" data-url="{% url 'del-cliente' cliente.codigo %}" disabled>
-                                                    <u>S</u>im <span class="contador">3</span>
-                                                </button>
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ cliente.codigo }}</td>
-                            <td data-label="Situação:" class="mobile-2col" style="text-align: center; padding: 5px;">
-                                {% if cliente.situacao == 'Ativo' %}
-                                    <div style="background-color: #2c2c2c; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
-                                        <strong>{{ cliente.situacao }}</strong>
-                                    </div>
-                                {% else %}
-                                    <div style="background-color: #800000; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
-                                        <strong>{{ cliente.situacao }}</strong><br>
-                                    </div>
-                                {% endif %}
-                            </td>
-                            <td data-label="Tp. Pessoa:" class="mobile-2col" style="text-align: center; padding: 5px;">
-                                {% if cliente.pessoa == 'Física' %}
-                                    <div style="background-color: #008080; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
-                                        <strong>{{ cliente.pessoa }}</strong>
-                                    </div>
-                                {% else %}
-                                    <div style="background-color: #4682B4; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
-                                        <strong>{{ cliente.pessoa }}</strong><br>
-                                    </div>
-                                {% endif %}
-                            </td>
-                            <td data-label="{% if cliente.pessoa == 'Física' %}Nome:{% else %}Razão Social:{% endif %}" class="mobile-2col" style="align-items: center;">{{ cliente.razao_social }}</td>
-                            <td data-label="{% if cliente.pessoa == 'Física' %}Apelido:{% else %}Fantasia:{% endif %}" class="mobile-2col" style="align-items: center; text-transform: uppercase;">{{ cliente.fantasia }}</td>
-                            <td data-label="{% if cliente.pessoa == 'Física' %}CPF:{% else %}CNPJ:{% endif %}" class="mobile-2col" style="align-items: center;">{{ cliente.cpf_cnpj }}</td>
-                            <td data-label="Cidade:" class="mobile-2col" style="align-items: center;">{{ cliente.cidade.nome_cidade }}</td>
-                            <td data-label="Telefone:" class="mobile-2col" style="align-items: center;">{{ cliente.tel }}</td>
-                        </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="9" class="mobile-full-center" style="text-align: center;">
-                            Nenhum cliente encontrado.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
         </div>
-        <div class="card">
-            <div class="card-body" style="max-height: 50px;">
-                <strong>Total de Clientes: {{ clientes|length }}</strong>
-                <a id="add-link" href="{% url 'add-cliente' %}" style="margin-left: 1%; margin-right: 1%; float: right;" class="btn-permissao" data-permissao="clientes.add_cliente" data-msg-negado="Seu usuário não pode adicionar clientes!">
-                    <button type="button" class="btn btn-primary btn-sm" id="add-cliente"><i class="fas fa-plus"></i> Novo</button>
-                </a>
-            </div>
-            <div class="card-footer text-body-secondary">
-                <nav aria-label="Page navigation example" style="padding-bottom: 1px;">
-                    <ul class="pagination justify-content-center">
-                        {% if clientes.number > 1 and clientes.number > 3 %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="First">
-                                    <span aria-hidden="true" style="color: #0f1d2b;">1</span>
-                                </a>
-                            </li>
-                        {% endif %}
-                        {% if clientes.number > 4 %}
-                            <li class="page-item disabled">
-                                <a class="page-link">...</a>
-                            </li>
-                        {% endif %}
-                        {% for num in clientes.paginator.page_range %}
-                            {% if num >= clientes.number|add:'-2' and num <= clientes.number|add:'2' %}
-                                {% if clientes.number == num %}
-                                    <li class="page-item active" aria-current="page">
-                                        <span class="page-link" style="background-color: #0f1d2b; color: white;">{{ num }}</span>
-                                    </li>
+        <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+            <div class="list-group">
+                <!-- Cabeçalho -->
+                <div class="list-group-item bg-light fw-bold cabecalho-lista">
+                    <div class="row align-items-center">
+                        <div class="col-md-1 text-center border-end">Ações</div>
+                        <div class="col-md-1 text-center border-end">Código</div>
+                        <div class="col-md-1 text-center border-end">Situação</div>
+                        <div class="col-md-1 text-center border-end">Pessoa</div>
+                        <div class="col-md-2 border-end">Nome/Razão Social</div>
+                        <div class="col-md-2 border-end">Apelido/Fantasia</div>
+                        <div class="col-md-2 border-end">CPF/CNPJ</div>
+                        <div class="col-md-1 border-end">Cidade</div>
+                        <div class="col-md-1">Telefone</div>
+                    </div>
+                </div>
+                <!-- Registros -->
+                {% for c in clientes %}
+                    <div class="list-group-item py-0 item-lista">
+                        <div class="row align-items-center linha-lista" style="font-size: 0.90rem;">
+                            <!-- Ações -->
+                            <div class="col-md-1 text-center mb-1 mb-md-0 acoes-col">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'att-cliente' c.codigo %}?next={{ request.get_full_path|urlencode }}" class="btn btn-light btn-sm border btn-permissao" data-permissao="clientes.change_cliente" data-msg-negado="Seu usuário não pode editar clientes!">
+                                        <i class="fas fa-edit text-success"></i>
+                                    </a>
+                                    <button class="btn btn-light btn-sm border btn-permissao" data-bs-toggle="modal" data-bs-target="#modal-{{ c.codigo }}" data-permissao="clientes.delete_cliente" data-msg-negado="Seu usuário não pode deletar clientes!">
+                                        <i class="fas fa-trash text-danger"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- Código -->
+                            <div class="col-md-1 fw-bold text-center text-secondary codigo-col" data-label="Código:">#{{ c.codigo }}</div>
+                            <!-- Situação -->
+                            <div class="col-md-1 text-center codigo-col" data-label="Situação:">
+                                {% if c.situacao == 'Ativo' %}
+                                    <span class="badge bg-dark">{{ c.situacao }}</span>
                                 {% else %}
-                                    <li class="page-item">
-                                        <a class="page-link" style="color: #0f1d2b;" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
-                                    </li>
+                                    <span class="badge bg-danger">{{ c.situacao }}</span>
                                 {% endif %}
-                            {% endif %}
-                        {% endfor %}
-                        {% if clientes.number < clientes.paginator.num_pages|add:'-3' %}
-                            <li class="page-item disabled">
-                                <a class="page-link">...</a>
-                            </li>
+                            </div>
+                            <!-- Tipo de Pessoa -->
+                            <div class="col-md-1 text-center codigo-col" data-label="Tipo de Pessoa:">
+                                {% if c.pessoa == 'Física' %}
+                                    <span class="badge text-dark bg-primary-subtle">{{ c.pessoa }}</span>
+                                {% else %}
+                                    <span class="badge text-dark bg-info-subtle">{{ c.pessoa }}</span>
+                                {% endif %}
+                            </div>
+                            <!-- Razão Social -->
+                            <div class="col-md-2 fw-bold descricao-col" data-label="Razão Social:">{{ c.razao_social }}</div>
+                            <!-- Fantasia -->
+                            <div class="col-md-2 fw-bold codigo-col" data-label="Fantasia:">{{ c.fantasia }}</div>
+                            <!-- CNPJ -->
+                            <div class="col-md-2 fw-bold codigo-col" data-label="CNPJ:">{{ c.cpf_cnpj }}</div>
+                            <!-- Cidade -->
+                            <div class="col-md-1 fw-bold codigo-col" data-label="Cidade:">{{ c.cidade }}</div>
+                            <!-- Telefone -->
+                            <div class="col-md-1 fw-semibold codigo-col" data-label="Telefone:">{{ c.tel }}</div>
+                        </div>
+                    </div>
+                    <!-- Modal ÚNICO para cada cliente -->
+                    <div class="modal fade" id="modal-{{ c.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ c.codigo }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title" id="modalLabel-{{ c.codigo }}">
+                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                    </h5>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Você confirma a EXCLUSÃO DO CLIENTE <strong>{{ c.fantasia }}</strong>?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post" action="{% url 'del-cliente' c.codigo %}" class="form-excluir">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-confirmar" id="confirmBtn" disabled>
+                                            <u>S</u>im <span class="contador">3</span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnRecusa">
+                                            <u>N</u>ão
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="list-group-item text-center py-3 text-muted">
+                        <i class="fas fa-folder-open fs-2 d-block mb-3 opacity-50"></i> Nenhum cliente encontrado.
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="card-footer bg-white border-top p-1">
+                <div class="row align-items-center">
+                    <div class="col-md-4 mt-1 text-center text-md-start">
+                        <ul class="list-group list-group-horizontal-sm">
+                            <li class="list-group-item">Total de Clientes: <span class="badge bg-secondary ms-1">{{ clientes|length }}</span></li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4 mt-1 d-flex justify-content-center">
+                        {% if clientes.paginator.num_pages > 1 %}
+                            <nav aria-label="Navegação de páginas">
+                                <ul class="pagination pagination-sm m-0 gap-1 border-0">
+                                    {% if clientes.number > 3 %}
+                                        <li class="page-item">
+                                            <a class="page-link rounded border-0 text-dark" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">1</a>
+                                        </li>
+                                    {% endif %}
+                                    {% if clientes.number > 4 %}
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    {% endif %}
+                                    
+                                    {% for num in clientes.paginator.page_range %}
+                                        {% if num >= clientes.number|add:'-2' and num <= clientes.number|add:'2' %}
+                                            {% if clientes.number == num %}
+                                                <li class="page-item active" aria-current="page">
+                                                    <span class="page-link rounded border-0 bg-dark text-white fw-bold">{{ num }}</span>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item">
+                                                    <a class="page-link rounded border-0 text-dark" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                                                </li>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if clientes.number < clientes.paginator.num_pages|add:'-3' %}
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    {% endif %}
+                                    {% if clientes.number < clientes.paginator.num_pages and clientes.number < clientes.paginator.num_pages|add:'-2' %}
+                                        <li class="page-item">
+                                            <a class="page-link rounded border-0 text-dark" href="?page={{ clientes.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ clientes.paginator.num_pages }}</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
                         {% endif %}
-                        {% if clientes.number < clientes.paginator.num_pages and clientes.number < clientes.paginator.num_pages|add:'-2' %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ clientes.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                                    <span aria-hidden="true" style="color: #0f1d2b;">{{ clientes.paginator.num_pages }}</span>
-                                </a>
-                            </li>
-                        {% endif %}
-                    </ul>
-                </nav>
+                    </div>
+                    <div class="col-md-4 mt-1 text-center text-md-end">
+                        <a id="add-link" href="{% url 'add-cliente' %}" class="btn-permissao" data-permissao="clientes.add_cliente" data-msg-negado="Seu usuário não pode adicionar clientes!">
+                            <button type="button" class="btn btn-primary btn-sm px-3 shadow-sm fw-semibold" id="add-cliente">
+                                <i class="fas fa-plus me-1"></i> Novo
+                            </button>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

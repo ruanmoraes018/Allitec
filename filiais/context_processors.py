@@ -33,6 +33,7 @@ def user_permissions(request):
             'perm_add_caixa': 'lancpdvs.add_caixa' in permissoes,
             'perm_change_caixa': 'lancpdvs.change_caixa' in permissoes,
             'perm_delete_caixa': 'lancpdvs.delete_caixa' in permissoes,
+            'perm_caixa_outro_user': 'lancpdvs.caixa_outro_user' in permissoes,
             # PDVs
             'perm_view_pdv': 'pdvs.view_pdv' in permissoes,
             'perm_add_pdv': 'pdvs.add_pdv' in permissoes,

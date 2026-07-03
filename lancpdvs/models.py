@@ -25,7 +25,14 @@ class Caixa(models.Model):
         else: super().save(*args, **kwargs)    
     class Meta:
         verbose_name_plural = "Lançamento de Caixas"
+        permissions = [
+            ("caixa_outro_user", "Pode realizar lançamentos em caixas de outros usuários"),
+        ]
         constraints = [models.UniqueConstraint(fields=['codigo', 'vinc_emp'], name='unique_codigo_caixa_empresa')]
+    @property
+    def formas_convertidas(self):
+        return [{"descricao": fp.forma_pgto.descricao, "valor": fp.valor} for fp in self.forma_pagamento.select_related("fechamentos").all()]
+
 class CaixaMovimento(models.Model):
     caixa = models.ForeignKey(Caixa, on_delete=models.CASCADE, related_name="movimentos")
     pedido = models.ForeignKey('pedidos.Pedido', null=True, blank=True, on_delete=models.SET_NULL)
@@ -42,7 +49,7 @@ class CaixaMovimento(models.Model):
     class Meta:
         indexes = [models.Index(fields=['caixa', 'tipo']), models.Index(fields=['caixa', 'forma_pagamento']),]
 class CaixaFechamento(models.Model):
-    caixa = models.ForeignKey(Caixa, on_delete=models.CASCADE)
+    caixa = models.ForeignKey(Caixa, on_delete=models.CASCADE, related_name="fechamentos")
     forma_pagamento = models.ForeignKey('formas_pgto.FormaPgto', on_delete=models.PROTECT)
     valor_registrado = models.DecimalField(max_digits=10, decimal_places=2)
     valor_informado = models.DecimalField(max_digits=10, decimal_places=2)

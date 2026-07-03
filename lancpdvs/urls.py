@@ -12,4 +12,6 @@ urlpatterns = [
     # path('caixa/fechar/<int:caixa_id>/', views.fechar_caixa, name='fechar-caixa'),
     path('caixa/status-pagamento/', views.status_pagamento_caixa, name='status-pagamento-caixa'),
     path('caixa/movimentos/<int:caixa_id>/', views.movimentos_caixa, name='movimentos-caixa'),
+    path('caixas/<int:caixa_id>/entrada/', views.realizar_entrada_caixa, name='realizar_entrada_caixa'),
+    path('caixas/<int:caixa_id>/saida/', views.realizar_saida_caixa, name='realizar_saida_caixa'),
 ]

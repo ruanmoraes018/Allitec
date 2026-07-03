@@ -29,14 +29,20 @@ class PagamentoService:
         else:
             self.creds = credenciais_brutas or {}
 
-    def gerar_pagamento(self, valor, descricao, email=None, external_reference=None):
+    def gerar_pagamento(self, valor, descricao, email=None, cpf=None, external_reference=None):
         # Roteador flexível usando o gateway tratado no __init__
         gateway_alvo = self.gateway
 
         if gateway_alvo == "mercadopago":
             return self._mercadopago(valor, descricao, email, external_reference)
         elif gateway_alvo == "pagbank" or gateway_alvo == "pagseguro":
-            return self._pagbank(valor, descricao, email, external_reference)
+            return self._pagbank(
+                valor=valor,
+                descricao=descricao,
+                email=email,
+                cpf=cpf,
+                external_reference=external_reference
+            )
         elif gateway_alvo == "infinitepay":
             return self._infinitepay(valor, descricao, email, external_reference)
 
@@ -55,7 +61,14 @@ class PagamentoService:
         tx = resp.get("point_of_interaction", {}).get("transaction_data", {})
         return {"id": resp.get("id"), "qr_code": tx.get("qr_code"), "qr_base64": tx.get("qr_code_base64")}
     # 🔹 PAGBANK
-    def _pagbank(self, valor, descricao, email=None, cpf=None, external_reference=None):
+    def _pagbank(
+                self,
+                valor,
+                descricao,
+                email=None,
+                external_reference=None,
+                cpf=None
+        ):
         token = self.creds.get("token") or self.creds.get("access_token")
         ambiente = self.creds.get("ambiente", "homologacao")
         # Gera a data de expiração dinâmica (60 minutos) no padrão ISO do PagBank

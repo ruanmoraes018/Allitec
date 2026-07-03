@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 {% load static %}
+{% load custom_filters %}
 <html>
     <head>
         <meta charset="utf-8">
@@ -148,7 +149,7 @@
                             </div>
                             <div class="lado-central">
                                 <div class="nome_empresa">
-                                    {{ empresa.fantasia }}
+                                    {{ empresa.fantasia }}<br>
                                     <small class="subtitulo">{{ empresa.cnpj }}<br></small>
                                     <small class="subtitulo">{{ empresa.tel }} - </small>
                                     <small class="subtitulo">{{ empresa.cidade_fil }}</small>
@@ -159,6 +160,8 @@
                             <div class="lado-direito">
                                 {% if conta.pedido %}
                                     Pedido: {{ conta.pedido.codigo }}
+                                {% elif conta.orcamento %}
+                                    Orçamento: {{ conta.orcamento.codigo }}
                                 {% endif %}<br>
                                 Data de Emissão<br>
                                 {{ conta.data_emissao|date:'d/m/Y' }}
@@ -205,7 +208,7 @@
                                 </td>
                                 <td>
                                     <div class="label">Valor Parcela</div>
-                                    R$ {{ conta.valor }}
+                                    R$ {{ conta.valor|moeda_br }}
                                 </td>
                             </tr>
                         </table>
@@ -280,7 +283,7 @@
                                     </td>
                                     <td>
                                         <div class="label">Valor</div>
-                                        R$ {{ conta.valor }}
+                                        R$ {{ conta.valor|moeda_br }}
                                     </td>
                                 </tr>
                             </table>

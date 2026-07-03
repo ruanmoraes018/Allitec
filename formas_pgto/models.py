@@ -10,7 +10,7 @@ class FormaPgto(models.Model):
     situacao = models.CharField(max_length=7, choices=[('Ativo', 'Ativo'), ('Inativo', 'Inativo')])
     troco = models.CharField(max_length=3, choices=[('Sim', 'Sim'), ('Não', 'Não')], default='Não')
     forma_padrao = models.CharField(max_length=3, choices=[('Sim', 'Sim'), ('Não', 'Não')], default='Não')
-    tipo = models.CharField(max_length=8, choices=[('A vista', 'A vista'), ('A prazo', 'A prazo')])
+    tipo = models.CharField(max_length=8, choices=[('A vista', 'A vista'), ('A prazo', 'A prazo')], default='A vista')
     gera_parcelas = models.BooleanField(default=False)
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE, null=True, blank=True)
     # 🔥 Gateway dinâmico

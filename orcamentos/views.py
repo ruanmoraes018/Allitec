@@ -187,11 +187,19 @@ def lista_orcamentos(request):
     paginator = Paginator(orcamentos, num_pagina)
     page = request.GET.get('page')
     orcamentos = paginator.get_page(page)
+    orc_ab_pg = sum(1 for o in orcamentos.object_list if o.situacao == 'Aberto')
+    orc_fat_pg = sum(1 for o in orcamentos.object_list if o.situacao == 'Faturado')
+    orc_canc_pg = sum(1 for o in orcamentos.object_list if o.situacao == 'Cancelado')
+    tot_ab_pg = sum((o.total or Decimal('0.00')) for o in orcamentos.object_list if o.situacao == 'Aberto')
+    tot_fat_pg = sum((o.total or Decimal('0.00')) for o in orcamentos.object_list if o.situacao == 'Faturado')
+    tot_canc_pg = sum((o.total or Decimal('0.00')) for o in orcamentos.object_list if o.situacao == 'Cancelado')
     return render(request, 'orcamentos/lista.html', {
     'orcamentos': orcamentos, 's': s, 'sit': f_s, 'fil': fil, 'cli': cli, 'tec': tec, 'dt_ini': dt_ini, 'dt_fim': dt_fim, 'p_dt': por_dt, 'tp_dt': tp_dt, 'reg': reg, 'ordem': ordem,
     'filiais': Filial.objects.filter(vinc_emp=request.user.empresa),
     'clientes': Cliente.objects.filter(vinc_emp=request.user.empresa),
     'tecnicos': Tecnico.objects.filter(vinc_emp=request.user.empresa),
+    'tot_ab': tot_ab_pg, 'tot_fat': tot_fat_pg, 'tot_canc': tot_canc_pg,
+    'orc_ab': orc_ab_pg, 'orc_fat': orc_fat_pg, 'orc_canc': orc_canc_pg,
 })
 
 @login_required
@@ -636,7 +644,7 @@ def faturar_orcamento(request, codigo):
                 orcamento=orcamento,
                 cliente=orcamento.cli,
                 forma_pgto=forma.formas_pgto,
-                num_conta=f'{orcamento.codigo}-{i + 1}',
+                num_conta=f'O-{orcamento.codigo}',
                 valor=valor_parcela,
                 data_vencimento=timezone.now().date() + timedelta(
                     days=forma.dias_intervalo * (i + 1)

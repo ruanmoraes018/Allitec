@@ -3,18 +3,20 @@
 {% load custom_filters %}
 {% block title %}Lista - Caixas{% endblock %}
 {% block content %}
-    <div class="container-fluid bg-white">
-        <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Listagem de Caixas</li>
+    <div class="container-fluid py-3 min-vh-100">
+        <nav class="mt-5" aria-label="breadcrumb">
+            <ol class="breadcrumb p-2 m-2">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'inicio' %}" class="text-decoration-none text-secondary" id="item-naveg"><i class="fas fa-home me-1"></i> Principal</a>
+                </li>
+                <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">Listagem de Caixas</li>
             </ol>
         </nav>
         {% if messages %}
             <div id="django-messages" data-messages='[
                 {% for message in messages %}
                     {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
-                    {% if not forloop.last %},{% endif %}
+                    {% if not forlooc.last %},{% endif %}
                 {% endfor %}
             ]'></div>
         {% endif %}
@@ -23,194 +25,318 @@
                 Usuário não autorizado para realizar esta função.
             </div>
         {% endif %}
-        <form method="GET" id="search-form" style="margin-left: 1%; margin-right: 1%;">
-            <div class="row g-3 align-items-end">
-                <div class="col-md-2 search-div flex-md-fill">
-                    <label class="form-label">Cód. Caixa:</label>
-                    <input class="form-control" type="text" name="s" id="s" placeholder="Digite o termo de busca" value="{{ request.GET.s }}">
-                </div>
-                <div class="col-md-2 search-div flex-md-fill">
-                    <label class="form-label">Filial:</label>
-                    <select class="form-select form-select-sm" id="vinc_emp" name="fil">
-                        <option value="">Selecione uma filial</option>
-                        {% for f in filiais %}
-                            <option value="{{ f.codigo }}" {% if request.GET.fil == f.codigo|stringformat:"s" %}selected{% endif %}>{{ f }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2 search-div flex-md-fill">
-                    <label class="form-label">Usuário:</label>
-                    <select class="form-select form-select-sm" id="usuario" name="user1">
-                        <option value="">Selecione um usuário</option>
-                        {% for u in usuarios %}
-                            <option value="{{ u.codigo }}" {% if request.GET.user1 == u.codigo|stringformat:"s" %}selected{% endif %}>{{ u }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Situação:</label>
-                    <div class="d-flex">
-                        <select class="form-control" name="sit" id="situacao">
-                            <option value="Todos" {% if request.GET.sit == 'Todos' %}selected{% endif %}>Todos</option>
-                            <option value="Aberto" {% if request.GET.sit == 'Aberto' %}selected{% endif %}>Abertos</option>
-                            <option value="Fechado" {% if request.GET.sit == 'Fechado' %}selected{% endif %}>Fechados</option>
-                        </select>
+        <div class="card border-0 shadow-sm rounded-3 mb-2">
+            <div class="card-body p-0 mb-2">
+                <form method="GET" id="search-form">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-xl-1 col-md-2 flex-md-fill">
+                            <label for="tp" class="form-label small text-secondary fw-semibold">Filtro por</label>
+                            <select name="tp" id="tp" class="form-select">
+                                <option value="desc" {% if request.GET.tp == 'desc' %}selected{% endif %}>Nome do Caixa</option>
+                                <option value="cod" {% if request.GET.tp == 'cod' %}selected{% endif %}>Código</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2 flex-md-fill">
+                            <label for="s" class="form-label small text-secondary fw-semibold">Termo de Busca</label>
+                            <input class="form-control" type="text" name="s" id="s" placeholder="Digite para buscar..." value="{{ request.GET.s }}">
+                        </div>
+                        <div class="col-xl-1 col-md-2 flex-md-fill">
+                            <label for="vinc_emp" class="form-label small text-secondary fw-semibold">Filial</label>
+                            <select name="fil" id="vinc_emp" class="form-select form-select-sm">
+                                <option value="">Escolha uma opção</option>
+                                {% for f in filiais %}
+                                    <option value="{{ f.codigo }}" {% if request.GET.fil == f.codigo|stringformat:"s" %}selected{% endif %}>{{ f }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2 flex-md-fill">
+                            <label for="usuario" class="form-label small text-secondary fw-semibold">Usuário</label>
+                            <select class="form-select form-select-sm" id="usuario" name="user1">
+                                <option value="">Escolha uma opção</option>
+                                {% for u in usuarios %}
+                                    <option value="{{ u.codigo_local }}" {% if request.GET.user1 == u.codigo_local|stringformat:"s" %}selected{% endif %}>{{ u }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label for="usar-data" class="form-label small text-secondary fw-semibold">Filtrar Data</label>
+                            <select class="form-select" id="usar-data" name="p_dt">
+                                <option value="Sim" {% if request.GET.p_dt == 'Sim' %}selected{% endif %}>Sim</option>
+                                <option value="Nao" {% if request.GET.p_dt == 'Nao' %}selected{% endif %}>Não</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-md-4">
+                            <label class="form-label small text-secondary fw-semibold">Período</label>
+                            <div class="input-group">
+                                <input class="form-control" type="text" name="dt_ini" id="data_inicio1" placeholder="De" value="{{ request.GET.dt_ini }}">
+                                <span class="input-group-text bg-white text-secondary"><i class="fas fa-calendar-alt"></i></span>
+                                <input class="form-control" type="text" name="dt_fim" id="data_fim1" placeholder="Até" value="{{ request.GET.dt_fim }}">
+                            </div>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label for="situacao" class="form-label small text-secondary fw-semibold">Situação</label>
+                            <select class="form-select" name="sit" id="situacao">
+                                <option value="Aberto" {% if request.GET.sit == 'Aberto' %}selected{% endif %}>Abertos</option>
+                                <option value="Fechado" {% if request.GET.sit == 'Fechado' %}selected{% endif %}>Fechados</option>
+                                <option value="Todos" {% if request.GET.sit == 'Todos' %}selected{% endif %}>Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label class="form-label small text-secondary fw-semibold">Exibir</label>
+                            <select class="form-select" id="qtd_reg" name="reg">
+                                <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
+                                <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
+                                <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
+                                <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
+                                <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
+                                <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-auto col-md-12 d-grid">
+                            <button class="btn btn-dark px-4" title="Consultar" type="submit" id="data-btn">
+                                <i class="fa-solid fa-magnifying-glass"></i> Filtrar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+            <div class="list-group">
+                <!-- Cabeçalho -->
+                <div class="list-group-item bg-light fw-bold cabecalho-lista">
+                    <div class="row align-items-center">
+                        <div class="col-md-1 text-center border-end">Ações</div>
+                        <div class="col-md-1 text-center border-end">Código</div>
+                        <div class="col-md-1 text-center border-start border-end">Situação</div>
+                        <div class="col-md-2 border-end">Filial</div>
+                        <div class="col-md-2 border-end">PDV</div>
+                        <div class="col-md-1 border-end">Usuário</div>
+                        <div class="col-md-1 border-end">Dt. Abertura</div>
+                        <div class="col-md-1 border-end">Vl. Abertura</div>
+                        <div class="col-md-1 border-end" style="font-size: 0.875rem;">Dt. Fechamento</div>
+                        <div class="col-sm-1" style="font-size: 0.875rem;">Vl. Fechamento</div>
                     </div>
                 </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Reg.:</label>
-                    <select class="form-control" id="qtd_reg" name="reg">
-                        <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
-                        <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
-                        <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
-                        <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
-                        <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
-                        <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
-                    </select>
-                </div>
-                <div class="col search-div d-flex justify-content-start">
-                    <button class="btn btn-dark" title="Consultar caixas" type="submit" id="data-btn" data-bs-toggle="modal" data-bs-target="#loadingModal">🔎</button>
-                </div>
-            </div>
-        </form>
-        <div class="table-container" style="margin-left: 1%; margin-right: 1%;">
-            <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
-                <thead thead class="table-dark">
-                    <tr>
-                        <th scope="col" style="text-align: center; width: 6%;">Opções</th>
-                        <th scope="col" style="text-align: center; width: 7%;">Código</th>
-                        <th scope="col" style="text-align: center; width: 7%;">Situação</th>
-                        <th scope="col" style="align-items: center;">Filial</th>
-                        <th scope="col" style="align-items: center;">PDV</th>
-                        <th scope="col" style="align-items: center;">Usuário</th>
-                        <th scope="col" style="align-items: center;">Data Abertura</th>
-                        <th scope="col" style="align-items: center;">Data Fechamento</th>
-                        <th scope="col" style="align-items: center;">Valor Abertura</th>
-                        <th scope="col" style="align-items: center;">Valor Fechamento</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for c in caixas %}
-                        <tr>
-                            <td data-label="Opções:" class="mobile-2col">
-                                <a href="{% url 'att-lancamento' c.codigo %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
-                                  data-permissao="lancpdvs.change_caixa"
-                                  data-msg-negado="Seu usuário não pode editar caixas!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
-                                <span>
-                                    <i class="fas fa-trash btn-permissao"
-                                       title="Deletar caixa"
-                                       data-bs-target="#modal-{{ c.codigo }}"
-                                       data-permissao="lancpdvs.delete_caixa"
-                                       data-msg-negado="Seu usuário não pode deletar caixas!">
-                                    </i>
-                                </span>
-                                <!-- Modal ÚNICO para cada banco -->
-                                <div class="modal fade" id="modal-{{ c.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ c.codigo }}" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header titulo-modal">
-                                                <h1 class="modal-title fs-5" id="modalLabel-{{ c.codigo }}">
-                                                    <i class="fa-regular fa-circle-question"></i> Confirmação!
-                                                </h1>
-                                            </div>
-                                            <div class="modal-body">
-                                                <p>Você confirma a EXCLUSÃO DO CAIXA <strong>{{ c.terminal.nome }}</strong>?</p>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <form method="post" action="{% url 'del-lancamento' c.codigo %}" class="form-excluir">
-                                                    {% csrf_token %}
-                                                    <button type="submit" class="btn btn-primary btn-confirmar" disabled>
-                                                        <u>S</u>im <span class="contador">3</span>
+                <!-- Registros -->
+                {% for c in caixas %}
+                    <div class="list-group-item py-1 item-lista">
+                        <div class="row align-items-center linha-lista">
+                            <!-- Ações -->
+                            <div class="col-md-1 text-center mb-1 mb-md-0 acoes-col">
+                                <div class="btn-group btn-group-sm">
+                                    {% if perms.lancpdvs.caixa_outro_user or c.usuario == request.user %}
+                                        <a href="{% url 'tela-caixa' c.codigo %}" class="btn btn-light btn-sm border" title="Acessar Caixa">
+                                            <i class="fa-solid fa-desktop op-clonar"></i>
+                                        </a>
+                                        {% else %}
+                                        <a href="#" class="btn btn-light btn-sm border btn-permissao" data-msg-negado="Seu usuário não pode realizar lançamentos em caixas de outros usuários!" title="Acessar Caixa">
+                                            <i class="fa-solid fa-desktop op-clonar"></i>
+                                        </a>
+                                    {% endif %}
+                                    <a href="{% url 'att-lancamento' c.codigo %}?next={{ request.get_full_path|urlencode }}" class="btn btn-light btn-sm border btn-permissao" data-permissao="lancpdvs.change_caixa" data-msg-negado="Seu usuário não pode editar caixas!">
+                                        <i class="fas fa-edit text-success"></i>
+                                    </a>
+                                    <button class="btn btn-light btn-sm border btn-permissao" data-bs-toggle="modal" data-bs-target="#modal-{{ c.codigo }}" data-permissao="lancpdvs.delete_caixa" data-msg-negado="Seu usuário não pode deletar caixas!">
+                                        <i class="fas fa-trash text-danger"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- Código -->
+                            <div class="col-md-1 text-center fw-bold text-secondary codigo-col" data-label="Código:">#{{ c.codigo }}</div>
+                            <!-- Situação -->
+                            <div class="col-md-1 text-center codigo-col" data-label="Situação:">
+                                {% if c.situacao == 'Aberto' %}
+                                    <span class="badge bg-primary">{{ c.situacao }}</span>
+                                {% elif c.situacao == 'Fechado' %}
+                                    <span class="badge bg-success">{{ c.situacao }}</span>
+                                {% endif %}
+                            </div>
+                            <!-- Filial -->
+                            <div class="col-md-2 fw-bold codigo-col" data-label="Filial:">{{ c.vinc_fil }}</div>
+                            <!-- PDV -->
+                            <div class="col-md-2 fw-bold descricao-col" data-label="PDV:">{{ c.terminal.nome }}</div>
+                            <!-- Usuário -->
+                            <div class="col-md-1 fw-bold codigo-col" data-label="Usuário:">{{ c.usuario.first_name }}</div>
+                            <!-- Dt. Abertura -->
+                            <div class="col-md-1 fw-bold codigo-col" data-label="Dt. Abertura:">{{ c.data_abertura|date:"d/m/Y H:i:s" }}</div>
+                            <!-- Valor Abertura -->
+                            <div class="col-md-1 fw-bold codigo-col" data-label="Valor Abertura:">R$ {{ c.saldo_inicial|moeda_br}}</div>
+                            <!-- Dt. Fechamento -->
+                            <div class="col-md-1 text-center fw-bold codigo-col" data-label="{% if c.situacao == 'Fechado' %}Dt. Fechamento:{% endif %}">{% if c.situacao == 'Fechado' %}{{ c.data_fechamento|date:"d/m/Y - H:i:s" }}{% else %} - {% endif %}</div>
+                            <!-- Formas de Fechamento -->
+                            <div class="col-md-auto fw-bold codigo-col" data-label="Valor Fechamento:">
+                                {% if c.situacao != 'Aberto' %}
+                                    {% for f in c.formas_convertidas %}
+                                        <div class="p-1 mb-1 bg-secondary text-light rounded-3" style="font-size: 0.75rem;">
+                                            <small>{{ f.descricao }} - {{ f.valor|moeda_br }}</small>
+                                        </div>
+                                    {% empty %}
+                                        -
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Modal ÚNICO para cada pedido -->
+                    <div class="modal fade" id="modal-{{ c.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ c.codigo }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title" id="modalLabel-{{ c.codigo }}">
+                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                    </h5>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Você confirma a EXCLUSÃO DO CAIXA <strong>{{ c.terminal.nome }}</strong>?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post" action="{% url 'del-lancamento' c.codigo %}" class="form-excluir">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-confirmar" id="confirmBtn" disabled>
+                                            <u>S</u>im <span class="contador">3</span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnRecusa">
+                                            <u>N</u>ão
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Modal de opções do pedido -->
+                    {% comment %} <div class="modal fade modal-sm" id="menuModal{{ c.codigo }}" data-orcamento-id="{{ c.codigo }}" tabindex="-1" aria-labelledby="menuModalLabel{{ c.codigo }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal"><h5 class="modal-title fw-bold mx-auto" id="menuModalLabel{{ c.codigo }}">Opções - {{ c.codigo }}</h5></div>
+                                <div class="modal-body p-2">
+                                    <a href="{% url 'att-pedido' c.codigo %}?next={{ request.get_full_path|urlencode }}" data-permissao="lancpdvs.change_pedido" data-msg-negado="Seu usuário não pode editar pedidos!" class="btn btn-light w-100 text-start menu-opcao op-editar border border-secondary btn-permissao" >
+                                        <i class="fas fa-edit"></i> Editar
+                                    </a>
+                                    <a href="{% url 'clonar-pedido' c.codigo %}?next={{ request.get_full_path|urlencode }}" data-permissao="lancpdvs.clonar_pedido" data-msg-negado="Seu usuário não pode clonar pedidos!" class="btn btn-light w-100 text-start menu-opcao op-clonar border border-secondary btn-permissao">
+                                        <i class="fa-solid fa-clone"></i> Clonar
+                                    </a>
+                                    {% if c.situacao == 'Aberto' %}
+                                        <button class="btn btn-light w-100 text-start menu-opcao op-deletar btn-delete border border-secondary btn-permissao" data-orcamento-id="{{ c.codigo }}" data-permissao="lancpdvs.delete_pedido" data-msg-negado="Seu usuário não pode deletar pedidos!">
+                                            <i class="fas fa-trash"></i> Deletar
+                                        </button>
+                                        <button class="btn btn-light w-100 text-start menu-opcao op-faturar btn-faturar border border-secondary btn-permissao" data-id="{{ c.codigo }}" data-permissao="lancpdvs.faturar_pedido" data-msg-negado="Seu usuário não pode faturar pedidos!">
+                                            <i class="fa-solid fa-money-bill"></i> Faturar
+                                        </button>
+                                    {% endif %}
+                                    <button class="btn btn-light w-100 text-start menu-opcao op-detalhe op-detalhe-pedido border border-secondary" data-id="{{ c.codigo }}" data-bs-toggle="modal" data-bs-target="#infoEntModalP{{ c.codigo }}">
+                                        <i class="fa-solid fa-circle-info"></i> Detalhes
+                                    </button>
+                                    <div class="dropdown w-100">
+                                        <button class="btn btn-light w-100 text-start menu-opcao op-imprimir border border-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="true">
+                                            <i class="fa-solid fa-print"></i> Impressão
+                                        </button>
+                                        <ul class="dropdown-menu w-100">
+                                            <li><a href="{% url 'cupom_pedido' c.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Cupom</a></li>
+                                            <li><a href="{% url 'imprimir-pedido' c.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> A4</a></li>
+                                            {% if c.tabela_preco.tipo == "A prazo" and c.titulos_pedidos.exists %}
+                                                <li><a href="{% url 'imprimir-carne' c.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Carnê</a></li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                    {% if c.situacao == 'Faturado' %}
+                                    <button class="btn btn-light w-100 text-start menu-opcao op-cancelar border border-secondary btn-permissao" data-permissao="lancpdvs.cancelar_pedido" data-msg-negado="Seu usuário não pode cancelar pedidos!" data-collapse="#colCancelar{{ c.codigo }}">
+                                        <i class="fa-solid fa-circle-xmark"></i> Cancelar
+                                    </button>
+                                    <div class="collapse" id="colCancelar{{ c.codigo }}">
+                                        <div class="card" style="margin: 0;">
+                                            <div class="card-body">
+                                                <label class="form-label fw-bold">Motivo do cancelamento</label>
+                                                <textarea id="motivoCancelamento{{ c.codigo }}" class="form-control form-control-sm border-dark-subtle text-uppercase" rows="2" required></textarea>
+                                                <div class="mt-3 d-flex justify-content-end gap-2">
+                                                    <button type="button" class="btn btn-danger btn-sm btn-abrir-modal-pedido" data-orcamento-id="{{ c.codigo }}" data-bs-target="#modalConfirmarCancelamento{{ c.codigo }}">
+                                                        Cancelar pedido
                                                     </button>
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                                        <u>N</u>ão
-                                                    </button>
-                                                </form>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="modal fade" id="modalConfirmarCancelamento{{ c.codigo }}" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content">
+                                                <div class="modal-header titulo-modal">
+                                                    <h5 class="modal-title"><i class="fa-regular fa-circle-question"></i>Confirmação</h5>
+                                                </div>
+                                                <div class="modal-body"><p class="mb-2">Você confirma o CANCELAMENTO DO PEDIDO <strong>{{ c.codigo }}</strong>?</p></div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-primary btn-confirmar btn-confirmar-canc-pedido" data-orcamento-id="{{ c.codigo }}" disabled><u>S</u>im <span class="contador">3</span></button>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
                                 </div>
-                                
-                            </td>
-                            <td data-label="Código:" class="mobile-2col" style="align-items: center;">{{ c.codigo }}</td>
-                            <td data-label="Situação:" class="mobile-2col" style="text-align: center;">
-                                {% if c.situacao == 'Ativo' %}
-                                    <div style="background-color: blue; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
-                                        <strong>{{ c.situacao }}</strong>
-                                    </div>
-                                {% else %}
-                                    <div style="background-color: green; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
-                                        <strong>{{ c.situacao }}</strong><br>
-                                    </div>
-                                {% endif %}
-                            </td>
-                            <td data-label="Filial:" class="mobile-2col text-uppercase" style="align-items: center;">{{ c.vinc_fil }}</td>
-                            <td data-label="PDV:" class="mobile-2col text-uppercase" style="align-items: center;">{{ c.terminal.nome }}</td>
-                            <td data-label="Usuário:" class="mobile-2col" style="align-items: center;">{{ c.usuario.first_name }}</td>
-                            <td data-label="Data Abertura:" class="mobile-2col" style="align-items: center;">{{ c.data_abertura|date:"d/m/Y H:i:s" }}</td>
-                            <td data-label="Data Fechamento:" class="mobile-2col" style="align-items: center;">{% if c.data_fechamento %}{{ c.data_fechamento|date:"d/m/Y H:i:s" }}{% else %}-{% endif %}</td>
-                            <td data-label="Valor Abertura:" class="mobile-2col" style="align-items: center;">R$ {{ c.saldo_inicial|moeda_br }}</td>
-                            <td data-label="Valor Fechamento:" class="mobile-2col" style="align-items: center;">{% if c.valor_fechamento %}R$ {{ c.valor_fechamento }}{% else %}-{% endif %}</td>
-                        </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="15" class="mobile-full-center" style="text-align: center;">
-                            Nenhum caixa encontrado.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <div class="card">
-            <div class="card-body" style="max-height: 50px;">
-                <strong>Total de Caixas: {{ caixas|length }}</strong>
-                <a id="add-link" href="{% url 'add-lancamento' %}" style="margin-left: 1%; margin-right: 1%; float: right;" class="btn-permissao" data-permissao="lancpdvs.add_caixa" data-msg-negado="Seu usuário não pode adicionar caixas!">
-                    <button type="button" class="btn btn-primary btn-sm" id="add-banco"><i class="fas fa-plus"></i> Novo</button>
-                </a>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary btn-sm mx-auto" data-bs-dismiss="modal">Fechar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div> {% endcomment %}
+                {% empty %}
+                    <div class="list-group-item text-center py-3 text-muted">
+                        <i class="fas fa-folder-open fs-2 d-block mb-3 opacity-50"></i> Nenhum caixa encontrado.
+                    </div>
+                {% endfor %}
             </div>
-            <div class="card-footer text-body-secondary">
-                <nav aria-label="Page navigation example" style="padding-bottom: 1px;">
-                    <ul class="pagination justify-content-center">
-                        {% if caixas.number > 1 and caixas.number > 3 %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="First">
-                                    <span aria-hidden="true" style="color: #0f1d2b;">1</span>
-                                </a>
-                            </li>
+            <div class="card-footer bg-white border-top p-1">
+                <div class="row align-items-center">
+                    <div class="col-md-4 text-center text-md-start d-flex justify-content-center justify-content-md-start">
+                        <ul class="list-group list-group-horizontal-sm">
+                            <li class="list-group-item"><small>Caixas Abertos:</small> <span class="badge bg-primary ms-1">{{ cx_ab }}</span></li>
+                            <li class="list-group-item"><small>Caixas Fechados:</small> <span class="badge bg-success ms-1">{{ cx_fec }}</span></li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4 mt-1 d-flex justify-content-center">
+                        {% if caixas.paginator.num_pages > 1 %}
+                            <nav aria-label="Navegação de páginas">
+                                <ul class="pagination pagination-sm m-0 gap-1 border-0">
+                                    {% if caixas.number > 3 %}
+                                        <li class="page-item">
+                                            <a class="page-link rounded border-0 text-dark" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">1</a>
+                                        </li>
+                                    {% endif %}
+                                    {% if caixas.number > 4 %}
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    {% endif %}
+                                    {% for num in caixas.paginator.page_range %}
+                                        {% if num >= caixas.number|add:'-2' and num <= caixas.number|add:'2' %}
+                                            {% if caixas.number == num %}
+                                                <li class="page-item active" aria-current="page">
+                                                    <span class="page-link rounded border-0 bg-dark text-white fw-bold">{{ num }}</span>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item">
+                                                    <a class="page-link rounded border-0 text-dark" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                                                </li>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if caixas.number < caixas.paginator.num_pages|add:'-3' %}
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    {% endif %}
+                                    {% if caixas.number < caixas.paginator.num_pages and caixas.number < caixas.paginator.num_pages|add:'-2' %}
+                                        <li class="page-item">
+                                            <a class="page-link rounded border-0 text-dark" href="?page={{ caixas.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ caixas.paginator.num_pages }}</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
                         {% endif %}
-                        {% if caixas.number > 4 %}
-                            <li class="page-item disabled">
-                                <a class="page-link">...</a>
-                            </li>
-                        {% endif %}
-                        {% for num in caixas.paginator.page_range %}
-                            {% if num >= caixas.number|add:'-2' and num <= caixas.number|add:'2' %}
-                                {% if caixas.number == num %}
-                                    <li class="page-item active" aria-current="page">
-                                        <span class="page-link" style="background-color: #0f1d2b; color: white;">{{ num }}</span>
-                                    </li>
-                                {% else %}
-                                    <li class="page-item">
-                                        <a class="page-link" style="color: #0f1d2b;" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
-                                    </li>
-                                {% endif %}
-                            {% endif %}
-                        {% endfor %}
-                        {% if caixas.number < caixas.paginator.num_pages|add:'-3' %}
-                            <li class="page-item disabled">
-                                <a class="page-link">...</a>
-                            </li>
-                        {% endif %}
-                        {% if caixas.number < caixas.paginator.num_pages and caixas.number < caixas.paginator.num_pages|add:'-2' %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ caixas.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                                    <span aria-hidden="true" style="color: #0f1d2b;">{{ caixas.paginator.num_pages }}</span>
-                                </a>
-                            </li>
-                        {% endif %}
-                    </ul>
-                </nav>
+                    </div>
+                    <div class="col-md-4 mt-1 text-center text-md-end">
+                        <a id="add-link" href="{% url 'add-lancamento' %}" class="btn-permissao" data-permissao="lancpdvs.add_caixa" data-msg-negado="Seu usuário não pode realizar aberturas de caixas!">
+                            <button type="button" class="btn btn-primary btn-sm px-3 shadow-sm fw-semibold" id="add-pedido">
+                                <i class="fas fa-plus me-1"></i> Novo
+                            </button>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

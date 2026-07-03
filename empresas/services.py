@@ -7,6 +7,14 @@ from tecnicos.models import Tecnico
 from bairros.models import Bairro
 from cidades.models import Cidade
 from estados.models import Estado
+from unidades.models import Unidade
+from formas_pgto.models import FormaPgto
+from tabelas_preco.models import TabelaPreco
+from vendedores.models import Vendedor
+
+unidades = ['UN', 'M²', 'ML', 'KG']
+formas = ['DINHEIRO', 'CRÉDITO', 'DÉBITO', 'PIX', 'CREDIÁRIO']
+tabelas = ['AVISTA', 'APRAZO']
 
 class EmpresaService:
     @staticmethod
@@ -24,16 +32,38 @@ class EmpresaService:
             bairro, _ = Bairro.objects.get_or_create(nome_bairro=nova_empresa.bairro_emp, vinc_emp=nova_empresa)
             cidade, _ = Cidade.objects.get_or_create(nome_cidade=nova_empresa.cidade_emp, vinc_emp=nova_empresa)
             estado, _ = Estado.objects.get_or_create(nome_estado=nova_empresa.uf_emp, vinc_emp=nova_empresa)
+            # Geração de Filial
             filial_criada, _ = Filial.objects.get_or_create(
                 situacao='Ativa', cnpj=nova_empresa.cnpj, ie=nova_empresa.ie, razao_social=nova_empresa.razao_social, fantasia=nova_empresa.fantasia, endereco=nova_empresa.endereco,
                 cep=nova_empresa.cep, numero=nova_empresa.numero, bairro_fil=bairro, complem=nova_empresa.complem, cidade_fil=cidade, uf=estado, tel=nova_empresa.tel,
                 email=nova_empresa.email, fantasia_normalizado=nova_empresa.fantasia_normalizado, principal=True, logo=nova_empresa.logo, vinc_emp=nova_empresa
             )
+            # Geração de Cliente Padrão
             Cliente.objects.get_or_create(
-                situacao='Ativo', pessoa="Física", cpf_cnpj='.', ie='.', razao_social='CONSUMIDOR', fantasia='CONSUMIDOR', endereco='.', cep='.', numero='.', bairro=bairro, complem='.',
-                cidade=cidade, uf=estado, tel='.', email='.', vinc_emp=nova_empresa
+                situacao='Ativo', pessoa="Física", cpf_cnpj='080.681.140-41', ie='0', razao_social='CONSUMIDOR', fantasia='CONSUMIDOR', endereco=nova_empresa.endereco, cep=nova_empresa.cep, numero=nova_empresa.numero, bairro=bairro, complem=nova_empresa.complem,
+                cidade=cidade, uf=estado, tel=nova_empresa.tel, email=nova_empresa.email, vinc_emp=nova_empresa
             )
-            Tecnico.objects.get_or_create(situacao='Ativo', nome='CONSUMIDOR', endereco='.', cep='.', numero='.', bairro=bairro, cidade=cidade, uf=estado, tel='.', email='.', vinc_emp=nova_empresa)
+            # Geração de Vendedor Padrão
+            Vendedor.objects.get_or_create(
+                situacao='Ativo', pessoa="Física", cpf_cnpj='080.681.140-41', ie='0', razao_social='DIVERSOS', fantasia='DIVERSOS', endereco=nova_empresa.endereco, cep=nova_empresa.cep, numero=nova_empresa.numero, bairro=bairro, complem=nova_empresa.complem,
+                cidade=cidade, uf=estado, tel=nova_empresa.tel, email=nova_empresa.email, vinc_emp=nova_empresa
+            )
+            # Geração de Técnico Padrão
+            Tecnico.objects.get_or_create(situacao='Ativo', nome='DIVERSOS', endereco=nova_empresa.endereco, cep=nova_empresa.cep, numero=nova_empresa.numero, bairro=bairro, cidade=cidade, uf=estado, tel=nova_empresa.tel, email=nova_empresa.email, vinc_emp=nova_empresa)
+            # Geração de Unidades
+            for u in unidades:
+                Unidade.objects.get_or_create(nome_unidade=u, vinc_emp=nova_empresa)
+            # Geração de Formas de Pagamento
+            for f in formas:
+                if f == 'DINHEIRO':
+                    FormaPgto.objects.get_or_create(descricao=f, situacao='Ativo', troco='Sim', forma_padrao='Sim', tipo='A vista', vinc_emp=nova_empresa, gateway='nenhum', credenciais={})
+                elif f == 'CREDIÁRIO':
+                    FormaPgto.objects.get_or_create(descricao=f, situacao='Ativo', troco='Não', forma_padrao='Não', tipo='A prazo', vinc_emp=nova_empresa, gateway='nenhum', credenciais={})
+                else:
+                    FormaPgto.objects.get_or_create(descricao=f, situacao='Ativo', troco='Não', forma_padrao='Não', tipo='A vista', vinc_emp=nova_empresa, gateway='nenhum', credenciais={})
+            # Geração de Tabela de Preço
+            for t in tabelas:
+                TabelaPreco.objects.get_or_create(descricao=t, margem=50, tipo='A vista' if t == 'AVISTA' else 'A prazo', vinc_emp=nova_empresa)
             # 🔥 USUÁRIO PADRÃO
             if not Usuario.objects.filter(username="allitec", empresa=nova_empresa).exists():
                 Usuario.objects.create(username="allitec", empresa=nova_empresa, filial_user=filial_criada, password=make_password("@admin@"), first_name="ALLITEC", is_master=True, is_active=True,)

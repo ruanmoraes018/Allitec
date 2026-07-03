@@ -52,17 +52,20 @@ def finalizar_pedido(pedido, formas=None, parcelas=None, parcial=False, request=
                 except ValueError:
                     data_vencimento = None  # ou escolha outra estratégia
 
+            numero_preview = str(p.get("numero"))
+            sufixo = numero_preview.split("/", 1)[1]
+
             ContaReceber.objects.create(
                 data_emissao=p.get("data_emissao"),
                 vinc_emp=pedido.vinc_emp,
                 vinc_fil=pedido.vinc_fil,
                 cliente=pedido.cli,
                 pedido=pedido,
-                forma_pgto_id=p.get('forma'),
-                num_conta=p.get('numero'),
-                valor=Decimal(str(p.get('valor'))),
+                forma_pgto_id=p.get("forma"),
+                num_conta=f"P-{pedido.codigo}/{len(parcelas):02d}-{sufixo}",
+                valor=Decimal(str(p.get("valor"))),
                 data_vencimento=data_vencimento,
-                situacao='Aberta',
+                situacao="Aberta",
             )
     # 🔥 STATUS
     pedido.status_pagamento = "parcial" if parcial else "pago"
