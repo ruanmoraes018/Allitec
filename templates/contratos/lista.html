@@ -3,11 +3,13 @@
 {% load custom_filters %}
 {% block title %}Lista - Contratos{% endblock %}
 {% block content %}
-    <div class="container-fluid bg-white">
-        <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Listagem de Contratos</li>
+    <div class="container-fluid py-3 min-vh-100">
+        <nav class="mt-5" aria-label="breadcrumb">
+            <ol class="breadcrumb p-2 m-2">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'inicio' %}" class="text-decoration-none text-secondary" id="item-naveg"><i class="fas fa-home me-1"></i> Principal</a>
+                </li>
+                <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">Listagem de Contratos</li>
             </ol>
         </nav>
         {% if messages %}
@@ -18,272 +20,256 @@
                 {% endfor %}
             ]'></div>
         {% endif %}
-        {% if not perm_add_contrato and not perm_change_contrato and not perm_delete_contrato %}
-            <div class="alert alert-warning">
-                Usuário não autorizado para realizar esta função.
-            </div>
-        {% endif %}
-        <form method="GET" id="search-form" style="margin-left: 1%; margin-right: 1%;">
-            <div class="row g-3 align-items-end">
-                <div class="col-md-1 search-div flex-md-fill">
-                    <label class="form-label">Empresa:</label>
-                    <select class="form-control" id="emp" name="emp">
-                        <option value="">Escolha uma opção</option>
-                        {% if empresa_selecionada %}
-                            <option class="text-uppercase" value="{{ empresa_selecionada.id }}" selected>
-                                {{ empresa_selecionada.fantasia }}
-                            </option>
-                        {% endif %}
-                        {% for empresa in empresas %}
-                            <option class="text-uppercase" value="{{ empresa.id }}" {% if request.GET.emp == empresa.id|stringformat:"s" %}selected{% endif %}>
-                                {{ empresa.fantasia }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Situação:</label>
-                    <div class="d-flex">
-                        <select class="form-control" name="sit" id="situacao">
-                            <option value="Ativo" {% if request.GET.sit == 'Ativo' %}selected{% endif %}>Ativos</option>
-                            <option value="Suspenso" {% if request.GET.sit == 'Suspenso' %}selected{% endif %}>Suspensos</option>
-                            <option value="Cancelado" {% if request.GET.sit == 'Cancelado' %}selected{% endif %}>Cancelados</option>
-                            <option value="todos" {% if request.GET.sit == 'todos' %}selected{% endif %}>Todos</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Período:</label>
-                    <select class="form-control" id="usar-data" name="p_dt">
-                        <option value="Nao" {% if request.GET.p_dt == 'Nao' %}selected{% endif %}>Não</option>
-                        <option value="Sim" {% if request.GET.p_dt == 'Sim' %}selected{% endif %}>Sim</option>
-                    </select>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Listar por:</label>
-                    <div class="d-flex">
-                        <select class="form-control" name="list_p" id="list_p">
-                            <option value="dt_inicio" {% if request.GET.list_p == 'dt_inicio' %}selected{% endif %}>Dt. Início</option>
-                            <option value="dt_criacao" {% if request.GET.list_p == 'dt_criacao' %}selected{% endif %}>Dt. Emissão</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-3 search-div">
-                    <div class="row">
-                        <div class="col">
-                            <label class="form-label">De:</label>
-                            <input class="form-control" type="text" name="dt_ini" id="data_inicio1" value="{{ request.GET.dt_ini }}">
+        <div class="card border-0 shadow-sm rounded-3 mb-2">
+            <div class="card-body p-0 mb-2">
+                <form method="GET" id="search-form">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-xl-1 col-md-2 flex-md-fill">
+                            <label for="emp" class="form-label small text-secondary fw-semibold">Empresa</label>
+                            <select class="form-select form-select-sm" id="emp" name="emp">
+                                <option value="">Escolha uma opção</option>
+                                {% for e in empresas %}
+                                    <option value="{{ c.id }}" {% if request.GET.emp == c.id|stringformat:"s" %}selected{% endif %}>{{ e }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                        <div class="col">
-                            <label class="form-label">Até:</label>
-                            <input class="form-control" type="text" name="dt_fim" id="data_fim1" value="{{ request.GET.dt_fim }}">
+                        <div class="col-xl-1 col-md-2">
+                            <label for="situacao" class="form-label small text-secondary fw-semibold">Situação</label>
+                            <select class="form-select" name="sit" id="situacao">
+                                <option value="Ativo" {% if request.GET.sit == 'Ativo' %}selected{% endif %}>Ativos</option>
+                                <option value="Suspenso" {% if request.GET.sit == 'Suspenso' %}selected{% endif %}>Suspensos</option>
+                                <option value="Cancelado" {% if request.GET.sit == 'Cancelado' %}selected{% endif %}>Cancelados</option>
+                                <option value="todos" {% if request.GET.sit == 'todos' %}selected{% endif %}>Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label for="list_p" class="form-label small text-secondary fw-semibold">Data de</label>
+                            <select class="form-select" name="list_p" id="list_p">
+                                <option value="dt_inicio" {% if request.GET.list_p == 'dt_inicio' %}selected{% endif %}>Dt. Início</option>
+                                <option value="dt_criacao" {% if request.GET.list_p == 'dt_criacao' %}selected{% endif %}>Dt. Emissão</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-4">
+                            <label for="usar-data" class="form-label small text-secondary fw-semibold">Filtrar Data</label>
+                            <select class="form-select" id="usar-data" name="p_dt">
+                                <option value="Nao" {% if request.GET.p_dt == 'Nao' %}selected{% endif %}>Não</option>
+                                <option value="Sim" {% if request.GET.p_dt == 'Sim' %}selected{% endif %}>Sim</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-3 col-md-8">
+                            <label class="form-label small text-secondary fw-semibold">Período</label>
+                            <div class="input-group">
+                                <input class="form-control" type="text" name="dt_ini" id="data_inicio1" placeholder="De" value="{{ request.GET.dt_ini }}">
+                                <span class="input-group-text bg-white text-secondary"><i class="fas fa-calendar-alt"></i></span>
+                                <input class="form-control" type="text" name="dt_fim" id="data_fim1" placeholder="Até" value="{{ request.GET.dt_fim }}">
+                            </div>
+                        </div>
+                        <div class="col-xl-1 col-md-4">
+                            <label class="form-label small text-secondary fw-semibold">Exibir</label>
+                            <select class="form-select" id="qtd_reg" name="reg">
+                                <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
+                                <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
+                                <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
+                                <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
+                                <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
+                                <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label for="ordem" class="form-label small text-secondary fw-semibold">Ordem</label>
+                            <select class="form-control" name="ordem" id="ordem">
+                                <option value="empresa__fantasia" {% if request.GET.ordem == 'empresa__fantasia' %}selected{% endif %}>Empresa</option>
+                                <option value="dt_venc" {% if request.GET.ordem == 'dt_venc' %}selected{% endif %}>Dt. Venc.</option>
+                                <option value="created_at" {% if request.GET.ordem == 'created_at' %}selected{% endif %}>Dt. Emissão</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-auto col-md-12 d-grid">
+                            <button class="btn btn-dark px-4" title="Consultar" type="submit" id="data-btn">
+                                <i class="fa-solid fa-magnifying-glass"></i> Filtrar
+                            </button>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Ordem:</label>
-                    <div class="d-flex">
-                        <select class="form-control" name="ordem" id="ordem">
-                            <option value="empresa__fantasia" {% if request.GET.ordem == 'empresa__fantasia' %}selected{% endif %}>Empresa</option>
-                            <option value="dt_venc" {% if request.GET.ordem == 'dt_venc' %}selected{% endif %}>Dt. Venc.</option>
-                            <option value="created_at" {% if request.GET.ordem == 'created_at' %}selected{% endif %}>Dt. Emissão</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Reg.:</label>
-                    <select class="form-control" id="qtd_reg" name="reg">
-                        <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
-                        <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
-                        <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
-                        <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
-                        <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
-                        <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
-                    </select>
-                </div>
-                <div class="col search-div d-flex justify-content-start">
-                    <button class="btn btn-dark" title="Consultar contratos" type="submit" id="data-btn" data-bs-toggle="modal" data-bs-target="#loadingModal">🔎</button>
-                </div>
+                </form>
             </div>
-        </form>
-        <div class="table-container" style="margin-left: 1%; margin-right: 1%;">
-            <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
-                <thead thead class="table-dark">
-                    <tr>
-                        <th scope="col" style="text-align: center; width: 5%;">Opções</th>
-                        <th scope="col" style="text-align: justify; width: 8%;">Nr. Contrato</th>
-                        <th scope="col" style="text-align: center; width: 5%;">Situação</th>
-                        <th scope="col" style="text-align: center; width: 5%;">Status</th>
-                        <th scope="col" style="text-align: justify; width: 12%;">Empresa</th>
-                        <th scope="col" style="align-items: center; width: 9%;">Dt. Emissão</th>
-                        <th scope="col" style="align-items: center; width: 9%;">Dt. Início</th>
-                        <th scope="col" style="align-items: center; width: 8%;">Valor</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for contrato in contratos %}
-                        <tr>
-
-                            <td style="width: 80px;">
-                                <span>
-                                    <i class="fas fa-trash btn-permissao"
-                                       title="Deletar contrato"
-                                       data-bs-target="#modal-{{ contrato.id }}"
-                                       data-permissao="contratos.delete_contrato"
-                                       data-msg-negado="Seu usuário não pode deletar contratos!">
-                                    </i>
-                                </span>
-
-                                <!-- Modal ÚNICO para cada contrato -->
-                                <div class="modal fade" id="modal-{{ contrato.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ contrato.id }}" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header titulo-modal">
-                                                <h1 class="modal-title fs-5" id="modalLabel-{{ contrato.id }}">
-                                                    <i class="fa-regular fa-circle-question"></i> Confirmação!
-                                                </h1>
-                                            </div>
-                                            <div class="modal-body">
-                                                <p>Você confirma a EXCLUSÃO DO CONTRATO <strong>{{ contrato.id }}</strong>?</p>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <form method="post" action="{% url 'del-contrato' contrato.id %}" class="form-excluir">
-                                                    {% csrf_token %}
-                                                    <button type="submit" class="btn btn-primary btn-confirmar" disabled>
-                                                        <u>S</u>im <span class="contador">3</span>
-                                                    </button>
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                                        <u>N</u>ão
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% if contrato.status == "Pendente" %}
-                                    <a href="{% url 'att-contrato' contrato.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
-                                      data-permissao="contratos.change_contrato"
-                                      data-msg-negado="Seu usuário não pode editar contratos!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
-                                    <a href="{% url 'aprovar-contrato' contrato.id %}"><span><i class="fa-regular fa-square-check" title="Aprovar contrato"></i></span></a>
-                                {% else %}
-                                    <span>
-                                        <i class="fa-solid fa-ban" style="float: right; font-size: 20px; color: #9C2007; cursor: pointer; margin: 5px;" title="Cancelar contrato" data-bs-toggle="modal" data-bs-target="#mdCancCont-{{ contrato.id }}"></i>
-                                    </span>
-                                    <div class="modal fade" id="mdCancCont-{{ contrato.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="mdCancCont-{{ contrato.id }}" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered">
-                                            <div class="modal-content">
-                                                <div class="modal-header titulo-modal">
-                                                    <h1 class="modal-title fs-5" id="mdCancCont-{{ contrato.id }}">
-                                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
-                                                    </h1>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <p style="text-align: justify;">Atenção! Ao cancelar este contrato, as mensalidades em Aberto serão deletadas,
-                                                    porém as mensalidades Baixadas não serão afetadas.<br><br> </p>
-                                                    <p style="text-align: center;">Você deseja realmente CANCELAR O CONTRATO <strong>{{ contrato.id }}</strong>?</p>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-primary btn-confirmar" data-url="{% url 'cancelar-contrato' contrato.id %}" disabled>
-                                                        <u>S</u>im <span class="contador">3</span>
-                                                    </button>
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><u>N</u>ão</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                {% endif %}
-                            </td>
-                            <td style="align-items: center;">{{ contrato.id }}</td>
-                            <td style="text-align: center; padding: 5px;">
-                                {% if contrato.situacao == 'Ativo' %}
-                                    <div style="background-color: #2c2c2c; border-radius: 20px; color: white; margin-top: 5px;">
-                                        <strong>{{ contrato.situacao }}</strong>
-                                    </div>
-                                {% elif contrato.situacao == 'Suspenso' %}
-                                    <div style="background-color: yellow; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
-                                        <strong>{{ contrato.situacao }}</strong><br>
-                                    </div>
-                                {% else %}
-                                    <div style="background-color: red; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
-                                        <strong>{{ contrato.situacao }}</strong><br>
-                                    </div>
-                                {% endif %}
-                            </td>
-                            <td style="text-align: center; padding: 5px;">
-                                {% if contrato.status == 'Pendente' %}
-                                    <div style="background-color: #005eff; border-radius: 20px; color: white; margin-top: 5px;">
-                                        <strong>{{ contrato.status }}</strong>
-                                    </div>
-                                {% else %}
-                                    <div style="background-color: #3CB371; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
-                                        <strong>{{ contrato.status }}</strong><br>
-                                    </div>
-                                {% endif %}
-                            </td>
-                            <td style="align-items: center;" class="text-uppercase">{{ contrato.empresa.fantasia }}</td>
-                            <td style="align-items: center;">{{ contrato.created_at|date:"d/m/Y" }}</td>
-                            <td style="align-items: center;">{{ contrato.dt_inicio|date:"d/m/Y" }}</td>
-                            <td style="align-items: center;">{{ contrato.valor_mensalidade|moeda_br }}</td>
-                        </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="9" class="me-auto" style="text-align: center;">
-                            Nenhum contrato encontrada.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
         </div>
-        <div class="card">
-            <div class="card-body" style="max-height: 50px;">
-                <strong>Total de Contratos: {{ contratos|length }}</strong>
-                <a id="add-link" href="{% url 'add-contrato' %}" style="margin-left: 1%; margin-right: 1%; float: right;" class="btn-permissao" data-permissao="contratos.add_contrato" data-msg-negado="Seu usuário não pode adicionar contratos!">
-                    <button type="button" class="btn btn-primary btn-sm" id="add-contrato"><i class="fas fa-plus"></i> Novo</button>
-                </a>
-            </div>
-            <div class="card-footer text-body-secondary">
-                <nav aria-label="Page navigation example" style="padding-bottom: 1px;">
-                    <ul class="pagination justify-content-center">
-                        {% if contratos.number > 1 and contratos.number > 3 %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="First">
-                                    <span aria-hidden="true" style="color: #0f1d2b;">1</span>
-                                </a>
-                            </li>
-                        {% endif %}
-                        {% if contratos.number > 4 %}
-                            <li class="page-item disabled">
-                                <a class="page-link">...</a>
-                            </li>
-                        {% endif %}
-                        {% for num in contratos.paginator.page_range %}
-                            {% if num >= contratos.number|add:'-2' and num <= contratos.number|add:'2' %}
-                                {% if contratos.number == num %}
-                                    <li class="page-item active" aria-current="page">
-                                        <span class="page-link" style="background-color: #0f1d2b; color: white;">{{ num }}</span>
-                                    </li>
+        <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+            <div class="list-group">
+                <!-- Cabeçalho -->
+                <div class="list-group-item bg-light fw-bold cabecalho-lista">
+                    <div class="row align-items-center">
+                        <div class="col-md-1 text-center border-end">Ações</div>
+                        <div class="col-md-1 text-center border-end">Nº Contrato</div>
+                        <div class="col-md-1 text-center border-end">Situação</div>
+                        <div class="col-md-1 text-center border-end">Status</div>
+                        <div class="col-md-5 border-end">Empresa</div>
+                        <div class="col-md-1 border-end">Dt. Emissão</div>
+                        <div class="col-md-1 border-end">Dt. Início</div>
+                        <div class="col-md-1">Valor</div>
+                    </div>
+                </div>
+                <!-- Registros -->
+                {% for c in contratos %}
+                    <div class="list-group-item py-0 item-lista">
+                        <div class="row align-items-center linha-lista" style="font-size: 0.90rem;">
+                            <!-- Ações -->
+                            <div class="col-md-1 text-center mb-1 mb-md-0 acoes-col">
+                                <div class="btn-group btn-group-sm">
+                                    {% if c.situacao == 'Ativo' and c.status == 'Pendente' %}
+                                        <a href="{% url 'att-contrato' c.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-light btn-sm border">
+                                            <i class="fas fa-edit text-success"></i>
+                                        </a>
+                                        <button class="btn btn-light btn-sm border" data-bs-toggle="modal" data-bs-target="#modal-{{ c.id }}">
+                                            <i class="fas fa-trash text-danger"></i>
+                                        </button>
+                                    {% else %}
+                                        <button class="btn btn-light btn-sm border" data-bs-toggle="modal" data-bs-target="#mdCancCont-{{ c.id }}">
+                                            <i class="fa-solid fa-ban text-danger"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <!-- Código -->
+                            <div class="col-md-1 fw-bold text-center text-secondary codigo-col" data-label="Código:">#{{ c.id }}</div>
+                            <!-- Situação -->
+                            <div class="col-md-1 text-center codigo-col" data-label="Situação:">
+                                {% if c.situacao == 'Ativo' %}
+                                    <span class="badge bg-dark"><i class="fa-solid fa-house-circle-check"></i> {{ c.situacao }}</span>
+                                {% elif c.situacao == 'Suspenso' %}
+                                    <span class="badge bg-warning"><i class="fa-solid fa-triangle-exclamation"></i> {{ c.situacao }}</span>
                                 {% else %}
-                                    <li class="page-item">
-                                        <a class="page-link" style="color: #0f1d2b;" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
-                                    </li>
+                                    <span class="badge bg-danger"><i class="fa-solid fa-house-circle-xmark"></i> {{ c.situacao }}</span>
                                 {% endif %}
-                            {% endif %}
-                        {% endfor %}
-                        {% if contratos.number < contratos.paginator.num_pages|add:'-3' %}
-                            <li class="page-item disabled">
-                                <a class="page-link">...</a>
-                            </li>
+                            </div>
+                            <!-- Status -->
+                            <div class="col-md-1 text-center codigo-col" data-label="Status:">
+                                {% if c.situacao == 'Pendente' %}
+                                    <span class="badge bg-primary"><i class="fa-regular fa-clock"></i> {{ c.status }}</span>
+                                {% else %}
+                                    <span class="badge bg-success"><i class="fa-regular fa-circle-check"></i> {{ c.status }}</span>
+                                {% endif %}
+                            </div>
+                            <!-- Empresa -->
+                            <div class="col-md-5 fw-bold descricao-col" data-label="Empresa:">{{ c.empresa.fantasia }}</div>
+                            <!-- Dt. Emissão -->
+                            <div class="col-md-1 fw-bold codigo-col" data-label="Fantasia:">{{ c.created_at|date:"d/m/Y" }}</div>
+                            <!-- Dt. Início -->
+                            <div class="col-md-1 fw-bold codigo-col" data-label="Dt. Início:">{{ c.dt_inicio|date:"d/m/Y" }}</div>
+                            <!-- Valor Mensalidade -->
+                            <div class="col-md-1 fw-bold codigo-col text-success" data-label="Valor Mensalidade:">{{ c.valor_mensalidade|moeda_br }}</div>
+                        </div>
+                    </div>
+                    <!-- Modal ÚNICO para cada contrato -->
+                    <div class="modal fade" id="modal-{{ c.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ c.id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title" id="modalLabel-{{ c.id }}">
+                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                    </h5>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Você confirma a EXCLUSÃO DO CONTRATO - <strong>{{ c.id }}</strong>?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post" action="{% url 'del-contrato' c.id %}" class="form-excluir">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-confirmar" id="confirmBtn" disabled>
+                                            <u>S</u>im <span class="contador">3</span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnRecusa">
+                                            <u>N</u>ão
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="mdCancCont-{{ c.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="mdCancCont-{{ c.id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title" id="mdCancCont-{{ c.id }}">
+                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                    </h5>
+                                </div>
+                                <div class="modal-body">
+                                    <p style="text-align: justify;">Atenção! Ao cancelar este contrato, as mensalidades em Aberto serão deletadas,
+                                    porém as mensalidades Baixadas não serão afetadas.<br><br> </p>
+                                    <p style="text-align: center;">Você deseja realmente CANCELAR O CONTRATO - <strong>{{ c.id }}</strong>?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post" action="{% url 'cancelar-contrato' c.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                            <u>S</u>im <span class="contador">3</span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                            <u>N</u>ão
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="list-group-item text-center py-3 text-muted">
+                        <i class="fas fa-folder-open fs-2 d-block mb-3 opacity-50"></i> Nenhum contrato encontrado.
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="card-footer bg-white border-top p-1">
+                <div class="row align-items-center">
+                    <div class="col-md-4 mt-1 text-center text-md-start">
+                        <ul class="list-group list-group-horizontal-sm">
+                            <li class="list-group-item">Total de Contratos: <span class="badge bg-secondary ms-1">{{ contratos|length }}</span></li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4 mt-1 d-flex justify-content-center">
+                        {% if contratos.paginator.num_pages > 1 %}
+                            <nav aria-label="Navegação de páginas">
+                                <ul class="pagination pagination-sm m-0 gap-1 border-0">
+                                    {% if contratos.number > 3 %}
+                                        <li class="page-item">
+                                            <a class="page-link rounded border-0 text-dark" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">1</a>
+                                        </li>
+                                    {% endif %}
+                                    {% if contratos.number > 4 %}
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    {% endif %}
+                                    
+                                    {% for num in contratos.paginator.page_range %}
+                                        {% if num >= contratos.number|add:'-2' and num <= contratos.number|add:'2' %}
+                                            {% if contratos.number == num %}
+                                                <li class="page-item active" aria-current="page">
+                                                    <span class="page-link rounded border-0 bg-dark text-white fw-bold">{{ num }}</span>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item">
+                                                    <a class="page-link rounded border-0 text-dark" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                                                </li>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if contratos.number < contratos.paginator.num_pages|add:'-3' %}
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    {% endif %}
+                                    {% if contratos.number < contratos.paginator.num_pages and contratos.number < contratos.paginator.num_pages|add:'-2' %}
+                                        <li class="page-item">
+                                            <a class="page-link rounded border-0 text-dark" href="?page={{ contratos.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ contratos.paginator.num_pages }}</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
                         {% endif %}
-                        {% if contratos.number < contratos.paginator.num_pages and contratos.number < contratos.paginator.num_pages|add:'-2' %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ contratos.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                                    <span aria-hidden="true" style="color: #0f1d2b;">{{ contratos.paginator.num_pages }}</span>
-                                </a>
-                            </li>
-                        {% endif %}
-                    </ul>
-                </nav>
+                    </div>
+                    <div class="col-md-4 mt-1 text-center text-md-end">
+                        <a id="add-link" href="{% url 'add-contrato' %}">
+                            <button type="button" class="btn btn-primary btn-sm px-3 shadow-sm fw-semibold" id="add-contrato">
+                                <i class="fas fa-plus me-1"></i> Novo
+                            </button>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

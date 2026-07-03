@@ -921,7 +921,7 @@ $(document).ready(function() {
         },
         error: {
             cor: "linear-gradient(to right, #ff416c, #ff4b2b)",
-            icone: "<i class='fa-solid fa-circle-xmark'></i>"
+            icone: "<i class='fa-solid fa-circle-xmark text-white'></i>"
         },
         warning: {
             cor: "linear-gradient(to right, #ff9f00, #ff6f00)",
@@ -1984,9 +1984,9 @@ $(document).ready(function() {
         }
         if (trEdit) {
             let idx = trEdit.data("id");
-            trEdit.find("td:eq(0)").html(`${tabNome}<input type="hidden" name="tab_preco[${idx}][tabela]" value="${tabId}">`);
-            trEdit.find("td:eq(1)").html(`${formatBR(mrg)}<input type="hidden" name="tab_preco[${idx}][margem]" value="${mrg}">`);
-            trEdit.find("td:eq(2)").html(`${formatBR(vl_p)}<input type="hidden" name="tab_preco[${idx}][vl_prod]" value="${vl_p}">`);
+            trEdit.find(".tb-div").html(`${tabNome}<input type="hidden" name="tab_preco[${idx}][tabela]" value="${tabId}">`);
+            trEdit.find(".mg-div").html(`${formatBR(mrg)}<input type="hidden" name="tab_preco[${idx}][margem]" value="${mrg}">`);
+            trEdit.find(".vl-div").html(`${formatBR(vl_p)}<input type="hidden" name="tab_preco[${idx}][vl_prod]" value="${vl_p}">`);
             trEdit = null;
             $("#id_tabela").prop("disabled", false);
             $('#add-tab').css('background-color', '').html('<i class="fa-solid fa-plus"></i> Incluir');
@@ -2003,25 +2003,46 @@ $(document).ready(function() {
             if (tabelaJaExiste) {toast(`Tabela "${tabNome}" já está inclusa na listagem!`, "warning");}
             else {
                 $("#tab-prec tbody").append(`
-                    <tr data-id="${idx}">
-                        <td>${tabNome}<input type="hidden" name="tab_preco[${idx}][tabela]" value="${tabId}"></td>
-                        <td>${formatBR(mrg)}<input type="hidden" name="tab_preco[${idx}][margem]" value="${mrg}"></td>
-                        <td>${formatBR(vl_p)}<input type="hidden" name="tab_preco[${idx}][vl_prod]" value="${vl_p}"></td>
-                        <td>
-                            <button type="button" class="editando btn btn-success btn-sm mt-1 mb-1"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <button type="button" class="remover btn btn-danger btn-sm mt-1 mb-1"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    </tr>
+                    <div class="list-group-item py-1 item-lista" data-id="${idx}">
+                        <div class="row align-items-center linha-lista">
+                            <!-- Tabela -->
+                            <div class="col-md-7 fw-bold descricao-col tb-div" data-label="Tabela:">
+                                ${tabNome}
+                                <input type="hidden" name="tab_preco[${idx}][tabela]" value="${tabId}">
+                            </div>
+                            <!-- Margem -->
+                            <div class="col-md-2 fw-semibold codigo-col mg-div" data-label="Margem:">
+                                ${formatBR(mrg)}
+                                <input type="hidden" name="tab_preco[${idx}][margem]" value="${mrg}">
+                            </div>  
+                            <!-- Valor -->
+                            <div class="col-md-2 fw-semibold codigo-col vl-div" data-label="Valor:">
+                                ${formatBR(vl_p)}
+                                <input type="hidden" name="tab_preco[${idx}][vl_prod]" value="${vl_p}">
+                            </div>
+                            <!-- Ações -->
+                            <div class="col-md-1 text-center mb-1 mb-md-0 acoes-col">
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="editando btn btn-light btn-sm border">
+                                        <i class="fas fa-edit text-success"></i>
+                                    </button>
+                                    <button type="button" class="remover btn btn-light btn-sm border">
+                                        <i class="fas fa-trash text-danger"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 `);
             }
         }
         resetInputsTab();
     });
     // ======= REMOVER LINHA =======
-    $(document).on("click", ".remover", function () {$(this).closest("tr").remove();});
+    $(document).on("click", ".remover", function () {$(this).closest(".item-lista").remove();});
     // ======= EDITAR LINHA =======
     $(document).on("click", ".editando", function () {
-        trEdit = $(this).closest("tr");
+        trEdit = $(this).closest(".item-lista");
         const idx = trEdit.data("id");
         const tabId = trEdit.find(`input[name="tab_preco[${idx}][tabela]"]`).val();
         const mrg = trEdit.find(`input[name="tab_preco[${idx}][margem]"]`).val();
@@ -2029,7 +2050,7 @@ $(document).ready(function() {
         editing = true; // ativa flag
         const select = $("#id_tabela");
         if (select.find(`option[value='${tabId}']`).length === 0) {
-            const tabText = trEdit.find("td:eq(0)").text().trim();
+            const tabText = trEdit.find(".tb-div").text().trim();
             select.append(`<option value="${tabId}">${tabText}</option>`);
         }
         $("#id_margem").val(formatBR(mrg));

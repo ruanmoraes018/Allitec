@@ -3,11 +3,13 @@
 {% load custom_filters %}
 {% block title %}Lista - Mensalidades{% endblock %}
 {% block content %}
-    <div class="container-fluid bg-white">
-        <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Listagem de Mensalidades</li>
+    <div class="container-fluid py-3 min-vh-100">
+        <nav class="mt-5" aria-label="breadcrumb">
+            <ol class="breadcrumb p-2 m-2">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'inicio' %}" class="text-decoration-none text-secondary" id="item-naveg"><i class="fas fa-home me-1"></i> Principal</a>
+                </li>
+                <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">Listagem de Mensalidades</li>
             </ol>
         </nav>
         {% if messages %}
@@ -18,286 +20,308 @@
                 {% endfor %}
             ]'></div>
         {% endif %}
-        {% if not perm_add_mensalidade and not perm_change_mensalidade and not perm_delete_mensalidade %}
-            <div class="alert alert-warning">
-                Usuário não autorizado para realizar esta função.
-            </div>
-        {% endif %}
-        <form method="GET" id="search-form" style="margin-left: 1%; margin-right: 1%;">
-            <div class="row g-3 align-items-end">
-                <div class="col-md-1 search-div flex-md-fill">
-                    <label class="form-label">Empresa:</label>
-                    <select class="form-control" id="emp" name="emp">
-                        <option value="">Escolha uma opção</option>
-                        {% if empresa_selecionada %}
-                            <option value="{{ empresa_selecionada.id }}" selected>
-                                {{ empresa_selecionada.fantasia }}
-                            </option>
-                        {% endif %}
-                        {% for empresa in empresas %}
-                            <option value="{{ empresa.id }}" {% if request.GET.emp == empresa.id|stringformat:"s" %}selected{% endif %}>
-                                {{ empresa.fantasia }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Situação:</label>
-                    <div class="d-flex">
-                        <select class="form-control" name="sit" id="situacao">
-                            <option value="Aberta" {% if request.GET.sit == 'Aberta' %}selected{% endif %}>Aberta</option>
-                            <option value="Baixada" {% if request.GET.sit == 'Baixada' %}selected{% endif %}>Baixada</option>
-                            <option value="todas" {% if request.GET.sit == 'todas' %}selected{% endif %}>Todas</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Período:</label>
-                    <select class="form-control" id="usar-data" name="p_dt">
-                        <option value="Sim" {% if p_dt == 'Sim' %}selected{% endif %}>Sim</option>
-                        <option value="Nao" {% if p_dt == 'Nao' %}selected{% endif %}>Não</option>
-                    </select>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Listar por:</label>
-                    <div class="d-flex">
-                        <select class="form-control" name="list_p" id="list_p">
-                            <option value="dt_v" {% if list_p == 'dt_v' %}selected{% endif %}>Dt. Vencimento</option>
-                            <option value="dt_e" {% if list_p == 'dt_e' %}selected{% endif %}>Dt. Emissão</option>
-                            <option value="dt_p" {% if list_p == 'dt_p' %}selected{% endif %}>Dt. Pagamento</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-3 search-div">
-                    <div class="row">
-                        <div class="col">
-                            <label class="form-label">De:</label>
-                            <input class="form-control" type="text" name="dt_ini" id="data_inicio1" value="{{ dt_ini }}">
+        <div class="card border-0 shadow-sm rounded-3 mb-2">
+            <div class="card-body p-0 mb-2">
+                <form method="GET" id="search-form">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-xl-1 col-md-2 flex-md-fill">
+                            <label for="emp" class="form-label small text-secondary fw-semibold">Empresa</label>
+                            <select class="form-select form-select-sm" id="emp" name="emp">
+                                <option value="">Escolha uma opção</option>
+                                {% for e in empresas %}
+                                    <option value="{{ c.id }}" {% if request.GET.emp == c.id|stringformat:"s" %}selected{% endif %}>{{ e }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                        <div class="col">
-                            <label class="form-label">Até:</label>
-                            <input class="form-control" type="text" name="dt_fim" id="data_fim1" value="{{ dt_fim }}">
+                        <div class="col-xl-1 col-md-2">
+                            <label for="situacao" class="form-label small text-secondary fw-semibold">Situação</label>
+                            <select class="form-select" name="sit" id="situacao">
+                                <option value="Aberta" {% if request.GET.sit == 'Aberta' %}selected{% endif %}>Aberta</option>
+                                <option value="Baixada" {% if request.GET.sit == 'Baixada' %}selected{% endif %}>Baixada</option>
+                                <option value="todas" {% if request.GET.sit == 'todas' %}selected{% endif %}>Todas</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label for="list_p" class="form-label small text-secondary fw-semibold">Data de</label>
+                            <select class="form-select" name="list_p" id="list_p">
+                                <option value="dt_v" {% if list_p == 'dt_v' %}selected{% endif %}>Dt. Vencimento</option>
+                                <option value="dt_e" {% if list_p == 'dt_e' %}selected{% endif %}>Dt. Emissão</option>
+                                <option value="dt_p" {% if list_p == 'dt_p' %}selected{% endif %}>Dt. Pagamento</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-4">
+                            <label for="usar-data" class="form-label small text-secondary fw-semibold">Filtrar Data</label>
+                            <select class="form-select" id="usar-data" name="p_dt">
+                                <option value="Sim" {% if p_dt == 'Sim' %}selected{% endif %}>Sim</option>
+                                <option value="Nao" {% if p_dt == 'Nao' %}selected{% endif %}>Não</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-3 col-md-8">
+                            <label class="form-label small text-secondary fw-semibold">Período</label>
+                            <div class="input-group">
+                                <input class="form-control" type="text" name="dt_ini" id="data_inicio1" placeholder="De" value="{{ request.GET.dt_ini }}">
+                                <span class="input-group-text bg-white text-secondary"><i class="fas fa-calendar-alt"></i></span>
+                                <input class="form-control" type="text" name="dt_fim" id="data_fim1" placeholder="Até" value="{{ request.GET.dt_fim }}">
+                            </div>
+                        </div>
+                        <div class="col-xl-1 col-md-4">
+                            <label class="form-label small text-secondary fw-semibold">Exibir</label>
+                            <select class="form-select" id="qtd_reg" name="reg">
+                                <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
+                                <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
+                                <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
+                                <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
+                                <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
+                                <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label for="ordem" class="form-label small text-secondary fw-semibold">Ordem</label>
+                            <select class="form-control" name="ordem" id="ordem">
+                                <option value="empresa__fantasia" {% if request.GET.ordem == 'empresa__fantasia' %}selected{% endif %}>Empresa</option>
+                                <option value="dt_venc" {% if request.GET.ordem == 'dt_venc' %}selected{% endif %}>Dt. Venc.</option>
+                                <option value="created_at" {% if request.GET.ordem == 'created_at' %}selected{% endif %}>Dt. Emissão</option>
+                                <option value="dt_pag" {% if request.GET.ordem == 'dt_pag' %}selected{% endif %}>Dt. Pgto.</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-auto col-md-12 d-grid">
+                            <button class="btn btn-dark px-4" title="Consultar" type="submit" id="data-btn">
+                                <i class="fa-solid fa-magnifying-glass"></i> Filtrar
+                            </button>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Ordem:</label>
-                    <div class="d-flex">
-                        <select class="form-control" name="ordem" id="ordem">
-                            <option value="empresa__fantasia" {% if request.GET.ordem == 'empresa__fantasia' %}selected{% endif %}>Empresa</option>
-                            <option value="dt_venc" {% if request.GET.ordem == 'dt_venc' %}selected{% endif %}>Dt. Venc.</option>
-                            <option value="created_at" {% if request.GET.ordem == 'created_at' %}selected{% endif %}>Dt. Emissão</option>
-                            <option value="dt_pag" {% if request.GET.ordem == 'dt_pag' %}selected{% endif %}>Dt. Pgto.</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-1 search-div">
-                    <label class="form-label">Reg.:</label>
-                    <select class="form-control" id="qtd_reg" name="reg">
-                        <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
-                        <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
-                        <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
-                        <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
-                        <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
-                        <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
-                    </select>
-                </div>
-                <div class="col search-div d-flex justify-content-start">
-                    <button class="btn btn-dark" title="Consultar mensalidades" type="submit" id="data-btn" data-bs-toggle="modal" data-bs-target="#loadingModal">🔎</button>
-                </div>
+                </form>
             </div>
-        </form>
-        <div class="table-container" style="margin-left: 1%; margin-right: 1%;">
-            <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
-                <thead thead class="table-dark">
-                    <tr>
-                        <th scope="col" style="text-align: center; width: 8%;">Opções</th>
-                        <th scope="col" style="text-align: justify; width: 8%;">Nr. Mensal.</th>
-                        <th scope="col" style="text-align: center; width: 7%;">Situação</th>
-                        <th scope="col" style="text-align: justify; width: 12%;">Empresa</th>
-                        <th scope="col" style="align-items: center; width: 8%;">Dt. Emissão</th>
-                        <th scope="col" style="align-items: center; width: 9%;">Dt. Vencimento</th>
-                        <th scope="col" style="align-items: center; width: 8%;">Vl. Título</th>
-                        <th scope="col" style="align-items: center; width: 7%;">Dias Atraso</th>
-                        <th scope="col" style="align-items: center; width: 7%;">Vl. Juros</th>
-                        <th scope="col" style="align-items: center; width: 7%;">Vl. Multa</th>
-                        <th scope="col" style="align-items: center; width: 8%;">Vl. Restante</th>
-                        <th scope="col" style="align-items: center; width: 9%;">Dt. Pagamento</th>
-                        <th scope="col" style="align-items: center; width: 8%;">Link Mens.</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for mensalidade in mensalidades %}
-                        <tr>
-
-                            <td style="width: 80px;">
-                                {% if mensalidade.situacao == 'Aberta' %}
-                                    <span>
-                                        <i class="fas fa-trash btn-permissao"
-                                           title="Deletar mensalidade"
-                                           data-bs-target="#modal-{{ mensalidade.id }}"
-                                           data-permissao="mensalidades.delete_mensalidade"
-                                           data-msg-negado="Seu usuário não pode deletar mensalidades!">
-                                        </i>
-                                    </span>
-                                    <!-- Modal ÚNICO para cada mensalidade -->
-                                    <div class="modal fade" id="modal-{{ mensalidade.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ mensalidade.id }}" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered">
-                                            <div class="modal-content">
-                                                <div class="modal-header titulo-modal">
-                                                    <h1 class="modal-title fs-5" id="modalLabel-{{ mensalidade.id }}">
-                                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
-                                                    </h1>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <p>Você confirma a EXCLUSÃO DA MENSALIDADE <strong>{{ mensalidade.num_mens }}</strong>?</p>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <form method="post" action="{% url 'del-mensalidade' mensalidade.id %}" class="form-excluir">
-                                                        {% csrf_token %}
-                                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled>
-                                                            <u>S</u>im <span class="contador">3</span>
-                                                        </button>
-
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                                            <u>N</u>ão
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <a href="{% url 'att-mensalidade' mensalidade.id %}?next={{ request.get_full_path|urlencode }}" class="btn-permissao"
-                                      data-permissao="mensalidades.change_mensalidade"
-                                      data-msg-negado="Seu usuário não pode editar mensalidades!"><span><i class="fas fa-edit" title="Editar"></i></span></a>
-                                    <span><i class="fa-solid fa-circle-down" style="float: right; font-size: 20px; margin: 5px; color: #2E8B57; cursor: pointer;" title="Baixar Mensalidade" data-bs-toggle="modal" data-bs-target="#mdBaixa-{{ mensalidade.id }}"></i></span>
-                                    <div class="modal fade" id="mdBaixa-{{ mensalidade.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="mdBaixaLabel-{{ mensalidade.id }}" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered">
-                                            <div class="modal-content">
-                                                <div class="modal-header titulo-modal">
-                                                    <h5 class="modal-title" id="mdBaixaLabel-{{ mensalidade.id }}">
-                                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
-                                                    </h5>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <p>Você confirma a BAIXA DA MENSALIDADE <strong>{{ mensalidade.num_mens }}</strong>?</p>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <form method="post" action="{% url 'baixar-mensalidade' mensalidade.id %}">
-                                                        {% csrf_token %}
-                                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled>
-                                                            <u>S</u>im <span class="contador">3</span>
-                                                        </button>
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                                            <u>N</u>ão
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                {% else %}
-                                    <a href="{% url 'estornar-mensalidade' mensalidade.id %}?next={{ request.get_full_path|urlencode }}"><i class="fa-solid fa-arrow-rotate-left" style="float: right; font-size: 20px; margin: 5px; color: #5F9EA0; cursor: pointer;" title="Estornar Mensalidade"></i></a>
-                                {% endif %}
-                            </td>
-                            <td style="align-items: center;">{{ mensalidade.num_mens }}</td>
-                            <td style="text-align: center; padding: 5px;">
-                                {% if mensalidade.situacao == 'Aberta' %}
-                                    <div style="background-color: #2c2c2c; border-radius: 20px; color: white; margin-top: 5px;">
-                                        <strong>{{ mensalidade.situacao }}</strong>
-                                    </div>
-                                {% else %}
-                                    <div style="background-color: #66CDAA; border-radius: 20px; color: white; padding-left: 10px; padding-right: 10px; margin-top: 5px;">
-                                        <strong>{{ mensalidade.situacao }}</strong><br>
-                                    </div>
-                                {% endif %}
-                            </td>
-                            <td style="align-items: center;" class="text-uppercase">{{ mensalidade.empresa.fantasia }}</td>
-                            <td style="align-items: center;">{{ mensalidade.created_at|date:"d/m/Y" }}</td>
-                            <td style="align-items: center;">{{ mensalidade.dt_venc|date:"d/m/Y" }}</td>
-                            <td style="align-items: center;">{{ mensalidade.vl_mens|moeda_br }}</td>
-                            <td style="text-align: center;">
-                                {% if mensalidade.dias_atraso > 0 %}
-                                    <span class="fw-bold text-danger">
-                                        {{ mensalidade.dias_atraso }}
-                                    </span>
-                                {% else %}
-                                    <span class="fw-bold text-secondary">
-                                        {{ mensalidade.dias_atraso }}
-                                    </span>
-                                {% endif %}
-                            </td>
-                            <td style="align-items: center;">{{ mensalidade.vl_juros|moeda_br }}</td>
-                            <td style="align-items: center;">{{ mensalidade.vl_multa|moeda_br }}</td>
-                            <td style="align-items: center;">{{ mensalidade.valor_total|moeda_br }}</td>
-                            <td style="align-items: center;">{% if mensalidade.situacao == 'Aberta' %}{% else %}{{ mensalidade.dt_pag|date:"d/m/Y" }}{% endif %}</td>
-                            <td style="align-items: center;">
-                                {% if mensalidade.tp_mens == 'Boleto' %}
-                                    <strong>{{ mensalidade.codigo_boleto }}</strong>
-                                {% else %}
-                                    <a href="{% url 'portal_pagamentos' %}" target="_blank"><button class="btn btn-sm text-white" style="background-color: #008B8B;"><i class="fa-solid fa-qrcode" style="font-size: 20px; cursor: pointer;"></i></button></a>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="13" class="me-auto" style="text-align: center;">
-                            Nenhum mensalidade encontrada.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
         </div>
-        <div class="card">
-            <div class="card-body" style="max-height: 50px;">
-                <strong>Total de Mensalidades: {{ mensalidades|length }}</strong>
-                <a id="add-link" href="{% url 'add-mensalidade' %}" style="margin-left: 1%; margin-right: 1%; float: right;" class="btn-permissao" data-permissao="mensalidades.add_mensalidade" data-msg-negado="Seu usuário não pode adicionar mensalidades!">
-                    <button type="button" class="btn btn-primary btn-sm" id="add-mensalidade"><i class="fas fa-plus"></i> Novo</button>
-                </a>
-            </div>
-            <div class="card-footer text-body-secondary">
-                <nav aria-label="Page navigation example" style="padding-bottom: 1px;">
-                    <ul class="pagination justify-content-center">
-                        {% if mensalidades.number > 1 and mensalidades.number > 3 %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="First">
-                                    <span aria-hidden="true" style="color: #0f1d2b;">1</span>
-                                </a>
-                            </li>
-                        {% endif %}
-                        {% if mensalidades.number > 4 %}
-                            <li class="page-item disabled">
-                                <a class="page-link">...</a>
-                            </li>
-                        {% endif %}
-                        {% for num in mensalidades.paginator.page_range %}
-                            {% if num >= mensalidades.number|add:'-2' and num <= mensalidades.number|add:'2' %}
-                                {% if mensalidades.number == num %}
-                                    <li class="page-item active" aria-current="page">
-                                        <span class="page-link" style="background-color: #0f1d2b; color: white;">{{ num }}</span>
-                                    </li>
+        <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+            <div class="list-group">
+                <!-- Cabeçalho -->
+                <div class="list-group-item bg-light fw-bold cabecalho-lista">
+                    <div class="row align-items-center">
+                        <div class="col-md-1 text-center border-end">Ações</div>
+                        <div class="col-md-1 text-center border-end">Nº Mensal.</div>
+                        <div class="col-md-1 text-center border-end">Situação</div>
+                        <div class="col-md-2 border-end">Empresa</div>
+                        <div class="col-md-1 text-center border-end" style="font-size: 0.9rem;"><div class="border-bottom">Dt. Emissão</div>Dt. Vencimento</div>
+                        <div class="col-md-1 border-end">Vl. Título</div>
+                        <div class="col-md-1 border-end">Dias Atraso</div>
+                        <div class="col-md-1 text-center border-end"><div class="border-bottom">Vl. Juros</div>Vl. Multa</div>
+                        <div class="col-md-1 border-end">Vl. Restante</div>
+                        <div class="col-md-1 border-end" style="font-size: 0.9rem;">Dt. Pagamento</div>
+                        <div class="col-md-1">Link</div>
+                    </div>
+                </div>
+                <!-- Registros -->
+                {% for m in mensalidades %}
+                    <div class="list-group-item py-0 item-lista">
+                        <div class="row align-items-center linha-lista" style="font-size: 0.90rem;">
+                            <!-- Ações -->
+                            <div class="col-md-1 text-center mb-1 mb-md-0 acoes-col">
+                                <div class="btn-group btn-group-sm">
+                                    {% if m.situacao == 'Aberta' %}
+                                        <a href="{% url 'att-mensalidade' m.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-light btn-sm border">
+                                            <i class="fas fa-edit text-success"></i>
+                                        </a>
+                                        <button class="btn btn-light btn-sm border" data-bs-toggle="modal" data-bs-target="#modal-{{ m.id }}">
+                                            <i class="fas fa-trash text-danger"></i>
+                                        </button>
+                                        <button class="btn btn-light btn-sm border" data-bs-toggle="modal" data-bs-target="#mdBaixa-{{ m.id }}">
+                                            <i class="fa-solid fa-circle-down"></i>
+                                        </button>
+                                    {% else %}
+                                        <button class="btn btn-light btn-sm border" data-bs-toggle="modal" data-bs-target="#mdEstMens-{{ m.id }}">
+                                            <i class="fa-solid fa-arrow-rotate-left text-info"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <!-- Nº Mensalidade -->
+                            <div class="col-md-1 fw-bold text-center text-secondary codigo-col" data-label="Nº Mensalidade:">#{{ m.num_mens }}</div>
+                            <!-- Situação -->
+                            <div class="col-md-1 text-center codigo-col" data-label="Situação:">
+                                {% if m.situacao == 'Aberta' %}
+                                    <span class="badge bg-primary"><i class="fa-regular fa-clock"></i> {{ m.situacao }}</span>
                                 {% else %}
-                                    <li class="page-item">
-                                        <a class="page-link" style="color: #0f1d2b;" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
-                                    </li>
+                                    <span class="badge bg-success"><i class="fa-regular fa-circle-check"></i> {{ m.situacao }}</span>
                                 {% endif %}
-                            {% endif %}
-                        {% endfor %}
-                        {% if mensalidades.number < mensalidades.paginator.num_pages|add:'-3' %}
-                            <li class="page-item disabled">
-                                <a class="page-link">...</a>
-                            </li>
+                            </div>
+                            <!-- Empresa -->
+                            <div class="col-md-2 fw-bold descricao-col" data-label="Empresa:">{{ m.empresa.fantasia }}</div>
+                            <!-- Dt. Emissão/Dt. Vencimento -->
+                            <div class="col-md-1 text-center fw-bold" style="font-size: 0.9rem;">
+                                <div class="border-bottom descricao-col" data-label="Dt. Emissão:">
+                                    <small class="f-flex d-md-none">Dt. Emissão:</small> {{ m.created_at|date:"d/m/Y" }}
+                                </div>
+                                <div class="border-bottom descricao-col" data-label="Dt. Vencimento:">
+                                    <small class="f-flex d-md-none">Dt. Vencimento:</small> {{ m.dt_venc|date:"d/m/Y" }}
+                                </div>
+                            </div>
+                            <!-- Dias Atraso -->
+                            <div class="col-md-1 fw-bold codigo-col" style="font-size: 0.875rem;" data-label="Dias Atraso:">
+                                {% if m.dias_atraso > 0 %}
+                                    <span class="fw-semibold text-danger">{{ m.dias_atraso }}</span>
+                                {% else %}
+                                    <span class="fw-semibold text-secondary">{{ m.dias_atraso }}</span>
+                                {% endif %}
+                            </div>
+                            <!-- Vl. Juros/Multa -->
+                            <div class="col-md-1 text-center fw-bold">
+                                <div class="border-bottom descricao-col" data-label="Vl. Juros:">
+                                    <small class="f-flex d-md-none">Vl. Juros:</small> {{ m.vl_juros|moeda_br }}
+                                </div>
+                                <div class="border-bottom descricao-col" data-label="Vl. Multa:">
+                                    <small class="f-flex d-md-none">Vl. Multa:</small> {{ m.vl_multa|moeda_br }}
+                                </div>
+                            </div>
+                            <!-- Valor Restante -->
+                            <div class="col-md-1 fw-semibold codigo-col" data-label="Vl. Restante:">{{ m.valor_total|moeda_br }}</div>
+                            <!-- Dt. Pagamento -->
+                            <div class="col-md-1 text-center fw-semibold codigo-col" data-label="{% if m.situacao == 'Baixada' %}Dt. Pagamento:{% endif %}">{% if m.situacao == 'Baixada' %}{{ m.dt_pag|date:"d/m/Y" }}{% else %} - {% endif %}</div>
+                            <!-- Link -->
+                            <div class="col-md-1 fw-semibold codigo-col" data-label="Link:">
+                                {% if m.tp_mens == 'Pix' %}
+                                    <a href="{% url 'portal_pagamentos' %}" target="_blank" class="btn btn-light btn-sm border">
+                                        <i class="fa-solid fa-qrcode text-info"></i>
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Modal ÚNICO para cada empresa -->
+                    <div class="modal fade" id="modal-{{ m.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ m.id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title" id="modalLabel-{{ m.id }}">
+                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                    </h5>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Você confirma a EXCLUSÃO DA MENSALIDADE - <strong>{{ m.id }}</strong>?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post" action="{% url 'del-empresa' m.id %}" class="form-excluir">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-confirmar" id="confirmBtn" disabled>
+                                            <u>S</u>im <span class="contador">3</span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnRecusa">
+                                            <u>N</u>ão
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="mdBaixa-{{ m.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="mdBaixaLabel-{{ m.id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title" id="mdBaixaLabel-{{ m.id }}">
+                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                    </h5>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Você confirma a BAIXA DA MENSALIDADE - <strong>{{ m.num_mens }}</strong>?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post" action="{% url 'baixar-mensalidade' m.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                            <u>S</u>im <span class="contador">3</span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                            <u>N</u>ão
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="mdEstMens-{{ m.id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="mdEstMens-{{ m.id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title" id="mdEstMens-{{ m.id }}">
+                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                    </h5>
+                                </div>
+                                <div class="modal-body">
+                                    <p style="text-align: center;">Você confirma o ESTORNO DA MENSALIDADE - <strong>{{ m.id }}</strong>?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post" action="{% url 'estornar-mensalidade' m.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                            <u>S</u>im <span class="contador">3</span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                            <u>N</u>ão
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="list-group-item text-center py-3 text-muted">
+                        <i class="fas fa-folder-open fs-2 d-block mb-3 opacity-50"></i> Nenhuma mensalidade encontrada.
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="card-footer bg-white border-top p-1">
+                <div class="row align-items-center">
+                    <div class="col-md-4 mt-1 text-center text-md-start">
+                        <ul class="list-group list-group-horizontal-sm">
+                            <li class="list-group-item">Total de Mensalidades: <span class="badge bg-secondary ms-1">{{ mensalidades|length }}</span></li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4 mt-1 d-flex justify-content-center">
+                        {% if mensalidades.paginator.num_pages > 1 %}
+                            <nav aria-label="Navegação de páginas">
+                                <ul class="pagination pagination-sm m-0 gap-1 border-0">
+                                    {% if mensalidades.number > 3 %}
+                                        <li class="page-item">
+                                            <a class="page-link rounded border-0 text-dark" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">1</a>
+                                        </li>
+                                    {% endif %}
+                                    {% if mensalidades.number > 4 %}
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    {% endif %}
+                                    
+                                    {% for num in mensalidades.paginator.page_range %}
+                                        {% if num >= mensalidades.number|add:'-2' and num <= mensalidades.number|add:'2' %}
+                                            {% if mensalidades.number == num %}
+                                                <li class="page-item active" aria-current="page">
+                                                    <span class="page-link rounded border-0 bg-dark text-white fw-bold">{{ num }}</span>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item">
+                                                    <a class="page-link rounded border-0 text-dark" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                                                </li>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if mensalidades.number < mensalidades.paginator.num_pages|add:'-3' %}
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    {% endif %}
+                                    {% if mensalidades.number < mensalidades.paginator.num_pages and mensalidades.number < mensalidades.paginator.num_pages|add:'-2' %}
+                                        <li class="page-item">
+                                            <a class="page-link rounded border-0 text-dark" href="?page={{ mensalidades.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ mensalidades.paginator.num_pages }}</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
                         {% endif %}
-                        {% if mensalidades.number < mensalidades.paginator.num_pages and mensalidades.number < mensalidades.paginator.num_pages|add:'-2' %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ mensalidades.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                                    <span aria-hidden="true" style="color: #0f1d2b;">{{ mensalidades.paginator.num_pages }}</span>
-                                </a>
-                            </li>
-                        {% endif %}
-                    </ul>
-                </nav>
+                    </div>
+                    <div class="col-md-4 mt-1 text-center text-md-end">
+                        <a id="add-link" href="{% url 'add-mensalidade' %}">
+                            <button type="button" class="btn btn-primary btn-sm px-3 shadow-sm fw-semibold" id="add-empresa">
+                                <i class="fas fa-plus me-1"></i> Novo
+                            </button>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

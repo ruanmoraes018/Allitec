@@ -141,45 +141,59 @@
                                                         <i class="fa-solid fa-plus"></i> Incluir
                                                     </button>
                                                 </div>
-                                                <div class="table-container">
-                                                    <table class="table table-sm table-bordered table-striped table-hover table-responsive-md table-rounded" id="tab-prec">
-                                                        <thead class="table-dark">
-                                                            <tr>
-                                                                <th>Tabela</th>
-                                                                <th>Margem (%)</th>
-                                                                <th>Valor</th>
-                                                                <th style="width: 80px;">Ações</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {% if prod_tabelas %}
-                                                                {% for item in prod_tabelas %}
-                                                                    <tr data-id="{{ forloop.counter0 }}">
-                                                                        <td>
+                                                <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+                                                    <div class="list-group">
+                                                        <!-- Cabeçalho -->
+                                                        <div class="list-group-item bg-light fw-bold cabecalho-lista">
+                                                            <div class="row align-items-center">
+                                                                <div class="col-md-7 border-end">Tabela</div>
+                                                                <div class="col-md-2 border-end">Margem (%)</div>
+                                                                <div class="col-md-2 border-end">Valor</div>
+                                                                <div class="col-md-1">Ações</div>
+                                                            </div>
+                                                        </div>
+                                                        <!-- Registros -->
+                                                        {% if prod_tabelas %}
+                                                            {% for item in prod_tabelas %}
+                                                                <div class="list-group-item py-1 item-lista" data-id="{{ forloop.counter0 }}">
+                                                                    <div class="row align-items-center linha-lista">
+                                                                        <!-- Tabela -->
+                                                                        <div class="col-md-7 fw-bold descricao-col tb-div" data-label="Tabela:">
                                                                             {{ item.tabela.descricao }}
                                                                             <input type="hidden" name="tab_preco[{{ forloop.counter0 }}][tabela]" value="{{ item.tabela.codigo }}">
-                                                                        </td>
-                                                                        <td>
+                                                                        </div>
+                                                                        <!-- Margem -->
+                                                                        <div class="col-md-2 fw-semibold codigo-col mg-div" data-label="Margem:">
                                                                             {{ item.margem|floatformat:2 }}
                                                                             <input type="hidden" name="tab_preco[{{ forloop.counter0 }}][margem]" value="{{ item.margem|floatformat:2 }}">
-                                                                        </td>
-                                                                        <td>
+                                                                        </div>  
+                                                                        <!-- Valor -->
+                                                                        <div class="col-md-2 fw-semibold codigo-col vl-div" data-label="Valor:">
                                                                             {{ item.vl_prod|floatformat:2 }}
                                                                             <input type="hidden" name="tab_preco[{{ forloop.counter0 }}][vl_prod]" value="{{ item.vl_prod|floatformat:2 }}">
-                                                                        </td>
-                                                                        <td>
-                                                                            <button type="button" class="editando btn btn-success btn-sm mt-1 mb-1"><i class="fa-solid fa-pen-to-square"></i></button>
-                                                                            <button type="button" class="remover btn btn-danger btn-sm mt-1 mb-1"><i class="fa-solid fa-trash"></i></button>
-                                                                        </td>
-                                                                    </tr>
-                                                                {% endfor %}
-                                                            {% else %}
-                                                                <tr class="vazio">
-                                                                    <td colspan="4" class="text-center">Nenhuma tabela de preço inserida.</td>
-                                                                </tr>
-                                                            {% endif %}
-                                                        </tbody>
-                                                    </table>
+                                                                        </div>
+                                                                        <!-- Ações -->
+                                                                        <div class="col-md-1 text-center mb-1 mb-md-0 acoes-col">
+                                                                            <div class="btn-group btn-group-sm">
+                                                                                <button type="button" class="editando btn btn-light btn-sm border">
+                                                                                    <i class="fas fa-edit text-success"></i>
+                                                                                </button>
+                                                                                <button type="button" class="remover btn btn-light btn-sm border">
+                                                                                    <i class="fas fa-trash text-danger"></i>
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            {% empty %}
+                                                                <div class="list-group-item py-1 item-lista">
+                                                                    <div class="row align-items-center linha-lista">
+                                                                        <div class="col-md-12 fw-semibold descricao-col vazio">Nenhuma tabela inserida.</div>
+                                                                    </div>
+                                                                </div>
+                                                            {% endfor %}
+                                                        {% endif %}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

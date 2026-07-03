@@ -45,12 +45,7 @@ def lista_contratos(request):
     else:
         try: num_pagina = int(reg) if int(reg) > 0 else 1
         except ValueError: num_pagina = 10  # Valor padrão
-    empresa_selecionada = None
-    if emp:
-        empresa_selecionada = Empresa.objects.filter(id=emp).first()
-        if empresa_selecionada:
-            contratos = contratos.filter(empresa=empresa_selecionada)
-            if (sit and empresa_selecionada.situacao != sit): empresa_selecionada = None  # Empresa não será incluído na lista
+    if emp: contratos = contratos.filter(empresa__id=emp)
     empresas = Empresa.objects.all()
     paginator = Paginator(contratos, num_pagina)
     page = request.GET.get('page')
