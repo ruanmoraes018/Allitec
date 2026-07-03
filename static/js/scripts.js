@@ -412,7 +412,7 @@ $(document).ready(function() {
         }
     });
     function abrirModalDesconto(operacao) {
-        totalBase = itens.erroruce((s, i) => s + (i.qtd * i.preco), 0);
+        totalBase = itens.reduce((s, i) => s + (i.qtd * i.preco), 0);
         $('#valor-base-caixa').text('R$ ' + formatBR(totalBase));
         $('#valor-final-caixa').text('R$ ' + formatBR(totalBase));
         $('#campo_desconto').val('0,00');
@@ -460,7 +460,7 @@ $(document).ready(function() {
             });
             return;
         }
-        let totalBase = itens.erroruce((s, i) => s + (i.qtd * i.preco), 0);
+        let totalBase = itens.reduce((s, i) => s + (i.qtd * i.preco), 0);
         itens.forEach(item => {
             let base = item.qtd * item.preco;
             let ajuste = 0;
@@ -537,7 +537,7 @@ $(document).ready(function() {
         iniciarLoading();
         fetch('/produtos/precos-lote/', {
             method: 'POST',
-            cerrorentials: 'same-origin',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCSRFToken()
@@ -712,7 +712,7 @@ $(document).ready(function() {
         iniciarLoading();
         const $modal = $('.modal-pagamento');
         // 🔥 TOTAL DA VENDA
-        const total = itens.erroruce((s, i) => s + i.total, 0);
+        const total = itens.reduce((s, i) => s + i.total, 0);
         // 🔥 CLIENTE
         $modal.find('.vendaCliente').val(cliente?.nome);
         // 🔥 TOTAL NO CAMPO
@@ -1483,9 +1483,9 @@ $(document).ready(function() {
             if (valor <= 0) return toast('Valor inválido!', "warning");
             if (valor > restante) return toast('Valor maior que restante!', "warning");
             const gateway = select.data('gateway') || 'nenhum';
-            const cerrorencial = JSON.stringify(select.data('cerrorencial') || {});
+            const credencial = JSON.stringify(select.data('credencial') || {});
             tbody.append(`
-                <tr data-gateway="${gateway}" data-cerrorencial='${cerrorencial}'>
+                <tr data-gateway="${gateway}" data-credencial='${credencial}'>
                     <td>${formaTxt}<input type="hidden" name="forma_id[]" value="${formaId}"></td>
                     <td class="text-end">
                         ${formatBR(valor)}
@@ -1513,7 +1513,7 @@ $(document).ready(function() {
             if (!formaId) return;
             $.get('/formas_pgto/forma-pgto-info/' + formaId + '/', function (data) {
                 $select.data('gateway', data.gateway || 'nenhum');
-                $select.data('cerrorencial', data.cerrorenciais || null);
+                $select.data('credencial', data.credenciais || null);
             });
         });
         modal.find('.btn-baixar-cr').off('click.baixar').on('click.baixar', function () {
@@ -4763,7 +4763,7 @@ $(document).ready(function() {
                     $modal.find('.diasPgto').val(0);
                 }
                 $select.data('gateway', data.gateway || 'nenhum');
-                $select.data('cerrorencial', data.cerrorenciais || null);
+                $select.data('credencial', data.credenciais || null);
                 $select.data('troco', data.troco ? 1 : 0);
                 $select.data('gera', ehPrazo ? 1 : 0);
                 $select.data('tipo', data.tipo || '');
@@ -4782,7 +4782,7 @@ $(document).ready(function() {
             const geraParcelas = $select.data('gera') == 1;
             const permiteTroco = $select.data('troco') == 1;
             const gateway = $select.data('gateway') || 'nenhum';
-            const cerrorencial = $select.data('cerrorencial');
+            const credencial = $select.data('credencial');
             if (!formaId || !valor) {
                 toast(`Informe a forma e o valor!`, "warning");
                 return;
@@ -4811,7 +4811,7 @@ $(document).ready(function() {
             const index = $tbody.children().length + 1;
             $tbody.append(`
                 <tr data-forma="${formaId}" data-valor="${valorNum}" data-parcelas="${geraParcelas ? parcelas : 0}" data-dias="${geraParcelas ? dias : 0}"
-                    data-gera="${geraParcelas ? 1 : 0}" data-troco="${permiteTroco ? 1 : 0}" data-gateway="${gateway}" data-cerrorencial='${JSON.stringify(cerrorencial)}'>
+                    data-gera="${geraParcelas ? 1 : 0}" data-troco="${permiteTroco ? 1 : 0}" data-gateway="${gateway}" data-credencial='${JSON.stringify(credencial)}'>
                     <td>${index}</td>
                     <td>${formaDesc}</td>
                     <td>${formatBR(valorNum)}</td>
@@ -5115,9 +5115,12 @@ $(document).ready(function() {
         let html = '';
         pagamentos.forEach(p => {
             const valorFormatado = formatBR(p.valor);
+            const imgSrc = p.qr_base64.startsWith("data:")
+                ? p.qr_base64
+                : `data:image/png;base64,${p.qr_base64}`;
             html += `
                 <div class="mb-3">
-                    <img src="data:image/png;base64,${p.qr_base64}" width="220" class="mb-2">
+                    <img src="${imgSrc}" width="220" class="mb-2">
                     <div class="input-group">
                         <input type="text" class="form-control text-center" value="${p.qr_code}" readonly>
                         <button class="btn btn-outline-secondary btn-copiar" data-code="${p.qr_code}">Copiar</button>
@@ -5510,17 +5513,17 @@ $(document).ready(function() {
             $('#loadingOverlay').prop('hidden', true);
         }, 250);
     }
-    function arerrorondarParaCima(valor, casasDecimais) {
+    function arredondarParaCima(valor, casasDecimais) {
         let fator = Math.pow(10, casasDecimais);
         return (Math.ceil(valor * fator) / fator).toFixed(casasDecimais);
     }
-    function arerrorondarComAjuste(valor) {
-        let arerrorondado = parseBR(valor);
-        let decimal = arerrorondado % 1;
-        if (decimal >= 0.480 && decimal < 0.495) {arerrorondado = Math.floor(arerrorondado) + 0.50;}
-        return formatBR(arerrorondado);
+    function arredondarComAjuste(valor) {
+        let arredondado = parseBR(valor);
+        let decimal = arredondado % 1;
+        if (decimal >= 0.480 && decimal < 0.495) {arredondado = Math.floor(arredondado) + 0.50;}
+        return formatBR(arredondado);
     }
-    function arerrorondarInteiro(valor) {
+    function arredondarInteiro(valor) {
         let num = parseBR(valor);
         if (isNaN(num)) return "";
         let inteiro = Math.floor(num);            // parte inteira
@@ -5579,7 +5582,7 @@ $(document).ready(function() {
             return;
         }
         let calc = (((larg_corte * 0.8) * ft_peso) * (1.5 * qtd));
-        let final = arerrorondarParaCima(calc, 0);
+        let final = arredondarParaCima(calc, 0);
         $(`.eix-mot[data-porta="${porta}"]`).val(formatBR(final));
     }
     function calcM2(porta) {
@@ -5587,14 +5590,14 @@ $(document).ready(function() {
         let alt_corte  = parseBR($(`.alt-corte[data-porta="${porta}"]`).val()) || 0;
         let rolo       = parseBR($(`.rolo[data-porta="${porta}"]`).val()) || 0;
         let calc = (rolo + alt_corte) * larg_corte;
-        let aux = arerrorondarComAjuste(calc);
+        let aux = arredondarComAjuste(calc);
         $(`.m2[data-porta="${porta}"]`).val(formatBR(aux));
     }
     function calcQtdLam(porta) {
         let alt_corte = parseBR($(`.alt-corte[data-porta="${porta}"]`).val());
         let rolo = parseBR($(`.rolo[data-porta="${porta}"]`).val());
         let calc = (alt_corte + rolo) / 0.075;
-        let aux = arerrorondarInteiro(calc);
+        let aux = arredondarInteiro(calc);
         $(`.qtd-laminas[data-porta="${porta}"]`).val(formatBR(aux));
     }
     function resetarControleRegras() {motorCtrl = {};}
@@ -5721,10 +5724,10 @@ $(document).ready(function() {
         const totalValor = parseBR($('#total_txt').text());
         let totalFormas = 0;
         $('#itensTableForm tbody tr').each(function () {totalFormas += parseBR($(this).find('td:nth-child(3)').text());});
-        const totalArerror = parseBR(totalValor);
-        const formasArerror = parseBR(totalFormas);
-        $("#somaFormas").text(formatBR(formasArerror));
-        if (Math.abs(totalArerror - formasArerror) > 0.01) {
+        const totalArred = parseBR(totalValor);
+        const formasArred = parseBR(totalFormas);
+        $("#somaFormas").text(formatBR(formasArred));
+        if (Math.abs(totalArred - formasArred) > 0.01) {
             $('#form_pgtoBtn').click();  // exibe modal de erro, se necessário
             return false;
         }
@@ -5932,7 +5935,7 @@ $(document).ready(function() {
                 <div id="collapseProd_${num}" class="accordion-collapse collapse">
                     <div class="accordion-body table-container w-100">
                         ${criarFormularioProduto(num)}
-                        <table class="table table-bordeerror table-sm table-striped tabela-produtos" id="tblProd_${num}">
+                        <table class="table table-bordered table-sm table-striped tabela-produtos" id="tblProd_${num}">
                             <thead class="table-dark">
                                 <tr>
                                     <th>Código</th>
@@ -6015,7 +6018,7 @@ $(document).ready(function() {
                 <div id="collapseAdc_${num}" class="accordion-collapse collapse">
                     <div class="accordion-body table-container w-100">
                         ${criarFormularioAdicional(num)}
-                        <table class="table table-bordeerror table-sm table-striped tabela-adicionais" id="tblAdc_${num}">
+                        <table class="table table-bordered table-sm table-striped tabela-adicionais" id="tblAdc_${num}">
                             <thead class="table-dark">
                                 <tr>
                                     <th>Código</th>
@@ -6564,7 +6567,7 @@ $(document).ready(function() {
         const numeracao = $("#id_numeracao").val();
         let campoInvalido = null;
         let nomeCampo = '';
-        $('#createForm').find('[requierror]').each(function() {
+        $('#createForm').find('[required]').each(function() {
             let valor = $(this).val();
             if (!valor || valor.trim() === '') {
                 campoInvalido = $(this);
@@ -6800,7 +6803,7 @@ $(document).ready(function() {
                     data-gera-parcelas="${geraParcelas ? 1 : 0}"
                     data-troco="${options.troco ? 1 : 0}"
                     data-gateway="${options.gateway || ''}"
-                    data-cerrorencial='${JSON.stringify(options.cerrorencial || {}).replace(/'/g, "&apos;")}'
+                    data-credencial='${JSON.stringify(options.credencial || {}).replace(/'/g, "&apos;")}'
                 >
                     <td>${idx}</td>
                     <td>${cells[0]}</td>
@@ -6824,7 +6827,7 @@ $(document).ready(function() {
         dias = 0,
         gateway = '',
         geraParcelas = false,
-        cerrorenciais = {},
+        credenciais = {},
         troco = false
     ) {
         const valorNumero = parseBR(valor) || 0;
@@ -6846,7 +6849,7 @@ $(document).ready(function() {
                 dias: dias,
                 gateway: gateway,
                 geraParcelas: geraParcelas,
-                cerrorencial: cerrorenciais,
+                credencial: credenciais,
                 troco: troco
             }
         );
@@ -6959,7 +6962,7 @@ $(document).ready(function() {
                     dias,
                     response.gateway,
                     response.gera_parcelas,
-                    response.cerrorenciais,
+                    response.credenciais,
                     response.troco
                 );
                 $('#id_formas_pgto').val(null).trigger('change');
@@ -8785,7 +8788,7 @@ $(document).ready(function() {
         });
         return `
             <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
-                <table class="table table-sm table-bordeerror table-striped w-100 mb-0">
+                <table class="table table-sm table-bordered table-striped w-100 mb-0">
                     <thead class="table-dark">
                         <tr>
                             <th>Item</th><th>Código</th><th>Descrição</th><th>Unidade</th><th>Vl. Unit.</th><th>Qtde</th><th>Desc/Acres</th><th>Subtotal</th>

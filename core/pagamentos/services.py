@@ -4,6 +4,9 @@ import json
 import base64
 from django.conf import settings
 from datetime import datetime, timedelta
+import logging
+
+logger = logging.getLogger(__name__)
 
 class PagamentoService:
     def __init__(self, forma_ou_credenciais):
@@ -19,7 +22,6 @@ class PagamentoService:
             credenciais_brutas = forma_ou_credenciais
             # Tenta inferir o gateway por dentro do dicionário ou deixa em branco para o roteador tratar
             self.gateway = "infinitepay" # Força o fallback seguro para o contexto atual
-
         # 🛡️ Garante que self.creds seja sempre um dicionário limpo
         if isinstance(credenciais_brutas, str):
             try:
@@ -29,16 +31,17 @@ class PagamentoService:
         else:
             self.creds = credenciais_brutas or {}
 
-    def gerar_pagamento(self, valor, descricao, email=None, cpf=None, external_reference=None):
+    def gerar_pagamento(self, valor, descricao, nome=None, email=None, cpf=None, external_reference=None):
+        logger.error(f"Gateway: {self.gateway}")
         # Roteador flexível usando o gateway tratado no __init__
         gateway_alvo = self.gateway
-
         if gateway_alvo == "mercadopago":
             return self._mercadopago(valor, descricao, email, external_reference)
         elif gateway_alvo == "pagbank" or gateway_alvo == "pagseguro":
             return self._pagbank(
                 valor=valor,
                 descricao=descricao,
+                nome=nome,
                 email=email,
                 cpf=cpf,
                 external_reference=external_reference
@@ -46,7 +49,7 @@ class PagamentoService:
         elif gateway_alvo == "infinitepay":
             return self._infinitepay(valor, descricao, email, external_reference)
 
-        return None
+        raise Exception(f"Gateway '{self.gateway}' não implementado.")
     # 🔹 MERCADO PAGO
     def _mercadopago(self, valor, descricao, email, external_reference=None):
         token = self.creds.get("access_token")
@@ -66,9 +69,17 @@ class PagamentoService:
                 valor,
                 descricao,
                 email=None,
+                nome=None,
                 external_reference=None,
                 cpf=None
-        ):
+            ):
+        print("===== PAGBANK =====")
+        print("Credenciais:", self.creds)
+        print("Valor:", valor)
+        print("Nome:", nome)
+        print("Email:", email)
+        print("CPF:", cpf)
+        print("External:", external_reference)
         token = self.creds.get("token") or self.creds.get("access_token")
         ambiente = self.creds.get("ambiente", "homologacao")
         # Gera a data de expiração dinâmica (60 minutos) no padrão ISO do PagBank
@@ -81,7 +92,7 @@ class PagamentoService:
         else:
             url = "https://sandbox.api.pagseguro.com/orders"
         headers = {
-            "Authorization": f"Bearer {token}", "Content-Type": "application/json", "accept": "application/json"
+            "Authorization": f"Bearer {token}", "Content-Type": "application/json", "accept": "application/json", "User-Agent": "Allitec/1.0"
         }
         # Converte valor para centavos (ex: 15.90 -> 1590)
         valor_centavos = int(float(valor) * 100)
@@ -102,8 +113,7 @@ class PagamentoService:
         payload = {
             "reference_id": str(external_reference or "SEM_REF"),
             "customer": {
-                # Se não houver nome do cliente no escopo, usa uma string genérica aceitável
-                "name": "Cliente PagBank" if ambiente == "producao" else "Empresa Allitec Teste",
+                "name": nome or "Cliente PagBank",
                 "email": str(email) if email else "cliente@teste.com",
                 "tax_id": tax_id_limpo
             },
@@ -119,9 +129,20 @@ class PagamentoService:
             ]
         }
         try:
-            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            logger.error("=" * 50)
+            logger.error(f"Gateway: {self.gateway}")
+            logger.error(f"Payload: {json.dumps(payload, indent=2)}")
+            response = requests.post(url, json=payload, headers=headers, timeout=(15, 60))
             print(response.status_code)
-            print("RESPOSTA PAGBANK:", response.text)
+            print("======================")
+            print("URL:", url)
+            print("HEADERS:", headers)
+            logger.error(f"Payload: {payload}")
+            print("STATUS:", response.status_code)
+            logger.error(f"Status: {response.status_code}")
+            logger.error(f"Resposta: {response.text}")
+            logger.error("=" * 50)
+            print("======================")
             if response.status_code not in [200, 201]:
                 raise Exception(f"Erro PagBank ({response.status_code}): {response.text}")
             data = response.json()
@@ -129,13 +150,28 @@ class PagamentoService:
             copia_cola = qr_code_data.get("text")
             # Gera o Base64 localmente mantendo a retrocompatibilidade perfeita com o Mercado Pago
             qr_base64 = self._gerar_qr_base64_local(copia_cola)
+            print("DATA:", data)
+
+            qr_code_data = data.get("qr_codes", [{}])[0]
+
+            print("QR:", qr_code_data)
+
+            print("TEXT:", qr_code_data.get("text"))
             return {
-                "id": str(external_reference),         # ID da ordem (ORDE_xxxx) para salvar no banco
-                "qr_code": copia_cola,         # String Copia e Cola para o cliente copiar
-                "qr_base64": qr_base64         # Imagem em Base64 para a tag <img> do front
+                "id": data["reference_id"],
+                "gateway_id": data["id"],
+                "payload": data,
+                "qr_code": copia_cola,
+                "qr_base64": qr_base64
             }
-        except Exception as e:
-            raise Exception(f"Falha na comunicação com o PagBank: {str(e)}")
+        except requests.exceptions.Timeout:
+            raise Exception("Timeout ao conectar ao PagBank.")
+
+        except requests.exceptions.ConnectionError as e:
+            raise Exception(f"Erro de conexão: {e}")
+
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Erro HTTP: {e}")
 
     def _gerar_qr_base64_local(self, payload_pix):
         """Função auxiliar para garantir o retorno em Base64 uniforme"""

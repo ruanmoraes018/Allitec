@@ -19,9 +19,12 @@ from bairros.models import Bairro
 from collections import defaultdict
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
-from core.pagamentos.webhooks import processar_webhook, processar_webhook_pagbank
+from core.pagamentos.webhooks import processar_webhook, tratar_webhook_pagbank
 from pedidos.models import Pagamento
 from django.utils import timezone
+import logging
+
+logger = logging.getLogger(__name__)
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -331,30 +334,43 @@ def dashboard(request):
 
 @csrf_exempt
 def webhook_pagamentos(request):
+    logger.error("=" * 80)
+    logger.error("WEBHOOK RECEBIDO")
+    logger.error("Método: %s", request.method)
+    logger.error("Headers: %s", dict(request.headers))
+    logger.error("Body: %s", request.body.decode("utf-8", errors="ignore"))
+    logger.error("=" * 80)
+
     result = processar_webhook(request)
-    # Se der erro de parsing ou for ping de teste, responde sucesso (HTTP 200) para o gateway não ficar tentando reenviar
-    if not result: return JsonResponse({"ok": True})
+
+    print("RESULT:", result)
+
+    if not result:
+        print("RESULT É NONE")
+        return JsonResponse({"ok": True})
+
     pagamento = Pagamento.objects.filter(txid=result["txid"]).first()
-    # Se não achar o pagamento no banco, avisa o gateway que recebeu (HTTP 200) para cessar as tentativas
-    if not pagamento: return JsonResponse({"ok": True})
-    if pagamento.status == "pago": return JsonResponse({"ok": True})
+
+    print("PAGAMENTO:", pagamento)
+
+    if not pagamento:
+        print("NÃO ENCONTROU PAGAMENTO COM TXID", result["txid"])
+        return JsonResponse({"ok": True})
+
+    print("STATUS:", pagamento.status)
+
+    if pagamento.status == "pago":
+        print("JÁ ESTAVA PAGO")
+        return JsonResponse({"ok": True})
+
     if result.get("status") == "pago":
-        print("ANTES SAVE")
+        print("VAI MARCAR COMO PAGO")
 
         pagamento.status = "pago"
         pagamento.payload = result.get("payload")
         pagamento.dt_pagamento = timezone.now()
-
         pagamento.save()
 
-        print("DEPOIS SAVE")
+        print("SALVOU COM SUCESSO")
 
-        try:
-            origem = pagamento.origem
-
-            if hasattr(origem, "processar_pagamento"):
-                origem.processar_pagamento(pagamento)
-
-        except Exception as e:
-            print("ERRO processar_pagamento:", e)
     return JsonResponse({"ok": True})

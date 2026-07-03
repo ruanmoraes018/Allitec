@@ -41,23 +41,33 @@ def gerar_pagamentos_pedido(pedido):
     pagamentos_gerados = []
     for forma in pedido.formas_pgto.all():
         gateway = (forma.forma_pgto.gateway or "").strip().lower()
-        if gateway in ["nenhum", "", "none"]: continue
+        if gateway in ["nenhum", "", "none"]:
+            raise Exception(f"Gateway inválido: '{gateway}'")
         try:
             service = PagamentoService(forma.forma_pgto)
+            cpf = "".join(filter(str.isdigit, str(getattr(pedido.cli, "cpf_cnpj", "") or "")))
+
             result = service.gerar_pagamento(
                 valor=forma.valor,
                 descricao=f"Pedido {pedido.codigo}",
-                email=getattr(pedido.cli, "email", None),
+                nome=pedido.cli.razao_social,
+                email=pedido.cli.email,
+                cpf="".join(filter(str.isdigit, pedido.cli.cpf_cnpj or "")),
                 external_reference=str(pedido.codigo)
             )
             if not result:
-                print(f"--- [DEBUG] Gateway {gateway} retornou None ou vazio ---", file=sys.stderr)
-                continue
+                raise Exception(
+                    f"O PagamentoService retornou None. Gateway={gateway}"
+                )
             txid = result.get("id")
             qr_code = result.get("qr_code")
             if not txid or not qr_code:
-                print(f"--- [DEBUG] Gateway retornou dados incompletos: txid={txid}, qr_code={qr_code} ---", file=sys.stderr)
-                continue
+                raise Exception(
+                    f"Resposta incompleta.\n"
+                    f"txid={txid}\n"
+                    f"qr_code={qr_code}\n"
+                    f"result={result}"
+                )
             pagamento = Pagamento.objects.create(
                 vinc_emp=pedido.vinc_emp,
                 content_type=ContentType.objects.get_for_model(pedido),
@@ -68,7 +78,8 @@ def gerar_pagamentos_pedido(pedido):
                 qr_code=qr_code,
                 qr_base64=result.get("qr_base64"),
                 gateway=forma.forma_pgto.gateway,
-                status="pendente"
+                status="pendente",
+                gateway_txid=result.get("gateway_id"),
             )
             pagamentos_gerados.append({
                 "txid": pagamento.txid,

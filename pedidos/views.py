@@ -496,62 +496,146 @@ def cancelar_pedido(request, codigo):
 @login_required
 @require_POST
 def gerar_pagamento_pedido(request, pedido_id):
-    pedido = get_object_or_404(Pedido, codigo=pedido_id, vinc_emp=request.user.empresa)
+    import json
+    import base64
+    from io import BytesIO
+    import qrcode
 
-    # 🕵️‍♂️ Validação 1: Situação
+    def gerar_qr_base64(payload_pix):
+        qr = qrcode.QRCode(version=1, box_size=10, border=4)
+        qr.add_data(payload_pix)
+        qr.make(fit=True)
+
+        img = qr.make_image(fill_color="black", back_color="white")
+
+        buffer = BytesIO()
+        img.save(buffer, format="PNG")
+
+        return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode()
+
+    pedido = get_object_or_404(
+        Pedido,
+        codigo=pedido_id,
+        vinc_emp=request.user.empresa
+    )
+
+    # 🔹 Validação da situação
     if pedido.situacao != "Aberto":
-        return JsonResponse({"erro": f"Bloqueado: A situação deste pedido é '{pedido.situacao}' e não 'Aberto'."})
+        return JsonResponse({
+            "erro": f"Bloqueado: A situação deste pedido é '{pedido.situacao}' e não 'Aberto'."
+        })
 
-    # 🕵️‍♂️ Validação 2: Pagamento Pendente Duplicado
-    if pedido.pagamentos.filter(status="pendente").exists():
-        return JsonResponse({"erro": "Bloqueado: Já existe um pagamento PENDENTE para este pedido no banco. Delete-o para testar novamente."})
+    # 🔥 Se já existir um PIX pendente, devolve ele ao invés de bloquear
+    pagamento = pedido.pagamentos.filter(status="pendente").last()
+
+    if pagamento:
+
+        qr_base64 = pagamento.qr_base64
+
+        # Caso registros antigos não tenham a imagem salva
+        if not qr_base64 and pagamento.qr_code:
+            qr_base64 = gerar_qr_base64(pagamento.qr_code)
+
+            pagamento.qr_base64 = qr_base64
+            pagamento.save(update_fields=["qr_base64"])
+
+        return JsonResponse({
+            "pendente": True,
+            "pagamentos": [{
+                "txid": pagamento.txid,
+                "qr_code": pagamento.qr_code,
+                "qr_base64": qr_base64,
+                "valor": str(pagamento.valor)
+            }]
+        })
 
     formas = json.loads(request.POST.get("formas", "[]"))
 
-    # 🕵️‍♂️ Validação 3: Formas vazias vindas do Front-end
+    # 🔹 Validação das formas
     if not formas:
-        return JsonResponse({"erro": "Bloqueado: O seu Front-end enviou uma lista de formas de pagamento vazia. O loop não pôde iniciar."})
+        return JsonResponse({
+            "erro": "Bloqueado: O seu Front-end enviou uma lista de formas de pagamento vazia."
+        })
 
-    # Se passar por tudo, limpa as formas antigas e continua o fluxo normal
+    # Limpa as formas anteriores
     PedidoFormaPgto.objects.filter(pedido=pedido).delete()
 
+    # Grava novamente as formas
     for f in formas:
+        forma = FormaPgto.objects.get(
+            codigo=f["forma"],
+            vinc_emp=request.user.empresa
+        )
+
         PedidoFormaPgto.objects.create(
             pedido=pedido,
-            forma_pgto_id=f["forma"],
+            forma_pgto=forma,
             valor=f["valor"]
         )
 
-    pagamentos = gerar_pagamentos_pedido(pedido)
+    try:
+        pagamentos = gerar_pagamentos_pedido(pedido)
+    except Exception as e:
+        return JsonResponse({
+            "erro": str(e)
+        })
 
-    # Se o loop rodar mas a API da InfinitePay falhar internamente e o fluxo devolver vazio:
     if not pagamentos:
-        return JsonResponse({"erro": "O fluxo rodou, mas a função gerar_pagamentos_pedido retornou vazia."})
+        return JsonResponse({
+            "erro": "O fluxo rodou, mas a função gerar_pagamentos_pedido retornou vazia."
+        })
 
-    data = []
-    for p in pagamentos:
-        data.append({"txid": p["txid"], "qr_code": p["qr_code"], "qr_base64": p.get("qr_base64"), "valor": str(p["valor"])})
-    return JsonResponse({"pagamentos": data})
+    return JsonResponse({
+        "pagamentos": pagamentos
+    })
 
 @login_required
 def status_pagamento_pedido(request, pedido_id):
     pedido = get_object_or_404(Pedido, codigo=pedido_id, vinc_emp=request.user.empresa)
-    status_anterior = pedido.status_pagamento
-    novo_status = pedido.atualizar_status_pagamento()
-    if pedido.status_pagamento != status_anterior:
-        pedido.save(update_fields=["status_pagamento"])
-    # 🔥 PIX pago → fatura automaticamente
-    if (novo_status == "pago" and pedido.situacao == "Aberto"):
-        pedido.processar_pagamento(None)
-        pedido.situacao = "Faturado"
-        pedido.refresh_from_db()
-    return JsonResponse({"status": pedido.status_pagamento, "situacao": pedido.situacao})
+
+    return JsonResponse({
+        "status": pedido.status_pagamento,
+        "situacao": pedido.situacao
+    })
+
+import base64
+from io import BytesIO
+import qrcode
+
+def gerar_qr_base64(payload_pix):
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(payload_pix)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+
+    return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode()
 
 @login_required
 def recuperar_pix_pendente(request, pedido_id):
-    pagamento = Pagamento.objects.filter(content_type__model="pedido", object_id=pedido_id, status="pendente").last()
-    if not pagamento: return JsonResponse({"erro": True})
-    return JsonResponse({"txid": pagamento.txid, "qr_code": pagamento.qr_code, "qr_base64": pagamento.qr_base64, "valor": str(pagamento.valor)})
+    pagamento = Pagamento.objects.filter(
+        content_type__model="pedido",
+        object_id=pedido_id,
+        status="pendente"
+    ).last()
+
+    if not pagamento:
+        return JsonResponse({"erro": True})
+
+    qr_base64 = pagamento.qr_base64
+
+    if not qr_base64 and pagamento.qr_code:
+        qr_base64 = gerar_qr_base64(pagamento.qr_code)
+
+    return JsonResponse({
+        "txid": pagamento.txid,
+        "qr_code": pagamento.qr_code,
+        "qr_base64": qr_base64,
+        "valor": str(pagamento.valor)
+    })
 
 @login_required
 def imprimir_cupom_pedido(request, codigo):

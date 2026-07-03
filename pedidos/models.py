@@ -39,20 +39,24 @@ class Pedido(models.Model):
         return total
     def atualizar_status_pagamento(self):
         pagamentos = self.pagamentos.all()
+
         if not pagamentos.exists():
             self.status_pagamento = 'pendente'
-            return
+            return 'pendente'
+
         total_pago = sum(p.valor for p in pagamentos if p.status == 'pago')
+
         if total_pago == 0:
             self.status_pagamento = 'pendente'
-            novo_status = 'pendente'
+            return 'pendente'
+
         elif total_pago < self.total:
             self.status_pagamento = 'parcial'
-            novo_status = 'parcial'
+            return 'parcial'
+
         else:
             self.status_pagamento = 'pago'
-            novo_status = 'pago'
-        return novo_status
+            return 'pago'
     def processar_pagamento(self, pagamento=None):
         self.atualizar_status_pagamento()
         if self.status_pagamento == "pago" and self.situacao != "Faturado":
@@ -155,3 +159,9 @@ class Pagamento(models.Model):
 
     dt_criacao = models.DateTimeField(auto_now_add=True)
     dt_pagamento = models.DateTimeField(null=True, blank=True)
+    gateway_txid = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        db_index=True
+    )
