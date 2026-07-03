@@ -396,7 +396,7 @@ $(document).ready(function() {
             if (semItens) {
                 e.preventDefault();
                 e.stopImmediatePropagation();
-                toast(`Adicione produtos para aplicar desconto ou acréscimo!`, "yellow");
+                toast(`Adicione produtos para aplicar desconto ou acréscimo!`, "warning");
                 $('#listaItens').addClass('border border-warning');
                 setTimeout(() => {
                     $('#listaItens').removeClass('border border-warning');
@@ -412,7 +412,7 @@ $(document).ready(function() {
         }
     });
     function abrirModalDesconto(operacao) {
-        totalBase = itens.reduce((s, i) => s + (i.qtd * i.preco), 0);
+        totalBase = itens.erroruce((s, i) => s + (i.qtd * i.preco), 0);
         $('#valor-base-caixa').text('R$ ' + formatBR(totalBase));
         $('#valor-final-caixa').text('R$ ' + formatBR(totalBase));
         $('#campo_desconto').val('0,00');
@@ -460,7 +460,7 @@ $(document).ready(function() {
             });
             return;
         }
-        let totalBase = itens.reduce((s, i) => s + (i.qtd * i.preco), 0);
+        let totalBase = itens.erroruce((s, i) => s + (i.qtd * i.preco), 0);
         itens.forEach(item => {
             let base = item.qtd * item.preco;
             let ajuste = 0;
@@ -522,7 +522,7 @@ $(document).ready(function() {
         if (dadoTbPrec && dadoTbPrec != tabelaAntiga) {
             atualizarPrecosItens();
         }
-        toast(`Dados da venda atualizados!`, "green");
+        toast(`Dados da venda atualizados!`, "success");
         $('#mdDadosVenda').modal('hide');
         atualizarResumoVenda();
         fecharLoading();
@@ -537,7 +537,7 @@ $(document).ready(function() {
         iniciarLoading();
         fetch('/produtos/precos-lote/', {
             method: 'POST',
-            credentials: 'same-origin',
+            cerrorentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCSRFToken()
@@ -559,7 +559,7 @@ $(document).ready(function() {
                 item.total = item.qtd * item.preco;
             });
             renderItens();
-            toast(`Preços atualizados pela tabela`, "green");
+            toast(`Preços atualizados pela tabela`, "success");
             fecharLoading();
         });
     }
@@ -588,7 +588,7 @@ $(document).ready(function() {
                         ${formatBR(i.total)}
                         ${i.ajuste ? `
                             <br>
-                            <small style="color:${i.ajuste < 0 ? 'red' : 'green'}">
+                            <small style="color:${i.ajuste < 0 ? 'error' : 'success'}">
                                 (${i.ajuste < 0 ? '-' : '+'} ${formatBR(Math.abs(i.ajuste))})
                             </small>` : ''}
                     </div>
@@ -663,7 +663,7 @@ $(document).ready(function() {
         let qtd = parseBR($('#id_quantidadeEd').val());
         let preco = parseBR($('#id_preco_unitEd').val());
         if (qtd <= 0) {
-            toast(`Quantidade inválida!`, "yellow");
+            toast(`Quantidade inválida!`, "warning");
             return;
         }
         // 🔥 atualiza item
@@ -678,7 +678,7 @@ $(document).ready(function() {
         // 🔥 fecha modal
         $('#edProdModalItem').modal('hide');
         // 🔥 limpa índice
-        toast(`Item ${editIndex + 1} atualizado!`, "green");
+        toast(`Item ${editIndex + 1} atualizado!`, "success");
         editIndex = null;
     });
     /* LIMPAR CAMPOS AO FECHAR MODAL */
@@ -706,13 +706,13 @@ $(document).ready(function() {
     }
     $("#finalizarVendaBtn").click(function () {
         if (itens.length === 0) {
-            toast(`Adicione ao menos um item para finalizar a venda!`, "yellow");
+            toast(`Adicione ao menos um item para finalizar a venda!`, "warning");
             return;
         }
         iniciarLoading();
         const $modal = $('.modal-pagamento');
         // 🔥 TOTAL DA VENDA
-        const total = itens.reduce((s, i) => s + i.total, 0);
+        const total = itens.erroruce((s, i) => s + i.total, 0);
         // 🔥 CLIENTE
         $modal.find('.vendaCliente').val(cliente?.nome);
         // 🔥 TOTAL NO CAMPO
@@ -769,7 +769,7 @@ $(document).ready(function() {
             .then(resp => {
 
                 if (resp.erro) {
-                    toast(`${resp.erro}`, "red");
+                    toast(`${resp.erro}`, "error");
                     return;
                 }
 
@@ -907,7 +907,7 @@ $(document).ready(function() {
         const caixaId = $(this).data('caixa-id');
 
         if (!caixaId) {
-            toast('ID do caixa não encontrado!', 'yellow');
+            toast('ID do caixa não encontrado!', 'warning');
             return;
         }
 
@@ -915,15 +915,15 @@ $(document).ready(function() {
     });
     // Configuração dos tipos de toast
     const TOASTS = {
-        green: {
+        success: {
             cor: "linear-gradient(to right, #00b09b, #96c93d)",
             icone: "<i class='fa-solid fa-circle-check'></i>"
         },
-        red: {
+        error: {
             cor: "linear-gradient(to right, #ff416c, #ff4b2b)",
             icone: "<i class='fa-solid fa-circle-xmark'></i>"
         },
-        yellow: {
+        warning: {
             cor: "linear-gradient(to right, #ff9f00, #ff6f00)",
             icone: "<i class='fa-solid fa-triangle-exclamation'></i>"
         },
@@ -1029,7 +1029,7 @@ $(document).ready(function() {
             url: "/orcamentos/alterar-status/", method: "POST", data: {id: id, status: novoStatus, csrfmiddlewaretoken: $("input[name=csrfmiddlewaretoken]").val()},
             success: function () {
                 iniciarLoading();
-                toast(`Status atualizado com sucesso!`, "green");
+                toast(`Status atualizado com sucesso!`, "success");
                 $select.prop("disabled", true);
                 $(`#cancel-status-${id}`).hide();
                 const bsModal = bootstrap.Modal.getInstance(document.getElementById(`modalConfirmacaoStatus${id}`));
@@ -1040,7 +1040,7 @@ $(document).ready(function() {
                     window.location.href = `/orcamentos/lista/?s=${id}&sit=Faturado`;
                 }, 1500);
             },
-            error: function () {toast(`Erro ao atualizar o status!`, "red");}
+            error: function () {toast(`Erro ao atualizar o status!`, "error");}
         });
     });
     $(function () {$('[data-bs-toggle="tooltip"]').each(function () {new bootstrap.Tooltip(this);});});
@@ -1180,7 +1180,7 @@ $(document).ready(function() {
     $('#add-linha').on('click', function () {
         const tipo = $('#id_tipo_regra').val();
         if (!tipo) {
-            toast(`Selecione o tipo primeiro!`, "yellow");
+            toast(`Selecione o tipo primeiro!`, "warning");
             return;
         }
         const $linha = $(novaLinha(tipo));
@@ -1278,7 +1278,7 @@ $(document).ready(function() {
         const checkboxesMarcados = $('.task-checkbox:checked');
         if (checkboxesMarcados.length === 0) {
             e.preventDefault(); // impede o modal de abrir
-            toast(`Selecione ao menos um produto antes de continuar!`, "yellow");
+            toast(`Selecione ao menos um produto antes de continuar!`, "warning");
             return;
         }
         $('#attTbPrecModal').modal('show');
@@ -1479,13 +1479,13 @@ $(document).ready(function() {
             const formaTxt = select.find('option:selected').text();
             const valor = parseBR(valorInput.val());
             const restante = atualizarRestante(modal);
-            if (!formaId) return toast('Selecione uma forma!', "yellow");
-            if (valor <= 0) return toast('Valor inválido!', "yellow");
-            if (valor > restante) return toast('Valor maior que restante!', "yellow");
+            if (!formaId) return toast('Selecione uma forma!', "warning");
+            if (valor <= 0) return toast('Valor inválido!', "warning");
+            if (valor > restante) return toast('Valor maior que restante!', "warning");
             const gateway = select.data('gateway') || 'nenhum';
-            const credencial = JSON.stringify(select.data('credencial') || {});
+            const cerrorencial = JSON.stringify(select.data('cerrorencial') || {});
             tbody.append(`
-                <tr data-gateway="${gateway}" data-credencial='${credencial}'>
+                <tr data-gateway="${gateway}" data-cerrorencial='${cerrorencial}'>
                     <td>${formaTxt}<input type="hidden" name="forma_id[]" value="${formaId}"></td>
                     <td class="text-end">
                         ${formatBR(valor)}
@@ -1513,7 +1513,7 @@ $(document).ready(function() {
             if (!formaId) return;
             $.get('/formas_pgto/forma-pgto-info/' + formaId + '/', function (data) {
                 $select.data('gateway', data.gateway || 'nenhum');
-                $select.data('credencial', data.credenciais || null);
+                $select.data('cerrorencial', data.cerrorenciais || null);
             });
         });
         modal.find('.btn-baixar-cr').off('click.baixar').on('click.baixar', function () {
@@ -1548,7 +1548,7 @@ $(document).ready(function() {
                     },
                     success: function (resp) {
                         if (resp.erro) {
-                            toast(resp.erro, "red");
+                            toast(resp.erro, "error");
                             return;
                         }
                         fecharLoading();
@@ -1596,7 +1596,7 @@ $(document).ready(function() {
             `);
             $(document).off('click.copiarPix').on('click.copiarPix', '.btn-copiar', function () {
                 navigator.clipboard.writeText($(this).data('code'));
-                toast('Código PIX copiado!', "green");
+                toast('Código PIX copiado!', "success");
             });
             const modalPix = new bootstrap.Modal(document.getElementById('modalPixPagamento'));
             modalPix.show();
@@ -1617,7 +1617,7 @@ $(document).ready(function() {
                                 <p class="text-muted mb-0">Finalizando baixa...</p>
                             </div>
                         `);
-                        toast(`${mensagem}`, "green");
+                        toast(`${mensagem}`, "success");
                         setTimeout(() => {
                             modalPix.hide();
                             iniciarLoading();
@@ -1680,7 +1680,7 @@ $(document).ready(function() {
                 e.preventDefault();
                 const novoValorRaw = $input.val().trim();
                 if (novoValorRaw === "") {
-                    toast(`Campo (Frete) é obrigatório!`, "yellow");
+                    toast(`Campo (Frete) é obrigatório!`, "warning");
                     $input.focus();
                     return;
                 }
@@ -1743,7 +1743,7 @@ $(document).ready(function() {
                 e.preventDefault();
                 const novoValorRaw = $input.val().trim();
                 if (novoValorRaw === "") {
-                    toast(`Campo (Frete) é obrigatório!`, "yellow");
+                    toast(`Campo (Frete) é obrigatório!`, "warning");
                     $input.focus();
                     return;
                 }
@@ -1800,7 +1800,7 @@ $(document).ready(function() {
     let ident = 0;
     $("#add-cod-sec-tab").click(function () {
         let cod = $('#cod-sec').val();
-        if (cod === "") {toast(`Código deve ser informado!`, "yellow");}
+        if (cod === "") {toast(`Código deve ser informado!`, "warning");}
         else {
             let idx = ident++;
             let codigoJaExiste = false;
@@ -1810,7 +1810,7 @@ $(document).ready(function() {
                     return false; // sai do each
                 }
             });
-            if (codigoJaExiste) {toast(`O código "${cod}" já está incluso na listagem!`, "yellow");}
+            if (codigoJaExiste) {toast(`O código "${cod}" já está incluso na listagem!`, "warning");}
             else {
                 $("#tb-cod-sec tbody").append(`
                     <tr data-id="${idx}">
@@ -1886,7 +1886,7 @@ $(document).ready(function() {
                     let calc = precoCompra * (1 + response.margem / 100);
                     $('#id_vl_tab').val(formatInputBR(calc));
                 }
-            }, error: function() {toast(`Erro ao buscar a tabela de preço!`, "red");}
+            }, error: function() {toast(`Erro ao buscar a tabela de preço!`, "error");}
         });
     });
     $('#tb-prec').on('change', function () {
@@ -1903,7 +1903,7 @@ $(document).ready(function() {
                     let calc = precoCompra * (1 + response.margem / 100);
                     $('#id_vl_tab').val(formatInputBR(calc));
                 }
-            }, error: function() {toast(`Erro ao buscar a tabela de preço!`, "red");}
+            }, error: function() {toast(`Erro ao buscar a tabela de preço!`, "error");}
         });
     });
     let bloqueioEnt = false;
@@ -1958,7 +1958,7 @@ $(document).ready(function() {
                     $('#id_vl_tabEnt').val(formatInputBR(valorVenda));
                 }
             },
-            error: function () {toast(`Erro ao buscar a tabela de preço!`, "red");}
+            error: function () {toast(`Erro ao buscar a tabela de preço!`, "error");}
         });
     });
     // ======= ADD / EDIT / REMOVE =======
@@ -1975,11 +1975,11 @@ $(document).ready(function() {
         let mrg = $("#id_margem").val();
         let vl_p = $("#id_vl_tab").val();
         if (!tabId) {
-            toast(`Selecione uma tabela antes de adicionar!`, "yellow");
+            toast(`Selecione uma tabela antes de adicionar!`, "warning");
             return;
         }
         if (vl_p === "0,00" || vl_p === "" || vl_p === "0") {
-            toast(`Preço de Venda deve ser informado!`, "yellow");
+            toast(`Preço de Venda deve ser informado!`, "warning");
             return;
         }
         if (trEdit) {
@@ -2000,7 +2000,7 @@ $(document).ready(function() {
                     return false;
                 }
             });
-            if (tabelaJaExiste) {toast(`Tabela "${tabNome}" já está inclusa na listagem!`, "yellow");}
+            if (tabelaJaExiste) {toast(`Tabela "${tabNome}" já está inclusa na listagem!`, "warning");}
             else {
                 $("#tab-prec tbody").append(`
                     <tr data-id="${idx}">
@@ -2088,11 +2088,11 @@ $(document).ready(function() {
         let mrg = parseBR($("#id_margem").val() || "0");
         let vl_p = parseBR($("#id_vl_tabEnt").val() || "0");
         if (!tabId) {
-            toast(`Selecione uma tabela antes de adicionar!`, "yellow");
+            toast(`Selecione uma tabela antes de adicionar!`, "warning");
             return;
         }
         if (vl_p === "0,00" || vl_p === "" || vl_p === "0") {
-            toast(`Preço de Venda deve ser informado!`, "yellow");
+            toast(`Preço de Venda deve ser informado!`, "warning");
             return;
         }
         if (trEditTabEnt !== null) {
@@ -2101,7 +2101,7 @@ $(document).ready(function() {
         } else {
             let tabelaJaExiste = tabelasEntTmp.some(t => String(t.tabela_id) === String(tabId));
             if (tabelaJaExiste) {
-                toast(`Tabela "${tabNome}" já está inclusa na listagem!`, "yellow");
+                toast(`Tabela "${tabNome}" já está inclusa na listagem!`, "warning");
                 return;
             }
             tabelasEntTmp.push({tabela_id: tabId, tabela_nome: tabNome, margem: parseBR(mrg || 0), valor: parseBR(vl_p || 0)});
@@ -2185,22 +2185,22 @@ $(document).ready(function() {
         let dsctNum = parseBR(dsct);
         let total = ((precoNum * qtdNum) - dsctNum);
         if (!cod) {
-            toast(`Informe o código do produto!`, "yellow");
+            toast(`Informe o código do produto!`, "warning");
             return;
         }
         if (precoNum <= 0) {
-            toast(`Preço Unitário deve ser informado!`, "yellow");
+            toast(`Preço Unitário deve ser informado!`, "warning");
             return;
         }
         if (qtdNum <= 0) {
-            toast(`Quantidade deve ser informada!`, "yellow");
+            toast(`Quantidade deve ser informada!`, "warning");
             return;
         }
         try {
             await salvarTabelasProdutoAjax(cod, tabelasEntTmp);
         } catch (xhr) {
             let msg = xhr.responseJSON?.msg || "Erro ao salvar tabelas no produto.";
-            toast(`${msg}`, "red");
+            toast(`${msg}`, "error");
             return;
         }
         let resumoTabelas = montarResumoTabelasEnt(tabelasEntTmp);
@@ -2227,7 +2227,7 @@ $(document).ready(function() {
                 }
             });
             if (codigoJaExiste) {
-                toast(`O código "${cod}" já está incluso na listagem!`, "yellow");
+                toast(`O código "${cod}" já está incluso na listagem!`, "warning");
                 return;
             }
             $("#tabela-produtos tbody").append(`
@@ -2267,7 +2267,7 @@ $(document).ready(function() {
         trEditTabEnt = null;
         renderTabelasEntModal();
         $('#edProdModal').modal('hide');
-        toast(`Registro salvo com sucesso!`, "green");
+        toast(`Registro salvo com sucesso!`, "success");
     });
     $("#cancelar-produto-lista").click(function () {
         trEditando = null;
@@ -2321,7 +2321,7 @@ $(document).ready(function() {
             $("#id_marcaProd").val("");
             $("#id_grupoProd").val("");
             tabelasEntTmp = [];
-            toast(`${e.message}`, "red");
+            toast(`${e.message}`, "error");
         }
         renderTabelasEntModal();
         resetBtnTabEnt();
@@ -2381,15 +2381,15 @@ $(document).ready(function() {
         }
         // 🔴 VALIDAÇÕES
         if (!cod) {
-            toast(`Informe o código do produto!`, "yellow");
+            toast(`Informe o código do produto!`, "warning");
             return;
         }
         if (precoNum <= 0) {
-            toast(`Preço Unitário deve ser informado!`, "yellow");
+            toast(`Preço Unitário deve ser informado!`, "warning");
             return;
         }
         if (qtdNum <= 0) {
-            toast(`Quantidade deve ser informada!`, "yellow");
+            toast(`Quantidade deve ser informada!`, "warning");
             return;
         }
         // ✏️ EDITAR
@@ -2426,7 +2426,7 @@ $(document).ready(function() {
                 }
             });
             if (codigoJaExiste) {
-                toast(`O código "${cod}" já está incluso na listagem!`, "yellow");
+                toast(`O código "${cod}" já está incluso na listagem!`, "warning");
                 return;
             }
             $("#tabela-produtos tbody").append(`
@@ -2457,7 +2457,7 @@ $(document).ready(function() {
                     </td>
                 </tr>
             `);
-            toast(`Produto inserido com sucesso!`, "green");
+            toast(`Produto inserido com sucesso!`, "success");
         }
         // 🔄 RESET
         calcTotalPedido();
@@ -2519,7 +2519,7 @@ $(document).ready(function() {
             $("#id_unidProdutoP").val("");
             $("#id_marcaProdP").val("");
             $("#id_grupoProdP").val("");
-            toast(`${e.message}`, "red");
+            toast(`${e.message}`, "error");
         }
         setTimeout(() => $('#edProdModalP').modal('show'), 200);
     });
@@ -2579,7 +2579,7 @@ $(document).ready(function() {
         let operacao = $('#operacao').val(); // desconto | acrescimo
         let valor = parseBR($('#campo_desconto').val()) || 0;
         if (valor < 0) {
-            toast(`Informe um valor válido!`, "yellow");
+            toast(`Informe um valor válido!`, "warning");
             return;
         }
         let totalBase = 0;
@@ -2652,7 +2652,7 @@ $(document).ready(function() {
         // 🔄 RECALCULA TOTAL
         calcTotalPedido();
         $('#modalDesconto').modal('hide');
-        toast(`${operacao === "desconto" ? "Desconto" : "Acréscimo"} aplicado com sucesso!`, "green");
+        toast(`${operacao === "desconto" ? "Desconto" : "Acréscimo"} aplicado com sucesso!`, "success");
     });
     function getCookie(name) {
         let cookieValue = null;
@@ -2717,13 +2717,13 @@ $(document).ready(function() {
                         fecharLoading();
                         if (focoFinal) $(focoFinal).focus();
                     } else {
-                        toast(`Código de produto não encontrado!`, "yellow");
+                        toast(`Código de produto não encontrado!`, "warning");
                         $(desc + ',' + marca + ',' + unid + ',' + grupo + ',' + preco).val('');
                         fecharLoading();
                     }
                 },
                 error: function () {
-                    toast(`Erro ao buscar o produto. Tente novamente!`, "red");
+                    toast(`Erro ao buscar o produto. Tente novamente!`, "error");
                     $(desc + ',' + marca + ',' + unid + ',' + grupo + ',' + preco).val('');
                     fecharLoading();
                 }
@@ -2780,12 +2780,12 @@ $(document).ready(function() {
                         }
                         if (focoFinal) $(focoFinal).focus();
                     } else {
-                        toast(`Código de produto não encontrado!`, "yellow");
+                        toast(`Código de produto não encontrado!`, "warning");
                         $(desc + ',' + marca + ',' + unid + ',' + grupo + ',' + preco).val('');
                     }
                 },
                 error: function () {
-                    toast(`Erro ao buscar o produto. Tente novamente!`, "red");
+                    toast(`Erro ao buscar o produto. Tente novamente!`, "error");
                     $(desc + ',' + marca + ',' + unid + ',' + grupo + ',' + preco).val('');
                 }
             });
@@ -2929,7 +2929,7 @@ $(document).ready(function() {
             url: '/entradas/ler_xml/', method: 'POST', data: formData, processData: false, contentType: false,
             success: function (resp) {
                 if (!resp.ok) {
-                    toast(`${resp.erro ? resp.erro : 'Erro ao ler XML.'}`, "red");
+                    toast(`${resp.erro ? resp.erro : 'Erro ao ler XML.'}`, "error");
                     return;
                 }
                 montarModalXml(resp);
@@ -2938,7 +2938,7 @@ $(document).ready(function() {
                 fecharLoading();
             },
             error: function (xhr) {
-                toast(`${xhr.responseJSON?.erro ? xhr.responseJSON?.erro : 'Erro ao ler XML.'}`, "red");
+                toast(`${xhr.responseJSON?.erro ? xhr.responseJSON?.erro : 'Erro ao ler XML.'}`, "error");
                 $('#input-xml').val('');
                 fecharLoading();
             }
@@ -3110,22 +3110,22 @@ $(document).ready(function() {
         e.preventDefault();
         const produtos = getProdutosSelecionados();
         if (!produtos.length) {
-            toast("Selecione pelo menos um produto!", "yellow");
+            toast("Selecione pelo menos um produto!", "warning");
             return;
         }
         const tipo = $('#tp-atrib').val();
         const campo1 = parseBR($('#campo_1').val());
         const campo2 = parseBR($('#campo_2').val());
         if (!$('#tb-prec').val()) {
-            toast("Selecione uma tabela de preço!", "yellow");
+            toast("Selecione uma tabela de preço!", "warning");
             return;
         }
         if (tipo === '0' && campo1 <= 0) {
-            toast("Informe uma margem válida!", "yellow");
+            toast("Informe uma margem válida!", "warning");
             return;
         }
         if (tipo === '1' && campo2 <= 0) {
-            toast("Informe um valor válido!", "yellow");
+            toast("Informe um valor válido!", "warning");
             return;
         }
         const payload = {tabela_id: $('#tb-prec').val(), tipo, campo_1: campo1, campo_2: campo2, produtos: produtos.map(p => ({id: p.codigo, base_calculo: p.base_calculo}))};
@@ -3134,7 +3134,7 @@ $(document).ready(function() {
             const resp = await fetch('/produtos/att-tb-preco-lt/', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()}, body: JSON.stringify(payload)});
             const data = await resp.json();
             if (!data.ok) {
-                toast(data.msg || 'Erro ao atualizar tabela.', "red");
+                toast(data.msg || 'Erro ao atualizar tabela.', "error");
                 return;
             }
             produtos.forEach(p => {
@@ -3143,12 +3143,12 @@ $(document).ready(function() {
             });
             $('#select-all').prop('checked', false).prop('indeterminate', false);
             updateMassChangesButton();
-            toast("Tabela aplicada com sucesso!", "green");
+            toast("Tabela aplicada com sucesso!", "success");
             bootstrap.Modal.getInstance(document.getElementById('attTbPrecModal'))?.hide();
             finalizarLoading();
         } catch (e) {
             console.error(e);
-            toast("Erro na requisição", "red");
+            toast("Erro na requisição", "error");
         } finally {
             fecharLoadingCompleto();
             finalizarLoading();
@@ -3212,7 +3212,7 @@ $(document).ready(function() {
     $(document).on('click', '#mdAttTbPrecoEnt', function () {
         const produtos = getProdutosSelecionadosEnt();
         if (!produtos.length) {
-            toast("Selecione pelo menos um produto!", "yellow");
+            toast("Selecione pelo menos um produto!", "warning");
             return;
         }
         $('#campo_1').val('0,00');
@@ -3246,22 +3246,22 @@ $(document).ready(function() {
         e.preventDefault();
         const produtos = getProdutosSelecionadosEnt();
         if (!produtos.length) {
-            toast("Selecione pelo menos um produto!", "yellow");
+            toast("Selecione pelo menos um produto!", "warning");
             return;
         }
         const tipo = $('#tp-atrib').val();
         const campo1 = parseBR($('#campo_1').val());
         const campo2 = parseBR($('#campo_2').val());
         if (!$('#tb-prec').val()) {
-            toast("Selecione uma tabela de preço!", "yellow");
+            toast("Selecione uma tabela de preço!", "warning");
             return;
         }
         if (tipo === '0' && campo1 <= 0) {
-            toast("Informe uma margem válida!", "yellow");
+            toast("Informe uma margem válida!", "warning");
             return;
         }
         if (tipo === '1' && campo2 <= 0) {
-            toast("Informe um valor válido!", "yellow");
+            toast("Informe um valor válido!", "warning");
             return;
         }
         const payload = {tabela_id: $('#tb-prec').val(), tipo: $('#tp-atrib').val(), campo_1: parseBR($('#campo_1').val()), campo_2: parseBR($('#campo_2').val()),
@@ -3274,7 +3274,7 @@ $(document).ready(function() {
             });
             const data = await resp.json();
             if (!data.ok) {
-                toast(data.msg || 'Erro ao atualizar tabela.', "red");
+                toast(data.msg || 'Erro ao atualizar tabela.', "error");
                 return;
             }
             produtos.forEach(p => {
@@ -3283,12 +3283,12 @@ $(document).ready(function() {
                 $('#select-all').prop('checked', false).prop('indeterminate', false);
                 updateMassChangesButton();
             });
-            toast("Tabela aplicada com sucesso!", "green");
+            toast("Tabela aplicada com sucesso!", "success");
             bootstrap.Modal.getInstance(document.getElementById('attTbPrecModalEnt')).hide();
             finalizarLoading();
         } catch (e) {
             console.error(e);
-            toast("Erro na requisição", "red");
+            toast("Erro na requisição", "error");
         } finally {
             fecharLoadingCompleto();
             finalizarLoading();
@@ -3310,12 +3310,12 @@ $(document).ready(function() {
         const itens = getItensSelecionados();
         const produtos = getProdutosSelecionados();
         if (!itens.length && !produtos.length) {
-            toast(`Selecione pelo menos um item!`, "yellow");
+            toast(`Selecione pelo menos um item!`, "warning");
             return;
         }
         const temVinculado = itens.some(obj => {return obj.item.produto_vinculado && Number(obj.item.produto_vinculado.id);});
         if (temVinculado) {
-            toast(`Existem itens já vinculados. Desmarque-os antes de continuar!`, "yellow");
+            toast(`Existem itens já vinculados. Desmarque-os antes de continuar!`, "warning");
             return;
         }
         new bootstrap.Modal(document.getElementById('updateModal')).show();
@@ -3324,12 +3324,12 @@ $(document).ready(function() {
         const itens = getItensSelecionados();
         const produtos = getProdutosSelecionados();
         if (!itens.length && !produtos.length) {
-            toast(`Selecione pelo menos um item!`, "yellow");
+            toast(`Selecione pelo menos um item!`, "warning");
             return;
         }
         const temVinculado = itens.some(obj => {return obj.item.produto_vinculado && Number(obj.item.produto_vinculado.id);});
         if (temVinculado) {
-            toast(`Existem itens já vinculados. Desmarque-os antes de continuar!`, "yellow");
+            toast(`Existem itens já vinculados. Desmarque-os antes de continuar!`, "warning");
             return;
         }
         new bootstrap.Modal(document.getElementById('modalCriarProdutoMassa')).show();
@@ -3353,7 +3353,7 @@ $(document).ready(function() {
                 method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()}, body: JSON.stringify({ produtos })});
             const data = await resp.json();
             if (!data.ok) {
-                toast(data.erro || 'Erro ao criar produtos.', "red");
+                toast(data.erro || 'Erro ao criar produtos.', "error");
                 return;
             }
             // 🔄 atualiza tela com retorno
@@ -3363,10 +3363,10 @@ $(document).ready(function() {
                 const $tr = $(`#xml-itens-body tr[data-idx="${r.idx}"]`);
                 atualizarStatusProdutoVinculado($tr, produto.id, produto.descricao);
             });
-            toast(`Produtos processados com sucesso!`, "green");
+            toast(`Produtos processados com sucesso!`, "success");
         } catch (e) {
             console.error(e);
-            toast('Erro na requisição', "red");
+            toast('Erro na requisição', "error");
         } finally {
             finalizarLoading();
             bootstrap.Modal.getInstance(document.getElementById('modalCriarProdutoMassa')).hide();
@@ -3376,7 +3376,7 @@ $(document).ready(function() {
     });
     $(document).on('click', '#btn-criar-fornecedor-xml', function () {
         if (!xmlArquivoSelecionado) {
-            toast(`Arquivo XML não encontrado para criar o fornecedor!`, "red");
+            toast(`Arquivo XML não encontrado para criar o fornecedor!`, "error");
             return;
         }
         const formData = new FormData();
@@ -3388,7 +3388,7 @@ $(document).ready(function() {
             url: '/entradas/criar_fornecedor_xml/', method: 'POST', data: formData, processData: false, contentType: false,
             success: function (resp) {
                 if (!resp.ok) {
-                    toast(resp.erro || 'Erro ao criar fornecedor.', "red");
+                    toast(resp.erro || 'Erro ao criar fornecedor.', "error");
                     return;
                 }
                 xmlImportado.fornecedor.id = resp.fornecedor.id;
@@ -3399,9 +3399,9 @@ $(document).ready(function() {
                     <span class="badge bg-success w-100 py-2">Já cadastrado</span>
                 `;
                 $('#btn-criar-fornecedor-xml').closest('.col-md-2').html(badgeHtml);
-                toast(resp.fornecedor.ja_existia ? 'Fornecedor já existia e foi vinculado.' : 'Fornecedor criado com sucesso.', "green");
+                toast(resp.fornecedor.ja_existia ? 'Fornecedor já existia e foi vinculado.' : 'Fornecedor criado com sucesso.', "success");
             },
-            error: function (xhr) {toast(xhr.responseJSON?.erro || 'Erro ao criar fornecedor.', "red");},
+            error: function (xhr) {toast(xhr.responseJSON?.erro || 'Erro ao criar fornecedor.', "error");},
             complete: function () {$btn.prop('disabled', false).text('Criar fornecedor');}
         });
     });
@@ -3424,7 +3424,7 @@ $(document).ready(function() {
             marca_id: $('#xml-produto-marca').val() || null, tp_prod: $('#xml-produto-tipo').val() || 'Principal', codigo_fornecedor: item.codigo_fornecedor || '', descricao_fornecedor: item.descricao || '', ean: item.ean || '', ncm: item.ncm || ''
         };
         if (!payload.descricao) {
-            toast(`Informe a descrição do produto!`, "yellow");
+            toast(`Informe a descrição do produto!`, "warning");
             return;
         }
         $.ajax({
@@ -3432,7 +3432,7 @@ $(document).ready(function() {
             data: JSON.stringify(payload),
             success: function (resp) {
                 if (!resp.ok) {
-                    toast(resp.erro || 'Erro ao cadastrar produto.', "red");
+                    toast(resp.erro || 'Erro ao cadastrar produto.', "error");
                     return;
                 }
                 const produto = resp.produto;
@@ -3440,9 +3440,9 @@ $(document).ready(function() {
                 const $tr = $(`#xml-itens-body tr[data-idx="${idx}"]`);
                 atualizarStatusProdutoVinculado($tr, produto.id, produto.descricao);
                 bootstrap.Modal.getInstance(document.getElementById('modalCriarProdutoXml')).hide();
-                toast(`Produto cadastrado e vinculado!`, "green");
+                toast(`Produto cadastrado e vinculado!`, "success");
             },
-            error: function () {toast('Erro ao cadastrar produto.', "red");}
+            error: function () {toast('Erro ao cadastrar produto.', "error");}
         });
     });
     $('#btn-confirmar-vinculo-produto').on('click', function () {
@@ -3450,7 +3450,7 @@ $(document).ready(function() {
         const produtoId = $('#vincular-produto-select').val();
         const produtoDesc = $('#vincular-produto-select option:selected').text().trim();
         if (!produtoId) {
-            toast(`Selecione um produto para vincular`, "yellow");
+            toast(`Selecione um produto para vincular`, "warning");
             return;
         }
         xmlImportado.itens[idx].produto_vinculado = {id: produtoId, descricao: produtoDesc};
@@ -3458,7 +3458,7 @@ $(document).ready(function() {
         atualizarStatusProdutoVinculado($tr, produtoId, produtoDesc);
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalVincularProdutoXml'));
         if (modal) modal.hide();
-        toast(`Produto vinculado com sucesso!`, "green");
+        toast(`Produto vinculado com sucesso!`, "success");
     });
     $(document).on('click', '.acao-criar-produto', function (e) {
         e.preventDefault();
@@ -3471,7 +3471,7 @@ $(document).ready(function() {
         xmlImportado.itens[idx].produto_vinculado = null;
         const $tr = $(`#xml-itens-body tr[data-idx="${idx}"]`);
         atualizarStatusProdutoVinculado($tr, null, null);
-        toast('Vínculo removido.', "yellow");
+        toast('Vínculo removido.', "warning");
     });
     function atualizarStatusProdutoVinculado($tr, produtoId, descricao) {
         const $cell = $tr.find('.produto-vinculado-cell');
@@ -3543,7 +3543,7 @@ $(document).ready(function() {
     $('#confirmar-importacao-xml').on('click', async function () {
         if (!xmlImportado) return;
         if (!xmlImportado.fornecedor || !xmlImportado.fornecedor.id) {
-            toast(`Cadastre o fornecedor antes de confirmar a importação!`, "yellow");
+            toast(`Cadastre o fornecedor antes de confirmar a importação!`, "warning");
             return;
         }
         $('#id_numeracao').val(xmlImportado.nota.numero || '');
@@ -3566,7 +3566,7 @@ $(document).ready(function() {
         let itensOrdenados = xmlImportado.itens.filter(item => item.produto_vinculado && Number(item.produto_vinculado.id)).sort((a, b) => Number(a.produto_vinculado.id) - Number(b.produto_vinculado.id));
         if (!itensOrdenados.length) {
             fecharLoadingCompleto();
-            toast(`Vincule ou cadastre os produtos antes de confirmar`, "yellow");
+            toast(`Vincule ou cadastre os produtos antes de confirmar`, "warning");
             return;
         }
         iniciarLoading();
@@ -3579,14 +3579,14 @@ $(document).ready(function() {
         if (previewModal) {
             $(previewEl).one('hidden.bs.modal', function () {
                 fecharLoadingCompleto(function () {
-                    toast('Dados do XML carregados no formulário.', "green");
+                    toast('Dados do XML carregados no formulário.', "success");
                     finalizarLoading();
                 });
             });
             previewModal.hide();
         } else {
             fecharLoadingCompleto(function () {
-                toast('Dados do XML carregados no formulário.', "green");
+                toast('Dados do XML carregados no formulário.', "success");
                 finalizarLoading();
             });
         }
@@ -3692,7 +3692,7 @@ $(document).ready(function() {
                         const temProdutos = $('.tabela-produtos tbody tr:not(.vazio)').length > 0;
                         const temAdicionais = $('.tabela-adicionais tbody tr:not(.vazio)').length > 0;
                         if (!temProdutos && !temAdicionais) {
-                            toast(`Insira ao menos um item antes de continuar!`, "yellow");
+                            toast(`Insira ao menos um item antes de continuar!`, "warning");
                             $('.tabela-produtos').addClass('border border-warning');
                             setTimeout(() => {
                                 $('.tabela-produtos').removeClass('border border-warning');
@@ -3705,7 +3705,7 @@ $(document).ready(function() {
                         const semItensArray = !itens || itens.length === 0;
                         const semItensDOM = $('#listaItens td[colspan]').length > 0;
                         if (semItensArray || semItensDOM) {
-                            toast(`Insira ao menos um produto antes de continuar!`, "yellow");
+                            toast(`Insira ao menos um produto antes de continuar!`, "warning");
                             $('#listaItens').addClass('border border-warning');
                             setTimeout(() => {
                                 $('#listaItens').removeClass('border border-warning');
@@ -3717,7 +3717,7 @@ $(document).ready(function() {
                     else {
                         if ($('#tabela-produtos tbody tr').length === 0 ||
                             $('#tabela-produtos tbody tr.vazio').length) {
-                            toast(`Insira ao menos um produto antes de continuar!`, "yellow");
+                            toast(`Insira ao menos um produto antes de continuar!`, "warning");
                             $('#tabela-produtos').addClass('border border-warning');
                             setTimeout(() => {
                                 $('#tabela-produtos').removeClass('border border-warning');
@@ -3734,7 +3734,7 @@ $(document).ready(function() {
                 else if (url) {
                     iniciarLoading();
                     $.post(url, function () {location.reload();}).fail(function () {
-                        toast(`Erro ao tentar executar a ação!`, "red");
+                        toast(`Erro ao tentar executar a ação!`, "error");
                     });
                 }
                 else if (href) {window.location.href = href;}
@@ -3784,7 +3784,7 @@ $(document).ready(function() {
             },
             function () {
                 fecharLoading();
-                toast(`${msgNegado}`, "yellow");
+                toast(`${msgNegado}`, "warning");
                 if (acaoSelecionada) {
                     $('#confirmModal').modal('show');
                 }
@@ -3803,7 +3803,7 @@ $(document).ready(function() {
                 if(data.sucesso){
                     $("#modalEntrada").modal("hide");
                     imprimirComprovanteEntrada(data);
-                    toast(`Entrada registrada com sucesso!`, "green");
+                    toast(`Entrada registrada com sucesso!`, "success");
                 }
             },
 
@@ -3871,7 +3871,7 @@ $(document).ready(function() {
                     $("#modalSaida").modal("hide");
 
                     imprimirComprovanteSaida(data);
-                    toast(`Saída registrada com sucesso!`, "green");
+                    toast(`Saída registrada com sucesso!`, "success");
 
                 }
             },
@@ -3961,7 +3961,7 @@ $(document).ready(function() {
                 if (data.status === 'Aprovada') {
                     clearInterval(timer);
                     if (toastAguardando) toastAguardando.hideToast();
-                    toast(`Solicitação Concedida ao usuário!`, "green");
+                    toast(`Solicitação Concedida ao usuário!`, "success");
                     if (acaoSelecionada === "atribuir_desconto") {$('#modalDesconto').modal('show');}
                     else if (acaoSelecionada === "atribuir_acrescimo") {$('#modalAcrescimo').modal('show');}
                     else if (acaoSelecionada === "atribuir_desconto_ped") {
@@ -3977,7 +3977,7 @@ $(document).ready(function() {
                 } else if (data.status === 'Negada') {
                     clearInterval(timer);
                     if (toastAguardando) toastAguardando.hideToast();
-                    toast(`Solicitação Negada ao usuário!`, "red");
+                    toast(`Solicitação Negada ao usuário!`, "error");
                 } else if (data.status === 'Expirada') {
                     clearInterval(timer);
                     if (toastAguardando) toastAguardando.hideToast();
@@ -4002,11 +4002,11 @@ $(document).ready(function() {
         const usuarioId = $('#userSelect').val();
         const senha = $('#senhaLiberacao').val();
         if (!usuarioId) {
-            toast(`Usuário deve ser informado!`, "yellow");
+            toast(`Usuário deve ser informado!`, "warning");
             return;
         }
         if (!senha) {
-            toast(`Digite a senha do Usuário Autorizador!`, "yellow");
+            toast(`Digite a senha do Usuário Autorizador!`, "warning");
             return;
         }
         $.ajax({
@@ -4014,7 +4014,7 @@ $(document).ready(function() {
             success: function (resp) {
                 if (resp.status === 'Aprovada') {
                     $('#userSelectModal').modal('hide');
-                    toast(`Solicitação Concedida ao usuário!`, "green");
+                    toast(`Solicitação Concedida ao usuário!`, "success");
                     fecharLoading();
                     console.log("acaoSelecionada =", acaoSelecionada);
                     if (acaoSelecionada === "atribuir_desconto") {$('#modalDesconto').modal('show');}
@@ -4032,7 +4032,7 @@ $(document).ready(function() {
                     if (window.acaoCallback) {window.acaoCallback();}
                 }
                 else {
-                    toast(`Senha inserida incorreta!`, "red");
+                    toast(`Senha inserida incorreta!`, "error");
                     fecharLoading();
                 }
             }
@@ -4080,8 +4080,8 @@ $(document).ready(function() {
         console.log('Enviando resposta:', {id, acao});
         $.post('/orcamentos/responder-solicitacao/', {id: id, acao: acao, csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()}, function(response) {
             $('#modalSolicitacao').modal('hide');
-            if (response.status === "Aprovada") {toast(`Solicitação Concedida ao usuário!`, "green");}
-            else {toast(`Solicitação Negada ao usuário!`, "red");}
+            if (response.status === "Aprovada") {toast(`Solicitação Concedida ao usuário!`, "success");}
+            else {toast(`Solicitação Negada ao usuário!`, "error");}
         });
         carregarNotificacoes();
     }
@@ -4278,7 +4278,7 @@ $(document).ready(function() {
                     if (editando) {atualizarPreviewJson(orcamentoId);}
                 },
                 function () {
-                    toast(`${msgNegado}`, "yellow");
+                    toast(`${msgNegado}`, "warning");
                     $('#confirmModal').modal('show');
                 }
             );
@@ -4324,7 +4324,7 @@ $(document).ready(function() {
                     setEstadoBotaoDataFat($modal, !editando);
                     if (!editando) {$modal.find('.dt-fat-orcamento').focus();}
                 },
-                function () {toast(`${msgNegado}`, "yellow");}
+                function () {toast(`${msgNegado}`, "warning");}
             );
         });
         $(document).off('focus.orcamentos', '.dt-fat-orcamento').on('focus.orcamentos', '.dt-fat-orcamento', function () {$(this).data('valorAnterior', $(this).val());});
@@ -4396,14 +4396,14 @@ $(document).ready(function() {
                 success: function (resp) {
                     fecharLoading();
                     if (!resp.pagamentos || !resp.pagamentos.length) {
-                        toast(`Nenhum pagamento foi gerado!`, "red");
+                        toast(`Nenhum pagamento foi gerado!`, "error");
                         return;
                     }
                     // 👉 abre modal PIX
                     abrirModalPixOrcamento(resp.pagamentos, orcamentoId);
                 },
                 error: function () {
-                    toast(`Erro ao gerar pagamento!`, "red");
+                    toast(`Erro ao gerar pagamento!`, "error");
                 }
             });
         });
@@ -4437,7 +4437,7 @@ $(document).ready(function() {
         $(document).on('click', '.btn-copiar', function () {
             const code = $(this).data('code');
             navigator.clipboard.writeText(code).then(() => {
-                toast(`Código PIX copiado!`, "green");
+                toast(`Código PIX copiado!`, "success");
             });
         });
         function monitorarPagamentoOrcamento(orcamentoId, modalPix) {
@@ -4461,7 +4461,7 @@ $(document).ready(function() {
                                 <p class="text-muted mb-0">Finalizando Orçamento...</p>
                             </div>
                         `;
-                        toast(`Pagamento aprovado!`, "green");
+                        toast(`Pagamento aprovado!`, "success");
                         // 🔥 chama faturamento automático
                         faturarOrcamentoAposPagamento(orcamentoId, modalPix);
                     }
@@ -4473,7 +4473,7 @@ $(document).ready(function() {
                 csrfmiddlewaretoken: getCSRFToken()
             })
             .done(function () {
-                toast(`Orçamento faturado com sucesso!`, "green");
+                toast(`Orçamento faturado com sucesso!`, "success");
                 setTimeout(() => {
                     modalPix.hide();
                     $('.modal-faturar-orcamento').modal('hide');
@@ -4484,7 +4484,7 @@ $(document).ready(function() {
                 }, 1500);
             })
             .fail(function () {
-                toast(`Erro ao faturar orçamento!`, "red");
+                toast(`Erro ao faturar orçamento!`, "error");
             });
         }
     });
@@ -4675,7 +4675,7 @@ $(document).ready(function() {
                 function () {
                     toast(
                         `${msgNegado}`,
-                        "yellow"
+                        "warning"
                     );
                 }
             );
@@ -4763,7 +4763,7 @@ $(document).ready(function() {
                     $modal.find('.diasPgto').val(0);
                 }
                 $select.data('gateway', data.gateway || 'nenhum');
-                $select.data('credencial', data.credenciais || null);
+                $select.data('cerrorencial', data.cerrorenciais || null);
                 $select.data('troco', data.troco ? 1 : 0);
                 $select.data('gera', ehPrazo ? 1 : 0);
                 $select.data('tipo', data.tipo || '');
@@ -4782,9 +4782,9 @@ $(document).ready(function() {
             const geraParcelas = $select.data('gera') == 1;
             const permiteTroco = $select.data('troco') == 1;
             const gateway = $select.data('gateway') || 'nenhum';
-            const credencial = $select.data('credencial');
+            const cerrorencial = $select.data('cerrorencial');
             if (!formaId || !valor) {
-                toast(`Informe a forma e o valor!`, "yellow");
+                toast(`Informe a forma e o valor!`, "warning");
                 return;
             }
             if ($select.data('troco') === undefined) {
@@ -4796,7 +4796,7 @@ $(document).ready(function() {
                 return;
             }
             if (valorNum <= 0) {
-                toast(`Valor informado inválido!`, "yellow");
+                toast(`Valor informado inválido!`, "warning");
                 return;
             }
             iniciarLoading();
@@ -4811,7 +4811,7 @@ $(document).ready(function() {
             const index = $tbody.children().length + 1;
             $tbody.append(`
                 <tr data-forma="${formaId}" data-valor="${valorNum}" data-parcelas="${geraParcelas ? parcelas : 0}" data-dias="${geraParcelas ? dias : 0}"
-                    data-gera="${geraParcelas ? 1 : 0}" data-troco="${permiteTroco ? 1 : 0}" data-gateway="${gateway}" data-credencial='${JSON.stringify(credencial)}'>
+                    data-gera="${geraParcelas ? 1 : 0}" data-troco="${permiteTroco ? 1 : 0}" data-gateway="${gateway}" data-cerrorencial='${JSON.stringify(cerrorencial)}'>
                     <td>${index}</td>
                     <td>${formaDesc}</td>
                     <td>${formatBR(valorNum)}</td>
@@ -4841,7 +4841,7 @@ $(document).ready(function() {
             if (saldo < 0) {
 
                 if (!permiteTrocos) {
-                    toast(`Forma de pagamento não permite troco!`, "yellow");
+                    toast(`Forma de pagamento não permite troco!`, "warning");
                     return;
                 }
 
@@ -5012,7 +5012,7 @@ $(document).ready(function() {
                             const modalPix = abrirModalPix(resp.pagamentos, 0);
                             monitorarPagamentoCaixa(modalPix);
                         } else {
-                            toast(`Erro ao gerar PIX!`, "red");
+                            toast(`Erro ao gerar PIX!`, "error");
                         }
                     });
                     return;
@@ -5028,12 +5028,12 @@ $(document).ready(function() {
                     }
                 });
                 if (totalPago < totalPedido) {
-                    toast(`Valor Pago é menor que o total!`, "yellow");
+                    toast(`Valor Pago é menor que o total!`, "warning");
                     return;
                 }
                 if (totalPago > totalPedido) {
                     if (!permiteTroco) {
-                        toast(`Nenhuma forma permite troco!`, "yellow");
+                        toast(`Nenhuma forma permite troco!`, "warning");
                         return;
                     }
                     troco = totalPago - totalPedido;
@@ -5064,14 +5064,14 @@ $(document).ready(function() {
             parcelas_json: JSON.stringify(parcelas)
         }, function (resp) {
             if (resp.ok) {
-                toast(`${resp.msg}`, "green");
+                toast(`${resp.msg}`, "success");
                 bootstrap.Modal.getInstance($modal[0])?.hide();
                 // 🔥 recarrega página
                 setTimeout(() => {
                     window.location.href = `/pedidos/lista/?s=${pedidoId}`;
                 }, 3000);
             } else {
-                toast(`${resp.msg || 'Erro ao faturar'}`, "yellow");
+                toast(`${resp.msg || 'Erro ao faturar'}`, "warning");
                 fecharLoading();
             }
         });
@@ -5089,7 +5089,7 @@ $(document).ready(function() {
                 abrirModalPix(resp.pagamentos, pedidoId);
             } else {
                 const msgErro = resp.erro || "Verifique as configurações do gateway.";
-                toast(`Erro: ${msgErro}`, "red");
+                toast(`Erro: ${msgErro}`, "error");
             }
         })
         // 🔥 O PULO DO GATO: Captura erros de comunicação, timeout ou crash do Django (Status 400, 404, 500)
@@ -5108,7 +5108,7 @@ $(document).ready(function() {
                 mensagemOriginal = `Erro interno no servidor (${xhr.status}).`;
             }
 
-            toast(`${mensagemOriginal}`, "red");
+            toast(`${mensagemOriginal}`, "error");
         });
     }
     function abrirModalPix(pagamentos, pedidoId) {
@@ -5157,7 +5157,7 @@ $(document).ready(function() {
                             <p class="text-muted mb-0">Finalizando Venda...</p>
                         </div>
                     `;
-                    toast(`Pedido faturado com sucesso!`, "green");
+                    toast(`Pedido faturado com sucesso!`, "success");
                     setTimeout(() => {
                         modalPix.hide();
                         $('.modal-faturar-pedido').modal('hide');
@@ -5185,7 +5185,7 @@ $(document).ready(function() {
                             <p class="text-muted mb-0">Finalizando Venda...</p>
                         </div>
                     `;
-                    toast(`Pagamento confirmado! Finalizando venda...`, "green");
+                    toast(`Pagamento confirmado! Finalizando venda...`, "success");
                     // 🔥 USA OS DADOS SALVOS (ESSENCIAL)
                     const dados = window._caixaPagamentoPendente;
                     if (dados) {
@@ -5226,7 +5226,7 @@ $(document).ready(function() {
             if (resp.sucesso) {
                 let url = `/pedidos/cupom/${resp.pedido_id}/`;
                 window.open(url, '_blank');
-                toast(`Venda finalizada! Pedido ${resp.pedido_id}`, "green");
+                toast(`Venda finalizada! Pedido ${resp.pedido_id}`, "success");
                 $("#num_pedido").val(resp.pedido_id);
                 // 🔥 segurança extra
                 window._caixaPagamentoPendente = null;
@@ -5234,14 +5234,14 @@ $(document).ready(function() {
                 $('.modal-pagamento').modal('hide');
                 $("#id_cod_produtoCaixa").focus();
             } else {
-                toast(`${resp.erro}`, "red");
+                toast(`${resp.erro}`, "error");
             }
         });
     }
     $('#imp_cupom').on('click', function () {
         let id = $('#num_pedido').val();
         if (!id) {
-            toast(`Informe o número do pedido!`, "yellow");
+            toast(`Informe o número do pedido!`, "warning");
             return;
         }
         let url = `/pedidos/cupom/${id}/`;
@@ -5252,7 +5252,7 @@ $(document).ready(function() {
     });
     const msg = sessionStorage.getItem('msg_sucesso');
     if (msg) {
-        toast(`${msg}`, "green");
+        toast(`${msg}`, "success");
         sessionStorage.removeItem('msg_sucesso');
     }
     $(document).on('click', '.btn-abrir-modal-cancelamento', function () {
@@ -5260,7 +5260,7 @@ $(document).ready(function() {
         const motivo = $(`#motivoCancelamento${id}`).val().trim();
         const modalTarget = $(this).data('bs-target');
         if (!motivo) {
-            toast(`Informe o motivo do cancelamento!`, "yellow");
+            toast(`Informe o motivo do cancelamento!`, "warning");
             $(`#motivoCancelamento${id}`).focus();
             return;
         }
@@ -5274,17 +5274,17 @@ $(document).ready(function() {
         const id = $(this).data('orcamento-id');
         const motivo = $(`#motivoCancelamento${id}`).val().trim();
         if (!motivo) {
-            toast(`Informe o motivo do cancelamento!`, "yellow");
+            toast(`Informe o motivo do cancelamento!`, "warning");
             return;
         }
         $.ajax({
             url: `/orcamentos/canc.orc/${id}/`, type: 'POST', data: {motivo: motivo,  csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').first().val()},
             success: function () {
-                toast(`Orçamento cancelado com sucesso!`, "green");
+                toast(`Orçamento cancelado com sucesso!`, "success");
                 iniciarLoading();
                 setTimeout(() => location.reload(), 3000);
             },
-            error: function () {toast(`Erro ao cancelar orçamento!`, "red");}
+            error: function () {toast(`Erro ao cancelar orçamento!`, "error");}
         });
     });
     // Pedidos
@@ -5293,7 +5293,7 @@ $(document).ready(function() {
         const motivo = $(`#motivoCancelamento${id}`).val().trim();
         const modalTarget = $(this).data('bs-target');
         if (!motivo) {
-            toast(`Informe o motivo do pedido!`, "yellow");
+            toast(`Informe o motivo do pedido!`, "warning");
             $(`#motivoCancelamento${id}`).focus();
             return;
         }
@@ -5307,17 +5307,17 @@ $(document).ready(function() {
         const id = $(this).data('orcamento-id');
         const motivo = $(`#motivoCancelamento${id}`).val();
         if (!motivo) {
-            toast(`Informe o motivo do pedido!`, "yellow");
+            toast(`Informe o motivo do pedido!`, "warning");
             return;
         }
         $.ajax({
             url: `/pedidos/cancelar/${id}/`, type: 'POST', data: {motivo: motivo,  csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').first().val()},
             success: function () {
-                toast(`Pedido cancelado com sucesso!`, "green");
+                toast(`Pedido cancelado com sucesso!`, "success");
                 iniciarLoading();
                 setTimeout(() => location.reload(), 3000);
             },
-            error: function () {toast(`Erro ao cancelar pedido!`, "red");}
+            error: function () {toast(`Erro ao cancelar pedido!`, "error");}
         });
     });
     // Contador de confirmação
@@ -5510,17 +5510,17 @@ $(document).ready(function() {
             $('#loadingOverlay').prop('hidden', true);
         }, 250);
     }
-    function arredondarParaCima(valor, casasDecimais) {
+    function arerrorondarParaCima(valor, casasDecimais) {
         let fator = Math.pow(10, casasDecimais);
         return (Math.ceil(valor * fator) / fator).toFixed(casasDecimais);
     }
-    function arredondarComAjuste(valor) {
-        let arredondado = parseBR(valor);
-        let decimal = arredondado % 1;
-        if (decimal >= 0.480 && decimal < 0.495) {arredondado = Math.floor(arredondado) + 0.50;}
-        return formatBR(arredondado);
+    function arerrorondarComAjuste(valor) {
+        let arerrorondado = parseBR(valor);
+        let decimal = arerrorondado % 1;
+        if (decimal >= 0.480 && decimal < 0.495) {arerrorondado = Math.floor(arerrorondado) + 0.50;}
+        return formatBR(arerrorondado);
     }
-    function arredondarInteiro(valor) {
+    function arerrorondarInteiro(valor) {
         let num = parseBR(valor);
         if (isNaN(num)) return "";
         let inteiro = Math.floor(num);            // parte inteira
@@ -5579,7 +5579,7 @@ $(document).ready(function() {
             return;
         }
         let calc = (((larg_corte * 0.8) * ft_peso) * (1.5 * qtd));
-        let final = arredondarParaCima(calc, 0);
+        let final = arerrorondarParaCima(calc, 0);
         $(`.eix-mot[data-porta="${porta}"]`).val(formatBR(final));
     }
     function calcM2(porta) {
@@ -5587,14 +5587,14 @@ $(document).ready(function() {
         let alt_corte  = parseBR($(`.alt-corte[data-porta="${porta}"]`).val()) || 0;
         let rolo       = parseBR($(`.rolo[data-porta="${porta}"]`).val()) || 0;
         let calc = (rolo + alt_corte) * larg_corte;
-        let aux = arredondarComAjuste(calc);
+        let aux = arerrorondarComAjuste(calc);
         $(`.m2[data-porta="${porta}"]`).val(formatBR(aux));
     }
     function calcQtdLam(porta) {
         let alt_corte = parseBR($(`.alt-corte[data-porta="${porta}"]`).val());
         let rolo = parseBR($(`.rolo[data-porta="${porta}"]`).val());
         let calc = (alt_corte + rolo) / 0.075;
-        let aux = arredondarInteiro(calc);
+        let aux = arerrorondarInteiro(calc);
         $(`.qtd-laminas[data-porta="${porta}"]`).val(formatBR(aux));
     }
     function resetarControleRegras() {motorCtrl = {};}
@@ -5721,10 +5721,10 @@ $(document).ready(function() {
         const totalValor = parseBR($('#total_txt').text());
         let totalFormas = 0;
         $('#itensTableForm tbody tr').each(function () {totalFormas += parseBR($(this).find('td:nth-child(3)').text());});
-        const totalArred = parseBR(totalValor);
-        const formasArred = parseBR(totalFormas);
-        $("#somaFormas").text(formatBR(formasArred));
-        if (Math.abs(totalArred - formasArred) > 0.01) {
+        const totalArerror = parseBR(totalValor);
+        const formasArerror = parseBR(totalFormas);
+        $("#somaFormas").text(formatBR(formasArerror));
+        if (Math.abs(totalArerror - formasArerror) > 0.01) {
             $('#form_pgtoBtn').click();  // exibe modal de erro, se necessário
             return false;
         }
@@ -5753,7 +5753,7 @@ $(document).ready(function() {
     function gerarPortas() {
         const qtd = parseInt($('#qtd_portas').val());
         if (isNaN(qtd) || qtd < 1) {
-            toast(`Informe uma quantidade válida de Portas!`, "yellow");
+            toast(`Informe uma quantidade válida de Portas!`, "warning");
             return;
         }
         if (window.prodManager?.data) prodManager.data = {};
@@ -5909,7 +5909,7 @@ $(document).ready(function() {
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Valor</label>
-                    <input type="text" class="form-control form-control-sm valor-prod text-end" name="valor-prod" value="0,00" style='color: darkgreen; font-weight: bold; background: honeydew;' data-porta="${num}">
+                    <input type="text" class="form-control form-control-sm valor-prod text-end" name="valor-prod" value="0,00" style='color: darksuccess; font-weight: bold; background: honeydew;' data-porta="${num}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Qtde.</label>
@@ -5932,7 +5932,7 @@ $(document).ready(function() {
                 <div id="collapseProd_${num}" class="accordion-collapse collapse">
                     <div class="accordion-body table-container w-100">
                         ${criarFormularioProduto(num)}
-                        <table class="table table-bordered table-sm table-striped tabela-produtos" id="tblProd_${num}">
+                        <table class="table table-bordeerror table-sm table-striped tabela-produtos" id="tblProd_${num}">
                             <thead class="table-dark">
                                 <tr>
                                     <th>Código</th>
@@ -5984,7 +5984,7 @@ $(document).ready(function() {
                 <input type="hidden" class="vl-compra-prod-adc" data-porta="${num}" value="0,00">
                 <div class="col-md-2">
                     <label class="form-label">Valor</label>
-                    <input type="text" class="form-control form-control-sm valor-prod-adc text-end" name="valor-prod-adc" value="0,00" style='color: darkgreen; font-weight: bold; background: honeydew;' data-porta="${num}">
+                    <input type="text" class="form-control form-control-sm valor-prod-adc text-end" name="valor-prod-adc" value="0,00" style='color: darksuccess; font-weight: bold; background: honeydew;' data-porta="${num}">
                 </div>
                 <div class="col-md-1">
                     <label class="form-label">Qtde.</label>
@@ -6015,7 +6015,7 @@ $(document).ready(function() {
                 <div id="collapseAdc_${num}" class="accordion-collapse collapse">
                     <div class="accordion-body table-container w-100">
                         ${criarFormularioAdicional(num)}
-                        <table class="table table-bordered table-sm table-striped tabela-adicionais" id="tblAdc_${num}">
+                        <table class="table table-bordeerror table-sm table-striped tabela-adicionais" id="tblAdc_${num}">
                             <thead class="table-dark">
                                 <tr>
                                     <th>Código</th>
@@ -6102,7 +6102,7 @@ $(document).ready(function() {
         const qtd  = parseBR($(`.qtd-prod[data-porta="${porta}"]`).val()) || 0;
         const vl   = parseBR($(`.valor-prod[data-porta="${porta}"]`).val()) || 0;
         if (!cod || !desc || qtd <= 0) {
-            toast(`Produto principal incompleto!`, "yellow");
+            toast(`Produto principal incompleto!`, "warning");
             return;
         }
         adicionarProdutoNaTabela(porta, { cod, desc, unid, qtd, vl });
@@ -6125,11 +6125,11 @@ $(document).ready(function() {
         console.log('ADD ADC', { cod, desc, unid, qtd, vl, vl_compra, vl_compra_raw });
         const precisaLado = ['Portinhola', 'Alçapão', 'Coluna Removível'].includes(especifico);
         if (!cod || !desc || qtd <= 0) {
-            toast(`Produto adicional incompleto!`, "yellow");
+            toast(`Produto adicional incompleto!`, "warning");
             return;
         }
         if (precisaLado && !lado) {
-            toast(`Selecione o lado do produto adicional!`, "yellow");
+            toast(`Selecione o lado do produto adicional!`, "warning");
             $(`.lado-adc[data-porta="${porta}"]`).focus();
             return;
         }
@@ -6185,7 +6185,7 @@ $(document).ready(function() {
     $(document).on("blur", ".alt", async function () {
         const idTabela = $('#id_tabela_preco').val();
         if (!idTabela) {
-            toast(`Selecione a Tabela de Preço antes de gerar portas!`, "yellow");
+            toast(`Selecione a Tabela de Preço antes de gerar portas!`, "warning");
             $(this).val('');
             return;
         }
@@ -6564,7 +6564,7 @@ $(document).ready(function() {
         const numeracao = $("#id_numeracao").val();
         let campoInvalido = null;
         let nomeCampo = '';
-        $('#createForm').find('[required]').each(function() {
+        $('#createForm').find('[requierror]').each(function() {
             let valor = $(this).val();
             if (!valor || valor.trim() === '') {
                 campoInvalido = $(this);
@@ -6576,42 +6576,42 @@ $(document).ready(function() {
         if (campoInvalido) {
             campoInvalido.addClass('is-invalid');
             campoInvalido.focus();
-            toast(`${nomeCampo} deve ser preenchido!`, "yellow");
+            toast(`${nomeCampo} deve ser preenchido!`, "warning");
             return false; // 🚨 ESSENCIAL
         }
         if (temPintura === "Sim" && (!corSelecionada || corSelecionada === "")) {
-            toast(`Escolha uma cor da pintura antes de gravar!`, "yellow");
+            toast(`Escolha uma cor da pintura antes de gravar!`, "warning");
             $("#medidasBtn").click();
             return false;
         }
         if (filial !== undefined && !filial) {
-            toast(`Filial deve ser informada!`, "yellow");
+            toast(`Filial deve ser informada!`, "warning");
             $("#clienteBtn").click();
             return false;
         }
         if (fornecedor !== undefined && !fornecedor) {
-            toast(`Fornecedor deve ser informado!`, "yellow");
+            toast(`Fornecedor deve ser informado!`, "warning");
             return false;
         }
         if ((!numeracao || numeracao === "") && tipoPedido === "Pedido") {
-            toast(`Numeração do Pedido deve ser informada!`, "yellow");
+            toast(`Numeração do Pedido deve ser informada!`, "warning");
             return false;
         } else if ((!numeracao || numeracao === "") && tipoPedido === "Nota Fiscal") {
-            toast(`Numeração da Nota Fiscal deve ser informada!`, "yellow");
+            toast(`Numeração da Nota Fiscal deve ser informada!`, "warning");
             return false;
         }
         if (solicitante !== undefined && !solicitante) {
-            toast(`Solicitante deve ser informado!`, "yellow");
+            toast(`Solicitante deve ser informado!`, "warning");
             $("#clienteBtn").click();
             return false;
         }
         if (cliente !== undefined && !cliente) {
-            toast(`Cliente deve ser informado!`, "yellow");
+            toast(`Cliente deve ser informado!`, "warning");
             $("#clienteBtn").click();
             return false;
         }
         if (!verificarTotalFormas()) {
-            toast(`Total das formas de pagamento não corresponde ao valor total!`, "yellow");
+            toast(`Total das formas de pagamento não corresponde ao valor total!`, "warning");
             return false;
         }
         $('#staticBackdrop').modal('show');
@@ -6630,7 +6630,7 @@ $(document).ready(function() {
         const selectData = $('#id_tabela_preco').select2('data');
         const tabelaPreco = selectData[0]?.id;
         if (!tabelaPreco) {
-            toast(`Tabela de Preço deve ser informada!`, "yellow");
+            toast(`Tabela de Preço deve ser informada!`, "warning");
             $("#id_tabela_preco").click();
             return;
         }
@@ -6800,7 +6800,7 @@ $(document).ready(function() {
                     data-gera-parcelas="${geraParcelas ? 1 : 0}"
                     data-troco="${options.troco ? 1 : 0}"
                     data-gateway="${options.gateway || ''}"
-                    data-credencial='${JSON.stringify(options.credencial || {}).replace(/'/g, "&apos;")}'
+                    data-cerrorencial='${JSON.stringify(options.cerrorencial || {}).replace(/'/g, "&apos;")}'
                 >
                     <td>${idx}</td>
                     <td>${cells[0]}</td>
@@ -6824,7 +6824,7 @@ $(document).ready(function() {
         dias = 0,
         gateway = '',
         geraParcelas = false,
-        credenciais = {},
+        cerrorenciais = {},
         troco = false
     ) {
         const valorNumero = parseBR(valor) || 0;
@@ -6846,7 +6846,7 @@ $(document).ready(function() {
                 dias: dias,
                 gateway: gateway,
                 geraParcelas: geraParcelas,
-                credencial: credenciais,
+                cerrorencial: cerrorenciais,
                 troco: troco
             }
         );
@@ -6933,16 +6933,16 @@ $(document).ready(function() {
         const parcelas = parseInt($('#id_parcelas').val()) || 1;
         const dias     = parseInt($('#id_dias').val()) || 30;
         if (!formaPgto) {
-            toast(`Forma de Pagamento deve ser informada!`, "yellow");
+            toast(`Forma de Pagamento deve ser informada!`, "warning");
             $("#form_pgtoBtn").click();
             return;
         }
         if (valor <= 0) {
-            toast(`Informe um valor válido!`, "yellow");
+            toast(`Informe um valor válido!`, "warning");
             return;
         }
         if (formaJaExiste(formaPgto)) {
-            toast(`Forma de pagamento já inclusa na tabela!`, "yellow");
+            toast(`Forma de pagamento já inclusa na tabela!`, "warning");
             return;
         }
         $.ajax({
@@ -6959,7 +6959,7 @@ $(document).ready(function() {
                     dias,
                     response.gateway,
                     response.gera_parcelas,
-                    response.credenciais,
+                    response.cerrorenciais,
                     response.troco
                 );
                 $('#id_formas_pgto').val(null).trigger('change');
@@ -6987,7 +6987,7 @@ $(document).ready(function() {
         const valor = parseBR($('#id_vl_prod').val().trim());
         const quantidade = parseBR($('#id_qtd_prod').val().trim());
         if (!codigo || !descricao || !unidade || isNaN(valor) || isNaN(quantidade) || quantidade <= 0) {
-            return toast(`Preencha todos os campos corretamente!`, "yellow");
+            return toast(`Preencha todos os campos corretamente!`, "warning");
         }
         prodAdcManager.addItem([codigo, descricao, unidade, valor, valor, quantidade]);
         $('#id_cod_prod, #id_desc_prod, #id_unidProd, #id_vl_prod, #id_qtd_prod').val('');
@@ -6999,7 +6999,7 @@ $(document).ready(function() {
         const unidade = $('#id_unidProd_adc').val().trim();
         const valor = parseBR($('#id_vl_prod_adc').val().trim());
         const quantidade = parseBR($('#id_qtd_prod_adc').val().trim());
-        if (!codigo || !descricao || !unidade || isNaN(valor) || isNaN(quantidade) || quantidade <= 0) {return toast(`Preencha todos os campos corretamente!`, "yellow");}
+        if (!codigo || !descricao || !unidade || isNaN(valor) || isNaN(quantidade) || quantidade <= 0) {return toast(`Preencha todos os campos corretamente!`, "warning");}
         prodAdcManager.addItem([codigo, descricao, unidade, 0.00, valor, quantidade, 0.00, (valor * quantidade)]);
         $('#id_cod_prod_adc, #id_desc_prod_adc, #id_unidProd_adc, #id_vl_prod_adc, #id_qtd_prod_adc').val('');
         $('#id_cod_prod_adc').focus();
@@ -7039,8 +7039,8 @@ $(document).ready(function() {
                         if (produto.vl_prod === "0,00" || produto.vl_prod === "") {$('#id_vl_prod').focus();}
                         else {$('#id_qtd_prod').focus();}
                     }
-                    else {toast(`Código de produto não encontrado!`, "yellow");}
-                }, error: function() {toast(`Erro ao buscar o produto. Tente novamente!`, "red");}
+                    else {toast(`Código de produto não encontrado!`, "warning");}
+                }, error: function() {toast(`Erro ao buscar o produto. Tente novamente!`, "error");}
             });
         }
     });
@@ -7071,7 +7071,7 @@ $(document).ready(function() {
             url: '/produtos/lista_ajax/', method: 'GET',  data: {s: cod, tp: 'cod', tp_prod: tipo, tabela_id: getTabelaPreco(), auto: 0},
             success(response) {
                 if (!response.produtos?.length) {
-                    toast(`Código de produto não encontrado!`, "yellow");
+                    toast(`Código de produto não encontrado!`, "warning");
                     return;
                 }
                 const produto = response.produtos[0];
@@ -7088,7 +7088,7 @@ $(document).ready(function() {
                 toggleCampoLado($form, produto, isAdicional);
                 $form.find(map.valor).focus();
             },
-            error() {toast(`Erro ao buscar o produto. Tente novamente!`, "red");}
+            error() {toast(`Erro ao buscar o produto. Tente novamente!`, "error");}
         });
     }
     $(document).on('blur', '.cod-prod', function () {buscarProdutoPorCodigo($(this), 'Principal');});
@@ -7263,7 +7263,7 @@ $(document).ready(function() {
                     $('#id_alt_vlEd').val('Não');
                     $('#id_preco_unitP').prop('disabled', true);
                     $('#id_preco_unitEd').prop('disabled', true);
-                    toast(`Seu usuário não pode alterar valor de produtos no caixa/pedidos!`, "yellow");
+                    toast(`Seu usuário não pode alterar valor de produtos no caixa/pedidos!`, "warning");
                 }
             );
         } else {
@@ -7646,7 +7646,7 @@ $(document).ready(function() {
         }
         if (navigator.clipboard) {
             navigator.clipboard.writeText(link).then(() => {
-                toast(`Link copiado!`, "green");
+                toast(`Link copiado!`, "success");
             }).catch(err => console.error("Erro ao copiar: ", err));
         } else {
             let tempInput = $("<input>");
@@ -7654,7 +7654,7 @@ $(document).ready(function() {
             tempInput.val(link).select();
             document.execCommand("copy");
             tempInput.remove();
-            toast(`Link copiado!`, "green");
+            toast(`Link copiado!`, "success");
         }
     });
     document.addEventListener("DOMContentLoaded", function() {
@@ -8375,7 +8375,7 @@ $(document).ready(function() {
         function create() {
             const nome = $.trim($input.val());
             if (!nome) {
-                toast(`Digite o nome do ${entityName.toLowerCase()}!`, "yellow");
+                toast(`Digite o nome do ${entityName.toLowerCase()}!`, "warning");
                 return $input.focus();
             }
             $btnOk.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
@@ -8385,10 +8385,10 @@ $(document).ready(function() {
                     const option = new Option(data.nome, data.id, true, true);
                     $select.append(option).trigger('change');
                     setTimeout(() => {$select.trigger('change.select2');}, 150);
-                    toast(`${entityName} criado com sucesso!`, "green");
+                    toast(`${entityName} criado com sucesso!`, "success");
                 },
                 error: function () {
-                    toast(`Erro ao criar ${entityName.toLowerCase()}!`, "red");
+                    toast(`Erro ao criar ${entityName.toLowerCase()}!`, "error");
                     $btnOk.prop('disabled', false).html('<i class="fa fa-check"></i>');
                 }
             });
@@ -8785,7 +8785,7 @@ $(document).ready(function() {
         });
         return `
             <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
-                <table class="table table-sm table-bordered table-striped w-100 mb-0">
+                <table class="table table-sm table-bordeerror table-striped w-100 mb-0">
                     <thead class="table-dark">
                         <tr>
                             <th>Item</th><th>Código</th><th>Descrição</th><th>Unidade</th><th>Vl. Unit.</th><th>Qtde</th><th>Desc/Acres</th><th>Subtotal</th>
