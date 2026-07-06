@@ -30,7 +30,7 @@ def finalizar_pedido(pedido, formas=None, parcelas=None, parcial=False, request=
     # 🔥 FORMAS DE PAGAMENTO
     if formas:
         for f in formas:
-            PedidoFormaPgto.objects.create(pedido=pedido, forma_pgto_id=f["forma"], valor=f["valor"])
+            PedidoFormaPgto.objects.create(pedido=pedido, codigo=f["forma"], valor=f["valor"])
     # 🔥 CONTAS A RECEBER
     if parcelas:
         for p in parcelas:
