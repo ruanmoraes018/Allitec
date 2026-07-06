@@ -1,4 +1,6 @@
 <!DOCTYPE html>
+{% load static %}
+{% load custom_filters %}
 <html lang="pt-br">
     <head>
         <meta charset="UTF-8">
@@ -49,24 +51,24 @@
         <table>
             <tr>
                 <td><div class="label"><strong>DESCRIÇÃO</strong></div></td>
-                <td><div class="label"><strong>VALOR UNIT.</strong></div></td>
+                <td><div class="label" style="font-size: 12px;"><strong>VL. UNIT.</strong></div></td>
                 <td><div class="label"><strong>QUANTIDADE</strong></div></td>
                 <td><div class="label"><strong>DESCONTO</strong></div></td>
-                <td><div class="label"><strong>VL. TOTAL</strong></div></td>
+                <td><div class="label" style="font-size: 11px;"><strong>VL. TOTAL</strong></div></td>
             </tr>
             <tr>
                 <td>{{ p.desc_imp }} SISTEMA <strong>ALLITEC - ATÉ {{ p.qtd_usu}} USUÁRIOS</strong></td>
-                <td><div class="label">R$ {{ p.vl_imp }}</div></td>
+                <td><div class="label">R$ {{ p.vl_imp|moeda_br }}</div></td>
                 <td><div class="label">1</div></td>
-                <td><div class="label">R$ {{ p.dsct_imp }}</div></td>
-                <td><div class="label">R$ {{ p.vl_fin_imp }}</div></td>
+                <td><div class="label">R$ {{ p.dsct_imp|moeda_br }}</div></td>
+                <td><div class="label">R$ {{ p.vl_fin_imp|moeda_br }}</div></td>
             </tr>
             <tr>
                 <td>{{ p.desc_ass }} SISTEMA <strong>ALLITEC</strong></td>
-                <td><div class="label">R$ {{ p.vl_ass }}</div></td>
-                <td><div class="label">{{ p.qtd_ass }}</div></td>
-                <td><div class="label">R$ {{ p.dsct_ass }}</div></td>
-                <td><div class="label">R$ {{ p.vl_fin_ass }}</div></td>
+                <td><div class="label">R$ {{ p.vl_ass|moeda_br }}</div></td>
+                <td><div class="label">{{ p.qtd_ass|floatformat:0 }}</div></td>
+                <td><div class="label">R$ {{ p.dsct_ass|moeda_br }}</div></td>
+                <td><div class="label">R$ {{ p.vl_fin_ass|moeda_br }}</div></td>
             </tr>
         </table>
         <h4>FORMAS DE PAGAMENTO</h4>
