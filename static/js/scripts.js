@@ -43,6 +43,7 @@ $(document).ready(function() {
                 Multi Lg. Corte: ${f.multi_lg_corte ?? '-'}
                 Tabela Preço: ${f.tb_preco ?? '-'}
                 Ag. Itens: ${f.agrupa_itens}
+                Multi Qtde. Lâm: ${f.mt_qt_lam}
                 `).join('\n\n');
             console.log(texto);
         });
@@ -383,6 +384,9 @@ $(document).ready(function() {
         limparCampos();
         $('#id_quantidadeCaixa').val('1,00');
         $('#id_desc_prodCaixa').val(item.desc);
+    });
+    $('#btn-js').click(function () {
+        iniciarLoading();
     });
     let totalBase = 0;
     $(document).on('click', '#modalOpções .menu-opcao', function (e) {
@@ -763,7 +767,317 @@ $(document).ready(function() {
             second: '2-digit'
         });
     }
+    $("#formEntrada").submit(function(e){
+        e.preventDefault();
+        let desc = $("#desc_entrada").val();
+        const selectData = $('#forma_entrada').select2('data');
+        const formaPgto  = selectData[0]?.id;
+        const valor    = parseBR($('#vl_entrada').val());
+        if (!desc) {
+            toast("Descrição deve ser informada!", "warning");
+            return;
+        }
+
+        if (!formaPgto) {
+            toast("Forma de pagamento deve ser informada!", "warning");
+            return;
+        }
+
+        if (!valor || valor <= 0) {
+            toast("Valor deve ser informado!", "warning");
+            return;
+        }
+
+        $.ajax({
+            url: $(this).attr("action"),
+            type: "POST",
+            data: $(this).serialize(),
+            success: function(data){
+                if(data.sucesso){
+                    $("#modalEntrada").modal("hide");
+                    imprimirComprovanteEntrada(data);
+                    $('#forma_entrada').val(null).trigger('change');
+                    $("#vl_entrada, #desc_entrada").val("");
+                    toast(`Entrada registrada com sucesso!`, "success");
+                }
+            },
+
+            error: function(xhr){
+
+                toast(xhr.responseJSON.erro, 'error');
+
+            }
+
+        });
+
+    });
+    function imprimirComprovanteEntrada(dados){
+
+        let frame = document.getElementById("frameImpressao");
+        let doc = frame.contentWindow.document;
+
+        doc.open();
+
+        doc.write(`
+            <style>
+                @page {
+                    margin: 0;
+                }
+                body {
+                    margin: 0;
+                    padding: 0;
+                }
+                #cupom {
+                    width: 100%;
+                    max-width: 72mm;
+                    font-family: monospace;
+                    font-size: 10px;
+                    margin: 0;
+                    padding: 5px;
+                    border: 1px dashed #000;
+                }
+
+                .center { text-align: center; }
+                .bold { font-weight: bold; }
+
+                .linha {
+                    border-top: 1px dashed #000;
+                    margin: 3px 0;
+                }
+
+                .flex {
+                    display: flex;
+                    justify-content: space-between;
+                }
+
+                .small { font-size: 11px; }
+
+                img {
+                    max-width: 120px;
+                    margin: 0 auto;
+                    display: block;
+                }
+                .assinaturas {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-top: 40px;
+                }
+
+                .assinatura {
+                    width: 45%;
+                    text-align: center;
+                }
+
+                .assinatura .linha-ass {
+                    border-top: 1px solid #000;
+                    margin-bottom: 4px;
+                }
+            </style>
+            <div id="cupom" class="bold">
+                <div class="center small">
+                    <div>${dados.fantasia}</div>
+                    <div>${dados.endereco}, ${dados.numero}</div>
+                    <div>
+                        ${dados.bairro} - ${dados.cidade} - ${dados.uf}
+                    </div>
+                    <div>
+                        ${dados.tel}
+                    </div>
+                </div>
+                <div class="linha"></div>
+                <div class="center small">
+                    ENTRADA NO CAIXA
+                </div>
+                <div class="linha"></div>
+                <div class="small">
+                    <div>CAIXA: ${dados.caixa}</div>
+                    <div>Nº DOC.: ${dados.cod_cx}/${dados.id}</div>
+                    <div>DESCRIÇÃO: ${dados.descricao}</div>
+                    <div>DT-HR: ${dados.data}</div>
+                </div>
+                <div class="linha"></div>
+                <div class="small">
+                    <div>${dados.forma} <span style="float: right;">R$ ${formatBR(dados.valor)}</span></div>
+                </div>
+                <div class="assinaturas">
+                    <div class="assinatura">
+                        <div class="linha-ass"></div>
+                        <div>CAIXA</div>
+                    </div>
+
+                    <div class="assinatura">
+                        <div class="linha-ass"></div>
+                        <div>RESPONSÁVEL</div>
+                    </div>
+                </div>
+            </div>
+        `);
+
+        doc.close();
+
+        frame.contentWindow.focus();
+        frame.contentWindow.print();
+    }
+    $("#formSaida").submit(function(e){
+        e.preventDefault();
+        let desc = $("#desc_saida").val();
+        const selectData = $('#forma_saida').select2('data');
+        const formaPgto  = selectData[0]?.id;
+        const valor    = parseBR($('#vl_saida').val());
+        if (!desc) {
+            toast("Descrição deve ser informada!", "warning");
+            return;
+        }
+
+        if (!formaPgto) {
+            toast("Forma de pagamento deve ser informada!", "warning");
+            return;
+        }
+
+        if (!valor || valor <= 0) {
+            toast("Valor deve ser informado!", "warning");
+            return;
+        }
+
+        $.ajax({
+
+            url: $(this).attr("action"),
+            type: "POST",
+            data: $(this).serialize(),
+
+            success: function(data){
+
+                if(data.sucesso){
+
+                    $("#modalSaida").modal("hide");
+
+                    imprimirComprovanteSaida(data);
+                    $('#forma_saida').val(null).trigger('change');
+                    $("#vl_saida, #desc_saida").val("");
+                    toast(`Saída registrada com sucesso!`, "success");
+
+                }
+            },
+
+            error: function(xhr){
+
+                toast(xhr.responseJSON.erro, 'error');
+
+            }
+
+        });
+
+    });
+    function imprimirComprovanteSaida(dados){
+
+        let frame = document.getElementById("frameImpressaoSaida");
+        let doc = frame.contentWindow.document;
+
+        doc.open();
+
+        doc.write(`
+            <style>
+                @page {
+                    margin: 0;
+                }
+                body {
+                    margin: 0;
+                    padding: 0;
+                }
+                #cupom {
+                    width: 100%;
+                    max-width: 72mm;
+                    font-family: monospace;
+                    font-size: 10px;
+                    margin: 0;
+                    padding: 5px;
+                    border: 1px dashed #000;
+                }
+
+                .center { text-align: center; }
+                .bold { font-weight: bold; }
+
+                .linha {
+                    border-top: 1px dashed #000;
+                    margin: 3px 0;
+                }
+
+                .flex {
+                    display: flex;
+                    justify-content: space-between;
+                }
+
+                .small { font-size: 11px; }
+
+                img {
+                    max-width: 120px;
+                    margin: 0 auto;
+                    display: block;
+                }
+                .assinaturas {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-top: 40px;
+                }
+
+                .assinatura {
+                    width: 45%;
+                    text-align: center;
+                }
+
+                .assinatura .linha-ass {
+                    border-top: 1px solid #000;
+                    margin-bottom: 4px;
+                }
+            </style>
+            <div id="cupom" class="bold">
+                <div class="center small">
+                    <div>${dados.fantasia}</div>
+                    <div>${dados.endereco}, ${dados.numero}</div>
+                    <div>
+                        ${dados.bairro} - ${dados.cidade} - ${dados.uf}
+                    </div>
+                    <div>
+                        ${dados.tel}
+                    </div>
+                </div>
+                <div class="linha"></div>
+                <div class="center small">
+                    SAÍDA DO CAIXA
+                </div>
+                <div class="linha"></div>
+                <div class="small">
+                    <div>CAIXA: ${dados.caixa}</div>
+                    <div>Nº DOC.: ${dados.cod_cx}/${dados.id}</div>
+                    <div>DESCRIÇÃO: ${dados.descricao}</div>
+                    <div>DT-HR: ${dados.data}</div>
+                </div>
+                <div class="linha"></div>
+                <div class="small">
+                    <div>${dados.forma} <span style="float: right;">R$ ${formatBR(dados.valor)}</span></div>
+                </div>
+                <div class="assinaturas">
+                    <div class="assinatura">
+                        <div class="linha-ass"></div>
+                        <div>CAIXA</div>
+                    </div>
+
+                    <div class="assinatura">
+                        <div class="linha-ass"></div>
+                        <div>RESPONSÁVEL</div>
+                    </div>
+                </div>
+            </div>
+        `);
+
+        doc.close();
+
+        frame.contentWindow.focus();
+        frame.contentWindow.print();
+
+    }
     function abrirMovCaixa(caixaId) {
+        iniciarLoading();
         fetch(`/lancpdvs/caixa/movimentos/${caixaId}/`)
             .then(r => r.json())
             .then(resp => {
@@ -773,7 +1087,7 @@ $(document).ready(function() {
                     return;
                 }
 
-                $('#tblAbertura, #tblVendas, #tblResumoVendas, #tblEntradas, #tblResumoEntradas, #tblSaidas, #tblResumoSaidas, #tblTotalGeral').html('');
+                $('#tblAbertura, #tblVendas, #tblResumoVendas, #tblEntradas, #tblResumoEntradas, #tblSaidas, #tblResumoSaidas, #tblTotalGeral, #totVendasCaixa').html('');
 
                 // 🔹 ABERTURA
                 resp.abertura.forEach(a => {
@@ -801,12 +1115,20 @@ $(document).ready(function() {
                             </div>
                         `;
                     });
+                    let cor = "";
+                    if (v.situacao === "Faturado") {
+                        cor = "badge text-bg-success";
+                    } else {
+                        cor = "badge text-bg-danger";
+                    }
+
                     $('#tblVendas').append(`
                         <tr>
                             <td>${v.pedido_id}</td>
                             <td>${v.cliente}</td>
                             <td>${v.vendedor}</td>
                             <td>${formatDataHora(v.data)}</td>
+                            <td><span class="${cor}">${v.situacao}</span></td>
                             <td>
                                 <div style="
                                     font-weight: bold;
@@ -851,13 +1173,56 @@ $(document).ready(function() {
 
                 // 🔹 ENTRADAS
                 resp.entradas.forEach(e => {
-                    $('#tblEntradas').append(`
-                        <tr>
-                            <td>${e.descricao}</td>
-                            <td>${e.forma}</td>
-                            <td class="text-end">${formatBR(e.valor)}</td>
-                        </tr>
-                    `);
+                    let disabled = "";
+                    if (e.situacao === "Cancelado") {
+                        disabled = "disabled";
+                        $('#tblEntradas').append(`
+                            <tr>
+                                <td>${e.codigo}</td>
+                                <td>${e.descricao}</td>
+                                <td>${e.forma}</td>
+                                <td class="text-end">${formatBR(e.valor)}</td>
+                                <td class="col-auto" style="text-align: center;">
+                                    <button
+                                        class="btn btn-danger btn-sm btnCancelarEntrada"
+                                        data-caixa="${resp.caixa}"
+                                        data-movimento="${e.codigo}" ${disabled} title="Entrada já cancelada!">
+                                        <i class="fa-solid fa-ban text-white fs-5"></i>
+                                    </button>
+                                    <button
+                                        class="btn btn-primary btn-sm btnReimprimirEntrada"
+                                        data-caixa="${resp.caixa}"
+                                        data-movimento="${e.codigo}">
+                                        <i class="fa-solid fa-receipt text-white fs-5"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `);
+                    } else {
+                        $('#tblEntradas').append(`
+                            <tr>
+                                <td>${e.codigo}</td>
+                                <td>${e.descricao}</td>
+                                <td>${e.forma}</td>
+                                <td class="text-end">${formatBR(e.valor)}</td>
+                                <td class="col-auto" style="text-align: center;">
+                                    <button
+                                        class="btn btn-danger btn-sm btnCancelarEntrada"
+                                        data-caixa="${resp.caixa}"
+                                        data-movimento="${e.codigo}" title="Cancelar Entrada!">
+                                        <i class="fa-solid fa-ban text-white fs-5"></i>
+                                    </button>
+                                    <button
+                                        class="btn btn-primary btn-sm btnReimprimirEntrada"
+                                        data-caixa="${resp.caixa}"
+                                        data-movimento="${e.codigo}">
+                                        <i class="fa-solid fa-receipt text-white fs-5"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `);
+                    }
+
                 });
 
                 // 🔹 RESUMO ENTRADAS
@@ -872,13 +1237,56 @@ $(document).ready(function() {
 
                 // 🔹 SAÍDAS
                 resp.saidas.forEach(sai => {
-                    $('#tblSaidas').append(`
-                        <tr>
-                            <td>${sai.descricao}</td>
-                            <td>${sai.forma}</td>
-                            <td class="text-end text-danger">${formatBR(sai.valor)}</td>
-                        </tr>
-                    `);
+                    let disabled = "";
+                    if (sai.situacao === "Cancelado") {
+                        disabled = "disabled";
+                        $('#tblSaidas').append(`
+                            <tr>
+                                <td>${sai.codigo}</td>
+                                <td>${sai.descricao}</td>
+                                <td>${sai.forma}</td>
+                                <td class="text-end text-danger">${formatBR(sai.valor)}</td>
+                                <td class="col-auto" style="text-align: center;">
+                                    <button
+                                        class="btn btn-danger btn-sm btnCancelarSaida"
+                                        data-caixa="${resp.caixa}"
+                                        data-movimento="${sai.codigo}" ${disabled} title="Saída já cancelada!">
+                                        <i class="fa-solid fa-ban text-white fs-5"></i>
+                                    </button>
+                                    <button
+                                        class="btn btn-primary btn-sm btnReimprimirSaida"
+                                        data-caixa="${resp.caixa}"
+                                        data-movimento="${sai.codigo}">
+                                        <i class="fa-solid fa-receipt text-white fs-5"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `);
+                    } else {
+                        $('#tblSaidas').append(`
+                            <tr>
+                                <td>${sai.codigo}</td>
+                                <td>${sai.descricao}</td>
+                                <td>${sai.forma}</td>
+                                <td class="text-end text-danger">${formatBR(sai.valor)}</td>
+                                <td class="col-auto" style="text-align: center;">
+                                    <button
+                                        class="btn btn-danger btn-sm btnCancelarSaida"
+                                        data-caixa="${resp.caixa}"
+                                        data-movimento="${sai.codigo}" title="Cancelar Saída!">
+                                        <i class="fa-solid fa-ban text-white fs-5"></i>
+                                    </button>
+                                    <button
+                                        class="btn btn-primary btn-sm btnReimprimirSaida"
+                                        data-caixa="${resp.caixa}"
+                                        data-movimento="${sai.codigo}">
+                                        <i class="fa-solid fa-receipt text-white fs-5"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `);
+                    }
+
                 });
 
                 // 🔹 RESUMO SAÍDAS
@@ -902,7 +1310,89 @@ $(document).ready(function() {
                 });
 
             });
+        fecharLoading();
     }
+    $(document).on("click", ".btnReimprimirEntrada", function () {
+
+        const caixa = $(this).data("caixa");
+        const movimento = $(this).data("movimento");
+
+        $.get(
+            `/lancpdvs/caixa/${caixa}/movimento/${movimento}/`,
+            function (data) {
+
+                if (data.sucesso) {
+                    imprimirComprovanteEntrada(data);
+                } else {
+                    toast(data.erro, "error");
+                }
+
+            }
+        );
+
+    });
+    $(document).on("click", ".btnReimprimirSaida", function () {
+
+        const caixa = $(this).data("caixa");
+        const movimento = $(this).data("movimento");
+
+        $.get(
+            `/lancpdvs/caixa/${caixa}/movimento/${movimento}/`,
+            function (data) {
+
+                if (data.sucesso) {
+                    imprimirComprovanteSaida(data);
+                } else {
+                    toast(data.erro, "error");
+                }
+
+            }
+        );
+
+    });
+    $(document).on("click", ".btnCancelarEntrada, .btnCancelarSaida", function () {
+
+        const botao = $(this);
+
+        const caixa = botao.data("caixa");
+        const movimento = botao.data("movimento");
+
+        if (!confirm("Deseja realmente cancelar este lançamento?")) {
+            return;
+        }
+
+        $.ajax({
+            url: `/lancpdvs/caixa/${caixa}/movimento/${movimento}/cancelar/`,
+            type: "POST",
+            headers: {
+                "X-CSRFToken": $("[name=csrfmiddlewaretoken]").val()
+            },
+            success: function (resp) {
+
+                toast(resp.mensagem, "success");
+
+                // Remove os botões de cancelar
+                botao.closest("td").find(".btnCancelarEntrada, .btnCancelarSaida").remove();
+
+                // Opcional: marca a linha como cancelada
+                botao.closest("tr").addClass("table-danger");
+
+                // Atualiza os totais do caixa
+                abrirMovCaixa(caixa);
+            },
+            error: function (xhr) {
+
+                let erro = "Erro ao cancelar lançamento.";
+
+                if (xhr.responseJSON && xhr.responseJSON.erro) {
+                    erro = xhr.responseJSON.erro;
+                }
+
+                toast(erro, "error");
+            }
+        });
+
+    });
     $(document).on('click', '.btnMovi', function () {
         const caixaId = $(this).data('caixa-id');
 
@@ -981,10 +1471,20 @@ $(document).ready(function() {
         const p_social = $('#id_portao_social').val();
         if (p_social === 'Não') {
             $("#id_vl_p_s").val('0,00');
-            $("#id_vl_p_s").prop("readonly", true);
+            $("#id_vl_p_s").prop("readonly", true).addClass("d-none");
+            $("#id_lg_ps").prop("readonly", true).addClass("d-none");
+            $("#id_at_ps").prop("readonly", true).addClass("d-none");
+            $("#div_id_vl_p_s").addClass("d-none");
+            $("#div_id_lg_ps").addClass("d-none");
+            $("#div_id_at_ps").addClass("d-none");
             atualizarSubtotal();
         } else if (p_social === 'Sim') {
-            $("#id_vl_p_s").prop("readonly", false);
+            $("#id_vl_p_s").prop("readonly", false).removeClass("d-none");
+            $("#id_lg_ps").prop("readonly", false).removeClass("d-none");
+            $("#id_at_ps").prop("readonly", false).removeClass("d-none");
+            $("#div_id_vl_p_s").removeClass("d-none");
+            $("#div_id_lg_ps").removeClass("d-none");
+            $("#div_id_at_ps").removeClass("d-none");
         }
     }
     verificarPortaoSocial();
@@ -2014,7 +2514,7 @@ $(document).ready(function() {
                             <div class="col-md-2 fw-semibold codigo-col mg-div" data-label="Margem:">
                                 ${formatBR(mrg)}
                                 <input type="hidden" name="tab_preco[${idx}][margem]" value="${mrg}">
-                            </div>  
+                            </div>
                             <!-- Valor -->
                             <div class="col-md-2 fw-semibold codigo-col vl-div" data-label="Valor:">
                                 ${formatBR(vl_p)}
@@ -3796,7 +4296,6 @@ $(document).ready(function() {
                     }
                     if (modalEl) {
                         const modal = new bootstrap.Modal(modalEl, {
-                            backdrop: 'static',
                             keyboard: false
                         });
                         modal.show();
@@ -3812,139 +4311,7 @@ $(document).ready(function() {
             }
         );
     });
-    $("#formEntrada").submit(function(e){
 
-        e.preventDefault();
-
-        $.ajax({
-            url: $(this).attr("action"),
-            type: "POST",
-            data: $(this).serialize(),
-            success: function(data){
-                if(data.sucesso){
-                    $("#modalEntrada").modal("hide");
-                    imprimirComprovanteEntrada(data);
-                    toast(`Entrada registrada com sucesso!`, "success");
-                }
-            },
-
-            error: function(xhr){
-
-                toastr.error(xhr.responseJSON.erro);
-
-            }
-
-        });
-
-    });
-    function imprimirComprovanteEntrada(dados){
-
-        let frame = document.getElementById("frameImpressao");
-        let doc = frame.contentWindow.document;
-
-        doc.open();
-
-        doc.write(`
-            <html>
-            <body style="width:80mm;font-family:monospace;font-size:12px;text-align:center">
-
-                <h3>${dados.categoria.toUpperCase()}</h3>
-
-                Data: ${dados.data}<br>
-                Operador: ${dados.usuario}<br>
-
-                <hr>
-
-                Tipo: ${dados.tipo}<br>
-                Forma: ${dados.forma}<br>
-
-                <hr>
-
-                <h2>R$ ${formatBR(dados.valor)}</h2>
-
-                <hr>
-
-                ${dados.descricao}
-
-            </body>
-            </html>
-        `);
-
-        doc.close();
-
-        frame.contentWindow.focus();
-        frame.contentWindow.print();
-    }
-    $("#formSaida").submit(function(e){
-
-        e.preventDefault();
-
-        $.ajax({
-
-            url: $(this).attr("action"),
-            type: "POST",
-            data: $(this).serialize(),
-
-            success: function(data){
-
-                if(data.sucesso){
-
-                    $("#modalSaida").modal("hide");
-
-                    imprimirComprovanteSaida(data);
-                    toast(`Saída registrada com sucesso!`, "success");
-
-                }
-            },
-
-            error: function(xhr){
-
-                toastr.error(xhr.responseJSON.erro);
-
-            }
-
-        });
-
-    });
-    function imprimirComprovanteSaida(dados){
-
-        let frame = document.getElementById("frameImpressaoSaida");
-        let doc = frame.contentWindow.document;
-
-        doc.open();
-
-        doc.write(`
-            <html>
-            <body style="width:80mm;font-family:monospace;font-size:12px;text-align:center">
-
-                <h3>${dados.categoria.toUpperCase()}</h3>
-
-                Data: ${dados.data}<br>
-                Operador: ${dados.usuario}<br>
-
-                <hr>
-
-                Tipo: ${dados.tipo}<br>
-                Forma: ${dados.forma}<br>
-
-                <hr>
-
-                <h2>R$ ${formatBR(dados.valor)}</h2>
-
-                <hr>
-
-                ${dados.descricao}
-
-            </body>
-            </html>
-        `);
-
-        doc.close();
-
-        frame.contentWindow.focus();
-        frame.contentWindow.print();
-
-    }
     $('#confirmSend').on('click', function() {
         $('#confirmModal').modal('hide');
         $('#userSelectModal').modal('show');
@@ -4924,7 +5291,10 @@ $(document).ready(function() {
             iniciarLoading();
             let modal = $(this);
 
-            if (modal.find('.table-formas tbody tr').length > 0) return;
+            if (modal.find('.table-formas tbody tr').length > 0) {
+                fecharLoading();
+                return;
+            }
 
             let select = modal.find('.forma-pgto');
             let inputValor = modal.find('.inp-valor-pgto');
@@ -4944,9 +5314,8 @@ $(document).ready(function() {
 
                 setTimeout(() => {
                     btnAdd.click();
-                }, 500);
+                }, 400);
             });
-            fecharLoading();
         });
         // ✅ CONFIRMAR (CAIXA + PEDIDO)
         $(document).on('click', '.btn-confirmar-pedido', function (e) {
@@ -5594,18 +5963,6 @@ $(document).ready(function() {
         let resultado = m2 * parseBR(multi);
         $(`.peso[data-porta="${porta}"]`).val(formatBR(resultado));
     }
-    function calcularEixoMotor(porta) {
-        let ft_peso = parseBR($(`.ft-peso[data-porta="${porta}"]`).val());
-        let larg_corte = parseBR($(`.larg-corte[data-porta="${porta}"]`).val());
-        let qtd = 1;
-        if (isNaN(ft_peso) || isNaN(larg_corte) || isNaN(qtd)) {
-            $(`.eix-mot[data-porta="${porta}"]`).val('');
-            return;
-        }
-        let calc = (((larg_corte * 0.8) * ft_peso) * (1.5 * qtd));
-        let final = arredondarParaCima(calc, 0);
-        $(`.eix-mot[data-porta="${porta}"]`).val(formatBR(final));
-    }
     function calcM2(porta) {
         let larg_corte = parseBR($(`.larg-corte[data-porta="${porta}"]`).val()) || 0;
         let alt_corte  = parseBR($(`.alt-corte[data-porta="${porta}"]`).val()) || 0;
@@ -5615,11 +5972,36 @@ $(document).ready(function() {
         $(`.m2[data-porta="${porta}"]`).val(formatBR(aux));
     }
     function calcQtdLam(porta) {
-        let alt_corte = parseBR($(`.alt-corte[data-porta="${porta}"]`).val());
-        let rolo = parseBR($(`.rolo[data-porta="${porta}"]`).val());
-        let calc = (alt_corte + rolo) / 0.075;
-        let aux = arredondarInteiro(calc);
-        $(`.qtd-laminas[data-porta="${porta}"]`).val(formatBR(aux));
+        const filialId = $('#id_vinc_fil').val();
+        let formula = DADOS_FILIAL?.[filialId]?.mt_qt_lam;
+        if (!formula) return;
+        const vars = {
+            larg: parseBR($(`.larg[data-porta="${porta}"]`).val()) || 0,
+            alt: parseBR($(`.alt[data-porta="${porta}"]`).val()) || 0,
+            larg_corte: parseBR($(`.larg-corte[data-porta="${porta}"]`).val()) || 0,
+            alt_corte: parseBR($(`.alt-corte[data-porta="${porta}"]`).val()) || 0,
+            qtd_laminas: parseBR($(`.qtd-laminas[data-porta="${porta}"]`).val()) || 0,
+            m2: parseBR($(`.m2[data-porta="${porta}"]`).val()) || 0,
+            ft_peso: parseBR($(`.ft-peso[data-porta="${porta}"]`).val()) || 0,
+            peso: parseBR($(`.peso[data-porta="${porta}"]`).val()) || 0,
+            eix_mot: parseBR($(`.eix-mot[data-porta="${porta}"]`).val()) || 0,
+            rolo: parseBR($(`.rolo[data-porta="${porta}"]`).val()) || 0,
+        };
+        // Substitui as variáveis pelos valores
+        Object.entries(vars).forEach(([nome, valor]) => {
+            formula = formula.replace(
+                new RegExp(`\\b${nome}\\b`, 'g'),
+                valor
+            );
+        });
+        let resultado = 0;
+        try {
+            resultado = Function(`"use strict"; return (${formula});`)();
+        } catch (e) {
+            console.error("Erro na fórmula:", formula, e);
+            return;
+        }
+        $(`.qtd-laminas[data-porta="${porta}"]`).val(arredondarInteiro(resultado));
     }
     function resetarControleRegras() {motorCtrl = {};}
     toastErrorShown = false;
@@ -5643,7 +6025,6 @@ $(document).ready(function() {
             calcM2(porta);
             calcFtPeso(porta);
             calcPeso(porta);
-            calcularEixoMotor(porta);
             calcQtdLam(porta);
             await carregarProdutosIniciais(porta);
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -5798,7 +6179,6 @@ $(document).ready(function() {
                     <td data-label="M²:" class="mobile-2col"><input readonly class="form-control form-control-sm m2" data-porta="${i}" placeholder="0,00"></td>
                     <td data-label="Ft. Peso:" class="mobile-2col"><input readonly class="form-control form-control-sm ft-peso" data-porta="${i}" placeholder="0,00"></td>
                     <td data-label="Peso:" class="mobile-2col"><input readonly class="form-control form-control-sm peso" data-porta="${i}" placeholder="0,00"></td>
-                    <td data-label="Eix. Mot.:" class="mobile-2col"><input readonly class="form-control form-control-sm eix-mot" data-porta="${i}" placeholder="0,00"></td>
                     <td data-label="Rolo:" class="mobile-full"><input readonly class="form-control form-control-sm rolo" data-porta="${i}" placeholder="0,00"></td>
                     <td data-label="Tipo Lâmina:" class="mobile-full">
                         <select class="form-select form-select-sm tipo-lamina" data-porta="${i}">
@@ -6231,7 +6611,6 @@ $(document).ready(function() {
         calcM2(porta);
         calcFtPeso(porta);
         calcPeso(porta);
-        calcularEixoMotor(porta);
         calcQtdLam(porta);
         await carregarProdutosIniciais(porta);
         atualizarSubtotal();
@@ -7829,10 +8208,20 @@ $(document).ready(function() {
         limparBackdropsDuplicados();
     });
     // Modal de filial
-    $(".btn-delete").on("click", function() {
-        let orcamentoId = $(this).attr("data-orcamento-id");
-        let modalDelete = new bootstrap.Modal($("#modal-" + orcamentoId)[0]); // ID correto do modal
-        modalDelete.show();
+    $(".btn-delete").on("click", function () {
+        const orcamentoId = $(this).data("orcamento-id");
+
+        const menuEl = $("#menuModal" + orcamentoId)[0];
+        const deleteEl = $("#modal-" + orcamentoId)[0];
+
+        const modalMenu = bootstrap.Modal.getInstance(menuEl);
+        const modalDelete = bootstrap.Modal.getOrCreateInstance(deleteEl);
+
+        $(menuEl).one("hidden.bs.modal", function () {
+            modalDelete.show();
+        });
+
+        modalMenu.hide();
     });
     $(".confirm-delete").on("click", function() {
         let filialId = $(this).attr("data-orcamento-id");
@@ -8241,17 +8630,18 @@ $(document).ready(function() {
     $(document).ready(init);
     var endSecao = $('#enderecos');
     function hideAllSections1() {$('.form-section').hide();}
-    function updateButtonStyle1(activeBt, bt1, bt2, bt3, bt4) {
+    function updateButtonStyle1(activeBt, bt1, bt2, bt3, bt4, bt5) {
         activeBt?.addClass('btn-ativo').removeClass('btn-inativo');
         bt1?.removeClass('btn-ativo btn-inativo');
         bt2?.removeClass('btn-ativo btn-inativo');
         bt3?.removeClass('btn-ativo btn-inativo');
         bt4?.removeClass('btn-ativo btn-inativo');
+        bt5?.removeClass('btn-ativo btn-inativo');
     }
-    function showSection1(sectionId, activeBt, bt1, bt2, bt3, bt4) {
+    function showSection1(sectionId, activeBt, bt1, bt2, bt3, bt4, bt5) {
         hideAllSections1();
         $('#' + sectionId).show();
-        updateButtonStyle1(activeBt, bt1, bt2, bt3, bt4);
+        updateButtonStyle1(activeBt, bt1, bt2, bt3, bt4, bt5);
     }
     hideAllSections1();
     $(endSecao).show();
@@ -8260,11 +8650,13 @@ $(document).ready(function() {
     const compBt = $('#complBtn');
     const dadosRespBt = $('#dadosRespBtn');
     const financBt = $('#financBtn');
-    $(endBt).on('click', function() {showSection1('enderecos', endBt, fatuBt, compBt, dadosRespBt, financBt);});
-    $(fatuBt).on('click', function() {showSection1('faturamentos', fatuBt, endBt, compBt, dadosRespBt, financBt);});
-    $(compBt).on('click', function() {showSection1('complementos', compBt, endBt, fatuBt, dadosRespBt, financBt);});
-    $(dadosRespBt).on('click', function() {showSection1('dadosResponsavel', dadosRespBt, endBt, fatuBt, compBt, financBt);});
-    $(financBt).on('click', function() {showSection1('financeiros', financBt, endBt, fatuBt, compBt, dadosRespBt);});
+    const impBt = $('#impBtn');
+    $(endBt).on('click', function() {showSection1('enderecos', endBt, fatuBt, compBt, dadosRespBt, financBt, impBt);});
+    $(fatuBt).on('click', function() {showSection1('faturamentos', fatuBt, endBt, compBt, dadosRespBt, financBt, impBt);});
+    $(compBt).on('click', function() {showSection1('complementos', compBt, endBt, fatuBt, dadosRespBt, financBt, impBt);});
+    $(dadosRespBt).on('click', function() {showSection1('dadosResponsavel', dadosRespBt, endBt, fatuBt, compBt, financBt, impBt);});
+    $(financBt).on('click', function() {showSection1('financeiros', financBt, endBt, fatuBt, compBt, dadosRespBt, impBt);});
+    $(impBt).on('click', function() {showSection1('impressoes', impBt, endBt, fatuBt, compBt, dadosRespBt, financBt);});
     // Seções do Formulário de Orçamentos
     var clienteSecao = $('#clientes');
     function hideAllSections() {$('.form-section').hide();}
@@ -8360,7 +8752,7 @@ $(document).ready(function() {
     $('#id_banco_fil').select2({
         placeholder:'Selecione um banco', allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/bancos/lista_ajax/')}).on('select2:open', focSel2);
     // Formas de Pagamento
-    $('#forma_entrada, .forma-pgto, #id_formas_pgto, #id_form_pgto, [id^="formas_pgto_cr"], [id^="formaPgtoSelect-"]').select2({
+    $('#forma_saida, #forma_entrada, .forma-pgto, #id_formas_pgto, #id_form_pgto, [id^="formas_pgto_cr"], [id^="formaPgtoSelect-"]').select2({
         placeholder:'Selecione uma forma', allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/formas_pgto/lista_ajax/')}).on('select2:open', focSel2);
     // Tipos de Cobrança
     $('#selTpCob').select2({
@@ -8542,7 +8934,7 @@ $(document).ready(function() {
     if ($("#id_desc_ass").val() === '') {
         $("#id_desc_ass").val('ASSESSORIA MENSAL');
     }
-    let selectors = '#vl_saida, #vl_entrada, #id_vl_imp, #id_dsct_imp, #id_vl_fin_imp, #id_vl_ass, #id_dsct_ass, #id_vl_fin_ass, #id_vl_p_s, #editValorItemInput, #editValorItemAdcInput, #valorPgto, .money, #id_quantidadeP, #id_quantidadeEd, #id_vl_form_pgto, #id_multi_m2, #id_multi_lg_corte1, #id_multi_lg_corte2, #id_multi_lg_corte3, .inp-valor-pgto, #id_desc_acres, #id_preco_unitP, [id^=desc_m_cr], [id^=desc_j_cr], [id^=juros_cr], [id^=multa_cr], [id^=vl_pg_cr], .inp-valor, #id_valor, #id_juros, #id_multa, #id_vl_juros, #id_vl_multa, #id_ft_juros, #id_ft_multa, .valor-prod, .valor-prod-adc, .qtd-prod-adc, .qtd-prod, #campo_1, #campo_2, #id_margem, #id_vl_prod, #id_vl_tab, #id_vl_tabEnt, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
+    let selectors = '#id_lg_ps, #id_at_ps, #vl_saida, #vl_entrada, #id_vl_imp, #id_dsct_imp, #id_vl_fin_imp, #id_vl_ass, #id_dsct_ass, #id_vl_fin_ass, #id_vl_p_s, #editValorItemInput, #editValorItemAdcInput, #valorPgto, .money, #id_quantidadeP, #id_quantidadeEd, #id_vl_form_pgto, #id_multi_m2, #id_multi_lg_corte1, #id_multi_lg_corte2, #id_multi_lg_corte3, .inp-valor-pgto, #id_desc_acres, #id_preco_unitP, [id^=desc_m_cr], [id^=desc_j_cr], [id^=juros_cr], [id^=multa_cr], [id^=vl_pg_cr], .inp-valor, #id_valor, #id_juros, #id_multa, #id_vl_juros, #id_vl_multa, #id_ft_juros, #id_ft_multa, .valor-prod, .valor-prod-adc, .qtd-prod-adc, .qtd-prod, #campo_1, #campo_2, #id_margem, #id_vl_prod, #id_vl_tab, #id_vl_tabEnt, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
     function calcDscoImp() {
         const imp = parseBR($("#id_vl_imp").val());
         const dsct = parseBR($("#id_dsct_imp").val());

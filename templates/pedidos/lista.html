@@ -281,8 +281,8 @@
                             </div>
                         </div>
                     </div>
-                    <div class="modal fade modal-pagamento modal-faturar-pedido" data-tipo="pedido" id="faturarModalP-{{ p.codigo }}" tabindex="-1" aria-hidden="true" data-pedido-id="{{ p.codigo }}"  data-total="{{ p.total }}" data-num-pedido="{{ p.codigo }}">
-                        <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal fade modal-pagamento modal-faturar-pedido modal-lg" data-tipo="pedido" id="faturarModalP-{{ p.codigo }}" tabindex="-1" aria-hidden="true" data-pedido-id="{{ p.codigo }}" data-total="{{ p.total }}" data-num-pedido="{{ p.codigo }}">
+                        <div class="modal-dialog modal-dialog-centered">
                             <div class="modal-content">
                                 <div class="modal-header bg-success text-white" style="max-height: 30px;">
                                     <h5 class="modal-title"><i class="fa-solid fa-money-bill"></i> Faturar Pedido {{ p.codigo }}</h5>
@@ -300,8 +300,7 @@
                                         </div>
                                         <div style="width:150px;">
                                             <label class="form-label fw-bold">Data Emissão:</label>
-                                            <input class="form-control fw-bold dt-emi-pedido"
-                                                value="{{ p.dt_emi|date:'d/m/Y' }}" disabled>
+                                            <input class="form-control fw-bold dt-emi-pedido" value="{{ p.dt_emi|date:'d/m/Y' }}" disabled>
                                         </div>
                                         <div style="width:160px;">
                                             <label class="form-label fw-bold">Data Faturamento:</label>
@@ -309,8 +308,7 @@
                                         </div>
                                         <div style="width:45px;">
                                             <label class="form-label">&nbsp;</label>
-                                            <button type="button" class="btn btn-outline-secondary btn-sm btn-lib-dt-fat-ped" data-permissao="pedidos.alterar_data_faturamento"
-                                                data-msg-negado="Sem permissão para alterar data de faturamento." data-editando="0">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm btn-lib-dt-fat-ped" data-permissao="pedidos.alterar_data_faturamento" data-msg-negado="Sem permissão para alterar data de faturamento." data-editando="0">
                                                 <i class="fa fa-pen"></i>
                                             </button>
                                         </div>

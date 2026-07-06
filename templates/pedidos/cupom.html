@@ -54,7 +54,7 @@
             {{ request.user.filial_user.endereco }}, {{ request.user.filial_user.numero }}
         </div>
         <div>
-            {{ request.user.filial_user.bairro_fil }} - {{ request.user.filial.cidade_fil }}/{{ request.user.filial_user.uf }}
+            {{ request.user.filial_user.bairro_fil }} - {{ request.user.filial_user.cidade_fil }}/{{ request.user.filial_user.uf }}
         </div>
         <div>FONE: {{ request.user.filial_user.tel }}</div>
     </div>
@@ -63,18 +63,28 @@
 
     <!-- PEDIDO -->
     <div class="small">
-        <div><span class="bold">PEDIDO:</span> {{ pedido.codigo }}</div>
+        <div><span class="bold">PEDIDO:</span> {{ pedido.codigo }} <span style="float: right;">{% if pedido.usuario != None %}Usuário: {{ pedido.usuario }} {% else %}Usuário: {{ request.user.first_name }} {% endif %}</span></div>
         <div><span class="bold">DATA:</span> {{ pedido.dt_emi|date:"d/m/Y H:i:s" }}</div>
         <div><span class="bold">VENDEDOR:</span> {{ pedido.nome_vend }}</div>
-        <div><span class="bold">SITUAÇÃO:</span> {{ pedido.situacao }}</div>
+        <div><span class="bold">SITUAÇÃO:</span> {{ pedido.situacao }} <span style="float: right;">{% if pedido.caixa != None %}Caixa: {{ pedido.caixa }}{% endif %}</span></div>
     </div>
 
     <div class="linha"></div>
 
     <!-- CLIENTE -->
     <div class="small">
-        <div class="bold">CLIENTE:</div>
-        <div>{{ pedido.cli.codigo }} - {{ pedido.nome_cli }}</div>
+        {% if pedido.cli.avulso == "Sim" %}
+            <div><span class="bold">CLIENTE:</span> {{ pedido.cli.codigo }} - {{ pedido.nome_cli }}</div>
+        {% else %}
+            <div><span class="bold">{% if pedido.cli.pessoa == "Física" %}NOME: {% else %}RAZÃO SOCIAL: {% endif %}</span>{{ pedido.cli.razao_social }}</div>
+            <div><span class="bold">{% if pedido.cli.pessoa == "Física" %}CÓD. - APELIDO: {% else %}CÓD. - FANTASIA: {% endif %}</span> {{ pedido.cli.codigo }} - {{ pedido.nome_cli }}</div>
+            <div><span class="bold">{% if pedido.cli.pessoa == "Física" %}CPF: {% else %}CNPJ: {% endif %}</span>{{ pedido.cli.cpf_cnpj }}</div>
+            <div><span class="bold">{% if pedido.cli.pessoa == "Física" %}RG: {% else %}IE: {% endif %}</span>{{ pedido.cli.ie }}</div>
+            <div><span class="bold">ENDEREÇO:</span>{{ pedido.cli.endereco }}, Nº: {{ pedido.cli.numero }}</div>
+            <div><span class="bold">COMPL.:</span>{{ pedido.cli.complem }}</div>
+            <div><span class="bold">BAIRRO:</span>{{ pedido.cli.bairro }} <span style="float: right;">CIDADE: {{ pedido.cli.cidade }}</span></div>
+            <div><span class="bold">UF:</span>{{ pedido.cli.uf }} <span style="float: right;">TEL.: {{ pedido.cli.tel }}</span></div>
+        {% endif %}
     </div>
 
     <div class="linha"></div>
@@ -98,7 +108,7 @@
         </div>
     {% endfor %}
 
-    
+
 
     <div class="linha"></div>
 

@@ -1,5 +1,6 @@
 import json
 import os
+from datetime import datetime, time
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.contrib import messages
@@ -30,6 +31,7 @@ from PIL import Image
 from vendedores.models import Vendedor
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Sum
+from collections import defaultdict
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -43,6 +45,12 @@ def lista_lancamentos(request):
     sit = request.GET.get('sit')
     fil = request.GET.get('fil')
     user1 = request.GET.get('user1')
+    dt_ini = request.GET.get('dt_ini')
+    dt_fim = request.GET.get('dt_fim')
+    por_dt = request.GET.get('p_dt')
+    hoje = datetime.today()
+    inicio_dia = datetime.combine(hoje, time.min)
+    fim_dia = datetime.combine(hoje, time.max)
     reg = request.GET.get('reg', '10')
     empresa = request.user.empresa
     caixas = Caixa.objects.filter(vinc_emp=empresa)
@@ -52,6 +60,14 @@ def lista_lancamentos(request):
     elif tp == 'cod' and s:
         try: caixas = caixas.filter(codigo__iexact=s).order_by('terminal__nome')
         except ValueError: caixas = Caixa.objects.none()
+    if por_dt == 'Sim' and dt_ini and dt_fim:
+        try:
+            dt_ini_dt = datetime.combine(datetime.strptime(dt_ini, '%d/%m/%Y').date(), time.min)
+            dt_fim_dt = datetime.combine(datetime.strptime(dt_fim, '%d/%m/%Y').date(), time.max)
+            caixas = caixas.filter(data_abertura__range=(dt_ini_dt, dt_fim_dt))
+        except ValueError: caixas = Caixa.objects.none()
+    filtros_ativos = any([s, tp, sit, por_dt == 'Sim', fil and user1])
+    if not filtros_ativos: caixas = caixas.filter(data_abertura__range=(inicio_dia, fim_dia), situacao='Aberto')
     if sit and sit != 'Todos': caixas = caixas.filter(situacao=sit)
     if fil: caixas = caixas.filter(vinc_fil__codigo=fil)
     if user1: caixas = caixas.filter(usuario__codigo_local=user1)
@@ -66,7 +82,7 @@ def lista_lancamentos(request):
     caixas = paginator.get_page(page)
     cx_ab_pg = sum(1 for p in caixas.object_list if p.situacao == 'Aberto')
     cx_fec_pg = sum(1 for p in caixas.object_list if p.situacao == 'Fechado')
-    return render(request, 'lancpdvs/lista.html', {'caixas': caixas, 'filiais': filiais, 'usuarios': usuarios, 'user1': user1, 'sit': sit, 's': s, 'tp': tp, 'reg': reg, 'cx_ab': cx_ab_pg, 'cx_fec': cx_fec_pg,})
+    return render(request, 'lancpdvs/lista.html', {'caixas': caixas, 'filiais': filiais, 'usuarios': usuarios, 'user1': user1, 'fil': fil, 'dt_ini': dt_ini, 'dt_fim': dt_fim, 'sit': sit, 'p_dt': por_dt, 's': s, 'tp': tp, 'reg': reg, 'cx_ab': cx_ab_pg, 'cx_fec': cx_fec_pg,})
 
 @login_required
 def lista_lancamentos_ajax(request):
@@ -198,7 +214,8 @@ def realizar_entrada_caixa(request, caixa_id):
         )
 
         forma = FormaPgto.objects.get(
-            codigo=request.POST.get('forma_pagamento_entrada')
+            codigo=request.POST.get('forma_pagamento_entrada'),
+            vinc_emp=request.user.empresa
         )
 
         movimento = CaixaMovimento.objects.create(
@@ -213,7 +230,16 @@ def realizar_entrada_caixa(request, caixa_id):
 
         return JsonResponse({
             "sucesso": True,
-            "id": movimento.id,
+            "fantasia": movimento.caixa.vinc_fil.fantasia,
+            "endereco": movimento.caixa.vinc_fil.endereco,
+            "numero": movimento.caixa.vinc_fil.numero,
+            "bairro": movimento.caixa.vinc_fil.bairro_fil.nome_bairro,
+            "cidade": movimento.caixa.vinc_fil.cidade_fil.nome_cidade,
+            "uf": movimento.caixa.vinc_fil.uf.nome_estado,
+            "tel": movimento.caixa.vinc_fil.tel,
+            "caixa": movimento.caixa.terminal.nome,
+            "cod_cx": movimento.caixa.codigo,
+            "id": movimento.codigo,
             "tipo": movimento.tipo,
             "categoria": movimento.categoria,
             "forma": forma.descricao,
@@ -228,7 +254,7 @@ def realizar_entrada_caixa(request, caixa_id):
             "sucesso": False,
             "erro": str(e)
         }, status=500)
-    
+
 @login_required
 def realizar_saida_caixa(request, caixa_id):
     if request.method != "POST":
@@ -242,7 +268,8 @@ def realizar_saida_caixa(request, caixa_id):
         )
 
         forma = FormaPgto.objects.get(
-            codigo=request.POST.get('forma_pagamento_saida')
+            codigo=request.POST.get('forma_pagamento_saida'),
+            vinc_emp=request.user.empresa
         )
 
         movimento = CaixaMovimento.objects.create(
@@ -257,7 +284,16 @@ def realizar_saida_caixa(request, caixa_id):
 
         return JsonResponse({
             "sucesso": True,
-            "id": movimento.id,
+            "fantasia": movimento.caixa.vinc_fil.fantasia,
+            "endereco": movimento.caixa.vinc_fil.endereco,
+            "numero": movimento.caixa.vinc_fil.numero,
+            "bairro": movimento.caixa.vinc_fil.bairro_fil.nome_bairro,
+            "cidade": movimento.caixa.vinc_fil.cidade_fil.nome_cidade,
+            "uf": movimento.caixa.vinc_fil.uf.nome_estado,
+            "tel": movimento.caixa.vinc_fil.tel,
+            "caixa": movimento.caixa.terminal.nome,
+            "cod_cx": movimento.caixa.codigo,
+            "id": movimento.codigo,
             "tipo": movimento.tipo,
             "categoria": movimento.categoria,
             "forma": forma.descricao,
@@ -272,63 +308,333 @@ def realizar_saida_caixa(request, caixa_id):
             "sucesso": False,
             "erro": str(e)
         }, status=500)
-    
+
+@login_required
+@require_POST
+def cancelar_movimento_caixa(request, caixa_id, movimento_id):
+    try:
+        with transaction.atomic():
+
+            movimento = get_object_or_404(
+                CaixaMovimento.objects.select_related("caixa"),
+                caixa__codigo=caixa_id,
+                caixa__vinc_emp=request.user.empresa,
+                codigo=movimento_id
+            )
+
+            if movimento.caixa.situacao == "Fechado":
+                return JsonResponse({
+                    "erro": "O caixa já está fechado."
+                }, status=400)
+
+            if movimento.situacao == "Cancelado":
+                return JsonResponse({
+                    "erro": "Este lançamento já foi cancelado."
+                }, status=400)
+
+            # Opcional: impedir cancelamento de vendas
+            if movimento.categoria == "Venda":
+                return JsonResponse({
+                    "erro": "Movimentos de venda não podem ser cancelados por esta tela."
+                }, status=400)
+
+            movimento.situacao = "Cancelado"
+            movimento.save(update_fields=["situacao"])
+            tipo = movimento.tipo
+            return JsonResponse({
+                "sucesso": True,
+                "mensagem": f"{tipo} cancelada com sucesso!"
+            })
+
+    except Exception as e:
+        return JsonResponse({
+            "erro": str(e)
+        }, status=500)
+
+@login_required
+def dados_movimento_caixa(request, caixa_codigo, movimento_codigo):
+    try:
+        movimento = (
+            CaixaMovimento.objects
+            .select_related(
+                "caixa",
+                "forma_pagamento",
+                "usuario",
+                "caixa__vinc_emp"
+            )
+            .get(
+                caixa__codigo=caixa_codigo,
+                caixa__vinc_emp=request.user.empresa,
+                codigo=movimento_codigo
+            )
+        )
+
+        filial = movimento.caixa.vinc_fil
+
+        return JsonResponse({
+            "sucesso": True,
+            "tipo": movimento.tipo,
+            "id": movimento.codigo,
+            "cod_cx": movimento.caixa.codigo,
+            "caixa": movimento.caixa.terminal.nome,
+            "descricao": movimento.descricao,
+            "forma": movimento.forma_pagamento.descricao,
+            "valor": float(movimento.valor),
+            "data": timezone.localtime(
+                movimento.data_hora
+            ).strftime("%d/%m/%Y %H:%M:%S"),
+
+            "fantasia": filial.fantasia,
+            "endereco": filial.endereco,
+            "numero": filial.numero,
+            "bairro": filial.bairro_fil.nome_bairro,
+            "cidade": filial.cidade_fil.nome_cidade,
+            "uf": filial.uf.nome_estado,
+            "tel": filial.tel,
+        })
+
+    except CaixaMovimento.DoesNotExist:
+        return JsonResponse({
+            "sucesso": False,
+            "erro": "Movimento não encontrado."
+        }, status=404)
+
+    except Exception as e:
+        return JsonResponse({
+            "sucesso": False,
+            "erro": str(e)
+        }, status=500)
+
 @login_required
 def movimentos_caixa(request, caixa_id):
     try:
-        caixa = Caixa.objects.get(codigo=caixa_id, vinc_emp=request.user.empresa)
-        movs = caixa.movimentos.select_related('forma_pagamento', 'pedido', 'pedido__cli', 'pedido__vendedor')
-        # 🔹 ABERTURA
+        caixa = Caixa.objects.get(
+            codigo=caixa_id,
+            vinc_emp=request.user.empresa
+        )
+
+        movs = caixa.movimentos.select_related(
+            'forma_pagamento',
+            'pedido',
+            'pedido__cli',
+            'pedido__vendedor'
+        )
+
+        # ==========================================================
+        # ABERTURA
+        # ==========================================================
         abertura_qs = movs.filter(categoria='Saldo Inicial')
+
         if not abertura_qs.exists():
-            abertura = [{"data": caixa.data_abertura, "descricao": "Abertura do caixa", "forma": "-", "valor": float(caixa.saldo_inicial or 0)}]
+            abertura = [{
+                "data": caixa.data_abertura,
+                "descricao": "Abertura do caixa",
+                "forma": "-",
+                "valor": float(caixa.saldo_inicial or 0)
+            }]
         else:
             abertura = [{
-                "data": m.data_hora, "descricao": m.descricao or "Abertura do caixa", "forma": m.forma_pagamento.descricao if m.forma_pagamento else "-", "valor": float(m.valor)
+                "data": m.data_hora,
+                "descricao": m.descricao or "Abertura do caixa",
+                "forma": m.forma_pagamento.descricao if m.forma_pagamento else "-",
+                "valor": float(m.valor)
             } for m in abertura_qs]
-        # 🔹 VENDAS
-        vendas_qs = movs.filter(categoria='Venda').order_by('pedido_id')
+
+        # ==========================================================
+        # VENDAS (EXIBIÇÃO)
+        # ==========================================================
+        vendas_qs = movs.filter(
+            categoria='Venda'
+        ).order_by('pedido_id')
+
         vendas_dict = {}
+
         for m in vendas_qs:
             pedido_id = m.pedido.codigo
+
             if pedido_id not in vendas_dict:
                 vendas_dict[pedido_id] = {
-                    "pedido_id": pedido_id, "cliente": f"{getattr(m.pedido.cli, 'codigo', '-') or '-'} - {getattr(m.pedido.cli, 'fantasia', '-')}",
-                    "vendedor": f"{getattr(m.pedido.vendedor, 'codigo', '-') or '-'} - {getattr(m.pedido.vendedor, 'fantasia', '-')}", "data": m.pedido.dt_emi, "formas": [], "total": 0
+                    "pedido_id": pedido_id,
+                    "cliente": f"{getattr(m.pedido.cli, 'codigo', '-') or '-'} - {getattr(m.pedido.cli, 'fantasia', '-')}",
+                    "vendedor": f"{getattr(m.pedido.vendedor, 'codigo', '-') or '-'} - {getattr(m.pedido.vendedor, 'fantasia', '-')}",
+                    "data": m.pedido.dt_emi,
+                    "situacao": m.pedido.situacao,
+                    "formas": [],
+                    "total": 0
                 }
-            vendas_dict[pedido_id]["formas"].append({"forma": m.forma_pagamento.descricao if m.forma_pagamento else "-", "valor": float(m.valor)})
+
+            vendas_dict[pedido_id]["formas"].append({
+                "forma": m.forma_pagamento.descricao if m.forma_pagamento else "-",
+                "valor": float(m.valor),
+                "situacao": m.situacao
+            })
+
+            # Apenas para exibição
             vendas_dict[pedido_id]["total"] += float(m.valor)
+
         vendas = list(vendas_dict.values())
-        from collections import defaultdict
-        resumo_temp = defaultdict(lambda: {"id": None, "forma": "", "total": 0})
-        for m in vendas_qs:
+
+        # ==========================================================
+        # VENDAS (TOTAIS)
+        # ==========================================================
+        vendas_total_qs = movs.filter(
+            categoria='Venda',
+            situacao='Ativo',
+            pedido__situacao='Faturado'
+        )
+
+        resumo_temp = defaultdict(
+            lambda: {
+                "id": None,
+                "forma": "",
+                "total": 0
+            }
+        )
+
+        for m in vendas_total_qs:
             fp_id = m.forma_pagamento.codigo if m.forma_pagamento else 0
+
             resumo_temp[fp_id]["id"] = fp_id
-            resumo_temp[fp_id]["forma"] = (m.forma_pagamento.descricao if m.forma_pagamento else "-")
+            resumo_temp[fp_id]["forma"] = (
+                m.forma_pagamento.descricao
+                if m.forma_pagamento else "-"
+            )
             resumo_temp[fp_id]["total"] += float(m.valor)
+
         resumo_vendas = list(resumo_temp.values())
-        total_vendas = float(vendas_qs.aggregate(total=Sum('valor'))['total'] or 0)
-        # 🔹 ENTRADAS
-        entradas_qs = movs.filter(tipo='Entrada').exclude(categoria='Venda').order_by('forma_pagamento__codigo')
-        entradas = [{"descricao": m.descricao or "-", "forma": m.forma_pagamento.descricao if m.forma_pagamento else "-", "valor": float(m.valor)} for m in entradas_qs]
-        resumo_entradas = entradas_qs.values('forma_pagamento__descricao').annotate(total=Sum('valor'))
-        resumo_entradas = [{"forma": r['forma_pagamento__descricao'], "total": float(r['total'])} for r in resumo_entradas]
-        total_entradas = float(entradas_qs.aggregate(total=Sum('valor'))['total'] or 0)
-        # 🔹 SAÍDAS
-        saidas_qs = movs.filter(tipo='Saída').exclude(categoria='Venda').order_by('forma_pagamento__codigo')
-        saidas = [{"descricao": s.descricao or "-", "forma": s.forma_pagamento.descricao if s.forma_pagamento else "-", "valor": float(s.valor)} for s in saidas_qs]
-        resumo_saidas = saidas_qs.values('forma_pagamento__descricao').annotate(total=Sum('valor'))
-        resumo_saidas = [{"forma": res['forma_pagamento__descricao'], "total": float(res['total'])} for res in resumo_saidas]
-        total_saidas = float(saidas_qs.aggregate(total=Sum('valor'))['total'] or 0)
-        # 🔹 TOTAL GERAL
-        total_geral = movs.values('forma_pagamento__descricao').annotate(total=Sum('valor')).order_by('forma_pagamento__codigo')
-        total_geral = [{"forma": t['forma_pagamento__descricao'], "total": float(t['total'])} for t in total_geral]
-        valor_total_geral = float(movs.aggregate(total=Sum('valor'))['total'] or 0)
+
+        total_vendas = float(
+            vendas_total_qs.aggregate(total=Sum('valor'))['total'] or 0
+        )
+
+        # ==========================================================
+        # ENTRADAS (EXIBIÇÃO)
+        # ==========================================================
+        entradas_qs = movs.filter(
+            tipo='Entrada',
+            categoria='Suprimento'
+        ).order_by('forma_pagamento__codigo')
+
+        entradas = [{
+            "codigo": m.codigo,
+            "descricao": m.descricao or "-",
+            "forma": m.forma_pagamento.descricao if m.forma_pagamento else "-",
+            "valor": float(m.valor),
+            "situacao": m.situacao
+        } for m in entradas_qs]
+
+        # ==========================================================
+        # ENTRADAS (TOTAIS)
+        # ==========================================================
+        entradas_total_qs = entradas_qs.filter(
+            situacao='Ativo'
+        )
+
+        resumo_entradas = [
+            {
+                "forma": r["forma_pagamento__descricao"],
+                "total": float(r["total"])
+            }
+            for r in entradas_total_qs.values(
+                "forma_pagamento__descricao"
+            ).annotate(
+                total=Sum("valor")
+            )
+        ]
+
+        total_entradas = float(
+            entradas_total_qs.aggregate(total=Sum("valor"))["total"] or 0
+        )
+
+        # ==========================================================
+        # SAÍDAS (EXIBIÇÃO)
+        # ==========================================================
+        saidas_qs = movs.filter(
+            tipo='Saída',
+            categoria='Sangria'
+        ).order_by('forma_pagamento__codigo')
+
+        saidas = [{
+            "codigo": s.codigo,
+            "descricao": s.descricao or "-",
+            "forma": s.forma_pagamento.descricao if s.forma_pagamento else "-",
+            "valor": float(s.valor),
+            "situacao": s.situacao
+        } for s in saidas_qs]
+
+        # ==========================================================
+        # SAÍDAS (TOTAIS)
+        # ==========================================================
+        saidas_total_qs = saidas_qs.filter(
+            situacao='Ativo'
+        )
+
+        resumo_saidas = [
+            {
+                "forma": r["forma_pagamento__descricao"],
+                "total": float(r["total"])
+            }
+            for r in saidas_total_qs.values(
+                "forma_pagamento__descricao"
+            ).annotate(
+                total=Sum("valor")
+            )
+        ]
+
+        total_saidas = float(
+            saidas_total_qs.aggregate(total=Sum("valor"))["total"] or 0
+        )
+
+        # ==========================================================
+        # TOTAL GERAL
+        # ==========================================================
+        totais = defaultdict(float)
+        # Vendas faturadas
+        for m in vendas_total_qs:
+            forma = m.forma_pagamento.descricao if m.forma_pagamento else "-"
+            totais[forma] += float(m.valor)
+
+        # Suprimentos
+        for m in entradas_total_qs:
+            forma = m.forma_pagamento.descricao if m.forma_pagamento else "-"
+            totais[forma] += float(m.valor)
+
+        # Sangrias
+        for m in saidas_total_qs:
+            forma = m.forma_pagamento.descricao if m.forma_pagamento else "-"
+            totais[forma] -= float(m.valor)
+
+        total_geral = [
+            {
+                "forma": forma,
+                "total": total
+            }
+            for forma, total in totais.items()
+        ]
+
+        valor_total_geral = (
+            float(caixa.saldo_inicial or 0)
+            + sum(totais.values())
+        )
+
         return JsonResponse({
-            "abertura": abertura, "vendas": vendas, "resumo_vendas": resumo_vendas, "total_vendas": total_vendas, "entradas": entradas, "resumo_entradas": resumo_entradas,
-            "total_entradas": total_entradas, "saidas": saidas, "resumo_saidas": resumo_saidas, "total_saidas": total_saidas, "total_geral": total_geral, "valor_total_geral": valor_total_geral,
+            "caixa": caixa.codigo,
+            "abertura": abertura,
+            "vendas": vendas,
+            "resumo_vendas": resumo_vendas,
+            "total_vendas": total_vendas,
+            "entradas": entradas,
+            "resumo_entradas": resumo_entradas,
+            "total_entradas": total_entradas,
+            "saidas": saidas,
+            "resumo_saidas": resumo_saidas,
+            "total_saidas": total_saidas,
+            "total_geral": total_geral,
+            "valor_total_geral": valor_total_geral,
         })
-    except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
+
+    except Exception as e:
+        return JsonResponse({"erro": str(e)}, status=500)
 
 def buscar_produto(codigo, empresa):
     codigo = str(codigo).strip()
@@ -369,7 +675,7 @@ def finalizar_venda(request):
         content_type = ContentType.objects.get_for_model(caixa)
         pix_pendente = Pagamento.objects.filter(content_type=content_type, object_id=caixa.codigo, status="pendente").exists()
         # 🔥 CRIA PEDIDO
-        pedido = Pedido.objects.create(vinc_emp=request.user.empresa, vinc_fil=caixa.vinc_fil, caixa=caixa, cli__codigo=cliente_id, vendedor__codigo=vendedor_id,
+        pedido = Pedido.objects.create(vinc_emp=request.user.empresa, vinc_fil=caixa.vinc_fil, caixa=caixa, cli__codigo=cliente_id, vendedor__codigo=vendedor_id, usuario=caixa.usuario,
             tabela_preco__codigo=tabela_preco_id, dt_emi=timezone.now(), dt_fat=timezone.now(), situacao='Faturado' if not pix_pendente else 'Aberto'
         )
         total_venda = Decimal('0.00')

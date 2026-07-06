@@ -53,7 +53,11 @@ def lista_formas_pgto_ajax(request):
     try:
         if termo_busca.isdigit(): condicao_busca = Q(descricao__icontains=termo_busca) | Q(codigo=termo_busca)
         else: condicao_busca = Q(descricao__icontains=termo_busca)
-        formas_pgto = FormaPgto.objects.filter(condicao_busca & Q(vinc_emp=empresa))[:20]
+        formas_pgto = FormaPgto.objects.filter(
+            Q(situacao="Ativo") &
+            Q(vinc_emp=empresa) &
+            condicao_busca
+        )[:20]
         results = [{'id': forma_pgto.codigo, 'text': f"{forma_pgto.descricao.upper()}"} for forma_pgto in formas_pgto]
         return JsonResponse({'results': results})
     except Exception as e:

@@ -985,7 +985,10 @@ def pdf_producao_html(request, codigo):
                 img.save(buffer, format="JPEG")
                 logo_base64 = base64.b64encode(buffer.getvalue()).decode()
     context = {'o': o, 'portas': portas, 'logo_base64': logo_base64,}
-    html = render_to_string('orcamentos/pdf_producao.html', context, request=request)
+    if o.vinc_fil.layout_prod == "1":
+        html = render_to_string('orcamentos/pdf_producao.html', context, request=request)
+    else:
+        html = render_to_string('orcamentos/pdf_producao_v2.html', context, request=request)
     pdf = HTML(string=html, base_url=request.build_absolute_uri('/')).write_pdf(
         stylesheets=[CSS(string="""
                 @page {size: A4; margin: 12mm 10mm 12mm 10mm;

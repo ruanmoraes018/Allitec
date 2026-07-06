@@ -110,17 +110,21 @@
                 <tr><td colspan="7" style="background-color: gray; text-align: center;"><strong>DADOS GERAIS</strong></td>
                 <tr style="background-color: yellow; text-align: center;">
                     <td><strong>PINTURA</strong></td>
-                    <td colspan="2"><strong>TP. PINTURA</strong></td>
-                    <td colspan="2"><strong>COR</strong></td>
+                    <td><strong>TP. PINTURA</strong></td>
+                    <td><strong>COR</strong></td>
                     <td><strong>PORTÃO SOCIAL</strong></td>
                     <td><strong>VL. P. SOCIAL</strong></td>
+                    <td><strong>Larg. Portão Soc.</strong></td>
+                    <td><strong>Alt. Portão Soc.</strong></td>
                 </tr>
                 <tr>
                     <td><strong>{{ o.pintura }}</strong></td>
-                    <td colspan="2"><strong>{% if o.pintura == "Não" %} - {% else %} {{ o.tp_pintura }} {% endif %}</strong></td>
-                    <td colspan="2"><strong>{% if o.pintura == "Não" %} - {% else %} {{ o.cor }} {% endif %}</strong></td>
+                    <td><strong>{% if o.pintura == "Não" %} - {% else %} {{ o.tp_pintura }} {% endif %}</strong></td>
+                    <td><strong>{% if o.pintura == "Não" %} - {% else %} {{ o.cor }} {% endif %}</strong></td>
                     <td><strong>{{ o.portao_social }}</td>
-                    <td><strong>{% if o.portao_social == "Não" %}R$ 0,00 {% else %}R$ {{ o.vl_p_s|moeda_br }} {% endif %}</strong> </td>
+                    <td><strong>{% if o.portao_social == "Não" %}R$ 0,00 {% else %}R$ {{ o.vl_p_s|moeda_br }} {% endif %}</strong></td>
+                    <td><strong>{% if o.portao_social == "Não" %} - {% else %}R$ {{ o.lg_ps }} {% endif %}</strong></td>
+                    <td><strong>{% if o.portao_social == "Não" %} - {% else %}R$ {{ o.at_ps }} {% endif %}</strong></td>
                 </tr>
             </table>
         </main><!-- 👇 QUARTA TABELA -->
@@ -167,8 +171,7 @@
                         <th>Altura</th>
                         <th>Qtd. Lâminas</th>
                         <th>M²</th>
-                        <th>Peso</th>
-                        <th>Eixo Motor</th>
+                        <th colspan="2">Peso</th>
                         <th>Rolo</th>
                     </tr>
                     <tr>
@@ -176,8 +179,7 @@
                         <td><strong>{{ pt.altura }}m</strong></td>
                         <td><strong>{{ pt.qtd_lam }}</strong></td>
                         <td><strong>{{ pt.m2 }}</strong></td>
-                        <td><strong>{{ pt.peso }}Kg</strong></td>
-                        <td><strong>{{ pt.eixo_motor }}</strong></td>
+                        <td colspan="2"><strong>{{ pt.peso }}Kg</strong></td>
                         <td><strong>{{ pt.rolo }}cm</strong></td>
                     </tr>
                     <tr style="background-color: #5F9EA0; text-align: center;">

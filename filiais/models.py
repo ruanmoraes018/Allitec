@@ -55,10 +55,16 @@ class Filial(models.Model):
     tp_calc_multa = models.CharField(max_length=15, verbose_name="Tp. Cálculo Multa", choices=[('Percentual', 'Percentual'), ('Valor', 'Valor')], default="Percentual")
     ft_multa = models.DecimalField(verbose_name="Fator Multa", max_digits=10, decimal_places=2, default=0, null=True, blank=True)
     ft_juros = models.DecimalField(verbose_name="Fator Juros",max_digits=10, decimal_places=2, default=0, null=True, blank=True)
+    # Dados de Orçamento
+    mt_qt_lam = models.CharField(verbose_name="Multip. Qtde. Lâminas", max_length=100, default="(alt_corte + rolo) / 0.075", null=True, blank=True)
     multi_m2 = models.DecimalField(verbose_name="Multiplicador M²", max_digits=10, decimal_places=2, default=1, null=True, blank=True)
     multi_lg_corte1 = models.DecimalField(verbose_name="Multiplicador Lg. Corte (Fora do Vão)", max_digits=10, decimal_places=2, default=1, null=True, blank=True)
     multi_lg_corte2 = models.DecimalField(verbose_name="Multiplicador Lg. Corte (Dentro do Vão)", max_digits=10, decimal_places=2, default=1, null=True, blank=True)
     multi_lg_corte3 = models.DecimalField(verbose_name="Multiplicador Lg. Corte (1 Lado do Vão)", max_digits=10, decimal_places=2, default=1, null=True, blank=True)
+
+    # Layout do PDF de Produção
+    layout_prod = models.CharField(max_length=10, verbose_name="L. PDF Produção", choices=[('1', 'Layout 1'), ('2', 'Layout 2')], default="1")
+    #
     principal = models.BooleanField(default=False, verbose_name='Filial Principal')
     vinculada_a = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='filiais_secundarias', verbose_name='Filial Vinculada à')
     agrupa_itens = models.BooleanField(default=True, verbose_name="Agrupar itens no pedido")

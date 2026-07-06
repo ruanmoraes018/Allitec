@@ -12,6 +12,7 @@ class Pedido(models.Model):
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
     vinc_fil = models.ForeignKey('filiais.Filial', on_delete=models.PROTECT)
     caixa = models.ForeignKey('lancpdvs.Caixa', on_delete=models.PROTECT, null=True, blank=True)
+    usuario = models.ForeignKey('filiais.Usuario', on_delete=models.SET_NULL, null=True)
     cli = models.ForeignKey(Cliente, on_delete=models.PROTECT)
     vendedor = models.ForeignKey('vendedores.Vendedor', on_delete=models.SET_NULL, null=True, blank=True)
     nome_cli = models.CharField(max_length=255, blank=True)

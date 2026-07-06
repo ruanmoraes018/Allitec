@@ -126,7 +126,7 @@
                             <div class="col-md-1 text-center mb-1 mb-md-0 acoes-col">
                                 <div class="btn-group btn-group-sm">
                                     {% if perms.lancpdvs.caixa_outro_user or c.usuario == request.user %}
-                                        <a href="{% url 'tela-caixa' c.codigo %}" class="btn btn-light btn-sm border" title="Acessar Caixa">
+                                        <a href="{% url 'tela-caixa' c.codigo %}" class="btn btn-light btn-sm border btn-js" title="Acessar Caixa">
                                             <i class="fa-solid fa-desktop op-clonar"></i>
                                         </a>
                                         {% else %}
@@ -137,7 +137,7 @@
                                     <a href="{% url 'att-lancamento' c.codigo %}?next={{ request.get_full_path|urlencode }}" class="btn btn-light btn-sm border btn-permissao" data-permissao="lancpdvs.change_caixa" data-msg-negado="Seu usuário não pode editar caixas!">
                                         <i class="fas fa-edit text-success"></i>
                                     </a>
-                                    <button class="btn btn-light btn-sm border btn-permissao" data-bs-toggle="modal" data-bs-target="#modal-{{ c.codigo }}" data-permissao="lancpdvs.delete_caixa" data-msg-negado="Seu usuário não pode deletar caixas!">
+                                    <button class="btn btn-light btn-sm btn-delete border btn-permissao" data-bs-toggle="modal" data-bs-target="#modal-{{ c.codigo }}" data-permissao="lancpdvs.delete_caixa" data-msg-negado="Seu usuário não pode deletar caixas!">
                                         <i class="fas fa-trash text-danger"></i>
                                     </button>
                                 </div>

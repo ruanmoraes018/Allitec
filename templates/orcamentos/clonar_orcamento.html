@@ -106,9 +106,9 @@
                                                 <tr style="font-size: 12px;">
                                                     <th>#</th><th style="width: 6%;">Largura</th><th style="width: 6%;">Altura</th><th style="width: 6%;">Lg. Corte</th>
                                                     <th style="width: 6%;">At. Corte</th><th style="width: 6%;">Q. Lâm.</th><th style="width: 6%;">M²</th>
-                                                    <th style="width: 6%;">Ft. Peso</th><th style="width: 6%;">Peso</th><th style="width: 6.5%;">Eix. Mot.</th>
+                                                    <th style="width: 6%;">Ft. Peso</th><th style="width: 6%;">Peso</th>
                                                     <th style="width: 6%;">Rolo</th><th style="width: 8%;">TP. Lâm.</th><th style="width: 8%;">TP. Vão</th>
-                                                    <th style="width: 8%;">Guia Esquerdo</th><th style="width: 8%;">Guia Direito</th><th style="width: 40px;">Exc.</th>
+                                                    <th style="width: 8%;">Guia Esquerdo</th><th style="width: 14.5%;">Guia Direito</th><th style="width: 40px;">Exc.</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -123,7 +123,6 @@
                                                         <td data-label="M²:" class="mobile-2col"><input readonly class="form-control form-control-sm m2" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.m2 }}"></td>
                                                         <td data-label="Ft. Peso:" class="mobile-2col"><input readonly class="form-control form-control-sm ft-peso" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.fator_peso }}"></td>
                                                         <td data-label="Peso:" class="mobile-2col"><input readonly class="form-control form-control-sm peso" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.peso }}"></td>
-                                                        <td data-label="Eix. Mot.:" class="mobile-2col"><input readonly class="form-control form-control-sm eix-mot" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.eixo_motor }}"></td>
                                                         <td data-label="Rolo:" class="mobile-full"><input readonly class="form-control form-control-sm rolo" data-porta="{{ pt.numero }}" placeholder="0.00" value="{{ pt.rolo }}"></td>
                                                         <td data-label="Tipo Lâmina:" class="mobile-full">
                                                             <select class="form-select form-select-sm tipo-lamina" data-porta="{{ pt.numero }}">
@@ -162,9 +161,11 @@
                                     </div>
                                 </div>
                                 <div class="col-md-1">{{ form.pintura|as_crispy_field }}</div>
-                                <div class="col-md-2">{{ form.tp_pintura|as_crispy_field }}</div>
+                                <div class="col-md-1">{{ form.tp_pintura|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.cor|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.portao_social|as_crispy_field }}</div>
+                                <div class="col-md-2">{{ form.lg_ps|as_crispy_field }}</div>
+                                <div class="col-md-2">{{ form.at_ps|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.vl_p_s|as_crispy_field }}</div>
                                 <input type="hidden" id="id_json_portas" name="json_portas">
                             </div>

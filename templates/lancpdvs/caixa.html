@@ -67,7 +67,7 @@
             <div class="card shadow-sm text-center">
                 <div class="card-body">
                     <div class="header-logo">
-                        {% if logo_base64 %}<img src="data:image/jpeg;base64,{{ logo_base64 }}" 
+                        {% if logo_base64 %}<img src="data:image/jpeg;base64,{{ logo_base64 }}"
                         class="img-fluid mx-auto d-block"
                         style="max-height: 120px;">{% endif %}
                     </div>
@@ -99,21 +99,21 @@
                         <button class="btn btn-light w-100 text-start menu-opcao op-editar border border-secondary" data-bs-target="#mdDadosVenda" data-bs-toggle="modal">
                             <i class="fa-solid fa-arrow-right-arrow-left"></i> Dados da Venda
                         </button>
-                        <button 
+                        <button
                             class="btn btn-light w-100 text-start menu-opcao op-clonar border border-secondary btn-permissao" type="button" data-permissao="pedidos.atribuir_desconto_ped"
                             data-acao="atribuir_desconto_ped" data-msg-negado="Seu usuário não pode aplicar descontos em Caixas!">
                             <i class="fa-solid fa-brazilian-real-sign"></i> Aplicar Desconto
                         </button>
-                        <button 
+                        <button
                             class="btn btn-light w-100 text-start menu-opcao op-estornar border border-secondary btn-permissao" type="button" data-permissao="pedidos.atribuir_acrescimo_ped"
                             data-acao="atribuir_acrescimo_ped" data-msg-negado="Seu usuário não pode aplicar acréscimos em Caixas!">
                             <i class="fa-solid fa-brazilian-real-sign"></i> Aplicar Acréscimo
                         </button>
-                        <button 
+                        <button
                             class="btn btn-light w-100 text-start menu-opcao op-faturar border border-secondary" data-bs-toggle="modal" data-bs-target="#modalEntrada" type="button">
                             <i class="fa-solid fa-circle-plus"></i> Realizar Entrada
                         </button>
-                        <button 
+                        <button
                             class="btn btn-light w-100 text-start menu-opcao op-cancelar border border-secondary" data-bs-toggle="modal" data-bs-target="#modalSaida" type="button">
                             <i class="fa-solid fa-circle-minus"></i> Realizar Saída
                         </button>
@@ -158,7 +158,7 @@
                         <table class="table table-sm table-striped table-bordered table-responsive-md">
                             <thead class="table-success">
                                 <tr>
-                                    <th>Nº Pedido</th><th>Cliente</th><th>Vendedor</th><th>Data</th><th>Forma</th><th class="text-end">Valor</th><th style="text-align: center;">Opções</th>
+                                    <th>Nº Pedido</th><th>Cliente</th><th>Vendedor</th><th>Data</th><th>Situação</th><th>Forma</th><th class="text-end">Valor</th><th style="text-align: center;">Opções</th>
                                 </tr>
                             </thead>
                             <tbody id="tblVendas"></tbody>
@@ -185,7 +185,7 @@
                         <table class="table table-sm table-striped table-bordered table-responsive-md">
                             <thead class="table-info">
                                 <tr>
-                                    <th>Descrição</th><th>Forma</th><th class="text-end">Valor</th>
+                                    <th>Nº Doc.</th><th>Descrição</th><th>Forma</th><th class="text-end">Valor</th><th class="col-auto" style="text-align: center;">Ações</th>
                                 </tr>
                             </thead>
                             <tbody id="tblEntradas"></tbody>
@@ -204,7 +204,7 @@
                         <table class="table table-sm table-striped table-bordered table-responsive-md">
                             <thead class="table-danger">
                                 <tr>
-                                    <th>Descrição</th><th>Forma</th><th class="text-end">Valor</th>
+                                    <th>Nº Doc.</th><th>Descrição</th><th>Forma</th><th class="text-end">Valor</th><th class="col-auto" style="text-align: center;">Ações</th>
                                 </tr>
                             </thead>
                             <tbody id="tblSaidas"></tbody>
@@ -261,7 +261,7 @@
                                     <option value="{{ t.codigo }}">{{ t.descricao }}</option>
                                 {% endfor %}
                             </select>
-                        </div>    
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-dark alt_dadosVenda">Alterar</button>
@@ -396,40 +396,41 @@
                     {% csrf_token %}
 
                     <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-8 mb-2">
+                                <label class="form-label fw-bold">
+                                    Forma de Pagamento
+                                </label>
+                                <select class="form-select" id="forma_entrada" name="forma_pagamento_entrada" required>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">
+                                    Valor
+                                </label>
+                                <input type="text"
+                                    class="form-control text-end text-success fw-bold"
+                                    name="valor"
+                                    id="vl_entrada"
+                                    required>
+                            </div>
 
-                        <div class="mb-2">
-                            <label class="form-label fw-bold">
-                                Forma de Pagamento
-                            </label>
-                            <select class="form-select" id="forma_entrada" name="forma_pagamento_entrada" required>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">
-                                Valor
-                            </label>
-                            <input type="text"
-                                class="form-control"
-                                name="valor"
-                                id="vl_entrada"
-                                required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">
-                                Descrição
-                            </label>
-                            <textarea class="form-control"
-                                    rows="3"
-                                    name="descricao"
-                                    placeholder="Informe o motivo da entrada"></textarea>
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label fw-bold">
+                                    Descrição
+                                </label>
+                                <textarea class="form-control" id="desc_entrada"
+                                        rows="3"
+                                        name="descricao"
+                                        placeholder="Informe a descrição da entrada"></textarea>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-success">
-                            <i class="fa-solid fa-check"></i> Confirmar Entrada
+                            <i class="fa-solid fa-check"></i> Confirmar
                         </button>
-                        <button class="btn btn-secondary" data-bs-dismiss="modal">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                             Cancelar
                         </button>
                     </div>
@@ -455,41 +456,42 @@
                     {% csrf_token %}
 
                     <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-8 mb-2">
+                                <label class="form-label fw-bold">
+                                    Forma de Pagamento
+                                </label>
+                                <select class="form-select" id="forma_saida" name="forma_pagamento_saida" required>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">
+                                    Valor
+                                </label>
+                                <input type="text"
+                                    class="form-control text-end text-danger fw-bold"
+                                    name="valor"
+                                    id="vl_saida"
+                                    required>
+                            </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">
-                                Forma de Pagamento
-                            </label>
-                            <select class="form-select" id="id_formas_pgto" name="forma_pagamento_saida" required>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">
-                                Valor
-                            </label>
-                            <input type="text"
-                                class="form-control"
-                                name="valor"
-                                id="vl_saida"
-                                required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">
-                                Motivo da Saída
-                            </label>
-                            <textarea class="form-control"
-                                    rows="3"
-                                    name="descricao"
-                                    placeholder="Informe o motivo da saída"
-                                    required></textarea>
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label fw-bold">
+                                    Descrição da Saída
+                                </label>
+                                <textarea class="form-control" id="desc_saida"
+                                        rows="3"
+                                        name="descricao"
+                                        placeholder="Informe a descrição da saída"
+                                        required></textarea>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-danger">
-                            <i class="fa-solid fa-check"></i> Confirmar Saída
+                            <i class="fa-solid fa-check"></i> Confirmar
                         </button>
-                        <button class="btn btn-secondary" data-bs-dismiss="modal">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                             Cancelar
                         </button>
                     </div>

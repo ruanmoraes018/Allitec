@@ -108,9 +108,9 @@
                                                 <tr style="font-size: 12px;">
                                                     <th>#</th><th style="width: 6%;">Largura</th><th style="width: 6%;">Altura</th><th style="width: 6%;">Lg. Corte</th>
                                                     <th style="width: 6%;">At. Corte</th><th style="width: 6%;">Q. Lâm.</th><th style="width: 6%;">M²</th>
-                                                    <th style="width: 6%;">Ft. Peso</th><th style="width: 6%;">Peso</th><th style="width: 6.5%;">Eix. Mot.</th>
+                                                    <th style="width: 6%;">Ft. Peso</th><th style="width: 6%;">Peso</th>
                                                     <th style="width: 6%;">Rolo</th><th style="width: 8%;">TP. Lâm.</th><th style="width: 8%;">TP. Vão</th>
-                                                    <th style="width: 8%;">Guia Esquerdo</th><th style="width: 8%;">Guia Direito</th><th style="width: 40px;">Exc.</th>
+                                                    <th style="width: 8%;">Guia Esquerdo</th><th style="width: 14.5%;">Guia Direito</th><th style="width: 40px;">Exc.</th>
                                                 </tr>
                                             </thead>
                                             <tbody></tbody>
@@ -118,9 +118,11 @@
                                     </div>
                                 </div>
                                 <div class="col-md-1">{{ form.pintura|as_crispy_field }}</div>
-                                <div class="col-md-2">{{ form.tp_pintura|as_crispy_field }}</div>
+                                <div class="col-md-1">{{ form.tp_pintura|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.cor|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.portao_social|as_crispy_field }}</div>
+                                <div class="col-md-2">{{ form.lg_ps|as_crispy_field }}</div>
+                                <div class="col-md-2">{{ form.at_ps|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.vl_p_s|as_crispy_field }}</div>
                                 <input type="hidden" id="id_json_portas" name="json_portas">
                             </div>

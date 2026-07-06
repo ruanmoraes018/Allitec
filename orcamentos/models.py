@@ -56,6 +56,8 @@ class Orcamento(models.Model):
     obs_cli = models.TextField(default="", blank=True)
     pintura = models.CharField(max_length=5, choices=[('Sim', 'Sim'), ('Não', 'Não')], default='Sim')
     portao_social = models.CharField(max_length=5, choices=[('Não', 'Não'), ('Sim', 'Sim')], default='Não')
+    lg_ps = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, default=0)
+    at_ps = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, default=0)
     vl_p_s = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, default=0)
     tp_pintura = models.CharField(max_length=13, choices=[('Eletrostática', 'Eletrostática'), ('Automotiva', 'Automotiva')], default='Eletrostática')
     cor = models.CharField(max_length=30,

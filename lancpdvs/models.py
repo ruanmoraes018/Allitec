@@ -22,7 +22,7 @@ class Caixa(models.Model):
                 ult = (Caixa.objects.select_for_update().filter(vinc_emp=self.vinc_emp).aggregate(models.Max('codigo'))['codigo__max'] or 0)
                 self.codigo = ult + 1
                 super().save(*args, **kwargs)
-        else: super().save(*args, **kwargs)    
+        else: super().save(*args, **kwargs)
     class Meta:
         verbose_name_plural = "Lançamento de Caixas"
         permissions = [
@@ -34,8 +34,10 @@ class Caixa(models.Model):
         return [{"descricao": fp.forma_pgto.descricao, "valor": fp.valor} for fp in self.forma_pagamento.select_related("fechamentos").all()]
 
 class CaixaMovimento(models.Model):
+    codigo = models.PositiveIntegerField(blank=True, null=True)
     caixa = models.ForeignKey(Caixa, on_delete=models.CASCADE, related_name="movimentos")
     pedido = models.ForeignKey('pedidos.Pedido', null=True, blank=True, on_delete=models.SET_NULL)
+    situacao = models.CharField(max_length=10, choices=[('Ativo', 'Ativo'), ('Cancelado', 'Cancelado')], default="Ativo")
     tipo = models.CharField(max_length=10, choices=[('Entrada', 'Entrada'), ('Saída', 'Saída')])
     categoria = models.CharField(max_length=20, choices=[('Venda', 'Venda'), ('Sangria', 'Sangria'), ('Suprimento', 'Suprimento'), ('Saldo Inicial', 'Saldo Inicial'),])
     forma_pagamento = models.ForeignKey('formas_pgto.FormaPgto', on_delete=models.PROTECT)
@@ -45,9 +47,27 @@ class CaixaMovimento(models.Model):
     usuario = models.ForeignKey('filiais.Usuario', on_delete=models.SET_NULL, null=True)
     def save(self, *args, **kwargs):
         if self.caixa.situacao == 'Fechado': raise ValueError("Caixa fechado não pode receber movimentações.")
+        if not self.codigo:
+            with transaction.atomic():
+                ultimo = (
+                    CaixaMovimento.objects
+                    .select_for_update()
+                    .filter(caixa=self.caixa)
+                    .aggregate(models.Max('codigo'))['codigo__max']
+                    or 0
+                )
+
+                self.codigo = ultimo + 1
         super().save(*args, **kwargs)
     class Meta:
         indexes = [models.Index(fields=['caixa', 'tipo']), models.Index(fields=['caixa', 'forma_pagamento']),]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['caixa', 'codigo'],
+                name='unique_codigo_movimento_caixa'
+            )
+        ]
+
 class CaixaFechamento(models.Model):
     caixa = models.ForeignKey(Caixa, on_delete=models.CASCADE, related_name="fechamentos")
     forma_pagamento = models.ForeignKey('formas_pgto.FormaPgto', on_delete=models.PROTECT)

@@ -38,6 +38,9 @@ c = 'form-control form-control-sm border-dark-subtle'
 s = 'form-select form-select-sm border-dark-subtle'
 
 class FilialForm(forms.ModelForm):
+    # Layout de PDF Produção
+    layout_prod = forms.ChoiceField(label="L. PDF Produção", choices=[('1', 'Layout 1'), ('2', 'Layout 2')], widget=forms.Select(attrs={'class': f'{s}'}))
+    #
     situacao = forms.ChoiceField(label="Situação", choices=[('Ativa', 'Ativa'), ('Inativa', 'Inativa')], widget=forms.Select(attrs={'class': f'{s}'}))
     cnpj = forms.CharField(label='CNPJ', widget=forms.TextInput(attrs={'class': f'{c}'}))
     ie = forms.CharField(label='Inscrição Estadual', required=False, widget=forms.TextInput(attrs={'class': f'{c}'}))
@@ -71,10 +74,13 @@ class FilialForm(forms.ModelForm):
     tec = forms.ChoiceField(required=False, widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Técnico Padrão')
     tb_preco = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Tabela de Preço Padrão')
     vendedor = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Vendedor Padrão')
+    # Para orçamentos
+    mt_qt_lam = forms.CharField(label='', help_text="larg: Largura, alt: Altura, larg_corte: Largura de Corte, alt_corte: Altura de Corte, qtd_laminas: Qtde. de Lâminas, m2: M², ft_peso: Fator de Peso, peso: Peso, rolo: Rolo.", widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
     multi_m2 = forms.CharField(label='', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
     multi_lg_corte1 = forms.CharField(label='', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
     multi_lg_corte2 = forms.CharField(label='', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
     multi_lg_corte3 = forms.CharField(label='', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
+    #
     agrupa_itens = forms.ChoiceField(label="Agrupar Itens", choices=[(True, 'Sim'), (False, 'Não')], widget=forms.Select(attrs={'class': f'{s}'}))
     def _parse_decimal(self, valor):
         if valor in [None, '']: return Decimal('0.00')
@@ -98,7 +104,7 @@ class FilialForm(forms.ModelForm):
         fields = (
             'situacao', 'cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro_fil', 'cidade_fil', 'uf', 'tel', 'email', 'logo', 'tp_chave', 'chave_pix', 'banco_fil', 'info_comp', 'complem',
             'beneficiario', 'info_orcamento', 'layout_contrato', 'info_local', 'tp_calc_juros', 'tp_calc_multa', 'ft_juros', 'ft_multa', 'max_parcelas', 'cli', 'tec', 'vendedor', 'tb_preco', 'max_dias_intervalo', 'vendedor',
-            'multi_m2', 'agrupa_itens', 'multi_lg_corte1', 'multi_lg_corte2', 'multi_lg_corte3'
+            'multi_m2', 'agrupa_itens', 'multi_lg_corte1', 'multi_lg_corte2', 'multi_lg_corte3', 'mt_qt_lam', 'layout_prod'
         )
     def __init__(self, *args, **kwargs):
         # Captura e remove a empresa dos kwargs de forma segura
@@ -182,7 +188,7 @@ class FilialReadOnlyForm(forms.ModelForm):
         fields = (
             'situacao', 'cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro_fil', 'cidade_fil', 'uf', 'tel', 'email', 'dt_criacao', 'logo', 'tp_chave', 'chave_pix', 'banco_fil', 'info_comp', 'complem',
             'beneficiario', 'info_orcamento', 'layout_contrato', 'info_local', 'tp_calc_juros', 'tp_calc_multa', 'ft_juros', 'ft_multa', 'max_parcelas', 'cli', 'tec', 'tb_preco', 'max_dias_intervalo', 'vendedor', 'multi_m2',
-            'agrupa_itens', 'multi_lg_corte1', 'multi_lg_corte2', 'multi_lg_corte3'
+            'agrupa_itens', 'multi_lg_corte1', 'multi_lg_corte2', 'multi_lg_corte3', 'mt_qt_lam', 'layout_prod'
         )
     def __init__(self, *args, empresa=None, **kwargs):
         super(FilialReadOnlyForm, self).__init__(*args, **kwargs)

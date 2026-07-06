@@ -191,49 +191,73 @@ class PagamentoService:
 
         handle = self.creds.get("handle")
         if not handle:
-            raise Exception("Chave 'handle' não encontrada nas credenciais do gateway.")
+            raise Exception("Chave 'handle' não encontrada nas credenciais.")
 
         url = "https://api.checkout.infinitepay.io/links"
+
         headers = {
             "Content-Type": "application/json",
-            "accept": "application/json"
+            "Accept": "application/json",
         }
 
-        valor_centavos = int(float(valor) * 100)
-        clean_handle = str(handle).replace("$", "").strip()
+        valor_centavos = int(round(float(valor) * 100))
 
         payload = {
-            "handle": clean_handle,
+            "handle": str(handle).replace("$", "").strip(),
+            "order_nsu": str(external_reference),  # <-- identificador do seu pedido
             "webhook_url": "https://allitec.pythonanywhere.com/pagamentos/webhook/",
+            "customer": {
+                "email": email or ""
+            },
             "items": [
                 {
                     "quantity": 1,
                     "price": valor_centavos,
-                    "description": str(descricao)[:60]
+                    "description": str(descricao)[:120]
                 }
             ]
         }
 
-        try:
-            # O PythonAnywhere Free vai travar aqui se a URL não estiver liberada por eles
-            response = requests.post(url, json=payload, headers=headers, timeout=10)
+        response = requests.post(
+            url,
+            json=payload,
+            headers=headers,
+            timeout=20
+        )
 
-            if response.status_code not in [200, 201]:
-                raise Exception(f"Erro retornado pela InfinitePay ({response.status_code}): {response.text}")
+        if response.status_code not in (200, 201):
+            raise Exception(
+                f"InfinitePay ({response.status_code}): {response.text}"
+            )
 
-            data = response.json()
-            url_checkout = data.get("url") or data.get("checkout_url")
-            txid_fatura = data.get("slug") or data.get("invoice_slug")
+        data = response.json()
 
-            return {
-                "id": txid_fatura,
-                "qr_code": url_checkout,
-                "qr_base64": ""
-            }
+        print("=" * 80)
+        print("INFINITEPAY")
+        print(data)
+        print("=" * 80)
 
-        except Exception as e:
-            # 🔥 Forçamos o erro a subir para que a View capture o texto real
-            raise Exception(f"Falha de conexão no PythonAnywhere Free: {str(e)}")
+        checkout_url = data.get("url")
+
+        if not checkout_url:
+            raise Exception(f"Resposta inválida: {data}")
+
+        return {
+            # Como a API não devolve um id na criação do checkout,
+            # usamos nosso próprio identificador.
+            "id": str(external_reference),
+
+            # Mantém compatibilidade com o restante do sistema.
+            "gateway_id": None,
+
+            # Aqui será o LINK do checkout.
+            "qr_code": checkout_url,
+
+            # A InfinitePay gera o QR na própria página.
+            "qr_base64": "",
+
+            "payload": data
+        }
     # 🔹 PIX DIRETO (placeholder)
     def _pix_direto(self, valor, descricao, external_reference=None):
         """

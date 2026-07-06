@@ -27,17 +27,17 @@
                         </span>
                     </div>
                     <div class="card-body">
-                        <div class="row g-3" style="margin-left: -8px;">
+                        <div class="row" style="margin-left: -20px; margin-right: -20px;">
                             <div class="accordion" id="accordionPanelsStayOpenExample">
                                 <div class="accordion-item">
                                     <h2 class="accordion-header">
-                                        <button class="accordion-button fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseOne" aria-expanded="true" aria-controls="panelsStayOpen-collapseOne">
-                                            Informações
+                                        <button class="accordion-button fw-bold" type="button" style="max-height: 30px; background-color: #A9A9A9;" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseOne" aria-expanded="true" aria-controls="panelsStayOpen-collapseOne">
+                                            <i class="fa-solid fa-database me-2"></i> Informações
                                         </button>
                                     </h2>
                                     <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse show">
                                         <div class="accordion-body">
-                                            <div class="row g-3">
+                                            <div class="row" style="margin-left:-20px; margin-right: -20px;">
                                                 <div class="col-md-1">
                                                     {{ form.situacao|as_crispy_field }}
                                                 </div>
@@ -110,13 +110,13 @@
                                 </div>
                                 <div class="accordion-item">
                                     <h2 class="accordion-header">
-                                        <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseTwo" aria-expanded="false" aria-controls="panelsStayOpen-collapseTwo">
-                                            Custo/Venda
+                                        <button class="accordion-button collapsed fw-bold" type="button" style="max-height: 30px; background-color: #A9A9A9;" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseTwo" aria-expanded="false" aria-controls="panelsStayOpen-collapseTwo">
+                                            <i class="fa-solid fa-scale-balanced me-2"></i> Custo/Venda
                                         </button>
                                     </h2>
                                     <div id="panelsStayOpen-collapseTwo" class="accordion-collapse collapse">
                                         <div class="accordion-body">
-                                            <div class="row g-3">
+                                            <div class="row" style="margin-left:-20px; margin-right: -20px;">
                                                 <div class="col-md-2">
                                                     {{ form.vl_compra|as_crispy_field }}
                                                 </div>
@@ -139,7 +139,7 @@
                                                         <i class="fa-solid fa-plus"></i> Incluir
                                                     </button>
                                                 </div>
-                                                <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+                                                <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-1" style="margin: 0; padding: 0; margin-left: 10px; width: 98%;">
                                                     <div class="list-group">
                                                         <!-- Cabeçalho -->
                                                         <div class="list-group-item bg-light fw-bold cabecalho-lista">
@@ -165,13 +165,13 @@
                                 </div>
                                 <div class="accordion-item">
                                     <h2 class="accordion-header">
-                                        <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseThree" aria-expanded="false" aria-controls="panelsStayOpen-collapseThree">
-                                            Estoque e Outros
+                                        <button class="accordion-button collapsed fw-bold" type="button" style="max-height: 30px; background-color: #A9A9A9;" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseThree" aria-expanded="false" aria-controls="panelsStayOpen-collapseThree">
+                                            <i class="fa-solid fa-boxes-packing me-2"></i> Estoque e Outros
                                         </button>
                                     </h2>
                                     <div id="panelsStayOpen-collapseThree" class="accordion-collapse collapse">
                                         <div class="accordion-body">
-                                            <div class="row g-3">
+                                            <div class="row" style="margin-left:-20px; margin-right: -20px;">
                                                 <div class="col-md-1">
                                                     {{ form.estoque_prod|as_crispy_field }}
                                                 </div>
@@ -179,7 +179,7 @@
                                                     <label class="form-label">Tipo<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Orçamentos - Portas"></i></label>
                                                     {{ form.tp_prod|as_crispy_field }}
                                                 </div>
-                                                <div class="col-md-2 form-check form-switch">
+                                                <div class="col-md-2 ms-2 form-check form-switch">
                                                     <input class="form-check-input" type="checkbox" id="id_lista_orc" name="lista_orc" {% if p.lista_orc %}checked{% endif %}>
                                                     <label class="form-check-label" for="id_lista_orc">
                                                         Exibir na Lista (Orçamentos)
@@ -190,24 +190,24 @@
                                                     {{ form.especifico|as_crispy_field }}
                                                 </div>
                                             </div>
-                                            <div class="row">
+                                            <div class="row" style="margin-left:-10px; margin-right: -10px;">
                                                 <div class="card" style="margin: 0; margin-top: 15px; width: 30rem;">
                                                     <div class="card-header fw-bold bg-light text-secondary">
                                                         Código Secundário
                                                     </div>
                                                     <div class="card-body">
-                                                        <div class="row mb-1" style="margin-left: -8px;">
+                                                        <div class="row mb-1" style="margin-left: -30px; margin-right: -30px;">
                                                             <div class="col-md-9">
                                                                 <label for="cod-sec" class="form-label">Código:</label>
                                                                 <input type="text" id="cod-sec" class="form-control form-control-sm border-dark-subtle" name="cod-sec">
                                                             </div>
                                                             <div class="col-md-3 d-flex align-items-start">
                                                                 <button class="btn btn-success btn-sm w-100" type="button" id="add-cod-sec-tab" style="margin-top: 30px;">
-                                                                    <i class="fa-solid fa-plus"></i> Incluir
+                                                                    <i class="fa-solid fa-plus" aria-hidden="true"></i> Incluir
                                                                 </button>
                                                             </div>
                                                         </div>
-                                                        <div style="max-height: 100px; overflow-y: auto;">
+                                                        <div style="max-height: 100px; overflow-y: auto; margin-left: -18px; margin-right: -18px;">
                                                             <table class="table table-sm table-bordered rounded-top" id="tb-cod-sec">
                                                                 <thead class="table-secondary">
                                                                     <tr>

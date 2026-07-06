@@ -167,12 +167,12 @@ def dados_filiais_js(request):
     if not empresa: return JsonResponse({}, status=403)
     filiais = Filial.objects.filter(
         vinc_emp=empresa, situacao='Ativa'
-    ).values('codigo', 'cli__codigo', 'cli__fantasia', 'tec__codigo', 'vendedor__codigo', 'vendedor__fantasia', 'multi_m2', 'multi_lg_corte1', 'multi_lg_corte2', 'multi_lg_corte3', 'tb_preco__codigo', 'tb_preco__descricao', 'agrupa_itens')
+    ).values('codigo', 'cli__codigo', 'cli__fantasia', 'tec__codigo', 'vendedor__codigo', 'vendedor__fantasia', 'multi_m2', 'mt_qt_lam', 'multi_lg_corte1', 'multi_lg_corte2', 'multi_lg_corte3', 'tb_preco__codigo', 'tb_preco__descricao', 'agrupa_itens')
     data = {
         str(f['codigo']): {
             'cli': f['cli__codigo'], 'cli_nome': f['cli__fantasia'], 'tec': f['tec__codigo'], 'vend': f['vendedor__codigo'], 'vend_nome': f['vendedor__fantasia'],
             'multi_m2': float(f['multi_m2']) if f['multi_m2'] is not None else 0, 'tb_preco': f['tb_preco__codigo'], 'tb_preco_nome': f['tb_preco__descricao'],
-            'agrupa_itens': f['agrupa_itens'],
+            'agrupa_itens': f['agrupa_itens'], 'mt_qt_lam': f['mt_qt_lam'],
             'multi_lg_corte1': float(f['multi_lg_corte1']) if f['multi_lg_corte1'] is not None else 0,
             'multi_lg_corte2': float(f['multi_lg_corte2']) if f['multi_lg_corte2'] is not None else 0,
             'multi_lg_corte3': float(f['multi_lg_corte3']) if f['multi_lg_corte3'] is not None else 0,

@@ -154,6 +154,7 @@ def add_pedido(request):
             # Cria o objeto pedido sem salvar ainda no banco
             pedido = form.save(commit=False)
             pedido.vinc_emp = empresa
+            pedido.usuario = request.user
             dt_emissao = request.POST.get('dt_emi')
             # converte a string em um objeto date
             data = datetime.strptime(dt_emissao, '%d/%m/%Y').date()
@@ -308,6 +309,7 @@ def clonar_pedido(request, codigo):
         if form.is_valid():
             pedido = form.save(commit=False)
             pedido.vinc_emp = empresa
+            pedido.usuario = request.user
             pedido.situacao = "Aberto"
             pedido.status_pagamento = "pendente"
             data = pedido.dt_emi.date()

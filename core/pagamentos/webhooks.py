@@ -33,13 +33,31 @@ def tratar_webhook_mercadopago(data):
     }
 
 def tratar_webhook_infinitepay(data):
-    txid = data.get("invoice_slug")
-    if not txid:
+
+    order_nsu = data.get("order_nsu")
+
+    if not order_nsu:
         return None
+
+    pagamento = Pagamento.objects.filter(txid=str(order_nsu)).first()
+
+    if not pagamento:
+        print("PAGAMENTO NÃO ENCONTRADO:", order_nsu)
+        return None
+
+    pagamento.gateway_txid = data.get("transaction_nsu")
+    pagamento.payload = data
+    pagamento.status = "pago"
+    pagamento.save(update_fields=[
+        "gateway_txid",
+        "payload",
+        "status",
+    ])
+
     return {
-        "txid": txid,
-        "status": "pago", # Como é um disparo de confirmação, o status é pago
-        "payload": data
+        "txid": str(order_nsu),
+        "status": "pago",
+        "payload": data,
     }
 
 def tratar_webhook_pix_direto(data):

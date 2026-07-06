@@ -11,33 +11,38 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Field
 from fornecedores.models import Fornecedor
 
+c = "form-control form-control-sm border-dark-subtle"
+s = "form-select form-select-sm border-dark-subtle"
+st = "color: #2E8B57; font-weight: bold; background-color: #808080;"
 class OrcamentoForm(forms.ModelForm):
-    cli = forms.ChoiceField(label='Cliente', widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
-    vinc_fil = forms.ChoiceField(label='Filial', widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
-    obs_cli = forms.CharField(label='Obs', required=False, widget=forms.Textarea(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase', 'rows': 2}))
-    id = forms.CharField(label='Nº', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'disabled': 'disabled'}))
-    solicitante = forms.ChoiceField(label='Técnico/Solicitante', widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
-    fornecedor = forms.ChoiceField(label='Fornecedor', widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
-    pintura = forms.ChoiceField(choices=[('Sim', 'Sim'),('Não', 'Não')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
-    portao_social = forms.ChoiceField(label="Portão Social", choices=[('Não', 'Não'),('Sim', 'Sim')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
-    tp_pintura = forms.ChoiceField(label="Tipo Pintura", choices=[('Eletrostática', 'Eletrostática'),('Automotiva', 'Automotiva')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
+    cli = forms.ChoiceField(label='Cliente', widget=forms.Select(attrs={'class': f'{s}'}))
+    vinc_fil = forms.ChoiceField(label='Filial', widget=forms.Select(attrs={'class': f'{s}'}))
+    obs_cli = forms.CharField(label='Obs', required=False, widget=forms.Textarea(attrs={'class': f'{c} text-uppercase', 'rows': 2}))
+    id = forms.CharField(label='Nº', required=False, widget=forms.TextInput(attrs={'class': f'{c}', 'disabled': 'disabled'}))
+    solicitante = forms.ChoiceField(label='Técnico/Solicitante', widget=forms.Select(attrs={'class': f'{s}'}))
+    fornecedor = forms.ChoiceField(label='Fornecedor', widget=forms.Select(attrs={'class': f'{s}'}))
+    pintura = forms.ChoiceField(choices=[('Sim', 'Sim'),('Não', 'Não')], widget=forms.Select(attrs={'class': f'{s}'}))
+    portao_social = forms.ChoiceField(label="Portão Social", choices=[('Não', 'Não'),('Sim', 'Sim')], widget=forms.Select(attrs={'class': f'{s}'}))
+    tp_pintura = forms.ChoiceField(label="Tipo Pintura", choices=[('Eletrostática', 'Eletrostática'),('Automotiva', 'Automotiva')], widget=forms.Select(attrs={'class': f'{s}'}))
     cor = forms.ChoiceField(
         choices = [
             ('', ''), ('Preto', 'Preto'), ('Branco', 'Branco'),('Amarelo', 'Amarelo'), ('Vermelho', 'Vermelho'),('Azul Claro', 'Azul Claro'), ('Cinza Claro', 'Cinza Claro'),
             ('Cinza Grafite', 'Cinza Grafite'), ('Cinza Chumbo', 'Cinza Chumbo'), ('Chumbo', 'Chumbo'), ('Verde', 'Verde'),('Bege', 'Bege'), ('Bege Areia', 'Bege Areia'),('Marrom', 'Marrom'), ('Marrom Café', 'Marrom Café'),
             ('Laranja', 'Laranja'), ('Azul Royal', 'Azul Royal'), ('Azul Marinho', 'Azul Marinho'), ('Azul Pepsi', 'Azul Pepsi'), ('Verde Musgo', 'Verde Musgo'),('Verde Bandeira', 'Verde Bandeira'), ('Vinho', 'Vinho'), ('Prata', 'Prata'),
-        ], required=False, widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'})
+        ], required=False, widget=forms.Select(attrs={'class': f'{s}'})
     )
-    obs_form_pgto = forms.CharField(label='Observações', required=False, widget=forms.Textarea(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase', 'rows': 2}))
-    vl_p_s = forms.CharField(required=False, label="Valor Portão Social", widget=forms.TextInput(attrs={'placeholder': '0,00', 'readonly': 'readonly', 'class': 'form-control border-dark-subtle', 'style': 'color: darkgreen; font-weight: bold; background: honeydew;'}))
-    desconto = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control border-dark-subtle', 'style': 'color: #2E8B57; font-weight: bold; background-color: #808080;', 'placeholder': '0,00', 'readonly': 'readonly'}))
-    acrescimo = forms.CharField(required=False,widget=forms.TextInput(attrs={'class': 'form-control border-dark-subtle','style': 'color: #2E8B57; font-weight: bold; background-color: #808080;','placeholder': '0,00','readonly': 'readonly'}))
-    dt_emi = forms.DateField(label='Dt. Emissão',input_formats=['%d/%m/%Y'],widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
-    dt_ent = forms.DateField(label='Dt. Entrega',required=False,input_formats=['%d/%m/%Y'],widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
-    # subtotal = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle','hidden': ''}))
-    # total = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle','hidden': ''}))
-    formas_pgto = forms.ChoiceField(label='Formas de Pagamento', required=False, widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
-    tabela_preco = forms.ChoiceField(label='Tabela de Preço', widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
+    obs_form_pgto = forms.CharField(label='Observações', required=False, widget=forms.Textarea(attrs={'class': f'{c} text-uppercase', 'rows': 2}))
+    lg_ps = forms.CharField(required=False, label="Larg. Portão Social", widget=forms.TextInput(attrs={'placeholder': '0,00', 'readonly': 'readonly', 'class': f'{c} d-none'}))
+    at_ps = forms.CharField(required=False, label="Alt. Portão Social", widget=forms.TextInput(attrs={'placeholder': '0,00', 'readonly': 'readonly', 'class': f'{c} d-none'}))
+    vl_p_s = forms.CharField(required=False, label="Valor Portão Social", widget=forms.TextInput(attrs={'placeholder': '0,00', 'readonly': 'readonly', 'class': f'{c} d-none', 'style': 'color: darkgreen; font-weight: bold; background: honeydew;'}))
+    desconto = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': f'{c}', 'style': f'{st}', 'placeholder': '0,00', 'readonly': 'readonly'}))
+    acrescimo = forms.CharField(required=False,widget=forms.TextInput(attrs={'class': f'{c}','style': f'{st}','placeholder': '0,00','readonly': 'readonly'}))
+    dt_emi = forms.DateField(label='Dt. Emissão',input_formats=['%d/%m/%Y'],widget=forms.TextInput(attrs={'class': f'{c}'}))
+    dt_ent = forms.DateField(label='Dt. Entrega',required=False,input_formats=['%d/%m/%Y'],widget=forms.TextInput(attrs={'class': f'{c}'}))
+    # subtotal = forms.CharField(widget=forms.TextInput(attrs={'class': f'{c}','hidden': ''}))
+    # total = forms.CharField(widget=forms.TextInput(attrs={'class': f'{c}','hidden': ''}))
+    formas_pgto = forms.ChoiceField(label='Formas de Pagamento', required=False, widget=forms.Select(attrs={'class': f'{s}'}))
+    tabela_preco = forms.ChoiceField(label='Tabela de Preço', widget=forms.Select(attrs={'class': f'{s}'}))
     codigo = forms.CharField(required=False, widget=forms.TextInput(attrs={'readonly': 'readonly'}))
     class Meta:
         model = Orcamento
@@ -131,6 +136,10 @@ class OrcamentoForm(forms.ModelForm):
         except: self.add_error('acrescimo', 'Valor inválido.')
         try: cleaned_data['vl_p_s'] = parse_decimal(cleaned_data.get('vl_p_s'))
         except: self.add_error('vl_p_s', 'Valor inválido.')
+        try: cleaned_data['lg_ps'] = parse_decimal(cleaned_data.get('lg_ps'))
+        except: self.add_error('lg_ps', 'Valor inválido.')
+        try: cleaned_data['at_ps'] = parse_decimal(cleaned_data.get('at_ps'))
+        except: self.add_error('at_ps', 'Valor inválido.')
         return cleaned_data
 class PortaOrcamentoForm(forms.ModelForm):
     rolo = forms.DecimalField(localize=False)

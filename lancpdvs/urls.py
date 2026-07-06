@@ -12,6 +12,16 @@ urlpatterns = [
     # path('caixa/fechar/<int:caixa_id>/', views.fechar_caixa, name='fechar-caixa'),
     path('caixa/status-pagamento/', views.status_pagamento_caixa, name='status-pagamento-caixa'),
     path('caixa/movimentos/<int:caixa_id>/', views.movimentos_caixa, name='movimentos-caixa'),
-    path('caixas/<int:caixa_id>/entrada/', views.realizar_entrada_caixa, name='realizar_entrada_caixa'),
-    path('caixas/<int:caixa_id>/saida/', views.realizar_saida_caixa, name='realizar_saida_caixa'),
+    path('caixa/<int:caixa_id>/entrada/', views.realizar_entrada_caixa, name='realizar_entrada_caixa'),
+    path('caixa/<int:caixa_id>/saida/', views.realizar_saida_caixa, name='realizar_saida_caixa'),
+    path(
+        "caixa/<int:caixa_codigo>/movimento/<int:movimento_codigo>/",
+        views.dados_movimento_caixa,
+        name="dados_movimento_caixa",
+    ),
+    path(
+        "caixa/<int:caixa_id>/movimento/<int:movimento_id>/cancelar/",
+        views.cancelar_movimento_caixa,
+        name="cancelar_movimento_caixa",
+    ),
 ]

@@ -18,7 +18,7 @@
             <td class="td-info">
                 <div class="titulo">{{ pedido.vinc_emp.fantasia }}</div>
                 <div class="sub-info">
-                    <span>CNPJ: {{ pedido.vinc_fil.cnpj }}</span> • 
+                    <span>CNPJ: {{ pedido.vinc_fil.cnpj }}</span> •
                     <span>{{ pedido.vinc_fil.tel }}</span>
                 </div>
                 <div class="sub-info">
@@ -33,7 +33,7 @@
                 <div style="margin-top: 8px; font-size: 10px; color: #666;">
                     <strong>EMISSÃO:</strong> {{ pedido.dt_emi|date:"d/m/Y H:i" }}<br>
                     <strong>SITUAÇÃO:</strong> {{ pedido.situacao }}<br>
-                    <strong>OPERADOR:</strong> {{ usuario }}
+                    <strong>OPERADOR:</strong> {% if pedido.usuario != None %} {{ pedido.usuario }} {% else %} {{ usuario }} {% endif %}
                 </div>
             </td>
         </tr>
@@ -43,28 +43,93 @@
     <table class="table-dados mb">
         <thead>
             <tr>
-                <th colspan="4">DADOS DO CLIENTE E VENDA</th>
+                <th colspan="5">DADOS DO CLIENTE E VENDA</th>
             </tr>
         </thead>
         <tbody>
-            <tr>
-                <td width="40%">
-                    <span class="label">Cliente</span>
-                    <span class="valor">{{ pedido.cli.codigo }} - {{ pedido.nome_cli }}</span>
-                </td>
-                <td width="25%">
-                    <span class="label">Vendedor</span>
-                    <span class="valor">{{ pedido.vendedor.codigo }} - {{ pedido.nome_vend|default:"-" }}</span>
-                </td>
-                <td width="15%">
-                    <span class="label">Caixa</span>
-                    <span class="valor">{{ pedido.caixa|default:"-" }}</span>
-                </td>
-                <td width="20%">
-                    <span class="label">Tabela de Preço</span>
-                    <span class="valor">{{ pedido.tabela_preco|default:"-" }}</span>
-                </td>
-            </tr>
+            {% if pedido.cli.avulso == "Sim" %}
+                <tr>
+                    <td width="40%">
+                        <span class="label">Cliente</span>
+                        <span class="valor">{{ pedido.cli.codigo }} - {{ pedido.nome_cli }}</span>
+                    </td>
+                    <td width="25%">
+                        <span class="label">Vendedor</span>
+                        <span class="valor">{{ pedido.vendedor.codigo }} - {{ pedido.nome_vend|default:"-" }}</span>
+                    </td>
+                    <td width="15%">
+                        <span class="label">Caixa</span>
+                        <span class="valor">{{ pedido.caixa|default:"-" }}</span>
+                    </td>
+                    <td width="20%">
+                        <span class="label">Tabela de Preço</span>
+                        <span class="valor">{{ pedido.tabela_preco|default:"-" }}</span>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td width="20%">
+                        <span class="label">Código</span>
+                        <span class="valor">{{ pedido.cli.codigo }}</span>
+                    </td>
+                    <td width="20%">
+                        <span class="label">{% if pedido.cli.pessoa == "Física" %} Nome {% else %} Razão Social {% endif %}</span>
+                        <span class="valor">{{ pedido.cli.razao_social }}</span>
+                    </td>
+                    <td width="20%">
+                        <span class="label">{% if pedido.cli.pessoa == "Física" %} Apelido {% else %} Fantasia {% endif %}</span>
+                        <span class="valor">{{ pedido.nome_cli }}</span>
+                    </td>
+                    <td width="20%">
+                        <span class="label">{% if pedido.cli.pessoa == "Física" %} CPF {% else %} CNPJ {% endif %}</span>
+                        <span class="valor">{{ pedido.cli.cpf_cnpj }}</span>
+                    </td>
+                    <td width="20%">
+                        <span class="label">{% if pedido.cli.pessoa == "Física" %} RG {% else %} IE {% endif %}</span>
+                        <span class="valor">{{ pedido.cli.ie }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="30%">
+                        <span class="label">Endereço</span>
+                        <span class="valor">{{ pedido.cli.endereco }}</span>
+                    </td>
+                    <td width="10%">
+                        <span class="label">Nº</span>
+                        <span class="valor">{{ pedido.cli.numero }}</span>
+                    </td>
+                    <td width="20%">
+                        <span class="label">Bairro</span>
+                        <span class="valor">{{ pedido.cli.bairro }}</span>
+                    </td>
+                    <td width="20%">
+                        <span class="label">Cidade</span>
+                        <span class="valor">{{ pedido.cli.cidade }}</span>
+                    </td>
+                    <td width="20%">
+                        <span class="label">UF</span>
+                        <span class="valor">{{ pedido.cli.uf }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="25%">
+                        <span class="label">Telefone</span>
+                        <span class="valor">{{ pedido.cli.tel }}</span>
+                    </td>
+                    <td colspan="2" width="25%">
+                        <span class="label">Vendedor</span>
+                        <span class="valor">{{ pedido.vendedor.codigo }} - {{ pedido.nome_vend|default:"-" }}</span>
+                    </td>
+                    <td width="25%">
+                        <span class="label">Caixa</span>
+                        <span class="valor">{{ pedido.caixa|default:"-" }}</span>
+                    </td>
+                    <td width="25%">
+                        <span class="label">Tabela de Preço</span>
+                        <span class="valor">{{ pedido.tabela_preco|default:"-" }}</span>
+                    </td>
+                </tr>
+            {% endif %}
         </tbody>
     </table>
 
@@ -118,16 +183,22 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for fp in pedido.formas_pgto.all %}
-                        <tr>
-                            <td>{{ fp.forma_pgto.descricao }}</td>
-                            <td class="text-right font-bold">R$ {{ fp.valor|moeda_br }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="2" class="color-muted italic">Nenhuma forma de pagamento registrada</td>
-                        </tr>
-                        {% endfor %}
+                        {% if pedido.situacao == "Faturado" or pedido.situacao == "Cancelado" %}
+                            {% for fp in pedido.formas_pgto.all %}
+                            <tr>
+                                <td>{{ fp.forma_pgto.descricao }}</td>
+                                <td class="text-right font-bold">R$ {{ fp.valor|moeda_br }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="2" class="color-muted italic">Nenhuma forma de pagamento registrada</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="2" class="color-muted italic">Nenhuma forma de pagamento registrada</td>
+                            </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </td>

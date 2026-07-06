@@ -32,6 +32,9 @@ class Cliente(models.Model):
     cidade = models.ForeignKey(Cidade, on_delete=models.SET_NULL, null=True)
     uf = models.ForeignKey(Estado, on_delete=models.SET_NULL, null=True)
     complem = models.CharField(max_length=30, blank=True, default="")
+
+    avulso = models.CharField(max_length=10, verbose_name="Situação", choices=[('Sim', 'Sim'), ('Não', 'Não')], default="Não")
+
     tel = models.CharField(max_length=30)
     email = models.EmailField(max_length=40)
     dt_reg = models.DateField(verbose_name="Data de Registro", null=True, blank=True, db_index=True)

@@ -41,16 +41,17 @@
                             <div class="col-md-4">{{ form.email|as_crispy_field }}</div>
                         </div>
                         <div class="card" style="margin: 0; margin-top: 5px;">
-                            <div class="form-buttons" style="margin-left: 10px; margin-top: 10px;">
+                            <div class="form-buttons" style="margin-left: 10px; margin-top: 1px;">
                                 <div class="card-header bg-white">
                                     <button type="button" class="btn btn-dark" id="endBtn">Endereço</button>
                                     <button type="button" class="btn btn-dark" id="faturBtn">Faturamento</button>
                                     <button type="button" class="btn btn-dark" id="complBtn">Complementos</button>
                                     <button type="button" class="btn btn-dark" id="financBtn">Financeiro</button>
+                                    <button type="button" class="btn btn-dark" id="impBtn">Impressão</button>
                                 </div>
                             </div>
                             <div class="form-section" id="enderecos">
-                                <div class="row" style="margin-left: -8px; margin-bottom: 10px;">
+                                <div class="row" style="margin-bottom: 10px;">
                                     <div class="col-md-2">{{ form.cep|as_crispy_field }}</div>
                                     <div class="col-md-4">{{ form.endereco|as_crispy_field }}</div>
                                     <div class="col-md-1">{{ form.numero|as_crispy_field }}</div>
@@ -80,44 +81,59 @@
                                 </div>
                             </div>
                             <div class="form-section" id="faturamentos">
-                                <div class="row" style="margin-left: -8px; margin-bottom: 10px;">
-                                    <div class="col-md-2">{{ form.tb_preco|as_crispy_field }}</div>
-                                    <div class="col-md-2">{{ form.vendedor|as_crispy_field }}</div>
-                                    <div class="col-md-2">{{ form.cli|as_crispy_field }}</div>
-                                    <div class="col-md-2">{{ form.tec|as_crispy_field }}</div>
-                                    <div class="col-md-1">
-                                        <label class="form-label">Ft. M²*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Orçamentos - Portas"></i></label>
-                                        {{ form.multi_m2|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-1">
-                                        <label class="form-label">Ft. L. Crt*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="(Orçamentos - Portas) Largura de Corte Para opção Fora do Vão"></i></label>
-                                        {{ form.multi_lg_corte1|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-1">
-                                        <label class="form-label">Ft. L. Crt*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="(Orçamentos - Portas) Largura de Corte Para opção Dentro do Vão"></i></label>
-                                        {{ form.multi_lg_corte2|as_crispy_field }}
-                                    </div>
-                                    <div class="col-md-1">
-                                        <label class="form-label">Ft. L. Crt*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="(Orçamentos - Portas) Largura de Corte Para opção 1 Lado Dentro do Vão"></i></label>
-                                        {{ form.multi_lg_corte3|as_crispy_field }}
+                                <div class="row" style="margin-bottom: 10px;">
+                                    <div class="col-md-3">{{ form.tb_preco|as_crispy_field }}</div>
+                                    <div class="col-md-3">{{ form.vendedor|as_crispy_field }}</div>
+                                    <div class="col-md-3">{{ form.cli|as_crispy_field }}</div>
+                                    <div class="col-md-3">{{ form.tec|as_crispy_field }}</div>
+                                    <div class="accordion" id="acOrc">
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button mt-1 fw-bold collapsed" style="max-height: 30px; background-color: #A9A9A9;" type="button" data-bs-toggle="collapse" data-bs-target="#colOrc" aria-expanded="false" aria-controls="colOrc">
+                                                    Configurações de Orçamento - Portas
+                                                </button>
+                                            </h2>
+                                            <div id="colOrc" class="accordion-collapse collapse" data-bs-parent="#acOrc">
+                                                <div class="accordion-body">
+                                                    <div class="row">
+                                                        <div class="col-md-3">
+                                                            <label class="form-label">Fator M²*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de M² Utilizado em Orçamentos - Portas"></i></label>
+                                                            {{ form.multi_m2|as_crispy_field }}
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <label class="form-label">Fator L. Crt*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de Largura de Corte Para opção (Fora do Vão) Utilizado em Orçamentos - Portas"></i></label>
+                                                            {{ form.multi_lg_corte1|as_crispy_field }}
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <label class="form-label">Fator L. Crt*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de Largura de Corte Para opção (Dentro do Vão) Utilizado em Orçamentos - Portas"></i></label>
+                                                            {{ form.multi_lg_corte2|as_crispy_field }}
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <label class="form-label">Fator L. Crt*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de Largura de Corte Para opção (1 Lado Dentro do Vão) Utilizado em Orçamentos - Portas"></i></label>
+                                                            {{ form.multi_lg_corte3|as_crispy_field }}
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <label class="form-label">Fator Qtde. Lâm.*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de Qtde. de Lâminas Utilizado em Orçamentos - Portas"></i></label>
+                                                            {{ form.mt_qt_lam|as_crispy_field }}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                             <div class="form-section" id="complementos">
-                                <div class="row" style="margin-left: -8px; margin-bottom: 10px;">
+                                <div class="row" style="margin-bottom: 10px;">
                                     <div class="col-md-2">{{ form.tp_chave|as_crispy_field }}</div>
                                     <div class="col-md-2">{{ form.chave_pix|as_crispy_field }}</div>
                                     <div class="col-md-2">{{ form.banco_fil|as_crispy_field }}</div>
-                                    <div class="col-md-2">{{ form.layout_contrato|as_crispy_field }}</div>
-                                    <div class="col-md-2">{{ form.beneficiario|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ form.beneficiario|as_crispy_field }}</div>
                                     <div class="col-md-2">{{ form.agrupa_itens|as_crispy_field }}</div>
-                                    <div class="col-md-4">{{ form.info_comp|as_crispy_field }}</div>
-                                    <div class="col-md-4">{{ form.info_orcamento|as_crispy_field }}</div>
-                                    <div class="col-md-4">{{ form.info_local|as_crispy_field }}</div>
                                 </div>
                             </div>
                             <div class="form-section" id="financeiros">
-                                <div class="row" style="margin-left: -8px; margin-bottom: 10px;">
+                                <div class="row" style="margin-bottom: 10px;">
                                     <div class="col-md-2">{{ form.tp_calc_juros|as_crispy_field }}</div>
                                     <div class="col-md-1">{{ form.ft_juros|as_crispy_field }}</div>
                                     <div class="col-md-2">{{ form.tp_calc_multa|as_crispy_field }}</div>
@@ -130,6 +146,15 @@
                                         <label class="form-label">Máx. (Dias Intervalo)<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Contas à Receber"></i></label>
                                         {{ form.max_dias_intervalo|as_crispy_field }}
                                     </div>
+                                </div>
+                            </div>
+                            <div class="form-section" id="impressoes">
+                                <div class="row" style="margin-bottom: 10px;">
+                                    <div class="col-md-2">{{ form.layout_contrato|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.layout_prod|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ form.info_comp|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ form.info_orcamento|as_crispy_field }}</div>
+                                    <div class="col-md-12">{{ form.info_local|as_crispy_field }}</div>
                                 </div>
                             </div>
                         </div>

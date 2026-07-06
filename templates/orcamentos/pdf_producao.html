@@ -13,7 +13,7 @@
         .page {width: 100%;}
         .header {width: 100%; border-collapse: collapse; margin-bottom: 8px;}
         .header td, .header th, .tbl td, .tbl th {border: 1px solid #222; padding: 5px 6px; vertical-align: middle; word-wrap: break-word;}
-        .header-title {background: #1f2937; color: #fff; text-align: center; font-size: 16px; font-weight: bold; letter-spacing: 0.4px;}
+        .header-title {background: #374151; color: #fff; text-align: center; font-size: 16px; font-weight: bold; letter-spacing: 0.4px;}
         .subhead {background: #e5e7eb; font-weight: bold; text-align: center;}
         .label {background: #f3f4f6; font-weight: bold; width: 18%;}
         .tbl {width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed;}
@@ -71,16 +71,22 @@
                 <td>Tipo de Pintura</td>
                 <td>Cor</td>
                 <td>Portão Social</td>
-                <td>Valor Portão Social</td>
-                <td>Observação</td>
+                <td>Larg. Portão Soc.</td>
+                <td>Alt. Portão Soc.</td>
             </tr>
             <tr class="center">
                 <td class="bold">{{ o.pintura }}</td>
                 <td class="bold">{% if o.pintura == "Não" %}-{% else %}{{ o.tp_pintura }}{% endif %}</td>
                 <td class="bold">{% if o.pintura == "Não" %}-{% else %}{{ o.cor }}{% endif %}</td>
                 <td class="bold">{{ o.portao_social }}</td>
-                <td class="bold">{% if o.portao_social == "Não" %}-{% else %}R$ {{ o.vl_p_s|moeda_br }}{% endif %}</td>
-                <td class="bold">{{ o.obs_form_pgto|default:"-" }}</td>
+                <td class="bold">{% if o.portao_social == "Sim" %}{{ o.lg_ps }}{% else %} - {% endif %}</td>
+                <td class="bold">{% if o.portao_social == "Sim" %}{{ o.at_ps }}{% else %} - {% endif %}</td>
+            </tr>
+            <tr class="section-soft">
+                <td colspan="6">Observação</td>
+            </tr>
+            <tr>
+                <td colspan="6" class="bold">{{ o.obs_form_pgto|default:"_" }}</td>
             </tr>
         </table>
         {% for pt in o.portas.all %}
@@ -109,15 +115,13 @@
                     <td><strong>{{ pt.rolo }}</strong></td>
                 </tr>
                 <tr class="section-soft">
-                    <td>Eixo do Motor</td>
-                    <td>Tipo Lâmina</td>
+                    <td colspan="2">Tipo Lâmina</td>
                     <td colspan="2">Tipo do Vão</td>
                     <td colspan="2">Guia Esquerdo</td>
                     <td colspan="2">Guia Direito</td>
                 </tr>
                 <tr class="center">
-                    <td><strong>{{ pt.eixo_motor }}</strong></td>
-                    <td><strong>{{ pt.tp_lamina }}</strong></td>
+                    <td colspan="2"><strong>{{ pt.tp_lamina }}</strong></td>
                     <td colspan="2"><strong>{{ pt.tp_vao }}</strong></td>
                     <td colspan="2"><strong>{{ pt.op_guia_e }}</strong></td>
                     <td colspan="2"><strong>{{ pt.op_guia_d }}</strong></td>
