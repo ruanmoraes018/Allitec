@@ -1,4 +1,5 @@
 from datetime import datetime
+from formas_pgto.models import FormaPgto
 def finalizar_pedido(pedido, formas=None, parcelas=None, parcial=False, request=None):
     from decimal import Decimal
     from django.utils import timezone
@@ -30,7 +31,16 @@ def finalizar_pedido(pedido, formas=None, parcelas=None, parcial=False, request=
     # 🔥 FORMAS DE PAGAMENTO
     if formas:
         for f in formas:
-            PedidoFormaPgto.objects.create(pedido=pedido, codigo=f["forma"], valor=f["valor"])
+            forma = FormaPgto.objects.get(
+                codigo=f["forma"],
+                vinc_emp=pedido.vinc_emp
+            )
+
+            PedidoFormaPgto.objects.create(
+                pedido=pedido,
+                forma_pgto=forma,
+                valor=f["valor"]
+            )
     # 🔥 CONTAS A RECEBER
     if parcelas:
         for p in parcelas:
