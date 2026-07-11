@@ -24,4 +24,9 @@ urlpatterns = [
     path("alterar-status/", views.alterar_status_orcamento, name="alterar_status_orcamento"),
     path("<int:orcamento_id>/gerar-pagamento/", views.gerar_pagamento_orcamento, name='gerar-pagamento-orcamento'),
     path('<int:orcamento_id>/status-pagamento/', views.status_pagamento_orcamento, name='status-pagamento-orcamento'),
+    path(
+        'recibo/<int:codigo>/',
+        views.recibo_orcamento,
+        name='recibo_orcamento'
+    ),
 ]

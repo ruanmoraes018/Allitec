@@ -13,21 +13,13 @@
             ]'></div>
         {% endif %}
         <style>
-            .ui-datepicker {
-                z-index: 2000 !important;
-            }
-
-            .modal,
-            .modal-dialog,
-            .modal-content,
-            .modal-body {
-                overflow: visible !important;
-            }
+            .ui-datepicker {z-index: 2000 !important;}
+            .modal,.modal-dialog,.modal-content,.modal-body {overflow: visible !important;}
         </style>
         <div class="container-fluid bg-white">
             <div class="row mb-1">
-                <h1 class="text-center" style="font-size: 30px;">Dashboard</h1>
-                {% if request.user.ver_res_orc or request.user.ver_res_orc_tec %}
+                <h1 class="text-center" style="font-size: 30px;">Dashboard - {{ filial_fantasia }}</h1>
+                {% if request.user.ver_res_orc or request.user.ver_res_orc_tec or request.user.ver_conv_orc or request.user.ver_ticket_medio or request.user.ver_valor_perdido or request.user.ver_vl_total_faturado or request.user.ver_tempo_medio_faturamento or request.user.ver_m2_total or request.user.ver_peso_total or request.user.ver_situacao_orcamentos or request.user.ver_evolucao_orcamentos or request.user.ver_ranking_tecnicos or request.user.ver_ranking_clientes or request.user.ver_situacao_valor_orcamentos or request.user.ver_faturamento_diario or request.user.ver_top_10_produtos_vl or request.user.ver_formas_orcamentos or request.user.ver_status_orcamentos or request.user.ver_top_10_produtos_qtde or request.user.ver_cores_orcamentos or request.user.ver_caracteristicas_orcamentos %}
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                         <button class="btn btn-success btm-sm" type="button" data-bs-toggle="modal" data-bs-target="#mdResOrc"><i class="fa-solid fa-calendar-days"></i> Alterar Período</button>
                     </div>
@@ -35,61 +27,61 @@
             </div>
             <div class="row">
                 {% if request.user.ver_res_orc %}
-                    <div class="col-sm-6 mb-3 mb-sm-3" style="margin-bottom: 10px;">
+                    <div class="col-sm-6 mb-1">
                         <div class="card">
                             <div class="card-header bg-secondary-subtle">
                                 <h5 class="card-title text-info-emphasis text-center">
                                     Resumo de Orçamentos <i class="fa-solid fa-calendar-days"></i>
                                     {% if data_inicial and data_final %}
-                                        {{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }}
+                                        ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
                                     {% else %}
-                                        {{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }}
+                                        ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
                                     {% endif %}
                                 </h5>
                             </div>
                             <div class="card-body">
-                                <div class="row g-3">
+                                <div class="row">
                                     <div class="d-flex flex-column gap-2">
                                         {% if orcamentos_abertos > 0 %}
-                                        <div class="d-flex align-items-center justify-content-between p-2 border rounded">
-                                            <span class="badge bg-primary fs-6 px-3 py-2">
-                                                <i class="fa-solid fa-folder-open me-1"></i>
-                                                {{ orcamentos_abertos }}
-                                                {% if orcamentos_abertos > 1 %} Abertos {% else %} Aberto {% endif %}
-                                            </span>
-                                            <span class="fw-bold text-primary">
-                                                R$ {{ total_abertos|moeda_br }}
-                                            </span>
-                                        </div>
-                                        {% endif %}
-                                        {% if orcamentos_faturados > 0 %}
-                                        <div class="d-flex flex-column p-2 border rounded bg-light">
-                                            <div class="d-flex align-items-center justify-content-between">
-                                                <span class="badge bg-success fs-6 px-3 py-2">
-                                                    <i class="fa-solid fa-circle-check me-1"></i>
-                                                    {{ orcamentos_faturados }}
-                                                    {% if orcamentos_faturados > 1 %} Faturados {% else %} Faturado {% endif %}
+                                            <div class="d-flex align-items-center justify-content-between p-2 border rounded">
+                                                <span class="badge bg-primary fs-6 px-3 py-2">
+                                                    <i class="fa-solid fa-folder-open me-1"></i>
+                                                    {{ orcamentos_abertos }}
+                                                    {% if orcamentos_abertos > 1 %} Abertos {% else %} Aberto {% endif %}
                                                 </span>
-                                                <span class="fw-bold text-success">
-                                                    R$ {{ total_faturados|moeda_br }}
+                                                <span class="fw-bold text-primary">
+                                                    R$ {{ total_abertos|moeda_br }}
                                                 </span>
                                             </div>
-                                            <small class="text-muted mt-1">
-                                                Média por orçamento: <strong>{{ media_valor_fat|moeda_br }}</strong>
-                                            </small>
-                                        </div>
+                                        {% endif %}
+                                        {% if orcamentos_faturados > 0 %}
+                                            <div class="d-flex flex-column p-2 border rounded bg-light">
+                                                <div class="d-flex align-items-center justify-content-between">
+                                                    <span class="badge bg-success fs-6 px-3 py-2">
+                                                        <i class="fa-solid fa-circle-check me-1"></i>
+                                                        {{ orcamentos_faturados }}
+                                                        {% if orcamentos_faturados > 1 %} Faturados {% else %} Faturado {% endif %}
+                                                    </span>
+                                                    <span class="fw-bold text-success">
+                                                        R$ {{ total_faturados|moeda_br }}
+                                                    </span>
+                                                </div>
+                                                <small class="text-muted mt-1">
+                                                    Média por Orçamento: <strong>{{ media_valor_fat|moeda_br }}</strong>
+                                                </small>
+                                            </div>
                                         {% endif %}
                                         {% if orcamentos_cancelados > 0 %}
-                                        <div class="d-flex align-items-center justify-content-between p-2 border rounded">
-                                            <span class="badge bg-danger fs-6 px-3 py-2">
-                                                <i class="fa-solid fa-ban me-1"></i>
-                                                {{ orcamentos_cancelados }}
-                                                {% if orcamentos_cancelados > 1 %} Cancelados {% else %} Cancelado {% endif %}
-                                            </span>
-                                            <span class="fw-bold text-danger">
-                                                R$ {{ total_cancelados|moeda_br }}
-                                            </span>
-                                        </div>
+                                            <div class="d-flex align-items-center justify-content-between p-2 border rounded">
+                                                <span class="badge bg-danger fs-6 px-3 py-2">
+                                                    <i class="fa-solid fa-ban me-1"></i>
+                                                    {{ orcamentos_cancelados }}
+                                                    {% if orcamentos_cancelados > 1 %} Cancelados {% else %} Cancelado {% endif %}
+                                                </span>
+                                                <span class="fw-bold text-danger">
+                                                    R$ {{ total_cancelados|moeda_br }}
+                                                </span>
+                                            </div>
                                         {% endif %}
                                         {% if orcamentos_abertos < 1 and orcamentos_faturados < 1 and orcamentos_cancelados < 1 %}
                                             <div class="text-center">
@@ -103,102 +95,498 @@
                     </div>
                 {% endif %}
                 {% if request.user.ver_res_orc_tec %}
-                    <div class="col-sm-6" style="margin-bottom: 10px;">
+                    <div class="col-sm-6 mb-1">
                         <div class="card">
                             <div class="card-header bg-secondary-subtle">
                                 <h5 class="card-title text-info-emphasis text-center">
-                                    Orçamentos por Técnico <i class="fa-solid fa-calendar-days"></i>
+                                    Orçamentos Faturados por Técnico <i class="fa-solid fa-calendar-days"></i>
                                     {% if data_inicial and data_final %}
-                                        {{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }}
+                                        ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
                                     {% else %}
-                                        {{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }}
+                                        ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
                                     {% endif %}
                                 </h5>
                             </div>
                             <div class="card-body">
                                 <div class="d-flex flex-column gap-2">
-                                    {% for tecnico in tecnicos %}
-                                    <div class="d-flex align-items-center justify-content-between p-2 border rounded">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <strong>{{ tecnico.nome }}</strong>
-                                            <span class="badge bg-secondary">
-                                                {{ tecnico.qtd }}
-                                                {% if tecnico.qtd > 1 %} orçamentos {% else %} orçamento {% endif %}
+                                    {% for tecnico in ranking_tecnicos %}
+                                        <div class="d-flex align-items-center justify-content-between p-2 border rounded">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <strong>{{ tecnico.nome }}</strong>
+                                                <span class="badge bg-secondary">
+                                                    {{ tecnico.qtd }}
+                                                    {% if tecnico.qtd > 1 %} orçamentos {% else %} orçamento {% endif %}
+                                                </span>
+                                            </div>
+                                            <span class="fw-bold text-success">
+                                                R$ {{ tecnico.total|moeda_br }}
                                             </span>
                                         </div>
-                                        <span class="fw-bold text-success">
-                                            {{ tecnico.total|moeda_br }}
-                                        </span>
-                                    </div>
                                     {% empty %}
-                                    <div class="text-center text-muted py-3">
-                                        <i class="fa-solid fa-circle-info me-1"></i>
-                                        Não há orçamentos faturados!
-                                    </div>
+                                        <div class="text-center text-muted py-3">
+                                            Não há orçamentos faturados!
+                                        </div>
                                     {% endfor %}
                                 </div>
                             </div>
                         </div>
                     </div>
                 {% endif %}
-                <div class="modal fade" id="mdResOrc" tabindex="-1" aria-labelledby="mdResOrcLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered modal-sm">
-                        <div class="modal-content">
-                            <div class="modal-header titulo-modal">
-                                <h5 class="modal-title" id="mdResOrcLabel">
-                                    <i class="fa-solid fa-calendar-days"></i> Alterar Período
-                                </h5>
+                <!-- KPI -->
+                {% if request.user.ver_conv_orc %}
+                    <div class="col-md-3 mb-1">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-center" style="max-height: 30px;"><h6>Conversão - Orçamentos</h6></div>
+                            <div class="card-body text-center">
+                                {% if data_inicial and data_final %}
+                                    ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
+                                {% else %}
+                                    ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
+                                {% endif %}
+                                <h2>{{ taxa_conversao|moeda_br }}%</h2>
                             </div>
-
-                            <form method="get" action="{% url 'inicio' %}">
-                                <div class="modal-body">
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <select class="form-control" id="usar-data" name="p_dt" style="display: none;">
-                                                <option value="Sim" selected>Sim</option>
-                                            </select>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label class="form-label">Data Início:</label>
-                                            <input
-                                                type="text"
-                                                class="form-control form-control-sm"
-                                                name="dt_ini"
-                                                id="data_inicio2"
-                                                autocomplete="off"
-                                                value="{{ dt_ini|default:'' }}"
-                                            >
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label class="form-label">Data Final:</label>
-                                            <input
-                                                type="text"
-                                                class="form-control form-control-sm"
-                                                name="dt_fim"
-                                                id="data_fim2"
-                                                autocomplete="off"
-                                                value="{{ dt_fim|default:'' }}"
-                                            >
-                                        </div>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if request.user.ver_ticket_medio %}
+                    <div class="col-md-3 mb-1">
+                        <div class="card border-warning">
+                            <div class="card-header bg-warning text-center" style="max-height: 30px;"><h6>Ticket Médio - Orçamentos</h6></div>
+                            <div class="card-body text-dark text-center">
+                                {% if data_inicial and data_final %}
+                                    ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
+                                {% else %}
+                                    ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
+                                {% endif %}
+                                <h2>R$ {{ ticket_medio|moeda_br }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if request.user.ver_valor_perdido %}
+                    <div class="col-md-3 mb-1">
+                        <div class="card border-danger">
+                            <div class="card-header bg-danger text-center" style="max-height: 30px;"><h6>Valor Perdido - Orçamentos</h6></div>
+                            <div class="card-body text-center">
+                                {% if data_inicial and data_final %}
+                                    ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
+                                {% else %}
+                                    ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
+                                {% endif %}
+                                <h2>R$ {{ total_cancelados|moeda_br }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if request.user.ver_vl_total_faturado %}
+                    <div class="col-md-3 mb-1">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-center" style="max-height: 30px;"><h6>Total Faturado - Orçamentos</h6></div>
+                            <div class="card-body text-center">
+                                {% if data_inicial and data_final %}
+                                    ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
+                                {% else %}
+                                    ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
+                                {% endif %}
+                                <h2>R$ {{ total_faturados|moeda_br }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if request.user.ver_tempo_medio_faturamento %}
+                    <div class="col-md-4 mb-1">
+                        <div class="card border-info h-100">
+                            <div class="card-header bg-info text-dark text-center" style="max-height: 30px;"><h6>Tempo Médio até Faturamento - Orçamentos</h6></div>
+                            <div class="card-body text-center">
+                                {% if data_inicial and data_final %}
+                                    ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
+                                {% else %}
+                                    ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
+                                {% endif %}
+                                <h2>{{ tempo_medio|floatformat:1 }} dias</h2>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if request.user.ver_m2_total %}
+                    <div class="col-md-4 mb-1">
+                        <div class="card border-success h-100">
+                            <div class="card-header bg-success text-center" style="max-height: 30px;"><h6>M² Total Produzido de Portas - Orçamentos</h6></div>
+                            <div class="card-body text-center">
+                                {% if data_inicial and data_final %}
+                                    ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
+                                {% else %}
+                                    ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
+                                {% endif %}
+                                <h2>{{ total_m2|moeda_br }} m²</h2>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if request.user.ver_peso_total %}
+                    <div class="col-md-4 mb-1">
+                        <div class="card border-dark h-100">
+                            <div class="card-header text-center" style="max-height: 30px;"><h6>Peso Total das Portas - Orçamentos</h6></div>
+                            <div class="card-body text-center">
+                                {% if data_inicial and data_final %}
+                                    ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
+                                {% else %}
+                                    ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
+                                {% endif %}
+                                <h2>{{ peso_total|moeda_br }} KG</h2>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if request.user.ver_situacao_orcamentos %}
+                    <div class="col-lg-4 mb-1">
+                        <div class="card">
+                            <div class="card-header text-center">
+                                Quantidade por Situação - Orçamentos
+                                {% if data_inicial and data_final %}
+                                    ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
+                                {% else %}
+                                    ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
+                                {% endif %}
+                            </div>
+                            <div class="card-body">
+                                <div id="graficoSituacao"></div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if request.user.ver_evolucao_orcamentos %}
+                    <div class="col-lg-8 mb-1">
+                        <div class="card">
+                            <div class="card-header text-center">
+                                Evolução Diária - Orçamentos
+                                {% if data_inicial and data_final %}
+                                    ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
+                                {% else %}
+                                    ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
+                                {% endif %}
+                            </div>
+                            <div class="card-body">
+                                <div id="graficoEvolucao"></div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if request.user.ver_ranking_tecnicos %}
+                    <div class="col-lg-6 mb-1">
+                        <div class="card">
+                            <div class="card-header text-center">
+                                Ranking por Técnicos - Orçamentos
+                                {% if data_inicial and data_final %}
+                                    ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
+                                {% else %}
+                                    ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
+                                {% endif %}
+                            </div>
+                            <div class="card-body">
+                                <div id="graficoTecnicos"></div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if request.user.ver_ranking_clientes %}
+                    <div class="col-lg-6 mb-1">
+                        <div class="card">
+                            <div class="card-header text-center">
+                                Ranking por Clientes - Orçamentos
+                                {% if data_inicial and data_final %}
+                                    ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
+                                {% else %}
+                                    ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
+                                {% endif %}
+                            </div>
+                            <div class="card-body">
+                                <div id="graficoClientes"></div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if request.user.ver_situacao_valor_orcamentos %}
+                    <!-- Valor por Situação -->
+                    <div class="col-lg-6 mb-1">
+                        <div class="card h-100">
+                            <div class="card-header text-center">
+                                Valor por Situação - Orçamentos
+                                {% if data_inicial and data_final %}
+                                    ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
+                                {% else %}
+                                    ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
+                                {% endif %}
+                            </div>
+                            <div class="card-body">
+                                <div id="graficoValorSituacao"></div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if request.user.ver_faturamento_diario %}
+                    <!-- Valor por Faturamento -->
+                    <div class="col-lg-6 mb-1">
+                        <div class="card h-100">
+                            <div class="card-header text-center">
+                                Faturamento Diário - Orçamentos
+                                {% if data_inicial and data_final %}
+                                    ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
+                                {% else %}
+                                    ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
+                                {% endif %}
+                            </div>
+                            <div class="card-body">
+                                <div id="graficoFaturamento"></div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if request.user.ver_top_10_produtos_vl %}
+                    <!-- Valor por Situação -->
+                    <div class="col-lg-6 mb-1">
+                        <div class="card h-100">
+                            <div class="card-header text-center">
+                                Top 10 Produtos Mais Vendidos (Valor) - Orçamentos
+                                {% if data_inicial and data_final %}
+                                    ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
+                                {% else %}
+                                    ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
+                                {% endif %}
+                            </div>
+                            <div class="card-body">
+                                <div id="graficoProdutosValor"></div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if request.user.ver_formas_orcamentos %}
+                    <!-- Formas de Pagamento -->
+                    <div class="col-lg-3 mb-1">
+                        <div class="card h-100">
+                            <div class="card-header text-center">
+                                Formas de Pagamento - Orçamentos
+                                {% if data_inicial and data_final %}
+                                    ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
+                                {% else %}
+                                    ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
+                                {% endif %}
+                            </div>
+                            <div class="card-body">
+                                <div id="graficoFormas"></div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if request.user.ver_status_orcamentos %}
+                    <!-- Status Produção -->
+                    <div class="col-lg-3 mb-1">
+                        <div class="card h-100">
+                            <div class="card-header text-center">
+                                Status da Produção - Orçamentos
+                                {% if data_inicial and data_final %}
+                                    ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
+                                {% else %}
+                                    ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
+                                {% endif %}
+                            </div>
+                            <div class="card-body">
+                                <div id="graficoStatusProd"></div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if request.user.ver_top_10_produtos_qtde %}    
+                    <!-- Produtos -->
+                    <div class="col-lg-6 mb-1">
+                        <div class="card h-100">
+                            <div class="card-header text-center">
+                                Top 10 Produtos Mais Vendidos (Quantidade) - Orçamentos
+                                {% if data_inicial and data_final %}
+                                    ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
+                                {% else %}
+                                    ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
+                                {% endif %}
+                            </div>
+                            <div class="card-body">
+                                <div id="graficoProdutos"></div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if request.user.ver_cores_orcamentos %}
+                    <!-- Cores -->
+                    <div class="col-lg-6 mb-1">
+                        <div class="card h-100">
+                            <div class="card-header text-center">
+                                Cores Mais Vendidas - Orçamentos
+                                {% if data_inicial and data_final %}
+                                    ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
+                                {% else %}
+                                    ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
+                                {% endif %}
+                            </div>
+                            <div class="card-body">
+                                <div id="graficoCores"></div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if request.user.ver_caracteristicas_orcamentos %}
+                    <!-- Pintura -->
+                    <div class="col-lg-12 mb-1">
+                        <div class="card h-100">
+                            <div class="card-header text-center">
+                                Características das Portas - Orçamentos
+                                {% if data_inicial and data_final %}
+                                    ({{ data_inicial|date:"d/m/Y" }} - {{ data_final|date:"d/m/Y" }})
+                                {% else %}
+                                    ({{ primeiro_dia_mes|date:"d" }} - {{ ultimo_dia_mes|date:"d F Y"|upper }})
+                                {% endif %}
+                            </div>
+                            <div class="card-body">
+                                <div id="graficoCaracteristicas"></div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="modal fade" id="mdResOrc" tabindex="-1" aria-labelledby="mdResOrcLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header titulo-modal">
+                            <h5 class="modal-title" id="mdResOrcLabel"><i class="fa-solid fa-calendar-days"></i> Alterar Período</h5>
+                        </div>
+                        <form method="get" action="{% url 'inicio' %}">
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <select class="form-control" id="usar-data" name="p_dt" style="display: none;">
+                                            <option value="Sim" selected>Sim</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label">Filial:</label>
+                                        <select class="form-select form-select-sm" name="filial" id="filial">
+                                            <option value="">Escolha uma opção</option>
+                                            {% for f in filiais %}
+                                                <option value="{{ f.codigo }}" {% if f.codigo == filial %}selected{% endif %}>{{ f }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Data Início:</label>
+                                        <input type="text" class="form-control form-control-sm" name="dt_ini" id="data_inicio2" autocomplete="off" value="{{ dt_ini|default:'' }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Data Final:</label>
+                                        <input type="text" class="form-control form-control-sm" name="dt_fim" id="data_fim2" autocomplete="off" value="{{ dt_fim|default:'' }}">
                                     </div>
                                 </div>
-
-                                <div class="modal-footer">
-                                    <button type="submit" class="btn btn-dark btn-sm" id="data-btn">
-                                        Confirmar
-                                    </button>
-                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
-                                        Fechar
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="submit" class="btn btn-dark btn-sm" id="data-btn">Confirmar</button>
+                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
+            <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+            <script>
+                new ApexCharts(document.querySelector("#graficoSituacao"),{
+                    chart:{type:'donut',height:330},
+                    series:[{{ orcamentos_abertos }}, {{ orcamentos_faturados }}, {{ orcamentos_cancelados }}],
+                    labels:["Abertos", "Faturados", "Cancelados"],
+                    dataLabels:{formatter:function(value){return value.toFixed(2)+'%';}}
+                }).render();
+                new ApexCharts(document.querySelector("#graficoEvolucao"),{
+                    chart:{type:'line',height:330},
+                    series:[{name:'Orçamentos', data:{{ qtd_dias|safe }}}],
+                    xaxis:{categories:{{ dias|safe }}}
+                }).render();
+                new ApexCharts(document.querySelector("#graficoTecnicos"),{
+                    chart:{type:'bar',height:350},
+                    plotOptions:{bar:{horizontal:true}},
+                    series:[{name:'Valor', data: {{ tecnicos_valores|safe }}}],
+                    xaxis:{categories: {{ tecnicos_labels|safe }}, labels: {formatter: function(value) {return value.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});}}},
+                    dataLabels: {enabled: true, formatter: function(value) {return value.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});}},
+                    tooltip: {y: {formatter: function(value) {return value.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});}}}      
+                }).render();
+                new ApexCharts(document.querySelector("#graficoClientes"),{
+                    chart:{type:'bar',height:350},
+                    plotOptions:{bar:{horizontal:true}},
+                    series:[{name:'Valor', data: {{ clientes_valores|safe }}}],   
+                    xaxis:{categories: {{ clientes_labels|safe }}, labels: {formatter: function(value) {return value.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});}}},
+                    dataLabels: {enabled: true, formatter: function(value) {return value.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});}}, 
+                    tooltip: {y: {formatter: function(value) {return value.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});}}}    
+                }).render();
+                // VALOR POR SITUAÇÃO
+                new ApexCharts(document.querySelector("#graficoValorSituacao"),{
+                    chart:{type:'donut', height:330},
+                    labels: {{ situacao_labels|safe }},
+                    series: {{ situacao_valores|safe }},
+                    tooltip:{y:{formatter:function(value){return value.toLocaleString('pt-BR',{style:'currency', currency:'BRL'});}}},
+                    dataLabels:{formatter:function(value){return value.toFixed(2)+'%';}}
+                }).render();
+                // FORMAS DE PAGAMENTO
+                new ApexCharts(document.querySelector("#graficoFormas"),{
+                    chart:{type:'pie', height:330},
+                    labels: {{ formas_labels|safe }},
+                    series: {{ formas_valores|safe }},
+                    dataLabels:{formatter:function(value){return value.toFixed(2)+'%';}},
+                    tooltip: {y: {formatter: function(value) {return value.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});}}} 
+                }).render();
+                // PRODUTOS MAIS VENDIDOS
+                const produtosUnidades = {{ produtos_unidades|safe }};
+                new ApexCharts(document.querySelector("#graficoProdutos"),{
+                    chart:{type:'bar', height:350},
+                    plotOptions:{bar:{horizontal:true}},
+                    series:[{name:'Quantidade', data: {{ produtos_quantidade|safe }}}],
+                    xaxis:{categories: {{ produtos_qtd_labels|safe }}},
+                    dataLabels:{enabled:true, formatter:function(value, opts){return value.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) + " " + produtosUnidades[opts.dataPointIndex];}},
+                    tooltip:{y:{formatter: function(value, opts) {return value.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " " + produtosUnidades[opts.dataPointIndex];}}}
+                }).render();
+                // STATUS PRODUÇÃO
+                new ApexCharts(document.querySelector("#graficoStatusProd"),{
+                    chart:{type:'donut', height:330},
+                    labels: {{ status_prod_labels|safe }},
+                    series: {{ status_prod_valores|safe }},
+                    dataLabels:{formatter:function(value){return value.toFixed(2)+'%';}},
+                }).render();
+                // CORES MAIS VENDIDAS
+                new ApexCharts(document.querySelector("#graficoCores"),{
+                    chart:{type:'bar', height:330},
+                    plotOptions:{bar:{horizontal:true}},
+                    series:[{name:'Quantidade', data: {{ cores_valores|safe }}}],
+                    xaxis:{categories: {{ cores_labels|safe }}}
+                }).render();
+                new ApexCharts(document.querySelector("#graficoCaracteristicas"),{
+                    chart:{type:'bar', height:350},
+                    series:[{name:'Quantidade', data: {{ caracteristicas_valores|safe }}}],
+                    xaxis:{categories: {{ caracteristicas_labels|safe }}},
+                    plotOptions:{bar:{horizontal:false, columnWidth:'45%'}},
+                    dataLabels:{enabled:true}
+                }).render();
+                new ApexCharts(document.querySelector("#graficoFaturamento"),{
+                    chart:{type:'area', height:330},
+                    series:[{name:'Faturamento', data: {{ faturamento_valores|safe }}}],
+                    xaxis:{categories: {{ faturamento_labels|safe }}},
+                    dataLabels:{enabled:false},
+                    stroke:{curve:'smooth'},
+                    dataLabels: { enabled: true, formatter: function(value) {return value.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});}},
+                    tooltip: {y: {formatter: function(value) {return value.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});}}} 
+                }).render();
+                new ApexCharts(document.querySelector("#graficoProdutosValor"),{
+                    chart:{type:'bar', height:350},
+                    plotOptions:{bar:{horizontal:true}},
+                    series:[{name:'Valor', data: {{ produtos_valores|safe }}}],
+                    xaxis:{categories: {{ produtos_vl_labels|safe }},
+                    labels:{formatter: function(v){return v.toLocaleString('pt-BR',{style:'currency', currency:'BRL'});}}},
+                    dataLabels:{formatter: function(v){return v.toLocaleString('pt-BR',{style:'currency', currency:'BRL'});}},
+                    tooltip: {y: {formatter: function(value) {return value.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});}}} 
+                }).render();
+            </script>
         </div>
-
     {% endblock %}
 {% endblock %}

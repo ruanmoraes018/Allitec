@@ -3,26 +3,31 @@ from django.contrib.auth import login, logout
 from .models import Filial
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from datetime import datetime, time
-from calendar import monthrange
 import unicodedata
 from django.core.paginator import Paginator
 from .forms import FilialForm, FilialReadOnlyForm, EmpresaLoginForm
 from util.permissoes import verifica_permissao
 from django.http import JsonResponse
-from orcamentos.models import Orcamento
+from orcamentos.models import Orcamento, PortaProduto, OrcamentoFormaPgto, PortaOrcamento
 from contas.forms import SuperuserLoginForm
 from notifications.models import Notification
 from estados.models import Estado
 from cidades.models import Cidade
 from bairros.models import Bairro
-from collections import defaultdict
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
 from core.pagamentos.webhooks import processar_webhook, tratar_webhook_pagbank
 from pedidos.models import Pagamento
 from django.utils import timezone
 import logging
+from calendar import monthrange
+from datetime import datetime, time
+from django.db.models import Count
+from django.db.models.functions import TruncDate
+from collections import defaultdict, Counter
+from django.db.models import Sum
+from decimal import Decimal
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -268,69 +273,267 @@ def logout_view_superuser(request):
 
 @login_required
 def dashboard(request):
-    if request.user.is_superuser: return redirect('/empresas/lista/')
-    dt_ini = request.GET.get('dt_ini')
-    dt_fim = request.GET.get('dt_fim')
-    data_atual = datetime.today()
-    # Período padrão: mês atual
-    primeiro_dia_mes = data_atual.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    ultimo_dia_mes = data_atual.replace(day=monthrange(data_atual.year, data_atual.month)[1], hour=23, minute=59, second=59, microsecond=999999)
-    data_inicial = None
-    data_final = None
+    if request.user.is_superuser:
+        return redirect('/empresas/lista/')
+    dt_ini = request.GET.get("dt_ini")
+    dt_fim = request.GET.get("dt_fim")
+    filial = request.GET.get("filial")
+    filial_fantasia = None
+    hoje = datetime.today()
+    primeiro_dia = hoje.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    ultimo_dia = hoje.replace(day=monthrange(hoje.year, hoje.month)[1], hour=23, minute=59, second=59, microsecond=999999)
+    if filial:
+        filial = int(filial)
+        filial_fantasia = Filial.objects.filter(codigo=filial, vinc_emp=request.user.empresa).first()
+        filial_fantasia = filial_fantasia
+    else:
+        filial = request.user.filial_user.codigo
+        filial_fantasia = request.user.filial_user.fantasia
     try:
         if dt_ini and dt_fim:
-            data_inicial = datetime.strptime(dt_ini, '%d/%m/%Y').date()
-            data_final = datetime.strptime(dt_fim, '%d/%m/%Y').date()
-            dt_ini_dt = datetime.combine(data_inicial, time.min)
-            dt_fim_dt = datetime.combine(data_final, time.max)
+            data_inicial = datetime.strptime(dt_ini,"%d/%m/%Y").date()
+            data_final = datetime.strptime(dt_fim,"%d/%m/%Y").date()
+            dt_ini_dt = datetime.combine(data_inicial,time.min)
+            dt_fim_dt = datetime.combine(data_final,time.max)
         else:
-            dt_ini_dt = primeiro_dia_mes
-            dt_fim_dt = ultimo_dia_mes
-    except ValueError:
-        dt_ini_dt = primeiro_dia_mes
-        dt_fim_dt = ultimo_dia_mes
-        dt_ini = ''
-        dt_fim = ''
+            raise ValueError
+    except:
+        dt_ini_dt = primeiro_dia
+        dt_fim_dt = ultimo_dia
         data_inicial = None
         data_final = None
-    orcamentos_no_intervalo = Orcamento.objects.filter(dt_emi__range=(dt_ini_dt, dt_fim_dt), vinc_emp=request.user.empresa).order_by('dt_emi')
-    orcamentos_abertos = orcamentos_no_intervalo.filter(situacao='Aberto').count()
-    orcamentos_faturados = orcamentos_no_intervalo.filter(situacao='Faturado').count()
-    orcamentos_cancelados = orcamentos_no_intervalo.filter(situacao='Cancelado').count()
-    tot_orc_ab = 0.0
-    tot_orc_fat = 0.0
-    tot_orc_canc = 0.0
-    media_valor_fat = 0.0
-    for orcamento in orcamentos_no_intervalo:
-        formas = orcamento.formas_pgto.all()
-        total_valor = sum(float(f.valor) for f in formas)
-        if orcamento.situacao == 'Aberto': tot_orc_ab += total_valor
-        elif orcamento.situacao == 'Faturado': tot_orc_fat += total_valor
-        elif orcamento.situacao == 'Cancelado': tot_orc_canc += total_valor
-    if orcamentos_faturados > 0: media_valor_fat = tot_orc_fat / orcamentos_faturados
-    dados_tecnicos = defaultdict(lambda: {'nome': '', 'qtd': 0, 'total': 0.0})
-    orcamentos_faturados_qs = Orcamento.objects.filter(dt_emi__range=(dt_ini_dt, dt_fim_dt), vinc_emp=request.user.empresa, situacao='Faturado')
-    for orc in orcamentos_faturados_qs:
-        tecnico_id = orc.solicitante.codigo if orc.solicitante else None
-        tecnico_nome = orc.solicitante.nome if orc.solicitante else 'Não definido'
-        if tecnico_id is not None:
-            dados_tecnicos[tecnico_id]['nome'] = tecnico_nome
-            dados_tecnicos[tecnico_id]['qtd'] += 1
-            valor_total = sum(float(f.valor) for f in orc.formas_pgto.all())
-            dados_tecnicos[tecnico_id]['total'] += valor_total
-    orcamentos_por_tecnico = sorted(
-        [
-            {'id': k, 'nome': v['nome'], 'qtd': v['qtd'], 'total': v['total']}
-            for k, v in dados_tecnicos.items()
-        ],
-        key=lambda x: -x['qtd']
+        dt_ini = ""
+        dt_fim = ""
+        filial = request.user.filial_user.codigo
+    qs = (
+        Orcamento.objects.filter(vinc_emp=request.user.empresa, vinc_fil__codigo=filial, dt_emi__range=(dt_ini_dt,dt_fim_dt))
+        .select_related("solicitante","cli").prefetch_related("formas_pgto").order_by("dt_emi")
     )
+    total_orcamentos = qs.count()
+    abertos = qs.filter(situacao="Aberto").count()
+    faturados = qs.filter(situacao="Faturado").count()
+    cancelados = qs.filter(situacao="Cancelado").count()
+    total_abertos = total_faturados = total_cancelados = 0
+    tecnicos = defaultdict(lambda:{"nome":"","qtd":0,"total":0})
+    clientes = defaultdict(lambda:{"nome":"","qtd":0,"total":0})
+    filiais = Filial.objects.filter(
+        vinc_emp=request.user.empresa
+    ).order_by("fantasia")
+    faturado_dia = defaultdict(lambda: Decimal("0.00"))
+    for orc in qs:
+        valor = sum(f.valor for f in orc.formas_pgto.all())
+        if orc.situacao == "Aberto":
+            total_abertos += valor
+        elif orc.situacao == "Cancelado":
+            total_cancelados += valor
+        elif orc.situacao == "Faturado":
+            total_faturados += valor
+            if orc.solicitante:
+                t = tecnicos[orc.solicitante.codigo]
+                t["nome"] = orc.solicitante.nome
+                t["qtd"] += 1
+                t["total"] += valor
+            if orc.cli:
+                c = clientes[orc.cli.codigo]
+                c["nome"] = orc.cli.fantasia
+                c["qtd"] += 1
+                c["total"] += valor
+            faturado_dia[orc.dt_emi.strftime("%d/%m")] += valor
+    taxa_conversao = (
+        (faturados/total_orcamentos)*100
+        if total_orcamentos else 0
+    )
+    ticket_medio = (
+        (total_abertos+total_faturados+total_cancelados)
+        / total_orcamentos
+        if total_orcamentos else 0
+    )
+    media_valor_fat = (
+        total_faturados/faturados
+        if faturados else 0
+    )
+    evolucao = (
+        qs.annotate(dia=TruncDate("dt_emi")).values("dia").annotate(total=Count("codigo")).order_by("dia")
+    )
+    dias = [e["dia"].strftime("%d/%m") for e in evolucao]
+    qtd_dias = [e["total"] for e in evolucao]
+    ranking_tecnicos = sorted(
+        [{"id":k,**v} for k,v in tecnicos.items()],
+        key=lambda x:x["total"],
+        reverse=True
+    )
+    ranking_clientes = sorted(
+        [{"id":k,**v} for k,v in clientes.items()],
+        key=lambda x:x["total"],
+        reverse=True
+    )
+    produtos_qtd = (
+        PortaProduto.objects.filter(porta__orcamento__in=qs).values("produto__desc_prod", "produto__unidProd__nome_unidade").annotate(quantidade=Sum("quantidade"), valor=Sum("valor_total")).order_by("-quantidade")[:10]
+    )
+    produtos_vl = (
+        PortaProduto.objects.filter(porta__orcamento__in=qs).values("produto__desc_prod").annotate(quantidade=Sum("quantidade"), valor=Sum("valor_total")).order_by("-valor")[:10]
+    )
+    formas = (OrcamentoFormaPgto.objects.filter(orcamento__in=qs).values("formas_pgto__descricao").annotate(valor=Sum("valor")).order_by("-valor"))
+    status_producao = (qs.values("status").annotate(total=Count("codigo")).order_by("-total"))
+    status_pagamento = (qs.values("status_pagamento").annotate(total=Count("codigo")).order_by("-total"))
+    cores = (qs.values("cor").annotate(total=Count("codigo")).order_by("-total"))
+    # CARACTERÍSTICAS DOS PORTÕES
+    caracteristicas = Counter()
+
+    for o in qs:
+        pintura = o.tp_pintura or "Não informado"
+        portao = "Com Portão Social" if o.portao_social == "Sim" else "Sem Portão Social"
+
+        chave = f"{pintura} - {portao}"
+        caracteristicas[chave] += 1
+
+    caracteristicas_labels = list(caracteristicas.keys())
+    caracteristicas_valores = list(caracteristicas.values())
+    # VALOR POR SITUAÇÃO
+    situacao_valores = [
+        float(total_abertos),
+        float(total_faturados),
+        float(total_cancelados),
+    ]
+    situacao_labels = [
+        "Abertos",
+        "Faturados",
+        "Cancelados",
+    ]
+    # FORMAS DE PAGAMENTO
+    formas_labels = [
+        f["formas_pgto__descricao"] or "Não informado"
+        for f in formas
+    ]
+    formas_valores = [
+        float(f["valor"] or 0)
+        for f in formas
+    ]
+    # PRODUTOS MAIS VENDIDOS
+    produtos_qtd_labels = [
+        p["produto__desc_prod"] or "Sem descrição"
+        for p in produtos_qtd
+    ]
+
+    produtos_quantidade = [
+        float(p["quantidade"] or 0)
+        for p in produtos_qtd
+    ]
+    produtos_unidades = [
+        p["produto__unidProd__nome_unidade"] or ""
+        for p in produtos_qtd
+    ]
+
+    produtos_vl_labels = [
+        p["produto__desc_prod"] or "Sem descrição"
+        for p in produtos_vl
+    ]
+
+    produtos_valores = [
+        float(p["valor"] or 0)
+        for p in produtos_vl
+    ]
+    # STATUS PRODUÇÃO
+    status_prod_labels = [
+        s["status"] or "Não informado"
+        for s in status_producao
+    ]
+    status_prod_valores = [
+        s["total"]
+        for s in status_producao
+    ]
+    # STATUS PAGAMENTO
+    status_pgto_labels = [
+        s["status_pagamento"] or "Não informado"
+        for s in status_pagamento
+    ]
+    status_pgto_valores = [
+        s["total"]
+        for s in status_pagamento
+    ]
+    # CORES
+    cores_labels = [
+        c["cor"] or "Não informado"
+        for c in cores
+    ]
+    cores_valores = [
+        c["total"]
+        for c in cores
+    ]
+    portas = PortaOrcamento.objects.filter(orcamento__in=qs)
+    total_m2 = sum(float(p.m2 or 0) for p in portas)
+    peso_total = sum(float(p.peso or 0) for p in portas)
+    dias = []
+    for o in qs.filter(situacao="Faturado"):
+        if o.dt_fat and o.dt_emi:
+            dias.append((o.dt_fat.date()-o.dt_emi.date()).days)
+    tempo_medio = sum(dias)/len(dias) if dias else 0
+    tecnicos_labels = [t["nome"] for t in ranking_tecnicos]
+    tecnicos_valores = [float(t["total"]) for t in ranking_tecnicos]
+    clientes_labels = [c["nome"] for c in ranking_clientes]
+    clientes_valores = [float(c["total"]) for c in ranking_clientes]
+    faturamento_labels = list(faturado_dia.keys())
+    faturamento_valores = [float(v) for v in faturado_dia.values()]
     context = {
-        'orcamentos_no_intervalo': orcamentos_no_intervalo, 'orcamentos_faturados': orcamentos_faturados, 'orcamentos_abertos': orcamentos_abertos, 'orcamentos_cancelados': orcamentos_cancelados,
-        'primeiro_dia_mes': primeiro_dia_mes, 'ultimo_dia_mes': ultimo_dia_mes, 'total_abertos': tot_orc_ab, 'total_faturados': tot_orc_fat, 'total_cancelados': tot_orc_canc, 'media_valor_fat': media_valor_fat,
-        'tecnicos': orcamentos_por_tecnico, 'data_atual': data_atual, 'dt_ini': dt_ini, 'dt_fim': dt_fim, 'data_inicial': data_inicial, 'data_final': data_final,
+        "orcamentos_no_intervalo":qs,
+        "orcamentos_abertos":abertos,
+        "orcamentos_faturados":faturados,
+        "orcamentos_cancelados":cancelados,
+        "total_abertos":total_abertos,
+        "total_faturados":total_faturados,
+        "total_cancelados":total_cancelados,
+        "media_valor_fat":media_valor_fat,
+        "ticket_medio":ticket_medio,
+        "taxa_conversao":round(taxa_conversao,1),
+        "dias":dias,
+        "qtd_dias":qtd_dias,
+        "ranking_tecnicos":ranking_tecnicos,
+        "ranking_clientes":ranking_clientes,
+        "tecnicos": tecnicos,
+        "clientes": clientes,
+        "filiais": filiais,
+        "filial": filial,
+        "filial_fantasia": filial_fantasia,
+        "formas_pgto":formas,
+        "produtos_qtd_labels": json.dumps(produtos_qtd_labels),
+        "produtos_quantidade": json.dumps(produtos_quantidade),
+        "produtos_unidades": json.dumps(produtos_unidades),
+        "produtos_vl_labels": json.dumps(produtos_vl_labels),
+        "produtos_valores": json.dumps(produtos_valores),
+        "status_producao":status_producao,
+        "status_pagamento":status_pagamento,
+        "cores":cores,
+        "caracteristicas_labels": json.dumps(caracteristicas_labels),
+        "caracteristicas_valores": json.dumps(caracteristicas_valores),
+        "total_m2":total_m2,
+        "peso_total":peso_total,
+        "tempo_medio":tempo_medio,
+        "primeiro_dia_mes":primeiro_dia,
+        "ultimo_dia_mes":ultimo_dia,
+        "dt_ini":dt_ini,
+        "dt_fim":dt_fim,
+        "data_inicial":data_inicial,
+        "data_final":data_final,
+        "data_atual":hoje,
+        "tecnicos_labels": json.dumps(tecnicos_labels),
+        "tecnicos_valores": json.dumps(tecnicos_valores),
+        "clientes_labels": json.dumps(clientes_labels),
+        "clientes_valores": json.dumps(clientes_valores),
+        # NOVOS GRÁFICOS
+        "situacao_labels": json.dumps(situacao_labels),
+        "situacao_valores": json.dumps(situacao_valores),
+        "formas_labels": json.dumps(formas_labels),
+        "formas_valores": json.dumps(formas_valores),
+        "status_prod_labels": json.dumps(status_prod_labels),
+        "status_prod_valores": json.dumps(status_prod_valores),
+        "status_pgto_labels": json.dumps(status_pgto_labels),
+        "status_pgto_valores": json.dumps(status_pgto_valores),
+        "cores_labels": json.dumps(cores_labels),
+        "cores_valores": json.dumps(cores_valores),
+        "faturamento_labels": json.dumps(faturamento_labels),
+        "faturamento_valores": json.dumps(faturamento_valores),
     }
-    return render(request, 'dashbord.html', context)
+    return render(request,"dashbord.html",context)
 
 @csrf_exempt
 def webhook_pagamentos(request):

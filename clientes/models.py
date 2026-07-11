@@ -65,3 +65,80 @@ class Cliente(models.Model):
             models.UniqueConstraint(fields=['cpf_cnpj', 'vinc_emp'], name='unique_cpf_cnpj_cliente_por_empresa'),
             models.UniqueConstraint(fields=['codigo', 'vinc_emp'], name='unique_codigo_cliente_empresa')
         ]
+
+class CreditoCliente(models.Model):
+    SITUACAO = [
+        ('Aberto', 'Aberto'),
+        ('Utilizado', 'Utilizado'),
+        ('Cancelado', 'Cancelado'),
+    ]
+
+    codigo = models.PositiveIntegerField(blank=True, null=True)
+
+    vinc_emp = models.ForeignKey(
+        'empresas.Empresa',
+        on_delete=models.CASCADE
+    )
+
+    vinc_fil = models.ForeignKey(
+        'filiais.Filial',
+        on_delete=models.PROTECT
+    )
+
+    cliente = models.ForeignKey(
+        'clientes.Cliente',
+        on_delete=models.PROTECT,
+        related_name='creditos'
+    )
+
+    pedido_origem = models.ForeignKey(
+        'pedidos.Pedido',
+        on_delete=models.PROTECT,
+        related_name='creditos_gerados'
+    )
+
+    pedido_utilizado = models.ForeignKey(
+        'pedidos.Pedido',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='creditos_utilizados'
+    )
+
+    usuario = models.ForeignKey(
+        'filiais.Usuario',
+        on_delete=models.SET_NULL,
+        null=True
+    )
+
+    valor = models.DecimalField(
+        max_digits=12,
+        decimal_places=2
+    )
+
+    saldo = models.DecimalField(
+        max_digits=12,
+        decimal_places=2
+    )
+
+    situacao = models.CharField(
+        max_length=10,
+        choices=SITUACAO,
+        default='Aberto'
+    )
+
+    observacao = models.TextField(
+        blank=True
+    )
+
+    data = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+        ordering = ['-data']
+        verbose_name = 'Crédito de Cliente'
+        verbose_name_plural = 'Créditos de Clientes'
+
+    def __str__(self):
+        return f'{self.cliente} - Saldo: R$ {self.saldo}'

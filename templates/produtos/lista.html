@@ -134,7 +134,7 @@
                         <div class="col-md-1 border-end">Unidade</div>
                         <div class="col-md-1 border-end">Tipo</div>
                         <div class="col-md-1 border-end">Estoque</div>
-                        <div class="col-md-1">Valor</div>
+                        <div class="col-md-1">Tabelas</div>
                     </div>
                 </div>
                 <!-- Registros -->
@@ -184,7 +184,7 @@
                             <div class="col-md-1 fw-bold codigo-col" data-label="Tabelas:">
                                 <div style="max-height: 5em; overflow-y: auto; white-space: normal; line-height: 0.8em;">
                                     {% for t in p.tab_conv %}
-                                        <div class="p-1 mb-1 bg-secondary text-light rounded-3" style="font-size: 0.8rem;">
+                                        <div class="p-1 mb-1 bg-secondary text-light rounded-3" style="font-size: 0.6rem;">
                                             {{ t.descricao }} <span style="float: right;">{{ t.vl_prod|moeda_br }}</span>
                                         </div>
                                     {% endfor %}

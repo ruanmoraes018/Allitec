@@ -61,7 +61,7 @@
                                 <div class="form-buttons" style="margin-left: 10px; margin-top: 10px; margin-bottom: 10px;">
                                     <div class="card-header bg-white">
                                         <button type="button" class="btn btn-dark" id="endBtn">Permissões do Usuário</button>
-                                        <button type="button" class="btn btn-dark" id="complBtn">Complementos</button>
+                                        <button type="button" class="btn btn-dark" id="complBtn">Cards</button>
                                     </div>
                                 </div>
                                 <div class="form-section" id="enderecos">
@@ -153,8 +153,147 @@
                                     </div>
                                 </div>
                                 <div class="form-section" id="complementos">
-                                    <div class="row g-3" style="margin-left: -8px;">
-                                        Teste
+                                    <div class="accordion" id="accordionExample">
+                                        <div class="accordion-item mb-2">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button collapsed fw-bold" style="max-height: 30px; background-color: #A9A9A9;" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                                    Cards (Orçamentos - Portas)
+                                                </button>
+                                            </h2>
+                                            <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                                                <div class="accordion-body">
+                                                    <div class="row">
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_res_orc }}
+                                                                <label class="form-check-label" for="{{ form.ver_res_orc.id_for_label }}">{{ form.ver_res_orc.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_res_orc_tec }}
+                                                                <label class="form-check-label" for="{{ form.ver_res_orc_tec.id_for_label }}">{{ form.ver_res_orc_tec.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_conv_orc }}
+                                                                <label class="form-check-label" for="{{ form.ver_conv_orc.id_for_label }}">{{ form.ver_conv_orc.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_ticket_medio }}
+                                                                <label class="form-check-label" for="{{ form.ver_ticket_medio.id_for_label }}">{{ form.ver_ticket_medio.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_valor_perdido }}
+                                                                <label class="form-check-label" for="{{ form.ver_valor_perdido.id_for_label }}">{{ form.ver_valor_perdido.label }}</label>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_vl_total_faturado }}
+                                                                <label class="form-check-label" for="{{ form.ver_vl_total_faturado.id_for_label }}">{{ form.ver_vl_total_faturado.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_tempo_medio_faturamento }}
+                                                                <label class="form-check-label" for="{{ form.ver_tempo_medio_faturamento.id_for_label }}">{{ form.ver_tempo_medio_faturamento.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_m2_total }}
+                                                                <label class="form-check-label" for="{{ form.ver_m2_total.id_for_label }}">{{ form.ver_m2_total.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_peso_total }}
+                                                                <label class="form-check-label" for="{{ form.ver_peso_total.id_for_label }}">{{ form.ver_peso_total.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_situacao_orcamentos }}
+                                                                <label class="form-check-label" for="{{ form.ver_situacao_orcamentos.id_for_label }}">{{ form.ver_situacao_orcamentos.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_evolucao_orcamentos }}
+                                                                <label class="form-check-label" for="{{ form.ver_evolucao_orcamentos.id_for_label }}">{{ form.ver_evolucao_orcamentos.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_ranking_tecnicos }}
+                                                                <label class="form-check-label" for="{{ form.ver_ranking_tecnicos.id_for_label }}">{{ form.ver_ranking_tecnicos.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_ranking_clientes }}
+                                                                <label class="form-check-label" for="{{ form.ver_ranking_clientes.id_for_label }}">{{ form.ver_ranking_clientes.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_situacao_valor_orcamentos }}
+                                                                <label class="form-check-label" for="{{ form.ver_situacao_valor_orcamentos.id_for_label }}">{{ form.ver_situacao_valor_orcamentos.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_faturamento_diario }}
+                                                                <label class="form-check-label" for="{{ form.ver_faturamento_diario.id_for_label }}">{{ form.ver_faturamento_diario.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_top_10_produtos_qtde }}
+                                                                <label class="form-check-label" for="{{ form.ver_top_10_produtos_qtde.id_for_label }}">{{ form.ver_top_10_produtos_qtde.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_top_10_produtos_vl }}
+                                                                <label class="form-check-label" for="{{ form.ver_top_10_produtos_vl.id_for_label }}"> {{ form.ver_top_10_produtos_vl.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_formas_orcamentos }}
+                                                                <label class="form-check-label" for="{{ form.ver_formas_orcamentos.id_for_label }}">{{ form.ver_formas_orcamentos.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_status_orcamentos }}
+                                                                <label class="form-check-label" for="{{ form.ver_status_orcamentos.id_for_label }}">{{ form.ver_status_orcamentos.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_cores_orcamentos }}
+                                                                <label class="form-check-label" for="{{ form.ver_cores_orcamentos.id_for_label }}">{{ form.ver_cores_orcamentos.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="form-check form-switch">
+                                                                {{ form.ver_caracteristicas_orcamentos }}
+                                                                <label class="form-check-label" for="{{ form.ver_caracteristicas_orcamentos.id_for_label }}">{{ form.ver_caracteristicas_orcamentos.label }}</label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

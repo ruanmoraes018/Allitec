@@ -110,12 +110,12 @@
                         <div class="col-md-1 text-center border-end">Código</div>
                         <div class="col-md-1 text-center border-start border-end">Situação</div>
                         <div class="col-md-2 border-end">Filial</div>
-                        <div class="col-md-2 border-end">PDV</div>
+                        <div class="col-md-1 border-end">PDV</div>
                         <div class="col-md-1 border-end">Usuário</div>
                         <div class="col-md-1 border-end">Dt. Abertura</div>
                         <div class="col-md-1 border-end">Vl. Abertura</div>
                         <div class="col-md-1 border-end" style="font-size: 0.875rem;">Dt. Fechamento</div>
-                        <div class="col-sm-1" style="font-size: 0.875rem;">Vl. Fechamento</div>
+                        <div class="col-md-2" style="font-size: 0.875rem;">Vl. Fechamento</div>
                     </div>
                 </div>
                 <!-- Registros -->
@@ -123,17 +123,24 @@
                     <div class="list-group-item py-1 item-lista">
                         <div class="row align-items-center linha-lista">
                             <!-- Ações -->
-                            <div class="col-md-1 text-center mb-1 mb-md-0 acoes-col">
+                            <div class="col-md-1 text-center mb-1 mb-md-0 acoes-col" style="font-size: 0.625rem;">
                                 <div class="btn-group btn-group-sm">
                                     {% if perms.lancpdvs.caixa_outro_user or c.usuario == request.user %}
-                                        <a href="{% url 'tela-caixa' c.codigo %}" class="btn btn-light btn-sm border btn-js" title="Acessar Caixa">
-                                            <i class="fa-solid fa-desktop op-clonar"></i>
-                                        </a>
-                                        {% else %}
+                                        {% if c.situacao == "Aberto" %}
+                                            <a href="{% url 'tela-caixa' c.codigo %}" class="btn btn-light btn-sm border btn-js" title="Acessar Caixa">
+                                                <i class="fa-solid fa-desktop op-clonar"></i>
+                                            </a>
+                                        {% endif %}
+                                    {% else %}
                                         <a href="#" class="btn btn-light btn-sm border btn-permissao" data-msg-negado="Seu usuário não pode realizar lançamentos em caixas de outros usuários!" title="Acessar Caixa">
                                             <i class="fa-solid fa-desktop op-clonar"></i>
                                         </a>
                                     {% endif %}
+                                    <button class="btn btn-light btn-sm border btnMovi" data-caixa-id="{{ c.codigo }}" data-bs-target="#modalMovCaixa" data-bs-toggle="modal">
+                                        <i class="fa-solid fa-arrows-turn-to-dots" style="color: #ff8800;"></i>
+                                    </button>
+                                </div><br>
+                                <div class="btn-group btn-group-sm">
                                     <a href="{% url 'att-lancamento' c.codigo %}?next={{ request.get_full_path|urlencode }}" class="btn btn-light btn-sm border btn-permissao" data-permissao="lancpdvs.change_caixa" data-msg-negado="Seu usuário não pode editar caixas!">
                                         <i class="fas fa-edit text-success"></i>
                                     </a>
@@ -155,26 +162,126 @@
                             <!-- Filial -->
                             <div class="col-md-2 fw-bold codigo-col" data-label="Filial:">{{ c.vinc_fil }}</div>
                             <!-- PDV -->
-                            <div class="col-md-2 fw-bold descricao-col" data-label="PDV:">{{ c.terminal.nome }}</div>
+                            <div class="col-md-1 fw-bold descricao-col" data-label="PDV:">{{ c.terminal.nome }}</div>
                             <!-- Usuário -->
                             <div class="col-md-1 fw-bold codigo-col" data-label="Usuário:">{{ c.usuario.first_name }}</div>
                             <!-- Dt. Abertura -->
-                            <div class="col-md-1 fw-bold codigo-col" data-label="Dt. Abertura:">{{ c.data_abertura|date:"d/m/Y H:i:s" }}</div>
+                            <div class="col-md-1 text-center fw-bold codigo-col" data-label="Dt. Abertura:">{{ c.data_abertura|date:"d/m/Y H:i:s" }}</div>
                             <!-- Valor Abertura -->
                             <div class="col-md-1 fw-bold codigo-col" data-label="Valor Abertura:">R$ {{ c.saldo_inicial|moeda_br}}</div>
                             <!-- Dt. Fechamento -->
                             <div class="col-md-1 text-center fw-bold codigo-col" data-label="{% if c.situacao == 'Fechado' %}Dt. Fechamento:{% endif %}">{% if c.situacao == 'Fechado' %}{{ c.data_fechamento|date:"d/m/Y - H:i:s" }}{% else %} - {% endif %}</div>
                             <!-- Formas de Fechamento -->
-                            <div class="col-md-auto fw-bold codigo-col" data-label="Valor Fechamento:">
+                            <div class="col-md-2 fw-bold codigo-col" data-label="Valor Fechamento:">
                                 {% if c.situacao != 'Aberto' %}
                                     {% for f in c.formas_convertidas %}
-                                        <div class="p-1 mb-1 bg-secondary text-light rounded-3" style="font-size: 0.75rem;">
-                                            <small>{{ f.descricao }} - {{ f.valor|moeda_br }}</small>
+                                        <div class="p-1 mb-1 bg-secondary text-light rounded-3" style="font-size: 0.875rem;">
+                                            <small>{{ f.descricao }}  <small style="float: right;">{{ f.valor|moeda_br }}</small></small>
                                         </div>
                                     {% empty %}
                                         -
                                     {% endfor %}
                                 {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="modalMovCaixa" tabindex="-1">
+                        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                            <div class="modal-content">
+                                <!-- HEADER -->
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title"><i class="fa-solid fa-cash-register"></i> Movimentações do Caixa</h5>
+                                </div>
+                                <!-- BODY -->
+                                <div class="modal-body">
+                                    <!-- 🔹 ABERTURA -->
+                                    <div class="card text-center" style="margin: -10px 0 5px 0;">
+                                        <div class="card-body fw-bold text-primary" style="margin: -10px;">Abertura</div>
+                                    </div>
+                                    <table class="table table-sm table-striped table-bordered table-responsive-md">
+                                        <thead class="table-primary">
+                                            <tr>
+                                                <th>Data</th><th>Descrição</th><th>Forma</th><th class="text-end">Valor</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tblAbertura"></tbody>
+                                    </table>
+                                    <!-- 🔹 VENDAS -->
+                                    <div class="card text-center" style="margin: -10px 0 5px 0;">
+                                        <div class="card-body fw-bold text-success" style="margin: -10px;">Vendas</div>
+                                    </div>
+                                    <table class="table table-sm table-striped table-bordered table-responsive-md">
+                                        <thead class="table-success">
+                                            <tr>
+                                                <th>Nº Pedido</th><th>Cliente</th><th>Vendedor</th><th>Data</th><th>Situação</th><th>Forma</th><th class="text-end">Valor</th><th style="text-align: center;">Opções</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tblVendas"></tbody>
+                                    </table>
+                                    <!-- 🔹 TOTAL VENDAS -->
+                                    <div class="card" id="totVendasCaixa" style="margin: -10px 0 15px 0;">
+                                    </div>
+                                    <!-- 🔹 RESUMO VENDAS -->
+                                    <div class="card text-center" style="margin: -10px 0 5px 0;">
+                                        <div class="card-body fw-bold text-secondary" style="margin: -10px;">Resumo das Vendas por Forma</div>
+                                    </div>
+                                    <table class="table table-sm table-striped table-bordered table-responsive-md">
+                                        <thead class="table-success">
+                                            <tr>
+                                                <th>ID</th><th>Forma</th><th class="text-end">Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tblResumoVendas"></tbody>
+                                    </table>
+                                    <!-- 🔹 ENTRADAS -->
+                                    <div class="card text-center" style="margin: -10px 0 5px 0;">
+                                        <div class="card-body fw-bold text-info" style="margin: -10px;">Entradas (Suprimentos)</div>
+                                    </div>
+                                    <table class="table table-sm table-striped table-bordered table-responsive-md">
+                                        <thead class="table-info">
+                                            <tr>
+                                                <th>Nº Doc.</th><th>Descrição</th><th>Forma</th><th class="text-end">Valor</th><th class="col-auto" style="text-align: center;">Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tblEntradas"></tbody>
+                                    </table>
+                                    <!-- 🔹 RESUMO ENTRADAS -->
+                                    <div class="card text-center" style="margin: -10px 0 5px 0;">
+                                        <div class="card-body fw-bold text-secondary" style="margin: -10px;">Resumo de Entradas</div>
+                                    </div>
+                                    <table class="table table-sm table-striped table-bordered table-responsive-md">
+                                        <tbody id="tblResumoEntradas"></tbody>
+                                    </table>
+                                    <!-- 🔹 SAÍDAS -->
+                                    <div class="card text-center" style="margin: -10px 0 5px 0;">
+                                        <div class="card-body fw-bold text-danger" style="margin: -10px;">Saídas (Sangrias)</div>
+                                    </div>
+                                    <table class="table table-sm table-striped table-bordered table-responsive-md">
+                                        <thead class="table-danger">
+                                            <tr>
+                                                <th>Nº Doc.</th><th>Descrição</th><th>Forma</th><th class="text-end">Valor</th><th class="col-auto" style="text-align: center;">Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tblSaidas"></tbody>
+                                    </table>
+                                    <!-- 🔹 RESUMO SAÍDAS -->
+                                    <div class="card text-center" style="margin: -10px 0 5px 0;">
+                                        <div class="card-body fw-bold text-secondary" style="margin: -10px;">Resumo de Saídas</div>
+                                    </div>
+                                    <table class="table table-sm table-striped table-bordered table-responsive-md">
+                                        <tbody id="tblResumoSaidas"></tbody>
+                                    </table>
+                                    <!-- 🔹 TOTAL GERAL -->
+                                    <div class="card text-center" style="margin: -10px 0 5px 0;">
+                                        <div class="card-body fw-bold text-dark" style="margin: -10px;">Total Geral por Forma (Abertura + Vendas + Entradas - Saídas)</div>
+                                    </div>
+                                    <table class="table table-striped table-bordered table-responsive-md">
+                                        <tbody id="tblTotalGeral"></tbody>
+                                    </table>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                </div>
                             </div>
                         </div>
                     </div>

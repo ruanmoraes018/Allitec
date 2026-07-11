@@ -63,21 +63,25 @@
 
     <!-- PEDIDO -->
     <div class="small">
-        <div><span class="bold">PEDIDO:</span> {{ pedido.codigo }} <span style="float: right;">{% if pedido.usuario != None %}Usuário: {{ pedido.usuario }} {% else %}Usuário: {{ request.user.first_name }} {% endif %}</span></div>
+        <div><span class="bold">PEDIDO:</span> {{ pedido.codigo }} <span style="float: right;">{% if pedido.usuario != None %}Usuário: {{ pedido.usuario.first_name }} {% else %}Usuário: {{ request.user.first_name }} {% endif %}</span></div>
         <div><span class="bold">DATA:</span> {{ pedido.dt_emi|date:"d/m/Y H:i:s" }}</div>
         <div><span class="bold">VENDEDOR:</span> {{ pedido.nome_vend }}</div>
-        <div><span class="bold">SITUAÇÃO:</span> {{ pedido.situacao }} <span style="float: right;">{% if pedido.caixa != None %}Caixa: {{ pedido.caixa }}{% endif %}</span></div>
+        <div><span class="bold">SITUAÇÃO:</span> {{ pedido.situacao }} <span style="float: right;">{% if pedido.caixa != None %}Caixa: {{ pedido.caixa.terminal.nome }}{% endif %}</span></div>
     </div>
 
+    <div class="linha"></div>
+    <div class="small bold center">CLIENTE</div>
     <div class="linha"></div>
 
     <!-- CLIENTE -->
     <div class="small">
         {% if pedido.cli.avulso == "Sim" %}
-            <div><span class="bold">CLIENTE:</span> {{ pedido.cli.codigo }} - {{ pedido.nome_cli }}</div>
+            <div><span class="bold">CÓDIGO: </span>{{ pedido.cli.codigo }}</div>
+            <div><span class="bold">CLIENTE: </span>{{ pedido.nome_cli }}</div>
         {% else %}
+            <div><span class="bold">CÓDIGO:</span>{{ pedido.cli.codigo }}</div>
             <div><span class="bold">{% if pedido.cli.pessoa == "Física" %}NOME: {% else %}RAZÃO SOCIAL: {% endif %}</span>{{ pedido.cli.razao_social }}</div>
-            <div><span class="bold">{% if pedido.cli.pessoa == "Física" %}CÓD. - APELIDO: {% else %}CÓD. - FANTASIA: {% endif %}</span> {{ pedido.cli.codigo }} - {{ pedido.nome_cli }}</div>
+            <div><span class="bold">{% if pedido.cli.pessoa == "Física" %}APELIDO: {% else %}FANTASIA: {% endif %}</span>{{ pedido.nome_cli }}</div>
             <div><span class="bold">{% if pedido.cli.pessoa == "Física" %}CPF: {% else %}CNPJ: {% endif %}</span>{{ pedido.cli.cpf_cnpj }}</div>
             <div><span class="bold">{% if pedido.cli.pessoa == "Física" %}RG: {% else %}IE: {% endif %}</span>{{ pedido.cli.ie }}</div>
             <div><span class="bold">ENDEREÇO:</span>{{ pedido.cli.endereco }}, Nº: {{ pedido.cli.numero }}</div>
@@ -94,22 +98,43 @@
     <div class="linha"></div>
 
     {% for item in pedido.itens.all %}
-        <div class="small">
-            <div class="flex">
-                <div style="float: left;">
-                    {{ item.codigo_usado|default_if_none:item.produto.codigo }}
+        {# 🔥 Se a quantidade for negativa, exibe a linha centralizada de Devolução #}
+        {% if item.quantidade < 0 %}
+            <div style="text-align: center; margin: 8px 0; font-weight: bold; font-size: 0.85rem;">
+                ************ DEVOLVIDO ************
+            </div>
+            <div class="small">
+                <div class="flex">
+                    <div style="float: left;">
+                        {{ item.codigo_usado|default_if_none:item.produto.codigo }}
+                    </div>
+                    <div style="float: right;">{{ item.produto.desc_prod }}</div>
                 </div>
-                <div style="float: right;">{{ item.produto.desc_prod }}</div>
+                <div class="flex">
+                    {# Usamos o filtro 'abs' (ou removemos o sinal se preferir) para a impressão do cupom não ficar com quantidade negativa feia #}
+                    <span>{{ item.quantidade }} {{ item.produto.unidProd }} x {{ item.vl_unit|moeda_br }}</span>
+                    <span>{{ item.subtotal|moeda_br }}</span>
+                </div>
             </div>
-            <div class="flex">
-                <span>{{ item.quantidade }} {{ item.produto.unidProd }} x {{ item.vl_unit|moeda_br }}</span>
-                <span>{{ item.subtotal|moeda_br }}</span>
+            <div style="text-align: center; margin: 8px 0; font-weight: bold; font-size: 0.85rem;">
+                ************************************
             </div>
-        </div>
+        {% else %}
+            <div class="small">
+                <div class="flex">
+                    <div style="float: left;">
+                        {{ item.codigo_usado|default_if_none:item.produto.codigo }}
+                    </div>
+                    <div style="float: right;">{{ item.produto.desc_prod }}</div>
+                </div>
+                <div class="flex">
+                    {# Usamos o filtro 'abs' (ou removemos o sinal se preferir) para a impressão do cupom não ficar com quantidade negativa feia #}
+                    <span>{{ item.quantidade }} {{ item.produto.unidProd }} x {{ item.vl_unit|moeda_br }}</span>
+                    <span>{{ item.subtotal|moeda_br }}</span>
+                </div>
+            </div>
+        {% endif %}
     {% endfor %}
-
-
-
     <div class="linha"></div>
 
     <!-- TOTAL -->

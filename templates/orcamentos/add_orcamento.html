@@ -46,40 +46,40 @@
                             <div class="row" style="margin-left: -8px;">
                                 <div class="col-md-3">{{ form.cli|as_crispy_field }}</div>
                                 <div class="col-md-2" id="div_id_cpfCnpj">
-                                    <label for="id_cpfCnpj" class="form-label requiredField">CPF/CNPJ</label>
-                                    <input type="text" class="form-control form-control-sm border-dark-subtle" id="orc_cpfCnpj" name="cpfCnpj" disabled="disabled">
+                                    <label for="orc_cpfCnpj" class="form-label requiredField">CPF/CNPJ</label>
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle" id="orc_cpfCnpj" name="orc_cpfCnpj" disabled="disabled">
                                 </div>
                                 <div class="col-md-3" id="div_id_email">
-                                    <label for="id_email" class="form-label requiredField">E-mail</label>
-                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="orc_email" name="email" disabled="disabled">
+                                    <label for="orc_email" class="form-label requiredField">E-mail</label>
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="orc_email" name="orc_email" disabled="disabled">
                                 </div>
                                 <div class="col-md-2" id="div_id_tel">
-                                    <label for="id_tel" class="form-label requiredField">Fone</label>
-                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="orc_tel" name="tel" disabled="disabled">
+                                    <label for="orc_tel" class="form-label requiredField">Fone</label>
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="orc_tel" name="orc_tel" disabled="disabled">
                                 </div>
                                 <div class="col-md-2" id="div_id_cep">
-                                    <label for="id_cep" class="form-label requiredField">CEP*</label>
-                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="orc_cep" name="cep" disabled="disabled">
+                                    <label for="orc_cep" class="form-label requiredField">CEP*</label>
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="orc_cep" name="orc_cep" disabled="disabled">
                                 </div>
                                 <div class="col-md-4" id="div_id_endereco">
-                                    <label for="id_endereco" class="form-label requiredField">Endereço*</label>
-                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="orc_endereco" name="endereco" disabled="disabled">
+                                    <label for="orc_endereco" class="form-label requiredField">Endereço*</label>
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="orc_endereco" name="orc_endereco" disabled="disabled">
                                 </div>
                                 <div class="col-md-1" id="div_id_numero">
-                                    <label for="id_numero" class="form-label requiredField">Nº*</label>
-                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="orc_numero" name="numero" disabled="disabled">
+                                    <label for="orc_numero" class="form-label requiredField">Nº*</label>
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="orc_numero" name="orc_numero" disabled="disabled">
                                 </div>
                                 <div class="col-md-3" id="div_id_bairro">
                                     <label for="id_bairro_txt" class="form-label requiredField">Bairro*</label>
-                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_bairro_txt" name="bairro" disabled="disabled">
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_bairro_txt" name="bairro_txt" disabled="disabled">
                                 </div>
                                 <div class="col-md-2" id="div_id_cidade">
                                     <label for="id_cidade_txt" class="form-label">Cidade*</label>
-                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_cidade_txt" name="cidade" disabled="disabled">
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_cidade_txt" name="cidade_txt" disabled="disabled">
                                 </div>
                                 <div class="col-md-2" id="div_id_uf">
                                     <label for="id_uf_txt" class="form-label requiredField">Estado*</label>
-                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_uf_txt" name="uf" disabled="disabled">
+                                    <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_uf_txt" name="uf_txt" disabled="disabled">
                                 </div>
                                 <div class="col-md-12">{{ form.obs_cli|as_crispy_field }}</div>
                             </div>
@@ -103,22 +103,28 @@
                                 <div class="card mb-2" style="margin: 0; margin-top: 10px; padding-left: 0; padding-right: 0;">
                                     <div class="card-header text-center"><i class="fa-solid fa-align-justify"></i> <strong>Portas Geradas</strong></div>
                                     <div class="card-body p-1">
-                                        <table class="table table-bordered table-sm table-striped mb-0" id="tabelaPortasResumo">
-                                            <thead class="table-dark">
-                                                <tr style="font-size: 12px;">
-                                                    <th>#</th><th style="width: 6%;">Largura</th><th style="width: 6%;">Altura</th><th style="width: 6%;">Lg. Corte</th>
-                                                    <th style="width: 6%;">At. Corte</th><th style="width: 6%;">Q. Lâm.</th><th style="width: 6%;">M²</th>
-                                                    <th style="width: 6%;">Ft. Peso</th><th style="width: 6%;">Peso</th>
-                                                    <th style="width: 6%;">Rolo</th><th style="width: 8%;">TP. Lâm.</th><th style="width: 8%;">TP. Vão</th>
-                                                    <th style="width: 8%;">Guia Esquerdo</th><th style="width: 14.5%;">Guia Direito</th><th style="width: 40px;">Exc.</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody></tbody>
-                                        </table>
+                                        <div class="list-group tb-portas-lista">
+                                            <!-- Cabeçalho -->
+                                            <div class="list-group-item bg-light fw-bold cabecalho-lista">
+                                                <div class="row align-items-center">
+                                                    <div class="col-md-1 border-end">#</div>
+                                                    <div class="col-md-1 border-end">Largura</div>
+                                                    <div class="col-md-1 border-end">Altura</div>
+                                                    <div class="col-md-1 text-center border-end"><div class="border-bottom">Lg. Corte</div>At. Corte</div>
+                                                    <div class="col-md-1 text-center border-end"><div class="border-bottom">Q. Lâm.</div>M²</div>
+                                                    <div class="col-md-1 text-center border-end"><div class="border-bottom">Ft. Peso</div>Peso</div>
+                                                    <div class="col-md-1 border-end">Rolo</div>
+                                                    <div class="col-md-1 border-end">Tp. Lâm.</div>
+                                                    <div class="col-md-1 border-end">Tp. Vão</div>
+                                                    <div class="col-md-2 text-center border-end"><div class="border-bottom" style="font-size: 0.875rem;">Guia Esquerdo</div>Guia Direito</div>
+                                                    <div class="col-md-1">Exc.</div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="col-md-1">{{ form.pintura|as_crispy_field }}</div>
-                                <div class="col-md-1">{{ form.tp_pintura|as_crispy_field }}</div>
+                                <div class="col-md-1" style="font-size: 0.99rem;">{{ form.tp_pintura|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.cor|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.portao_social|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.lg_ps|as_crispy_field }}</div>
@@ -185,18 +191,18 @@
                                         </button>
                                     </div>
                                 </div>
-                                <div style="overflow-x: auto; margin-top: 10px;">
-                                    <table class="table table-bordered table-striped" id="itensTableForm">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th col="auto" id="thTableForm" style="text-align: justify;">#</th><th col="auto" id="thTableForm" style="text-align: justify;">Forma Pgto.</th>
-                                                <th col="auto valor_os" id="thTableForm" style="text-align: justify;">Valor</th><th col="auto" id="thTableForm" style="text-align: justify;">Parcelas</th>
-                                                <th col="auto" id="thTableForm" style="text-align: justify;">Dias</th><th col="auto" style="text-align: justify; width: 40px;">Ações</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                        </tbody>
-                                    </table>
+                                <div class="list-group tb-formas-orc-lista mt-2">
+                                    <!-- Cabeçalho -->
+                                    <div class="list-group-item bg-light fw-bold cabecalho-lista">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-1 border-end">#</div>
+                                            <div class="col-md-5 border-end">Forma de Pagamento</div>
+                                            <div class="col-md-2 border-end">Valor</div>
+                                            <div class="col-md-2 text-center border-end">Qtde. Parcelas</div>
+                                            <div class="col-md-1 text-center border-end">Qtde. Dias</div>
+                                            <div class="col-md-1">Exc.</div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <ul class="list-group col" style="border-radius: 15px; margin: 10px 5px;">
                                     <li class="list-group-item"><strong>Soma das Formas de Pagamento:</strong> <span style="float: right; padding-left: 10px; padding-right: 10px;" class="border border-secondary rounded-4 bg-primary-subtle fw-bold" id="somaFormas">R$ 0,00</span></li>
@@ -275,7 +281,7 @@
                                 <input type="text" class="form-control" id="editValorItemInput" name="editValorItem">
                             </div>
                             <div class="col-md-6 btn-toolbar" role="toolbar" aria-label="Toolbar Produto">
-                                <label for="editQtdInput" class="form-label requiredField">Quantidade</label>
+                                <label for="editQtdInput" class="form-label requiredField me-2">Quantidade</label>
                                 <div class="input-group input-group-sm flex-md-fill">
                                     <button type="button" class="btn btn-info tbn-sm remQtd"><i class="fa-solid fa-minus"></i></button>
                                     <input type="text" class="form-control form-control-sm" id="editQtdInput" name="editQtd">
@@ -285,7 +291,7 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-primary btn-sm" id="saveEditBtn">Salvar</button>
+                        <button type="button" class="btn btn-dark btn-sm" id="saveEditBtn">Salvar</button>
                         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" id="fechar-modal">Fechar</button>
                     </div>
                 </form>
@@ -321,7 +327,7 @@
                                 <input type="text" class="form-control" id="editValorItemAdcInput" name="editValorItemAdc">
                             </div>
                             <div class="col-md-6 btn-toolbar" role="toolbar" aria-label="Toolbar de Adicionais">
-                                <label for="editQtdAdcInput" class="form-label requiredField">Quantidade</label>
+                                <label for="editQtdAdcInput" class="form-label requiredField me-2">Quantidade</label>
                                 <div class="input-group input-group-sm flex-md-fill">
                                     <button type="button" class="btn btn-info tbn-sm remQtdAdc"><i class="fa-solid fa-minus"></i></button>
                                     <input type="text" class="form-control form-control-sm" id="editQtdAdcInput" name="editQtdAdc">

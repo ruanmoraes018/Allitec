@@ -31,7 +31,13 @@ class Caixa(models.Model):
         constraints = [models.UniqueConstraint(fields=['codigo', 'vinc_emp'], name='unique_codigo_caixa_empresa')]
     @property
     def formas_convertidas(self):
-        return [{"descricao": fp.forma_pgto.descricao, "valor": fp.valor} for fp in self.forma_pagamento.select_related("fechamentos").all()]
+        return [
+            {
+                "descricao": f.forma_pagamento.descricao,
+                "valor": f.valor_informado,  # ou valor_registrado, se preferir
+            }
+            for f in self.fechamentos.select_related("forma_pagamento").order_by("forma_pagamento__codigo")
+        ]
 
 class CaixaMovimento(models.Model):
     codigo = models.PositiveIntegerField(blank=True, null=True)
@@ -39,7 +45,7 @@ class CaixaMovimento(models.Model):
     pedido = models.ForeignKey('pedidos.Pedido', null=True, blank=True, on_delete=models.SET_NULL)
     situacao = models.CharField(max_length=10, choices=[('Ativo', 'Ativo'), ('Cancelado', 'Cancelado')], default="Ativo")
     tipo = models.CharField(max_length=10, choices=[('Entrada', 'Entrada'), ('Saída', 'Saída')])
-    categoria = models.CharField(max_length=20, choices=[('Venda', 'Venda'), ('Sangria', 'Sangria'), ('Suprimento', 'Suprimento'), ('Saldo Inicial', 'Saldo Inicial'),])
+    categoria = models.CharField(max_length=20, choices=[('Venda', 'Venda'), ('Devolução', 'Devolução'), ('Troca', 'Troca'), ('Sangria', 'Sangria'), ('Suprimento', 'Suprimento'), ('Saldo Inicial', 'Saldo Inicial'),])
     forma_pagamento = models.ForeignKey('formas_pgto.FormaPgto', on_delete=models.PROTECT)
     valor = models.DecimalField(max_digits=10, decimal_places=2)
     descricao = models.CharField(max_length=255, blank=True)

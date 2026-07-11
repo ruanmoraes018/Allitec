@@ -14,10 +14,10 @@
         </nav>
         {% if messages %}
             <div id="django-messages" data-messages='[
-            {% for message in messages %}
-                {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
-                {% if not forlooo.last %},{% endif %}
-            {% endfor %}
+                {% for message in messages %}
+                    {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
+                    {% if not forloop.last %},{% endif %}
+                {% endfor %}
             ]'></div>
         {% endif %}
         <div class="card border-0 shadow-sm rounded-3 mb-2">
@@ -157,11 +157,11 @@
                             <!-- Situação -->
                             <div class="col-1 text-center codigo-col" data-label="Situação:">
                                 {% if o.situacao == 'Aberto' %}
-                                    <span class="badge bg-primary">{{ o.situacao }}</span>
+                                    <span class="badge bg-primary"><i class="fa-regular fa-clock"></i> {{ o.situacao }}</span>
                                 {% elif o.situacao == 'Faturado' %}
-                                    <span class="badge bg-success">{{ o.situacao }}</span>
+                                    <span class="badge bg-success"><i class="fa-regular fa-circle-check"></i> {{ o.situacao }}</span>
                                 {% else %}
-                                    <span class="badge bg-danger">{{ o.situacao }}</span>
+                                    <span class="badge bg-danger"><i class="fa-regular fa-circle-xmark text-white"></i>{{ o.situacao }}</span>
                                 {% endif %}
                             </div>
                             <!-- Filial -->
@@ -171,9 +171,9 @@
                             <!-- Técnico -->
                             <div class="col-sm-1 fw-bold codigo-col" data-label="Técnico:">{{ o.nome_solicitante }}</div>
                             <!-- Status -->
-                            <div class="col-sm-1 fw-bold codigo-col" data-label="Status:">
+                            <div class="col-sm-1 text-center fw-bold codigo-col text-wrap" data-label="Status:" style="font-size: 0.8rem;">
                                 {% if o.situacao == "Faturado" %}
-                                    {% if o..status == "Em Produção" %}
+                                    {% if o.status == "Em Produção" %}
                                         <span class="status-badge fw-bold">
                                             {{ o.status }} <i id="gear" class="fa-solid fa-gears"></i>
                                         </span>
@@ -295,17 +295,22 @@
                                         </button>
                                         <ul class="dropdown-menu w-100">
                                             <li>
-                                                <a href="{% url 'pdf-proposta' o.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Proposta</a>
+                                                <a href="{% url 'pdf-proposta' o.codigo %}" target="_blank" class="dropdown-item list-group-item list-group-item-action list-group-item-dark"><i class="fa-solid fa-file-pdf text-danger"></i> Proposta</a>
                                             </li>
                                             <li>
-                                                <a href="{% url 'pdf-orcamento' o.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Orçamento</a>
+                                                <a href="{% url 'pdf-orcamento' o.codigo %}" target="_blank" class="dropdown-item list-group-item list-group-item-action list-group-item-dark"><i class="fa-solid fa-file-pdf text-danger"></i> Orçamento</a>
                                             </li>
                                             <li>
-                                                <a href="{% url 'pdf-contrato' o.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Contrato</a>
+                                                <a href="{% url 'pdf-contrato' o.codigo %}" target="_blank" class="dropdown-item list-group-item list-group-item-action list-group-item-dark"><i class="fa-solid fa-file-pdf text-danger"></i> Contrato</a>
                                             </li>
-                                            <li>
-                                                <a href="{% url 'pdf-producao' o.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Produção</a>
-                                            </li>
+                                            {% if o.situacao == "Faturado" %}
+                                                <li>
+                                                    <a href="{% url 'pdf-producao' o.codigo %}" target="_blank" class="dropdown-item list-group-item list-group-item-action list-group-item-dark"><i class="fa-solid fa-file-pdf text-danger"></i> Produção</a>
+                                                </li>
+                                                <li>
+                                                    <a href="{% url 'recibo_orcamento' o.codigo %}" target="_blank" class="dropdown-item list-group-item list-group-item-action list-group-item-dark"><i class="fa-solid fa-file-pdf text-danger"></i> Recibo</a>
+                                                </li>   
+                                            {% endif %} 
                                             <li>
                                                 {% if o.titulos_orc.exists %}
                                                     <li>
@@ -318,7 +323,7 @@
                                                         {% endwith %}
                                                     </li>
                                                 {% endif %}
-                                            </li>    
+                                            </li>
                                         </ul>
                                     </div>
                                 </div>
@@ -463,8 +468,24 @@
                                     Tem certeza que deseja alterar o status para: <strong id="novoStatusTexto{{ o.codigo }}"></strong>?
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-primary confirm-status"> Sim </button>
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"> Não </button>
+                                    <button type="button" class="btn btn-primary confirm-status btn-confirmar" id="confirmBtn" disabled> <u>S</u>im <span class="contador">3</span> </button>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnRecusa"> <u>N</u>ão </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="modalRecibo">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title"><i class="fa-solid fa-file-contract"></i> Imprimir recibo</h5>
+                                </div>
+                                <div class="modal-body text-center">
+                                    Deseja imprimir o RECIBO deste orçamento?
+                                </div>
+                                <div class="modal-footer">
+                                    <button class="btn btn-success btn-sm" id="simRecibo">Sim</button>
+                                    <button class="btn btn-secondary btn-sm" id="naoRecibo">Não</button>
                                 </div>
                             </div>
                         </div>
@@ -479,9 +500,9 @@
                 <div class="row align-items-center">
                     <div class="col-md-4 text-center text-md-start d-flex justify-content-center justify-content-md-start">
                         <ul class="list-group list-group-horizontal-sm">
-                            <li class="list-group-item"><small>Orçamentos Abertos:</small> <span class="badge bg-primary ms-1">{{ orc_ab }} - R$ {{ tot_ab|moeda_br }}</span></li>
-                            <li class="list-group-item"><small>Orçamentos Faturados:</small> <span class="badge bg-success ms-1">{{ orc_fat }} - R$ {{ tot_fat|moeda_br }}</span></li>
-                            <li class="list-group-item"><small>Orçamentos Cancelados:</small> <span class="badge bg-danger ms-1">{{ orc_canc }} - R$ {{ tot_canc|moeda_br }}</span></li>
+                            <li class="list-group-item"><small>Total Abertos:</small> <span class="badge bg-primary ms-1">{{ orc_ab }} - R$ {{ tot_ab|moeda_br }}</span></li>
+                            <li class="list-group-item"><small>Total Faturados:</small> <span class="badge bg-success ms-1">{{ orc_fat }} - R$ {{ tot_fat|moeda_br }}</span></li>
+                            <li class="list-group-item"><small>Total Cancelados:</small> <span class="badge bg-danger ms-1">{{ orc_canc }} - R$ {{ tot_canc|moeda_br }}</span></li>
                         </ul>
                     </div>
                     <div class="col-md-4 mt-1 d-flex justify-content-center">

@@ -28,6 +28,26 @@ class Pedido(models.Model):
     dt_canc = models.DateTimeField(null=True, blank=True)
     motivo = models.CharField(max_length=60, blank=True, null=True)
     estoque_baixado = models.BooleanField(default=False)
+    TIPOS_OPERACAO = [
+        ('Venda', 'Venda'),
+        ('Troca', 'Troca'),
+        ('Devolucao', 'Devolução'),
+    ]
+
+    tipo_operacao = models.CharField(
+        max_length=10,
+        choices=TIPOS_OPERACAO,
+        default='Venda'
+    )
+
+    pedido_origem = models.ForeignKey(
+        'self',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='operacoes_relacionadas',
+        help_text='Pedido original utilizado para uma troca ou devolução.'
+    )
     pagamentos = GenericRelation(
         'pedidos.Pagamento',
         related_query_name='pedido'
@@ -166,3 +186,96 @@ class Pagamento(models.Model):
         null=True,
         db_index=True
     )
+
+class PedidoDevolucao(models.Model):
+    TIPO_OPERACAO = [
+        ('Troca', 'Troca'),
+        ('Devolucao', 'Devolução'),
+    ]
+
+    codigo = models.PositiveIntegerField(blank=True, null=True)
+
+    vinc_emp = models.ForeignKey(
+        'empresas.Empresa',
+        on_delete=models.CASCADE
+    )
+
+    vinc_fil = models.ForeignKey(
+        'filiais.Filial',
+        on_delete=models.PROTECT
+    )
+
+    pedido = models.ForeignKey(
+        'pedidos.Pedido',
+        on_delete=models.PROTECT,
+        related_name='devolucoes'
+    )
+
+    cliente = models.ForeignKey(
+        'clientes.Cliente',
+        on_delete=models.PROTECT,
+        related_name='devolucoes'
+    )
+
+    usuario = models.ForeignKey(
+        'filiais.Usuario',
+        on_delete=models.SET_NULL,
+        null=True
+    )
+
+    tipo = models.CharField(
+        max_length=10,
+        choices=TIPO_OPERACAO
+    )
+
+    total = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+
+    observacao = models.TextField(blank=True)
+
+    data = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-data']
+        verbose_name = 'Troca / Devolução'
+        verbose_name_plural = 'Trocas / Devoluções'
+
+    def __str__(self):
+        return f'{self.codigo} - {self.tipo}'
+    
+class PedidoDevolucaoItem(models.Model):
+    devolucao = models.ForeignKey(
+        PedidoDevolucao,
+        on_delete=models.CASCADE,
+        related_name="itens"
+    )
+
+    item_pedido = models.ForeignKey(
+        PedidoProduto,
+        on_delete=models.PROTECT,
+        related_name="itens_devolvidos"
+    )
+
+    quantidade = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
+
+    class Meta:
+        verbose_name = "Item da Devolução"
+        verbose_name_plural = "Itens da Devolução"
+
+    @property
+    def produto(self):
+        return self.item_pedido.produto
+
+    @property
+    def valor_unitario(self):
+        return self.item_pedido.vl_unit
+
+    @property
+    def subtotal(self):
+        return self.quantidade * self.item_pedido.vl_unit

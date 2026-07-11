@@ -13,8 +13,29 @@ class UsuarioCadastroForm(forms.ModelForm):
     gerar_senha_lib = forms.BooleanField(label="Gerar Senha de Liberação", required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}))
     senha_liberacao = forms.CharField(label="Senha de Liberação", help_text="Para nova senha, preencha esse campo!", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     is_active = forms.TypedChoiceField(label='Situação', choices=(('True', 'Ativo'), ('False', 'Inativo')), coerce=lambda x: x in ['True', 'true', '1', True], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
-    ver_res_orc = forms.BooleanField(label="Ver Resumo Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
-    ver_res_orc_tec = forms.BooleanField(label="Ver Resumo Orçamento por Técnico", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    # Cards
+    ver_res_orc = forms.BooleanField(label="Resumo - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_res_orc_tec = forms.BooleanField(label="Resumo - Orçamento por Técnico", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_conv_orc = forms.BooleanField(label="Conversão - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_ticket_medio = forms.BooleanField(label="Ticket Médio - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_valor_perdido = forms.BooleanField(label="Valor Perdido - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_vl_total_faturado = forms.BooleanField(label="Valor Total Faturado - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_tempo_medio_faturamento = forms.BooleanField(label="Tempo Médio de Fat. - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_peso_total = forms.BooleanField(label="Peso Total - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_m2_total = forms.BooleanField(label="M² Total - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_situacao_orcamentos = forms.BooleanField(label="Qtde. Situação - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_evolucao_orcamentos = forms.BooleanField(label="Evolução - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_ranking_tecnicos = forms.BooleanField(label="Ranking Técnico - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_ranking_clientes = forms.BooleanField(label="Ranking Cliente - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_situacao_valor_orcamentos = forms.BooleanField(label="Vl. Situação - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_faturamento_diario = forms.BooleanField(label="Faturamento Diário - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_top_10_produtos_qtde = forms.BooleanField(label="Top 10 Produtos (Qtde.) - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_top_10_produtos_vl = forms.BooleanField(label="Top 10 Produtos (Valor) - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_formas_orcamentos = forms.BooleanField(label="Formas de Pagamento - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_status_orcamentos = forms.BooleanField(label="Status de Produção - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_cores_orcamentos = forms.BooleanField(label="Cores - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    ver_caracteristicas_orcamentos = forms.BooleanField(label="Características - Orçamentos", required=False, widget=forms.CheckboxInput(attrs={ 'class': 'form-check-input', 'role': 'switch'}))
+    #
     username = forms.CharField(label="Usuário", widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-lowercase'}))
     permissoes = forms.ModelMultipleChoiceField(queryset=Permission.objects.filter(content_type__app_label__in=['entradas', 'filiais', 'usuarios', 'clientes', 'produtos', 'orcamentos', 'tecnicos', 'tipo_cobranca', 'pedidos',
         'lancpdvs', 'pdvs', 'bairros', 'cidades', 'estados', 'grupos', 'bancos', 'unidades', 'fornecedores', 'marcas', 'tabelas_preco', 'contas_receber' ]), widget=forms.CheckboxSelectMultiple, required=False)
@@ -28,7 +49,12 @@ class UsuarioCadastroForm(forms.ModelForm):
     )
     class Meta:
         model = Usuario
-        fields = ['is_active', 'filial_user', 'first_name', 'username', 'email', 'password', 'permissoes', 'gerar_senha_lib', 'senha_liberacao', 'ver_res_orc', 'ver_res_orc_tec']
+        fields = ['is_active', 'filial_user', 'first_name', 'username', 'email', 'password', 'permissoes', 
+                  'gerar_senha_lib', 'senha_liberacao', 'ver_res_orc', 'ver_res_orc_tec',
+                    'ver_conv_orc', 'ver_ticket_medio', 'ver_valor_perdido', 'ver_vl_total_faturado', 'ver_tempo_medio_faturamento',
+                    'ver_peso_total', 'ver_situacao_orcamentos', 'ver_evolucao_orcamentos', 'ver_ranking_tecnicos', 'ver_ranking_clientes', 'ver_situacao_valor_orcamentos', 'ver_m2_total',
+                    'ver_faturamento_diario', 'ver_top_10_produtos_qtde', 'ver_top_10_produtos_vl', 'ver_formas_orcamentos', 'ver_status_orcamentos', 'ver_cores_orcamentos', 'ver_caracteristicas_orcamentos'
+                  ]
     def __init__(self, *args, **kwargs):
         self.empresa = kwargs.pop('empresa', None)
         super().__init__(*args, **kwargs)

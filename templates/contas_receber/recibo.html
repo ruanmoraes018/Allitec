@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+{% load static %}
+{% load custom_filters %}
+<html lang="pt-br">
+<head>
+    <title>Recibo - CR {{ cr.num_conta }}</title>
+    <meta charset="utf-8">
+    <style>
+        @page {
+            size: A4; margin: 22mm 20mm;
+        }
+        * {box-sizing: border-box;}
+        body {font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 13px; color: #1f2937; line-height: 1.4;}
+        /* ===== CABEÇALHO ===== */
+        .header {display: table; width: 100%; border-bottom: 2px solid #1a3b5d; padding-bottom: 14px; margin-bottom: 24px;}
+        .header-empresa {display: table-cell; vertical-align: middle; width: 38%;}
+        .header-logo {display: table-cell; vertical-align: middle; width: 24%; text-align: center;}
+        .header-logo img {max-width: 110px; max-height: 70px;}
+        .header-recibo {display: table-cell; vertical-align: middle; width: 38%; text-align: right;}
+        .header-empresa .nome-empresa {font-size: 17px; font-weight: 700; color: #1a3b5d; letter-spacing: 0.3px;}
+        .header-empresa .doc-empresa {font-size: 11px; color: #6b7280; margin-top: 2px;}
+        .header-recibo .rotulo {font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #6b7280;}
+        .header-recibo .numero {font-size: 22px; font-weight: 700; color: #1a3b5d;}
+        /* ===== DADOS PRINCIPAIS ===== */
+        .info-table {width: 100%; border-collapse: collapse; margin-bottom: 22px;}
+        .info-table td {padding: 7px 0; vertical-align: top; border-bottom: 1px solid #e5e7eb; }
+        .info-table tr:last-child td {border-bottom: none;}
+        .rotulo-campo {font-weight: 600; width: 150px; color: #4b5563; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px;}
+        .valor-campo {color: #111827;}
+        /* ===== BLOCO DE VALOR EM DESTAQUE ===== */
+        .destaque-valor {background-color: #f3f6fa; border: 1px solid #d7e0ea; border-left: 4px solid #1a3b5d; border-radius: 4px; padding: 16px 20px; margin-bottom: 24px; display: table; width: 100%;}
+        .destaque-valor .rotulo {display: table-cell; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; vertical-align: middle;}
+        .destaque-valor .valor {display: table-cell; text-align: right; font-size: 26px; font-weight: 700; color: #1a3b5d; vertical-align: middle;}
+        /* ===== DECLARAÇÃO ===== */
+        .declaracao {text-align: justify; line-height: 1.7; color: #374151; margin-bottom: 50px;}
+        /* ===== ASSINATURA ===== */
+        .assinatura {text-align: center; margin-top: 40px;}
+        .assinatura .linha {border-top: 1px solid #111827; width: 280px; margin: 0 auto 6px auto;}
+        .assinatura .nome-fantasia {font-weight: 700; font-size: 13px; color: #1a3b5d;}
+        .assinatura .doc-filial {font-size: 11px; color: #6b7280; margin-top: 2px;}
+        /* ===== RODAPÉ ===== */
+        .footer-nota {margin-top: 40px; text-align: center; font-size: 10px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-empresa">
+            <div class="nome-empresa">{{ cr.fantasia_emp }}</div>
+            {% if filial.cnpj %}
+                <div class="doc-empresa">CNPJ: {{ filial.cnpj }}</div>
+                <div class="doc-empresa">{{ filial.endereco }}, {{ filial.numero }}</div>
+                <div class="doc-empresa">{{ filial.bairro_fil }} - {{ filial.cidade_fil }} - {{ filial.uf }}</div>
+            {% endif %}
+        </div>
+        <div class="header-logo">
+            {% if logo_base64 %}
+                <img src="data:image/jpeg;base64,{{ logo_base64 }}" alt="Logo">
+            {% endif %}
+        </div>
+
+        <div class="header-recibo">
+            <div class="rotulo">Recibo Nº</div>
+            <div class="numero">{{ cr.num_conta }}</div>
+        </div>
+    </div>
+
+    <table class="info-table">
+        <tr>
+            <td class="rotulo-campo">Data</td>
+            <td class="valor-campo">{{ cr.data_emissao|date:"d/m/Y" }}</td>
+        </tr>
+        <tr>
+            <td class="rotulo-campo">Recebemos de</td>
+            <td class="valor-campo">{{ cliente.razao_social}} - {{ cliente.fantasia }}</td>
+        </tr>
+        {% if cliente.avulso != "Sim" %}
+            <tr>
+                <td class="rotulo-campo">CPF/CNPJ</td>
+                <td class="valor-campo">{{ cliente.cpf_cnpj }}</td>
+            </tr>
+        {% endif %}
+        <tr>
+            <td class="rotulo-campo">Referente a</td>
+            <td class="valor-campo">Pagamento da Conta à Receber nº {{ cr.num_conta }}</td>
+        </tr>
+        <tr>
+            <td class="rotulo-campo">Forma(s) de Pagamento</td>
+            <td class="valor-campo">
+                {% for forma in formas %}
+                    {{ forma }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </td>
+        </tr>
+    </table>
+
+    <div class="destaque-valor">
+        <div class="rotulo">Valor Recebido</div>
+        <div class="valor">R$ {{ total|moeda_br }}</div>
+    </div>
+
+    <div class="declaracao">
+        Declaramos, para os devidos fins, que recebemos do cliente acima identificado o valor descrito
+        neste recibo, dando plena, geral e irrevogável quitação referente à conta à receber informada.
+    </div>
+
+    <div class="assinatura">
+        <div class="linha"></div>
+        <div class="nome-fantasia">{{ filial.fantasia }}</div>
+        {% if filial.cnpj %}
+            <div class="doc-filial">{{ filial.cnpj }}</div>
+        {% endif %}
+    </div>
+
+    <div class="footer-nota">
+        Documento gerado eletronicamente — não requer autenticação mecânica.
+    </div>
+
+</body>
+</html>

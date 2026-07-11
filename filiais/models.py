@@ -64,6 +64,9 @@ class Filial(models.Model):
 
     # Layout do PDF de Produção
     layout_prod = models.CharField(max_length=10, verbose_name="L. PDF Produção", choices=[('1', 'Layout 1'), ('2', 'Layout 2')], default="1")
+
+    imp_recibo_orc = models.CharField(max_length=20, verbose_name="Questionar Imp. de Recibo", choices=[('Sim','Sim'), ('Não', 'Não'), ('Auto', 'Auto')], default='Sim')
+    imp_recibo_cr = models.CharField(max_length=20, verbose_name="Questionar Imp. de Recibo", choices=[('Sim','Sim'), ('Não', 'Não'), ('Auto', 'Auto')], default='Sim')
     #
     principal = models.BooleanField(default=False, verbose_name='Filial Principal')
     vinculada_a = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='filiais_secundarias', verbose_name='Filial Vinculada à')
@@ -132,9 +135,29 @@ class Usuario(AbstractUser):
     gerar_senha_lib = models.BooleanField(default=False, verbose_name='Gerar Senha de Liberação')
     senha_liberacao = models.CharField(max_length=20, blank=True, null=True, verbose_name='Senha de Liberação', help_text="Para nova senha, preencha esse campo!")
     is_master = models.BooleanField(default=False)
-
+    # Cards
     ver_res_orc = models.BooleanField(default=False)
     ver_res_orc_tec = models.BooleanField(default=False)
+    ver_conv_orc = models.BooleanField(default=False)
+    ver_ticket_medio = models.BooleanField(default=False)
+    ver_valor_perdido = models.BooleanField(default=False)
+    ver_vl_total_faturado = models.BooleanField(default=False)
+    ver_tempo_medio_faturamento = models.BooleanField(default=False)
+    ver_m2_total = models.BooleanField(default=False)
+    ver_peso_total = models.BooleanField(default=False)
+    ver_situacao_orcamentos = models.BooleanField(default=False)
+    ver_evolucao_orcamentos = models.BooleanField(default=False)
+    ver_ranking_tecnicos = models.BooleanField(default=False)
+    ver_ranking_clientes = models.BooleanField(default=False)
+    ver_situacao_valor_orcamentos = models.BooleanField(default=False)
+    ver_faturamento_diario = models.BooleanField(default=False)
+    ver_top_10_produtos_qtde = models.BooleanField(default=False)
+    ver_top_10_produtos_vl = models.BooleanField(default=False)
+    ver_formas_orcamentos = models.BooleanField(default=False)
+    ver_status_orcamentos = models.BooleanField(default=False)
+    ver_cores_orcamentos = models.BooleanField(default=False)
+    ver_caracteristicas_orcamentos = models.BooleanField(default=False)
+
     class Meta:
         unique_together = ('username', 'empresa')
     def save(self, *args, **kwargs):

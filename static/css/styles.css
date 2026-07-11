@@ -213,6 +213,8 @@ body, html {
 .op-estornar { color: #5F9EA0; }
 .op-cancelar { color: #FF0000; }
 .op-imprimir { color: #363636; }
+.op-troca {color: #8B008B;}
+.op-fechar-cx {color: #2F4F4F;}
 
 @media (max-width: 768px) {
 
@@ -349,7 +351,7 @@ body, html {
     }
 }
 
-#gear { font-size: 20px; display: inline-block; }
+#gear { font-size: 15px; display: inline-block; }
 
 /* animação principal: rotação contínua */
 @keyframes gear-rotate {
@@ -382,8 +384,7 @@ body, html {
     color: white;
     padding: 4px 12px;
     border: 2px solid white;
-    border-radius: 12px;
-    white-space: nowrap;         /* impede o texto quebrar linha */
+    border-radius: 12px;       /* impede o texto quebrar linha */
     line-height: 1;              /* força alinhamento */
 }
 

@@ -23,7 +23,7 @@ class OrcamentoForm(forms.ModelForm):
     fornecedor = forms.ChoiceField(label='Fornecedor', widget=forms.Select(attrs={'class': f'{s}'}))
     pintura = forms.ChoiceField(choices=[('Sim', 'Sim'),('Não', 'Não')], widget=forms.Select(attrs={'class': f'{s}'}))
     portao_social = forms.ChoiceField(label="Portão Social", choices=[('Não', 'Não'),('Sim', 'Sim')], widget=forms.Select(attrs={'class': f'{s}'}))
-    tp_pintura = forms.ChoiceField(label="Tipo Pintura", choices=[('Eletrostática', 'Eletrostática'),('Automotiva', 'Automotiva')], widget=forms.Select(attrs={'class': f'{s}'}))
+    tp_pintura = forms.ChoiceField(label="Tipo Pintura", choices=[('Eletrostática', 'Eletrostática'),('Automotiva', 'Automotiva')], widget=forms.Select(attrs={'class': f'{s}', 'style': 'font-size: 0.875rem;'}))
     cor = forms.ChoiceField(
         choices = [
             ('', ''), ('Preto', 'Preto'), ('Branco', 'Branco'),('Amarelo', 'Amarelo'), ('Vermelho', 'Vermelho'),('Azul Claro', 'Azul Claro'), ('Cinza Claro', 'Cinza Claro'),

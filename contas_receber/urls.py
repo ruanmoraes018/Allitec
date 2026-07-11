@@ -12,4 +12,9 @@ urlpatterns = [
     path("<int:conta_id>/gerar-pagamento/", views.gerar_pix_conta_receber, name='gerar-recebimento-cr'),
     path('<int:conta_id>/status-pagamento/', views.status_pagamento_conta, name='status-pagamento-cr'),
     path("carne/<int:codigo>/", views.imprimir_carne, name='imprimir-carne'),
+    path(
+        'recibo/<int:codigo>/',
+        views.recibo_cr,
+        name='recibo_cr'
+    ),
 ]

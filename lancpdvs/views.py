@@ -5,13 +5,13 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from clientes.models import Cliente
+from clientes.models import Cliente, CreditoCliente
 from core.pagamentos.services import PagamentoService
 from lancpdvs.models import Caixa, CaixaMovimento, CaixaFechamento
 from lancpdvs.forms import CaixaForm
 import unicodedata
 from django.http import JsonResponse
-from pedidos.models import Pagamento, Pedido, PedidoFormaPgto, PedidoProduto
+from pedidos.models import Pagamento, Pedido, PedidoDevolucao, PedidoDevolucaoItem, PedidoFormaPgto, PedidoProduto
 from produtos.models import Produto
 from util.parse_decimal import parse_decimal
 from util.permissoes import verifica_permissao
@@ -460,7 +460,8 @@ def movimentos_caixa(request, caixa_id):
                     "data": m.pedido.dt_emi,
                     "situacao": m.pedido.situacao,
                     "formas": [],
-                    "total": 0
+                    "total": 0,
+                    "tem_devolucao": m.pedido.tipo_operacao in ('Troca', 'Devolucao'),
                 }
 
             vendas_dict[pedido_id]["formas"].append({
@@ -646,6 +647,9 @@ def buscar_produto(codigo, empresa):
     try: return Produto.objects.get(codigo=int(codigo), vinc_emp=empresa)
     except (ValueError, Produto.DoesNotExist): raise Produto.DoesNotExist("Produto não encontrado")
 
+from tabelas_preco.models import TabelaPreco
+from django.db import models
+
 @login_required
 @require_POST
 @transaction.atomic
@@ -658,83 +662,403 @@ def finalizar_venda(request):
         cliente_id = data.get('cliente_id')
         vendedor_id = data.get('vendedor_id')
         tabela_preco_id = data.get('tabela_preco_id')
+        
+        # 🔥 Pega o código do pedido original que foi usado no modal de devolução (se houver)
+        codigo_pedido_origem = data.get('codigo_pedido_origem')
+
         cliente = None
+        vendedor = None
+        tabela_preco = None
+
         if cliente_id:
             cliente = Cliente.objects.filter(codigo=cliente_id, vinc_emp=request.user.empresa).first()
+        if vendedor_id:
+            vendedor = Vendedor.objects.filter(codigo=vendedor_id, vinc_emp=request.user.empresa).first()
+        if tabela_preco_id:
+            tabela_preco = TabelaPreco.objects.filter(codigo=tabela_preco_id, vinc_emp=request.user.empresa).first()
+
         if not caixa_id:
             return JsonResponse({'erro': 'Caixa não informado'}, status=400)
+
         caixa = Caixa.objects.select_for_update().get(codigo=caixa_id, vinc_emp=request.user.empresa)
-        if caixa.situacao != 'Aberto': return JsonResponse({'erro': 'Caixa fechado'}, status=400)
-        if not itens: return JsonResponse({'erro': 'Venda sem itens'}, status=400)
+        if caixa.situacao != 'Aberto': 
+            return JsonResponse({'erro': 'Caixa fechado'}, status=400)
+        if not itens: 
+            return JsonResponse({'erro': 'Venda/Troca sem itens'}, status=400)
+
         # 🔥 VALIDA FORMAS DE PAGAMENTO
         for pg in pagamentos_front:
             forma = FormaPgto.objects.get(codigo=pg['forma_id'])
-            # 🔥 CLIENTE SOMENTE À VISTA
-            if (cliente and cliente.somente_avista and (forma.tipo or '').strip().upper() == 'A PRAZO'): return JsonResponse({'erro': f'Cliente {cliente.fantasia} permite apenas vendas à vista.'}, status=400)
-        # 🔥 verifica PIX pendente
+            if (cliente and cliente.somente_avista and (forma.tipo or '').strip().upper() == 'A PRAZO'): 
+                return JsonResponse({'erro': f'Cliente {cliente.fantasia} permite apenas vendas à vista.'}, status=400)
+
         content_type = ContentType.objects.get_for_model(caixa)
         pix_pendente = Pagamento.objects.filter(content_type=content_type, object_id=caixa.codigo, status="pendente").exists()
-        # 🔥 CRIA PEDIDO
-        pedido = Pedido.objects.create(vinc_emp=request.user.empresa, vinc_fil=caixa.vinc_fil, caixa=caixa, cli__codigo=cliente_id, vendedor__codigo=vendedor_id, usuario=caixa.usuario,
-            tabela_preco__codigo=tabela_preco_id, dt_emi=timezone.now(), dt_fat=timezone.now(), situacao='Faturado' if not pix_pendente else 'Aberto'
+
+        # Separa os itens em duas listas (Novas vendas vs Devoluções)
+        itens_venda_front = [i for i in itens if not i.get('is_devolucao')]
+        itens_devolucao_front = [i for i in itens if i.get('is_devolucao')]
+
+        # 🔥 Validação: devolução precisa do código do pedido de origem
+        if itens_devolucao_front and not codigo_pedido_origem:
+            return JsonResponse({'erro': 'Código do pedido de origem não informado para a devolução.'}, status=400)
+
+        # Determina o tipo de operação global deste pedido
+        tipo_operacao_global = 'Venda'
+        if itens_devolucao_front:
+            tipo_operacao_global = 'Troca' if itens_venda_front else 'Devolucao'
+
+        # Busca o pedido de origem se houver devolução
+        pedido_original = None
+        if itens_devolucao_front and codigo_pedido_origem:
+            pedido_original = Pedido.objects.filter(codigo=codigo_pedido_origem, vinc_emp=request.user.empresa).first()
+            if not pedido_original:
+                return JsonResponse({'erro': f'Pedido de origem {codigo_pedido_origem} não encontrado nesta empresa.'}, status=400)
+
+        # 🔥 CRIA O PEDIDO PRINCIPAL (CARRINHO DO CAIXA)
+        pedido = Pedido.objects.create(
+            vinc_emp=request.user.empresa,
+            vinc_fil=caixa.vinc_fil,
+            caixa=caixa,
+            cli=cliente,
+            vendedor=vendedor,
+            usuario=caixa.usuario,
+            tabela_preco=tabela_preco,
+            dt_emi=timezone.localtime(timezone.now()),
+            dt_fat=timezone.localtime(timezone.now()),
+            tipo_operacao=tipo_operacao_global,
+            pedido_origem=pedido_original,
+            situacao='Faturado' if not pix_pendente else 'Aberto'
         )
+
         total_venda = Decimal('0.00')
         itens_objs = []
-        # 🔥 ITENS
+        
+        # Listas para controle de cabeçalho da tabela PedidoDevolucao
+        itens_para_devolucao_modelo = []
+        total_devolucao_modelo = Decimal('0.00')
+
+        # 🔥 PROCESSAMENTO DOS ITENS (Calculando subtotais positivos e negativos)
         for item in itens:
-            codigo = item.get('produto_id')
-            prod = buscar_produto(codigo, request.user.empresa)
-            qtd = Decimal(str(item['qtd']))
-            vl = Decimal(str(item['preco']))
-            obj = PedidoProduto(pedido=pedido, produto=prod, quantidade=qtd, vl_unit=vl, codigo_usado=codigo)
+            codigo_prod = item.get('produto_id')
+            prod = buscar_produto(codigo_prod, request.user.empresa)
+            
+            # Garante sinal correto de quantidade/preço de acordo com a operação
+            is_dev = item.get('is_devolucao', False)
+            qtd = Decimal(str(abs(item['qtd'])))
+            vl = Decimal(str(abs(item['preco'])))
+
+            # Se for devolução, salvamos com valores NEGATIVOS no PedidoProduto para compor o subtotal do carrinho
+            qtd_salvar = -qtd if is_dev else qtd
+
+            obj = PedidoProduto(
+                pedido=pedido, 
+                produto=prod, 
+                quantidade=qtd_salvar, 
+                vl_unit=vl, 
+                codigo_usado=codigo_prod
+            )
+            
+            # O property subtotal da sua classe PedidoProduto calcula (base - desconto), 
+            # com quantidade negativa ele computará o subtotal negativo perfeitamente.
             total_venda += obj.subtotal
             itens_objs.append(obj)
+
+            # Se for devolução, prepara a estrutura paralela para a tabela PedidoDevolucao
+            if is_dev:
+                # Localiza a linha original (PedidoProduto) do pedido que está sendo devolvido
+                item_pedido_original_id = item.get('item_pedido_id')
+                itens_para_devolucao_modelo.append({
+                    'item_pedido_id': item_pedido_original_id,
+                    'quantidade': qtd
+                })
+                total_devolucao_modelo += qtd * vl
+
+        # Salva todos os itens criados no pedido atual
         PedidoProduto.objects.bulk_create(itens_objs)
         pedido.total = total_venda
         pedido.save(update_fields=['total'])
+
+        # 🔥 SE HOUVE ITENS DE DEVOLUÇÃO, CRIA O REGISTRO HISTÓRICO EM 'PedidoDevolucao'
+        if itens_para_devolucao_modelo and pedido_original:
+            devolucao_obj = PedidoDevolucao.objects.create(
+                vinc_emp=request.user.empresa,
+                vinc_fil=caixa.vinc_fil,
+                pedido=pedido_original,
+                cliente=cliente or pedido_original.cli,
+                usuario=caixa.usuario,
+                tipo=tipo_operacao_global,
+                total=total_devolucao_modelo,
+                observacao=f"Troca efetuada no Caixa. Pedido atual: {pedido.codigo}"
+            )
+            
+            ult_cod_dev = PedidoDevolucao.objects.filter(vinc_emp=request.user.empresa).aggregate(models.Max('codigo'))['codigo__max'] or 0
+            devolucao_obj.codigo = ult_cod_dev + 1
+            devolucao_obj.save()
+
+            # Cria os itens da devolução amarrados às linhas do pedido original
+            for item_dev in itens_para_devolucao_modelo:
+                if not item_dev['item_pedido_id']:
+                    # Se por algum motivo o front não enviar o ID do item_pedido, levantamos erro para não quebrar o estoque e o saldo
+                    raise ValueError(f"Não foi possível identificar a linha original do item de devolução.")
+
+                PedidoDevolucaoItem.objects.create(
+                    devolucao=devolucao_obj,
+                    item_pedido_id=item_dev['item_pedido_id'], # Chave primária do PedidoProduto original
+                    quantidade=item_dev['quantidade']
+                )
+
+        # 🔥 REGISTRO DE PAGAMENTOS OU SOBRA (CRÉDITO)
         total_pago = Decimal('0.00')
         movimentos = []
-        # 🔥 PAGAMENTOS
+
+        # Processa pagamentos enviados pelo front (se o saldo for positivo, o usuário enviará dados aqui)
         for pg in pagamentos_front:
             forma = FormaPgto.objects.get(codigo=pg['forma_id'])
             valor = Decimal(str(pg['valor']))
             total_pago += valor
-            # 🔥 PedidoFormaPgto
+            
             PedidoFormaPgto.objects.create(pedido=pedido, forma_pgto=forma, valor=valor)
-            # 🔥 Pagamento interno
+            
             gateway = (forma.gateway or "").strip().lower()
             if gateway in ["", "nenhum", "none"]:
                 Pagamento.objects.create(vinc_emp=request.user.empresa, origem=pedido, forma_pgto=forma, valor=valor, status='pago')
-            # 🔥 Movimento de caixa
+            
             movimentos.append(
-                CaixaMovimento(caixa=caixa,pedido=pedido,tipo='Entrada',categoria='Venda',forma_pagamento=forma,valor=valor,descricao=f'Pedido {pedido.codigo}',usuario=request.user)
+                CaixaMovimento(caixa=caixa, pedido=pedido, tipo='Entrada', categoria='Venda', forma_pagamento=forma, valor=valor, descricao=f'Pedido/Troca {pedido.codigo}', usuario=request.user)
             )
+
+        # Se o total_venda for NEGATIVO, a empresa deve ao cliente (gerar Crédito)
+        if total_venda < 0:
+            valor_sobra_credito = abs(total_venda)
+            credito = CreditoCliente.objects.create(
+                vinc_emp=request.user.empresa,
+                vinc_fil=caixa.vinc_fil,
+                cliente=cliente or pedido_original.cli,
+                pedido_origem=pedido_original or pedido,
+                usuario=caixa.usuario,
+                valor=valor_sobra_credito,
+                saldo=valor_sobra_credito,
+                situacao='Aberto',
+                observacao=f"Crédito gerado devido à sobra de valor em Troca no caixa. Pedido: {pedido.codigo}"
+            )
+            ult_cod_cred = CreditoCliente.objects.filter(vinc_emp=request.user.empresa).aggregate(models.Max('codigo'))['codigo__max'] or 0
+            credito.codigo = ult_cod_cred + 1
+            credito.save()
+
         CaixaMovimento.objects.bulk_create(movimentos)
-        # 🔥 TROCO
-        troco = (
-            total_pago - total_venda
-            if total_pago > total_venda
-            else Decimal('0.00')
-        )
+
+        # 🔥 CALCULA O TROCO (Apenas se o total pago em dinheiro superou o total positivo da venda)
+        # Se total_venda for negativo, o troco em dinheiro é zero e a sobra já virou crédito acima.
+        troco = Decimal('0.00')
+        if total_venda > 0 and total_pago > total_venda:
+            troco = total_pago - total_venda
+
         pode_vender_sem_estoque = request.user.has_perm('pedidos.vender_sem_estoque_ped')
-        # 🔥 BAIXA ESTOQUE
+
+        # 🔥 MOVIMENTAÇÃO DINÂMICA DE ESTOQUE (Soma devoluções e Subtrai vendas)
         for item in itens:
             try:
-                prod = Produto.objects.get(codigo=item['produto_id'])
-                qtd = Decimal(str(item['qtd']))
-                if (hasattr(prod, 'estoque_prod') and prod.estoque_prod is not None):
-                    if not pode_vender_sem_estoque and prod.estoque_prod < qtd:
-                        return JsonResponse({'erro': f'Estoque insuficiente para o produto {prod.desc_prod}. Disponível: {prod.estoque_prod}!'}, status=400)
-                    prod.estoque_prod -= qtd
+                prod = buscar_produto(item['produto_id'], request.user.empresa)
+                qtd = Decimal(str(abs(item['qtd'])))
+                is_dev = item.get('is_devolucao', False)
+
+                if hasattr(prod, 'estoque_prod') and prod.estoque_prod is not None:
+                    if is_dev:
+                        # 🔥 PRODUTO RETORNOU: Soma no estoque
+                        prod.estoque_prod += qtd
+                    else:
+                        # 🔥 PRODUTO FOI VENDIDO: Subtrai no estoque com validação
+                        if not pode_vender_sem_estoque and prod.estoque_prod < qtd:
+                            return JsonResponse({'erro': f'Estoque insuficiente para o produto {prod.desc_prod}. Disponível: {prod.estoque_prod}!'}, status=400)
+                        prod.estoque_prod -= qtd
                     prod.save()
-            except Produto.DoesNotExist: pass
+            except Produto.DoesNotExist: 
+                pass
+
         # 🔥 STATUS PAGAMENTO
         if not pix_pendente:
-            pedido.atualizar_status_pagamento()
+            # Se o total da venda foi negativo, considera-se quitado (gerou crédito)
+            if pedido.total <= 0:
+                pedido.status_pagamento = 'pago'
+            else:
+                pedido.atualizar_status_pagamento()
             pedido.save()
-        return JsonResponse({'sucesso': True, 'pedido_id': pedido.codigo, 'total': float(total_venda), 'pago': float(total_pago), 'troco': float(troco), 'pix_pendente': pix_pendente})
-    except Exception as e: return JsonResponse({'erro': str(e)}, status=500)
 
+        return JsonResponse({
+            'sucesso': True, 
+            'pedido_id': pedido.codigo, 
+            'total': float(total_venda), 
+            'pago': float(total_pago), 
+            'troco': float(troco), 
+            'pix_pendente': pix_pendente
+        })
+
+    except Exception as e: 
+        return JsonResponse({'erro': str(e)}, status=500)
+
+@login_required
+def buscar_pedido_troca_devolucao(request):
+    try:
+        codigo = request.GET.get("codigo")
+
+        if not codigo:
+            return JsonResponse({
+                "sucesso": False,
+                "erro": "Informe o código do pedido."
+            })
+
+        # 🔥 Otimizado: Trocamos "itens__devolucoes" por "itens" 
+        # já que faremos a query direta no PedidoDevolucaoItem para evitar o conflito do Django
+        pedido = Pedido.objects.select_related(
+            "cli",
+            "vinc_emp",
+            "vinc_fil"
+        ).prefetch_related(
+            "itens__produto"
+        ).get(
+            codigo=codigo,
+            vinc_emp=request.user.empresa
+        )
+
+        if pedido.situacao != "Faturado":
+            return JsonResponse({
+                "sucesso": False,
+                "erro": "Somente pedidos faturados podem ser trocados ou devolvidos."
+            })
+
+        itens = []
+
+        for item in pedido.itens.all():
+            # 🔥 CORREÇÃO AQUI: Forçamos o Django a calcular a soma filtrando direto pela tabela associativa.
+            # Isso ignora completamente a colisão de 'related_name' criada nos models.
+            qtd_ja_devolvida = PedidoDevolucaoItem.objects.filter(
+                item_pedido=item
+            ).aggregate(
+                total=Sum("quantidade")
+            )["total"] or Decimal("0")
+
+            saldo = item.quantidade - qtd_ja_devolvida
+
+            if saldo <= 0:
+                continue
+
+            itens.append({
+                "item_id": item.id,
+                "produto_id": item.produto.codigo,
+                "codigo": item.codigo_usado or item.produto.codigo,
+                # Corrigido fallbacks de descrição caso "desc_prod" seja o padrão do seu model
+                "descricao": getattr(item.produto, "desc_prod", getattr(item.produto, "descricao", str(item.produto))),
+                "valor_unitario": float(item.vl_unit),
+                "quantidade_vendida": float(item.quantidade),
+                "quantidade_devolvida": float(qtd_ja_devolvida),
+                "quantidade_disponivel": float(saldo),
+                "subtotal_disponivel": float(saldo * item.vl_unit),
+            })
+
+        # 🔥 Se passar por todos os itens e nenhum tiver saldo disponível para devolver
+        if not itens:
+            return JsonResponse({
+                "sucesso": False,
+                "erro": f"O pedido nº {codigo} não possui nenhuma quantidade ou saldo disponível para ser devolvido."
+            })
+
+        return JsonResponse({
+            "sucesso": True,
+            "pedido": {
+                "id": pedido.id,
+                "codigo": pedido.codigo,
+                "cliente_id": pedido.cli.codigo,
+                "cliente": pedido.nome_cli,
+                "total": float(pedido.total),
+                "data": timezone.localtime(pedido.dt_fat).strftime("%d/%m/%Y %H:%M") if pedido.dt_fat else "",
+            },
+            "itens": itens
+        })
+
+    except Pedido.DoesNotExist:
+        return JsonResponse({
+            "sucesso": False,
+            "erro": "Pedido não encontrado."
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            "sucesso": False,
+            "erro": str(e)
+        })
+
+@login_required
+@require_POST
+def validar_itens_devolucao(request):
+    """
+    Valida as quantidades a serem devolvidas baseando-se no 'codigo' do pedido da empresa.
+    Retorna os dados formatados negativamente para o front-end injetar no carrinho.
+    """
+    try:
+        dados = json.loads(request.body)
+        codigo_pedido = dados.get("codigo_pedido")
+        itens = dados.get("itens", [])  # Ex: [{"item_id": 12, "quantidade": 2}] (aqui usamos o ID do PedidoProduto para precisão da linha)
+        
+        if not codigo_pedido or not itens:
+            return JsonResponse({"sucesso": False, "erro": "Dados incompletos para validação."})
+            
+        # Busca o pedido original pelo CÓDIGO da empresa logada
+        try:
+            pedido_original = Pedido.objects.get(
+                codigo=codigo_pedido,
+                vinc_emp=request.user.empresa
+            )
+        except Pedido.DoesNotExist:
+            return JsonResponse({"sucesso": False, "erro": "Pedido original não encontrado nesta empresa."})
+            
+        itens_validados = []
+        
+        for it in itens:
+            item_id = it.get("item_id")  # ID da linha do PedidoProduto
+            qtd_devolver = Decimal(str(it.get("quantidade", 0)))
+            
+            if qtd_devolver <= 0:
+                continue
+                
+            # Garante que o item pertence ao pedido e à empresa correta
+            item_pedido = PedidoProduto.objects.select_related('produto').get(
+                id=item_id,
+                pedido=pedido_original
+            )
+            
+            # Calcula o histórico de devoluções deste item
+            qtd_ja_devolvida = PedidoDevolucaoItem.objects.filter(
+                item_pedido=item_pedido
+            ).aggregate(
+                total=Sum("quantidade")
+            )["total"] or Decimal("0")
+            
+            saldo_disponivel = item_pedido.quantidade - qtd_ja_devolvida
+            
+            if qtd_devolver > saldo_disponivel:
+                return JsonResponse({
+                    "sucesso": False, 
+                    "erro": f"Produto {item_pedido.produto.desc_prod} só possui {saldo_disponivel} unidades disponíveis para devolução."
+                })
+            
+            # Monta a estrutura para o Front-end (com valores negativos)
+            itens_validados.append({
+                "item_pedido_id": item_pedido.id,  # Mantemos o ID interno oculto para processar o relacionamento depois
+                "produto_id": item_pedido.produto.id,
+                "codigo_produto": item_pedido.codigo_usado or item_pedido.produto.codigo,
+                "descricao": f"<i class='fa-solid fa-arrows-rotate text-primary-emphasis fa-spin me-1' title='Produto a ser devolvido'></i> {item_pedido.produto.desc_prod}",
+                "vl_unit": float(item_pedido.vl_unit),
+                "quantidade": float(-qtd_devolver),
+                "subtotal": float(-(qtd_devolver * item_pedido.vl_unit)),
+                "is_devolucao": True
+            })
+            
+        return JsonResponse({"sucesso": True, "itens": itens_validados})
+        
+    except Exception as e:
+        return JsonResponse({"sucesso": False, "erro": str(e)})
+    
 @login_required
 @require_POST
 def gerar_pagamento_caixa(request):
@@ -783,3 +1107,89 @@ def status_pagamento_caixa(request, caixa_id):
         if pagamentos.filter(status="pago").exists(): return JsonResponse({"status": "pago"})
         return JsonResponse({"status": "desconhecido"})
     except Caixa.DoesNotExist: return JsonResponse({"erro": "Caixa não encontrado"}, status=404)
+
+@login_required
+def dados_fechamento_caixa(request, caixa_id):
+    try:
+        caixa = Caixa.objects.get(codigo=caixa_id, vinc_emp=request.user.empresa)
+
+        if caixa.situacao != 'Aberto':
+            return JsonResponse({'erro': 'Caixa já está fechado.'}, status=400)
+
+        movs = caixa.movimentos.select_related('forma_pagamento').filter(
+            situacao='Ativo'
+        )
+
+        totais = defaultdict(lambda: {'forma_id': None, 'descricao': '', 'total': 0.0})
+
+        # Saldo inicial em dinheiro (abertura)
+        if caixa.saldo_inicial:
+            totais[0]['forma_id'] = 0
+            totais[0]['descricao'] = 'SALDO INICIAL'
+            totais[0]['total'] += float(caixa.saldo_inicial)
+
+        for m in movs:
+            fp = m.forma_pagamento
+            if not fp:
+                continue
+            key = fp.codigo
+            totais[key]['forma_id'] = fp.codigo
+            totais[key]['descricao'] = fp.descricao.upper()
+
+            if m.tipo == 'Entrada':
+                totais[key]['total'] += float(m.valor)
+            elif m.tipo == 'Saída':
+                totais[key]['total'] -= float(m.valor)
+
+        formas = [v for v in totais.values() if v['descricao']]
+
+        return JsonResponse({'sucesso': True, 'formas': formas})
+
+    except Caixa.DoesNotExist:
+        return JsonResponse({'erro': 'Caixa não encontrado.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'erro': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@transaction.atomic
+def fechar_caixa(request, caixa_id):
+    try:
+        caixa = Caixa.objects.select_for_update().get(
+            codigo=caixa_id,
+            vinc_emp=request.user.empresa
+        )
+
+        if caixa.situacao != 'Aberto':
+            return JsonResponse({'erro': 'Caixa já está fechado.'}, status=400)
+
+        data = json.loads(request.body)
+        fechamentos = data.get('fechamentos', [])  # [{forma_id, valor_informado}]
+        for item in fechamentos:
+            forma_codigo = item.get("forma_codigo")
+
+            if not forma_codigo:
+                continue
+
+            forma = FormaPgto.objects.get(
+                codigo=forma_codigo,
+                vinc_emp=request.user.empresa
+            )
+
+            CaixaFechamento.objects.create(
+                caixa=caixa,
+                forma_pagamento=forma,
+                valor_registrado=Decimal(str(item["valor_sistema"])),
+                valor_informado=Decimal(str(item["valor_informado"])),
+                diferenca=Decimal(str(item["valor_informado"])) - Decimal(str(item["valor_sistema"])),
+            )
+
+        caixa.situacao = 'Fechado'
+        caixa.data_fechamento = timezone.localtime(timezone.now())
+        caixa.save(update_fields=['situacao', 'data_fechamento'])
+
+        return JsonResponse({'sucesso': True, 'mensagem': 'Caixa fechado com sucesso!'})
+
+    except Exception as e:
+        return JsonResponse({'erro': str(e)}, status=500)

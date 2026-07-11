@@ -153,9 +153,17 @@
                                 <div class="row" style="margin-bottom: 10px;">
                                     <div class="col-md-2">{{ form.layout_contrato|as_crispy_field }}</div>
                                     <div class="col-md-2">{{ form.layout_prod|as_crispy_field }}</div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Quest. Imp. Recibo <i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Orçamentos - Portas"></i></label>
+                                        {{ form.imp_recibo_orc|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Quest. Imp. Recibo <i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Contas à Receber"></i></label>
+                                        {{ form.imp_recibo_cr|as_crispy_field }}
+                                    </div>
                                     <div class="col-md-4">{{ form.info_comp|as_crispy_field }}</div>
-                                    <div class="col-md-4">{{ form.info_orcamento|as_crispy_field }}</div>
-                                    <div class="col-md-12">{{ form.info_local|as_crispy_field }}</div>
+                                    <div class="col-md-6">{{ form.info_orcamento|as_crispy_field }}</div>
+                                    <div class="col-md-6">{{ form.info_local|as_crispy_field }}</div>
                                 </div>
                             </div>
                         </div>

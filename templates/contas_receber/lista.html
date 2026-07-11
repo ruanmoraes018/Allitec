@@ -140,9 +140,9 @@
                             </div>
                             <div class="col-1 text-center codigo-col" style="min-width: 90px;" data-label="Situação:">
                                 {% if cr.situacao == 'Aberta' %}
-                                    <span class="badge bg-primary">{{ cr.situacao }}</span>
+                                    <span class="badge bg-primary"><i class="fa-regular fa-clock fa-spin-pulse"></i> {{ cr.situacao }}</span>
                                 {% else %}
-                                    <span class="badge bg-success">{{ cr.situacao }}</span>
+                                    <span class="badge bg-success"><i class="fa-regular fa-circle-check fa-shake"></i> {{ cr.situacao }}</span>
                                 {% endif %}
                             </div>
                             <div class="col-md-2 fw-bold codigo-col" data-label="Filial:">
@@ -249,7 +249,10 @@
                                             <i class="fa-solid fa-print"></i> Impressão
                                         </button>
                                         <ul class="dropdown-menu w-100">
-                                            <li><a href="{% url 'imprimir-carne' cr.codigo %}" target="_blank" class="dropdown-item"><i class="fa-solid fa-file-pdf text-danger"></i> Carnê</a></li>
+                                            <li><a href="{% url 'imprimir-carne' cr.codigo %}" target="_blank" class="dropdown-item list-group-item list-group-item-action list-group-item-dark"><i class="fa-solid fa-file-pdf text-danger"></i> Carnê</a></li>
+                                            <li>
+                                                <a href="{% url 'recibo_cr' cr.codigo %}" target="_blank" class="dropdown-item list-group-item list-group-item-action list-group-item-dark"><i class="fa-solid fa-file-pdf text-danger"></i> Recibo</a>
+                                            </li>  
                                         </ul>
                                     </div>
                                 </div>
@@ -450,6 +453,22 @@
                                         <div class="check-anim">✔</div>
                                         <div class="fw-bold text-success">Pagamento confirmado!</div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="modalRecibo">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title"><i class="fa-solid fa-file-contract"></i> Imprimir Recibo</h5>
+                                </div>
+                                <div class="modal-body text-center">
+                                    Deseja imprimir o RECIBO deste RECEBIMENTO?
+                                </div>
+                                <div class="modal-footer">
+                                    <button class="btn btn-success btn-sm" id="simRecibo">Sim</button>
+                                    <button class="btn btn-secondary btn-sm" id="naoRecibo">Não</button>
                                 </div>
                             </div>
                         </div>

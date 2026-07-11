@@ -66,10 +66,14 @@ AUTHENTICATION_BACKENDS = [
     'contas.auth_backends.EmpresaCaseInsensitiveBackend',  # autenticação case-insensitive (se quiser manter)
 ]
 LANGUAGE_CODE = 'pt-br'
-TIME_ZONE = 'America/Belem'  # ou America/Sao_Paulo
+TIME_ZONE = 'America/Sao_Paulo'  # ou America/Sao_Paulo
 USE_TZ = True
 USE_I18N = True
 DATE_INPUT_FORMATS = ['%d/%m/%Y']
+DATETIME_INPUT_FORMATS = [
+    '%d/%m/%Y %H:%M:%S',
+    '%d/%m/%Y %H:%M',
+]
 USE_L10N = True
 STATIC_URL = 'static/'
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"

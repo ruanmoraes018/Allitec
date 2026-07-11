@@ -40,6 +40,8 @@ s = 'form-select form-select-sm border-dark-subtle'
 class FilialForm(forms.ModelForm):
     # Layout de PDF Produção
     layout_prod = forms.ChoiceField(label="L. PDF Produção", choices=[('1', 'Layout 1'), ('2', 'Layout 2')], widget=forms.Select(attrs={'class': f'{s}'}))
+    imp_recibo_orc = forms.ChoiceField(label="", choices=[('Sim', 'Sim'), ('Não', 'Não'), ('Auto', 'Auto')], widget=forms.Select(attrs={'class': f'{s}'}))
+    imp_recibo_cr = forms.ChoiceField(label="", choices=[('Sim', 'Sim'), ('Não', 'Não'), ('Auto', 'Auto')], widget=forms.Select(attrs={'class': f'{s}'}))
     #
     situacao = forms.ChoiceField(label="Situação", choices=[('Ativa', 'Ativa'), ('Inativa', 'Inativa')], widget=forms.Select(attrs={'class': f'{s}'}))
     cnpj = forms.CharField(label='CNPJ', widget=forms.TextInput(attrs={'class': f'{c}'}))
@@ -104,7 +106,7 @@ class FilialForm(forms.ModelForm):
         fields = (
             'situacao', 'cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro_fil', 'cidade_fil', 'uf', 'tel', 'email', 'logo', 'tp_chave', 'chave_pix', 'banco_fil', 'info_comp', 'complem',
             'beneficiario', 'info_orcamento', 'layout_contrato', 'info_local', 'tp_calc_juros', 'tp_calc_multa', 'ft_juros', 'ft_multa', 'max_parcelas', 'cli', 'tec', 'vendedor', 'tb_preco', 'max_dias_intervalo', 'vendedor',
-            'multi_m2', 'agrupa_itens', 'multi_lg_corte1', 'multi_lg_corte2', 'multi_lg_corte3', 'mt_qt_lam', 'layout_prod'
+            'multi_m2', 'agrupa_itens', 'multi_lg_corte1', 'multi_lg_corte2', 'multi_lg_corte3', 'mt_qt_lam', 'layout_prod', 'imp_recibo_orc', 'imp_recibo_cr'
         )
     def __init__(self, *args, **kwargs):
         # Captura e remove a empresa dos kwargs de forma segura
@@ -188,7 +190,7 @@ class FilialReadOnlyForm(forms.ModelForm):
         fields = (
             'situacao', 'cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro_fil', 'cidade_fil', 'uf', 'tel', 'email', 'dt_criacao', 'logo', 'tp_chave', 'chave_pix', 'banco_fil', 'info_comp', 'complem',
             'beneficiario', 'info_orcamento', 'layout_contrato', 'info_local', 'tp_calc_juros', 'tp_calc_multa', 'ft_juros', 'ft_multa', 'max_parcelas', 'cli', 'tec', 'tb_preco', 'max_dias_intervalo', 'vendedor', 'multi_m2',
-            'agrupa_itens', 'multi_lg_corte1', 'multi_lg_corte2', 'multi_lg_corte3', 'mt_qt_lam', 'layout_prod'
+            'agrupa_itens', 'multi_lg_corte1', 'multi_lg_corte2', 'multi_lg_corte3', 'mt_qt_lam', 'layout_prod', 'imp_recibo_orc', 'imp_recibo_cr'
         )
     def __init__(self, *args, empresa=None, **kwargs):
         super(FilialReadOnlyForm, self).__init__(*args, **kwargs)

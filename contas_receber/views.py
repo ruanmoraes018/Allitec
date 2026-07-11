@@ -1,7 +1,9 @@
+import os
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse
 from core.pagamentos.fluxo import gerar_pagamento_conta_receber
 from util.parse_decimal import parse_decimal
 from .models import ContaReceber, ContaReceberBaixaForma
@@ -227,12 +229,8 @@ def pagar_conta_receber(request, codigo):
         return redirect('/contas_receber/lista/')
     restante = total_titulo - total_pago
     cr.desconto = desconto_final
-    cr.valor_pago = total_pago
-    cr.data_pagamento = date.today()
-    cr.situacao = 'Paga'
     cr.observacao = (cr.observacao or '') + f' Baixa de R$ {total_pago:.2f}.'
     if len(formas_processadas) == 1: cr.forma_pgto__codigo = formas_processadas[0]['forma_id']
-    cr.save()
     pagamentos = []
     for item in formas_processadas:
         forma = FormaPgto.objects.get(
@@ -249,17 +247,33 @@ def pagar_conta_receber(request, codigo):
         multa=multa_final,
         desconto=desconto_final
     )
+    tem_avista = any(
+        (p["forma_pgto"].tipo or "").strip().lower() == "a vista"
+        for p in pagamentos
+    )
+
+    imp_recibo = (cr.vinc_fil.imp_recibo_cr or "Não").strip()
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse({
+            "success": True,
+            "codigo": cr.codigo,
+            "tem_avista": tem_avista,
+            "imp_recibo": imp_recibo,
+            "url_recibo": reverse("recibo_cr", args=[cr.codigo]),
+            "redirect": f"/contas_receber/lista/",
+        })
     if saldo > 0:
         messages.success(
             request,
             f"Baixa parcial realizada. Saldo restante: R$ {saldo:.2f}."
         )
+        return redirect(f"/contas_receber/lista/")
     else:
         messages.success(
             request,
             "Baixa realizada com sucesso."
         )
-    return redirect('/contas_receber/lista/')
+        return redirect('/contas_receber/lista/')
 
 @login_required
 @transaction.atomic
@@ -494,4 +508,72 @@ def imprimir_carne(request, codigo):
             f'inline; filename="Carnê ContaReceber {conta.codigo}.pdf"'
         )
 
+    return response
+
+from PIL import Image
+from io import BytesIO
+import base64
+
+@login_required
+def recibo_cr(request, codigo):
+    cr = get_object_or_404(
+        ContaReceber.objects.select_related(
+            "cliente",
+            "vinc_emp",
+            "vinc_fil"
+        ).prefetch_related(
+            "formas_baixa__forma_pgto"
+        ),
+        codigo=codigo,
+        vinc_emp=request.user.empresa
+    )
+    logo_base64 = None
+    if cr.vinc_fil and cr.vinc_fil.logo:
+        logo_path = os.path.join(settings.MEDIA_ROOT, str(cr.vinc_fil.logo))
+        if os.path.exists(logo_path):
+            with Image.open(logo_path) as img:
+                if img.mode in ('RGBA', 'LA'):
+                    bg = Image.new("RGB", img.size, (255, 255, 255))
+                    bg.paste(img, mask=img.split()[-1])
+                    img = bg
+                else: img = img.convert("RGB")
+                buffer = BytesIO()
+                img.save(buffer, format="JPEG")
+                logo_base64 = base64.b64encode(buffer.getvalue()).decode()
+
+    total = Decimal("0.00")
+    descricao = []
+
+    for forma in cr.formas_baixa.all():
+        if forma.forma_pgto.tipo == "A vista":
+            total += forma.valor
+
+        descricao.append(
+            f"{forma.forma_pgto.descricao} - "
+            f"R$ {forma.valor:,.2f}"
+            .replace(",", "X")
+            .replace(".", ",")
+            .replace("X", ".")
+        )
+
+    html = render_to_string(
+        "contas_receber/recibo.html",
+        {
+            "cr": cr,
+            "cliente": cr.cliente,
+            "filial": cr.vinc_fil,
+            "total": total,
+            "formas": descricao,
+            "logo_base64": logo_base64
+        },
+        request=request
+    )
+
+    pdf = HTML(
+        string=html,
+        base_url=request.build_absolute_uri("/")
+    ).write_pdf()
+
+    response = HttpResponse(pdf, content_type="application/pdf")
+    response["Content-Disposition"] = f'inline; filename="recibo_{cr.codigo}.pdf"'
     return response

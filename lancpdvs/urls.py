@@ -24,4 +24,8 @@ urlpatterns = [
         views.cancelar_movimento_caixa,
         name="cancelar_movimento_caixa",
     ),
+    path('caixa/busca.pedido/', views.buscar_pedido_troca_devolucao, name='buscar-pedido'),
+    path('caixa/validar.itens.devolucao/', views.validar_itens_devolucao, name='validar-itens-devolucao'),
+    path('caixa/dados-fechamento/<int:caixa_id>/', views.dados_fechamento_caixa, name='dados_fechamento_caixa'),
+    path('caixa/fechar/<int:caixa_id>/', views.fechar_caixa, name='fechar_caixa'),
 ]
