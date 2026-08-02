@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from util.permissoes import verifica_permissao
 from django.db.models import Q
 from filiais.models import Filial
+from util.logs import gerar_alteracoes, registrar_log
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -65,6 +66,11 @@ def add_pdv(request):
             b = form.save(commit=False)
             b.vinc_emp = request.user.empresa
             b.save()
+            registrar_log(
+                request, "CRIAR", "PDV", b.nome,
+                f"Adicionou o PDV: {b.codigo} - {b.nome}",
+                b.id, gerar_alteracoes(obj_novo=b)
+            )
             messages.success(request, 'PDV adicionado com sucesso!')
             bank = str(b.codigo)
             return redirect('/pdvs/lista/?tp=cod&s=' + bank)
@@ -79,6 +85,7 @@ def add_pdv(request):
 @login_required
 def att_pdv(request, codigo):
     b = get_object_or_404(PDV, codigo=codigo, vinc_emp=request.user.empresa)
+    it_old = PDV.objects.get(codigo=b.codigo, vinc_emp=request.user.empresa)
     form = PDVForm(instance=b, empresa=request.user.empresa, user=request.user)
     if not request.user.has_perm('pdvs.change_pdv'):
         messages.info(request, 'Você não tem permissão para editar PDVs.')
@@ -87,6 +94,11 @@ def att_pdv(request, codigo):
         form = PDVForm(request.POST, instance=b, empresa=request.user.empresa, user=request.user)
         if form.is_valid():
             b.save()
+            registrar_log(
+                request, "ALTERAR", "PDV", b.nome,
+                f"Alterou o PDV: {b.codigo} - {b.nome}",
+                b.id, gerar_alteracoes(it_old, b)
+            )
             next_url = request.POST.get('next') or request.GET.get('next')
             bank = str(b.codigo)
             messages.success(request, 'PDV atualizado com sucesso!')
@@ -109,6 +121,11 @@ def del_pdv(request, codigo):
         messages.error(request, 'Não é possível deletar este PDV porque existem movimentos associados a ele.')
         return redirect('/pdvs/lista/')
     else:   
+        registrar_log(
+            request, "EXCLUIR", "PDV", b.nome,
+            f"Excluiu o PDV: {b.codigo} - {b.nome}",
+            b.id, gerar_alteracoes(obj_antigo=b)
+        )
         b.delete()
         messages.success(request, 'PDV deletado com sucesso!')
         return redirect('/pdvs/lista/')

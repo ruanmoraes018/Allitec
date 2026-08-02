@@ -24,9 +24,8 @@ urlpatterns = [
     path("alterar-status/", views.alterar_status_orcamento, name="alterar_status_orcamento"),
     path("<int:orcamento_id>/gerar-pagamento/", views.gerar_pagamento_orcamento, name='gerar-pagamento-orcamento'),
     path('<int:orcamento_id>/status-pagamento/', views.status_pagamento_orcamento, name='status-pagamento-orcamento'),
-    path(
-        'recibo/<int:codigo>/',
-        views.recibo_orcamento,
-        name='recibo_orcamento'
-    ),
+    path('recibo/<int:codigo>/', views.recibo_orcamento, name='recibo_orcamento'),
+    path("kanban/", views.kanban_orcamentos, name="kanban_orcamentos",),
+    path("kanban/dados/", views.kanban_dados, name="kanban_dados",),
+    path("kanban/alterar-status/", views.alterar_status_orc_kanban, name="alterar_status_orc_kanban",),
 ]

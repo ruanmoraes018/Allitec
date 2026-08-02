@@ -39,7 +39,7 @@
                             <div class="col-md-2">
                                 {{ form.filial_user|as_crispy_field }}
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-3">
                                 {{ form.first_name|as_crispy_field }}
                             </div>
                             <div class="col-md-1">
@@ -47,6 +47,14 @@
                             </div>
                             <div class="col-md-2">
                                 {{ form.email|as_crispy_field }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ form.tel|as_crispy_field }}
+                            </div>
+                            <div class="col-md-1">
+                                <input type="file" id="id_foto" name="foto" style="display: none;">
+                                <img id="foto-preview" class="form-control form-control-sm border-dark-subtle" src="{% if usuario.foto and usuario.foto.url %}{{ usuario.foto.url }}{% else %}https://www.freeiconspng.com/thumbs/camera-icon/camera-icon-21.png{% endif %}"
+                                    alt="Foto do usuário" title="Clique para alterar a imagem" style="cursor: pointer; width: 90px; height: 90px; border: 1px solid #ddd; border-radius: 5px;">
                             </div>
                             <div class="col-md-2">
                                 {{ form.password|as_crispy_field }}
@@ -61,14 +69,21 @@
                                 <input type="password" class="form-control form-control-sm border-dark-subtle" id="id_senha_liberacao" name="senha_liberacao">
                                 <div id="id_senha_liberacao_helptext" class="form-text">Para nova senha, preencha esse campo!</div>
                             </div>
-                            <div class="card" style="margin: 0; margin-left: 5px;">
+                            <div class="col-md-2">
+                                {{ form.vendedor|as_crispy_field }}
+                            </div>
+                            <div class="card tab-container" style="margin: 0; margin-left: 5px;">
                                 <div class="form-buttons" style="margin-left: 10px; margin-top: 10px; margin-bottom: 10px;">
                                     <div class="card-header bg-white">
-                                        <button type="button" class="btn btn-dark" id="endBtn">Permissões do Usuário</button>
-                                        <button type="button" class="btn btn-dark" id="complBtn">Cards</button>
+                                        <button type="button" class="btn btn-dark menu-btn" data-section="enderecos" id="endBtn">Perfis do Usuário</button>
+                                        <button type="button" class="btn btn-dark menu-btn" data-section="permissoes" id="permBtn">Permissões</button>
+                                        <button type="button" class="btn btn-dark menu-btn" data-section="filiais" id="filBtn">Filiais do Usuário</button>
+                                        <button type="button" class="btn btn-dark menu-btn" data-section="tabelas" id="tabelasBtn">Tabelas de Preço</button>
+                                        <button type="button" class="btn btn-dark menu-btn" data-section="formas_user" id="formasBtn">Formas de Pagamento</button>
+                                        <button type="button" class="btn btn-dark menu-btn" data-section="complementos" id="complBtn">Cards</button>
                                     </div>
                                 </div>
-                                <div class="form-section" id="enderecos">
+                                <div class="form-section active-section" id="enderecos">
                                     <div class="row g-3" style="margin-left: -8px;">
                                         {% for categoria, grupos in form.categorias_permissoes.items %}
                                             <div class="card mb-2" style="margin: 0; margin-left: 4px;">
@@ -154,6 +169,106 @@
                                                 </div>
                                             </div>
                                         {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="form-section" id="permissoes">
+                                    <div class="row mb-2">
+                                        <div class="col-md-3">
+                                            <div class="form-check form-switch">
+                                                {{ form.receber_alerta_estoque }}
+                                                <label class="form-check-label" for="{{ form.receber_alerta_estoque.id_for_label }}">{{ form.receber_alerta_estoque.label }}</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-check form-switch">
+                                                {{ form.receber_alerta_estoque_maximo }}
+                                                <label class="form-check-label" for="{{ form.receber_alerta_estoque_maximo.id_for_label }}">{{ form.receber_alerta_estoque_maximo.label }}</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            {{ form.desconto_maximo|as_crispy_field }}
+                                        </div>
+                                        <div class="col-md-3">
+                                            {{ form.limite_credito|as_crispy_field }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-section" id="filiais">
+                                    <div class="row mb-2">
+                                        <div class="col-md-3 mb-2">
+                                            {{ form.opfilial|as_crispy_field }}
+                                        </div>
+                                        <div class="card card-filiais" style="margin: 0;">
+                                            <div class="card-header text-center" style="margin-left: -11.25px; margin-right: -11.25px;">
+                                                Filiais do Usuário
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="col-md-12">
+                                                    <ul class="list-group">
+                                                        {% for checkbox in form.filiais_permitidas %}
+                                                            <li class="form-check list-group-item position-relative">
+                                                                {{ checkbox.tag }}
+                                                                <label class="form-check-label stretched-link ms-2" for="{{ checkbox.id_for_label }}">
+                                                                    {{ checkbox.choice_label }}
+                                                                </label>
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-section" id="tabelas">
+                                    <div class="row mb-2">
+                                        <div class="col-md-3 mb-2">
+                                            {{ form.opformas|as_crispy_field }}
+                                        </div>
+                                        <div class="card card-formas" style="margin: 0;">
+                                            <div class="card-header text-center" style="margin-left: -11.25px; margin-right: -11.25px;">
+                                                Formas de Pagamento do Usuário
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="col-md-12">
+                                                    <ul class="list-group">
+                                                        {% for checkbox in form.formas_pagamento %}
+                                                            <li class="list-group-item position-relative">
+                                                                {{ checkbox.tag }}
+                                                                <label class="form-check-label stretched-link ms-2" for="{{ checkbox.id_for_label }}">
+                                                                    {{ checkbox.choice_label }}
+                                                                </label>
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-section" id="formas_user">
+                                    <div class="row mb-2">
+                                        <div class="col-md-3 mb-2">
+                                            {{ form.optabelas|as_crispy_field }}
+                                        </div>
+                                        <div class="card card-tabelas" style="margin: 0;">
+                                            <div class="card-header text-center" style="margin-left: -11.25px; margin-right: -11.25px;">
+                                                Tabelas de Preço do Usuário
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="col-md-12">
+                                                    <ul class="list-group">
+                                                        {% for checkbox in form.tabelas_preco %}
+                                                            <li class="list-group-item position-relative">
+                                                                {{ checkbox.tag }}
+                                                                <label class="form-check-label stretched-link ms-2" for="{{ checkbox.id_for_label }}">
+                                                                    {{ checkbox.choice_label }}
+                                                                </label>
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="form-section" id="complementos">
@@ -305,7 +420,7 @@
                     </div>
                     <div class="card-footer">
                         <div class="base_botao">
-                                <button type="button" class="btn btn-success botoes" data-bs-toggle="modal" data-bs-target="#staticBackdrop" id="openModalBtn">Alterar</button>
+                                <button type="button" class="btn btn-success botoes" data-bs-target="#staticBackdrop" id="openModalBtn">Alterar</button>
                             <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;">Voltar</a>
                         </div>
                     </div>

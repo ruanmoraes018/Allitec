@@ -20,7 +20,7 @@
                 {% endfor %}
             ]'></div>
         {% endif %}
-        {% if not perm_add_caixa and not perm_change_caixa and not perm_delete_caixa %}
+        {% if not perms.lancpdvs.add_caixa and not perms.lancpdvs.change_caixa and not perms.lancpdvs.delete_caixa %}
             <div class="alert alert-warning">
                 Usuário não autorizado para realizar esta função.
             </div>

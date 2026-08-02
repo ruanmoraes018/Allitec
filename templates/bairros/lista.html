@@ -19,7 +19,7 @@
                 {% endfor %}
             ]'></div>
         {% endif %}
-        {% if not perm_add_bairro and not perm_change_bairro and not perm_delete_bairro %}
+        {% if not perms.bairros.add_bairro and not perms.bairros.change_bairro and not perms.bairros.delete_bairro %}
             <div class="alert alert-warning">
                 Usuário não autorizado para realizar esta função.
             </div>

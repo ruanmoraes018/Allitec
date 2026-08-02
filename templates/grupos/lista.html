@@ -19,7 +19,7 @@
                 {% endfor %}
             ]'></div>
         {% endif %}
-        {% if not perm_add_grupo and not perm_change_grupo and not perm_delete_grupo %}
+        {% if not perms.grupos.add_grupo and not perms.grupos.change_grupo and not perms.grupos.delete_grupo %}
             <div class="alert alert-warning">
                 Usuário não autorizado para realizar esta função.
             </div>

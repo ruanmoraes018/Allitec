@@ -1,0 +1,223 @@
+{% load humanize %}
+{% load kanban_tags %}
+{% load custom_filters %}
+
+{# ── Loop 1: colunas e cards (sem modais) ── #}
+{% for status in STATUS %}
+    {% with col=colunas|dict_key:status col_class=status|lower|cut:" " %}
+        <div class="kb-col col-{{ col_class|slugify }}" data-status="{{ status }}">
+            <div class="kb-col-header">
+                <div class="col-header-info">
+                    <span class="col-title">
+                        {% with icone=modo.icones|dict_key:status %}
+                            <i class="bi {{ icone }} col-icon"></i>
+                        {% endwith %}
+                        {{ status }}
+                    </span>
+                    <span class="col-valor mt-1" id="col-valor-{{ col_class|slugify }}">R$ {{ col.valor|moeda_br }}</span>
+                </div>
+                <span class="col-count" id="col-count-{{ col_class|slugify }}">{{ col.quantidade }}</span>
+            </div>
+            <div class="kb-col-body" data-status="{{ status }}" id="col-body-{{ col_class|slugify }}">
+                {% if not col.cards %}
+                    <div class="kb-col-vazia">
+                        <i class="bi bi-inbox"></i>
+                        <span>Nenhum orçamento</span>
+                    </div>
+                {% endif %}
+                {% for card in col.cards %}
+                    {% with pri_slug=card.prioridade|lower %}
+                        <div class="kb-card pri-{{ pri_slug }} {% if card.atrasado %}atrasado{% endif %}"
+                             draggable="true"
+                             data-codigo="{{ card.codigo }}"
+                             data-status="{{ card.coluna }}"
+                             data-valor="{{ card.valor|default:0 }}"
+                             data-bs-toggle="modal"
+                             data-bs-target="#menuKanban{{ card.codigo }}">
+                            {# ── Linha topo: número + prioridade ── #}
+                            <div class="card-top">
+                                <span class="card-num">
+                                    #{{ card.codigo|default:card.codigo }}
+                                    {% if card.filial %}<small>· {{ card.filial }}</small>{% endif %}
+                                </span>
+                                <span class="card-pri-badge {{ pri_slug }}">
+                                    {% if card.prioridade == "Urgente" %}<i class="bi bi-fire me-1"></i>
+                                    {% elif card.prioridade == "Alta" %}<i class="bi bi-arrow-up-circle-fill me-1"></i>
+                                    {% endif %}
+                                    {{ card.prioridade }}
+                                </span>
+                            </div>
+                            {# ── Cliente / Solicitante ── #}
+                            <div class="card-cliente" title="{{ card.cliente }}">
+                                <i class="bi bi-person-fill" style="color:var(--kb-muted);font-size:.75rem;margin-right:4px"></i>
+                                {{ card.cliente|default:"—" }}
+                            </div>
+                            {% if card.solicitante %}
+                                <div class="card-solicitante">
+                                    <i class="bi bi-headset" style="font-size:.65rem;margin-right:3px"></i>
+                                    {{ card.solicitante }}
+                                </div>
+                            {% endif %}
+                            {# ── Pills de datas e fornecedor ── #}
+                            <div class="card-pills">
+                                {% if card.dt_ent %}
+                                    <span class="card-pill pill-entrega">
+                                        <i class="bi bi-calendar-check"></i> Entrega:
+                                        {% if card.atrasado %}
+                                            <strong>{{ card.dt_ent|date:"d/m" }} ({{ card.dias_atraso }}d atraso)</strong>
+                                        {% else %}
+                                            {{ card.dt_ent|date:"d/m/Y" }}
+                                        {% endif %}
+                                    </span>
+                                {% endif %}
+                                {% if card.dt_inst %}
+                                    <span class="card-pill pill-inst">
+                                        <i class="bi bi-calendar2-week"></i> Inst.:
+                                        {% if card.dias_instalacao is not None %}
+                                            {{ card.dt_inst|date:"d/m" }}
+                                            {% if card.dias_instalacao == 0 %} (Hoje)
+                                            {% elif card.dias_instalacao > 0 %} (em {{ card.dias_instalacao }}d)
+                                            {% else %} (<strong>{{ card.dias_instalacao|abs }}d atraso</strong>)
+                                            {% endif %}
+                                        {% else %}
+                                            {{ card.dt_inst|date:"d/m/Y" }}
+                                        {% endif %}
+                                    </span>
+                                {% endif %}
+                                {% if card.fornecedor %}
+                                    <span class="card-pill pill-forn">
+                                        <i class="bi bi-building"></i>
+                                        {{ card.fornecedor }}
+                                    </span>
+                                {% endif %}
+                                {% if card.tipo_entrega %}
+                                    {% with te=card.tipo_entrega|lower|cut:" " %}
+                                        <span class="tipo-entrega-badge {{ te|slugify }}">
+                                            {% if card.tipo_entrega == "Retirada" %}<i class="bi bi-bag-check me-1"></i>
+                                            {% elif card.tipo_entrega == "Entrega" %}<i class="bi bi-truck me-1"></i>
+                                            {% else %}<i class="bi bi-tools me-1"></i>
+                                            {% endif %}
+                                            {{ card.tipo_entrega }}
+                                        </span>
+                                    {% endwith %}
+                                {% endif %}
+                            </div>
+                            {# ── Métricas ── #}
+                            <div class="card-metrics">
+                                <div class="card-metric">
+                                    <span class="mv">{{ card.portas }}</span> <span class="ml">Portas</span>
+                                </div>
+                                <div class="card-metric">
+                                    <span class="mv">{{ card.produtos }}</span> <span class="ml">Produtos</span>
+                                </div>
+                                {% if card.m2 %}
+                                    <div class="card-metric">
+                                        <span class="mv">{{ card.m2|moeda_br }}</span> <span class="ml">m²</span>
+                                    </div>
+                                {% endif %}
+                                {% if card.peso %}
+                                    <div class="card-metric">
+                                        <span class="mv">{{ card.peso|moeda_br }}</span> <span class="ml">kg</span>
+                                    </div>
+                                {% endif %}
+                                {% if card.fotos %}
+                                    <div class="card-metric">
+                                        <span class="mv card-fotos-badge"><i class="bi bi-image"></i> {{ card.fotos }}</span>
+                                        <span class="ml">Fotos</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            {# ── Valor e emissão ── #}
+                            <div class="card-valor">
+                                <span class="valor-num">R$ {{ card.valor|moeda_br }}</span>
+                                {% if card.dt_emi %}
+                                    <small style="color:var(--kb-muted);font-size:.67rem;">
+                                        <i class="bi bi-calendar3 me-1"></i>{{ card.dt_emi|date:"d/m/Y" }}
+                                    </small>
+                                {% endif %}
+                            </div>
+                        </div>{# .kb-card #}
+                    {% endwith %}
+                {% endfor %}{# cards #}
+            </div>{# .kb-col-body #}
+        </div>{# .kb-col #}
+    {% endwith %}
+{% endfor %}{# STATUS — Loop 1 fim #}
+
+{# ── Loop 2: modais fora das colunas, serão movidos pro <body> via JS ── #}
+{% for status in STATUS %}
+    {% with col=colunas|dict_key:status %}
+        {% for card in col.cards %}
+            <div class="modal fade" id="menuKanban{{ card.codigo }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-sm">
+                    <div class="modal-content" style="background:var(--kb-surface2);border:1px solid var(--kb-border);color:var(--kb-text);">
+                        <div class="modal-header" style="background:var(--kb-surface);border-bottom:1px solid var(--kb-border);padding:10px 16px;">
+                            <h6 class="modal-title fw-bold" style="color:var(--kb-accent);">
+                                <i class="bi bi-kanban me-2"></i>Orçamento #{{ card.codigo }}
+                            </h6>
+                            <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body p-2 d-flex flex-column gap-1">
+                            {% if card.situacao == 'Aberto' %}
+                                <a href="{% url 'att-orcamento' card.codigo %}?next={% url 'kanban_orcamentos' %}"
+                                   class="btn btn-sm w-100 text-start"
+                                   style="background:var(--kb-surface);border:1px solid var(--kb-border);color:var(--kb-text);">
+                                    <i class="bi bi-pencil-fill me-2" style="color:var(--kb-accent);"></i>Editar
+                                </a>
+                            {% endif %}
+                            <a href="{% url 'clonar-orcamento' card.codigo %}?next={% url 'kanban_orcamentos' %}"
+                               class="btn btn-sm w-100 text-start"
+                               style="background:var(--kb-surface);border:1px solid var(--kb-border);color:var(--kb-text);">
+                                <i class="bi bi-copy me-2" style="color:#a78bfa;"></i>Clonar
+                            </a>
+                            <a href="{% url 'pdf-proposta' card.codigo %}" target="_blank"
+                               class="btn btn-sm w-100 text-start"
+                               style="background:var(--kb-surface);border:1px solid var(--kb-border);color:var(--kb-text);">
+                                <i class="bi bi-file-earmark-pdf-fill me-2" style="color:#f87171;"></i>PDF Proposta
+                            </a>
+                            <a href="{% url 'pdf-orcamento' card.codigo %}" target="_blank"
+                               class="btn btn-sm w-100 text-start"
+                               style="background:var(--kb-surface);border:1px solid var(--kb-border);color:var(--kb-text);">
+                                <i class="bi bi-file-earmark-pdf-fill me-2" style="color:#f87171;"></i>PDF Orçamento
+                            </a>
+                            <a href="{% url 'pdf-contrato' card.codigo %}" target="_blank"
+                               class="btn btn-sm w-100 text-start"
+                               style="background:var(--kb-surface);border:1px solid var(--kb-border);color:var(--kb-text);">
+                                <i class="bi bi-file-earmark-pdf-fill me-2" style="color:#f87171;"></i>PDF Contrato
+                            </a>
+                            {% if card.situacao == 'Faturado' %}
+                                <a href="{% url 'pdf-producao' card.codigo %}" target="_blank"
+                                   class="btn btn-sm w-100 text-start"
+                                   style="background:var(--kb-surface);border:1px solid var(--kb-border);color:var(--kb-text);">
+                                    <i class="bi bi-file-earmark-pdf-fill me-2" style="color:#f87171;"></i>PDF Produção
+                                </a>
+                                <a href="{% url 'recibo_orcamento' card.codigo %}" target="_blank"
+                                   class="btn btn-sm w-100 text-start"
+                                   style="background:var(--kb-surface);border:1px solid var(--kb-border);color:var(--kb-text);">
+                                    <i class="bi bi-file-earmark-pdf-fill me-2" style="color:#f87171;"></i>Recibo
+                                </a>
+                            {% endif %}
+                            {% if card.situacao == 'Aberto' %}
+                                <button class="btn btn-sm w-100 text-start kb-btn-faturar"
+                                        data-id="{{ card.codigo }}"
+                                        style="background:var(--kb-surface);border:1px solid var(--kb-border);color:#4ade80;">
+                                    <i class="bi bi-cash-coin me-2"></i>Faturar
+                                </button>
+                                <button class="btn btn-sm w-100 text-start kb-btn-deletar"
+                                        data-id="{{ card.codigo }}"
+                                        style="background:var(--kb-surface);border:1px solid var(--kb-border);color:#f87171;">
+                                    <i class="bi bi-trash3-fill me-2"></i>Deletar
+                                </button>
+                            {% endif %}
+                        </div>
+                        <div class="modal-footer" style="border-top:1px solid var(--kb-border);padding:8px;">
+                            <button type="button" class="btn btn-sm mx-auto"
+                                    style="background:var(--kb-surface);border:1px solid var(--kb-border);color:var(--kb-muted);"
+                                    data-bs-dismiss="modal">Fechar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endwith %}
+{% endfor %}{# STATUS — Loop 2 fim #}

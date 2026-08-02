@@ -27,51 +27,148 @@
                         </span>
                     </div>
                     <div class="card-body">
-                        <div class="row g-3" style="margin-left: -8px;">
+                        <div class="row g-3" style="margin-left:-8px;">
                             <input type="hidden" name="next" value="{{ request.GET.next }}">
-                            <div class="col-md-1">
-                                {{ form.ativo|as_crispy_field }}
+                            <div class="col-md-1">{{ form.ativo|as_crispy_field }}</div>
+                            <div class="col-md-3">{{ form.grupo|as_crispy_field }}</div>
+                            <div class="col-md-2">{{ form.categoria|as_crispy_field }}</div>
+                            <div class="col-md-2">{{ form.codigo|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.descricao|as_crispy_field }}</div>
+                            <div class="col-md-2">{{ form.tipo|as_crispy_field }}</div>
+                            <div class="col-md-2">{{ form.ordem|as_crispy_field }}</div>
+                            <div class="col-md-8">{{ form.formula|as_crispy_field }}</div>
+                            <!-- ITENS DA REGRA -->
+                            <div id="bloco-itens" class="col-md-12">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0">Produtos da Regra</h6>
+                                    <button type="button" id="add-item" class="btn btn-dark btn-sm">
+                                        <i class="fas fa-plus"></i> Item
+                                    </button>
+                                </div>
+                                {{ itens_formset.management_form }}
+                                <table class="table table-sm table-bordered table-striped" id="tabela-itens">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Produto</th>
+                                            <th>Fórmula Qtd</th>
+                                            <th width="300">Descrição</th>
+                                            <th width="60">Prioridade</th>
+                                            <th width="99"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for item in itens_formset %}
+                                        <tr class="item-row">
+                                            {% for hidden in item.hidden_fields %}
+                                                {{ hidden }}
+                                            {% endfor %}
+                                            <td>{{ item.produto }}</td>
+                                            <td>{{ item.formula_qtd }}</td>
+                                            <td>{{ item.descricao }}</td>
+                                            <td>{{ item.prioridade }}</td>
+                                            <td>
+                                                {{ item.DELETE }}
+                                                {{ item.condicoes_json }}  {# campo oculto #}
+                                                <button type="button" class="btn btn-light border btn-sm btn-condicoes" title="Condições">
+                                                    <i class="fas fa-filter"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-light border btn-sm remover-linha">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <!-- Sub-tabela de condições deste item -->
+                                        <tr class="condicoes-row" style="display:none; background:#f8f9fa;">
+                                            <td colspan="5">
+                                                <div class="p-2">
+                                                    <div class="d-flex justify-content-between mb-1">
+                                                        <small class="fw-bold text-muted">Condições deste item</small>
+                                                        <button type="button" class="btn btn-dark btn-sm btn-add-cond">
+                                                            <i class="fas fa-plus"></i> Condição
+                                                        </button>
+                                                    </div>
+                                                    <table class="table table-sm table-bordered mb-0 tabela-cond">
+                                                        <thead class="table-secondary">
+                                                            <tr>
+                                                                <th>Campo</th>
+                                                                <th>Operador</th>
+                                                                <th>Valor</th>
+                                                                <th>Ordem</th>
+                                                                <th></th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody class="cond-tbody">
+                                                            <!-- linhas preenchidas pelo JS -->
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
                             </div>
-                            <div class="col-md-2">
-                                {{ form.codigo|as_crispy_field }}
+                            <!-- AJUDA -->
+                            <div class="col-md-12">
+                                <small class="text-muted">
+                                    <strong>Variáveis disponíveis:</strong><br>
+                                    <b>larg_c</b> = Largura Corte |
+                                    <b>alt_c</b> = Altura Corte |
+                                    <b>area</b> = Área |
+                                    <b>peso</b> = Peso |
+                                    <b>qtd_lam</b> = Quantidade Lâminas |
+                                    <b>tipo_lamina</b> = Tipo Lâmina |
+                                    <b>tipo_pintura</b> = Pintura |
+                                    <b>tem_pintura</b> = Sim/Não
+                                    <br><br>
+                                    Exemplos:
+                                    <code>ceil(area/0.8)</code>
+                                    <code>larg_c</code>
+                                    <code>(alt_c + 0.10) * 4</code>
+                                </small>
                             </div>
-                            <div class="col-md-4">
-                                {{ form.descricao|as_crispy_field }}
-                            </div>
-                            <div class="col-md-2">
-                                {{ form.tipo|as_crispy_field }}
-                            </div>
-                            <div class="col-md-2">
-                                {{ form.tipo_regra|as_crispy_field }}
-                            </div>
-                            <div class="col-md-1">
-                                <button type="button" id="add-linha" class="btn btn-dark btn-sm" style="margin-top: 30px;">
-                                    <i class="fas fa-plus"></i> Adicionar
-                                </button>
-                            </div>
-                            <div id="bloco-regras-selecao">
-                                <div class="row">
-                                    <div class="table-responsive mt-2">
-                                        <table class="table table-sm table-bordered table-responsive-md table-rounded table-striped" id="tabela-regras">
-                                            <thead class="table-dark"></thead>
-                                            <tbody></tbody>
+                        </div>
+                        <!-- Template vazio para novo item -->
+                        <script type="text/template" id="empty-itens">
+                            <tr class="item-row">
+                                {% for hidden in itens_formset.empty_form.hidden_fields %}
+                                    {{ hidden }}
+                                {% endfor %}
+                                <td>{{ itens_formset.empty_form.produto }}</td>
+                                <td>{{ itens_formset.empty_form.formula_qtd }}</td>
+                                <td>{{ itens_formset.empty_form.descricao }}</td>
+                                <td>{{ itens_formset.empty_form.prioridade }}</td>
+                                <td>
+                                    {{ itens_formset.empty_form.condicoes_json }}
+                                    <button type="button" class="btn btn-light border btn-sm btn-condicoes" title="Condições">
+                                        <i class="fas fa-filter"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-light border btn-sm remover-linha">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="condicoes-row" style="display:none; background:#f8f9fa;">
+                                <td colspan="5">
+                                    <div class="p-2">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <small class="fw-bold text-muted">Condições deste item</small>
+                                            <button type="button" class="btn btn-dark btn-sm btn-add-cond">
+                                                <i class="fas fa-plus"></i> Condição
+                                            </button>
+                                        </div>
+                                        <table class="table table-sm table-bordered mb-0 tabela-cond">
+                                            <thead class="table-secondary">
+                                                <tr>
+                                                    <th>Campo</th><th>Operador</th><th>Valor</th><th>Ordem</th><th></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="cond-tbody"></tbody>
                                         </table>
                                     </div>
-                                    <div class="col-md-12">
-                                        <textarea id="id_expressao_json" class="form-control form-control-sm border-dark-subtle bg-secondary" name="expressao_json" readonly rows="6">
-                                            {{ expressao_json_str|safe }}
-                                        </textarea>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-12">
-                                {{ form.produto|as_crispy_field }}
-                            </div>
-                            <small class="text-muted">
-                                * Fórmula ou regra (ex: m2 = M², larg = Largura, alt = Altura, larg_c = Largura de Corte, alt_c = Altura de Corte, ft_peso = Fator de Peso, 
-                                qtd_lam = Quantidade de Lâminas, eix_mot = Eixo do Motor, alt_c * 4, JSON para seleção com a descrição do produto)
-                            </small>
-                        </div>
+                                </td>
+                            </tr>
+                        </script>
                     </div>
                     <div class="card-footer">
                         <div class="base_botao">

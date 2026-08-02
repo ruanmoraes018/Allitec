@@ -8,6 +8,7 @@ import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
 from django.db.models import Q
+from util.logs import gerar_alteracoes, registrar_log
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -67,6 +68,11 @@ def add_tabelas_preco(request):
             c = form.save(commit=False)
             c.vinc_emp = request.user.empresa
             c.save()
+            registrar_log(
+                request, "CRIAR", "Tabela de Preço", c.descricao,
+                f"Adicionou a tabela de preço: {c.codigo} - {c.descricao}",
+                c.id, gerar_alteracoes(obj_novo=c)
+            )
             messages.success(request, 'Tabela de Preço adicionada com sucesso!')
             cid = str(c.codigo)
             return redirect('/tabelas_preco/lista/?tp=cod&s=' + cid)
@@ -81,6 +87,7 @@ def add_tabelas_preco(request):
 @login_required
 def att_tabelas_preco(request, codigo):
     c = get_object_or_404(TabelaPreco, codigo=codigo, vinc_emp=request.user.empresa)
+    it_old = TabelaPreco.objects.get(codigo=c.codigo, vinc_emp=request.user.empresa)
     form = TabelaPrecoForm(instance=c)
     if not request.user.has_perm('tabelas_preco.change_tabelapreco'):
         messages.info(request, 'Você não tem permissão para editar tabelas de preço.')
@@ -90,6 +97,11 @@ def att_tabelas_preco(request, codigo):
         if form.is_valid():
             c = form.save(commit=False)
             c.save()
+            registrar_log(
+                request, "ALTERAR", "Tabela de Preço", c.descricao,
+                f"Alterou a tabela de preço: {c.codigo} - {c.descricao}",
+                c.id, gerar_alteracoes(it_old, c)
+            )
             cid = str(c.codigo)
             messages.success(request, 'Tabela de Preço atualizada com sucesso!')
             next_url = request.POST.get('next') or request.GET.get('next')
@@ -108,6 +120,11 @@ def del_tabelas_preco(request, codigo):
         messages.info(request, 'Você não tem permissão para deletar tabelas de preço.')
         return redirect('/tabelas_preco/lista/')
     c = get_object_or_404(TabelaPreco, codigo=codigo, vinc_emp=request.user.empresa)
+    registrar_log(
+        request, "EXCLUIR", "Tabela de Preço", c.descricao,
+        f"Excluiu a tabela de preço: {c.codigo} - {c.descricao}",
+        c.id, gerar_alteracoes(obj_antigo=c)
+    )
     c.delete()
     messages.success(request, 'Tabela de Preço deletada com sucesso!')
     return redirect('/tabelas_preco/lista/')

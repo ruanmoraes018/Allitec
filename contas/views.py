@@ -10,13 +10,15 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from util.permissoes import verifica_permissao
 from datetime import datetime
-from django.db.models.functions import Concat, Substr
+from .permissoes import APPS_PERMISSOES, agrupar_permissoes_por_grupo
 from empresas.models import Empresa
 from django.db.models import Q
-from collections import defaultdict
 from django.contrib.auth.models import Permission
 from django.utils.text import slugify
 from django.contrib.auth.hashers import make_password
+from util.logs import gerar_alteracoes, registrar_log
+from formas_pgto.models import FormaPgto
+from tabelas_preco.models import TabelaPreco
 
 @login_required
 def checar_permissao(request):
@@ -54,11 +56,7 @@ def lista_usuarios(request):
     filial_user = request.user.filial_user
     if filial_user is None: usuarios = Usuario.objects.none()
     else:
-        filial_principal = (
-            filial_user
-            if filial_user.principal
-            else filial_user.vinculada_a
-        )
+        filial_principal = (filial_user if filial_user.principal else filial_user.vinculada_a)
         filiais_ids = (Filial.objects.filter(vinc_emp=empresa).filter(Q(codigo=filial_principal.codigo) | Q(vinculada_a=filial_principal)).values_list('id', flat=True))
         usuarios = (Usuario.objects.filter(empresa=empresa, filial_user_id__in=filiais_ids).select_related('filial_user'))
     # BUSCA POR DESCRIÇÃO
@@ -102,12 +100,6 @@ def lista_usuarios_ajax(request):
     except Exception as e:
         return JsonResponse({'results': [], 'error': str(e)})
 
-def agrupar_permissoes_por_grupo(permissoes):
-    grupos = defaultdict(list)
-    for perm in permissoes:
-        grupos[perm.content_type.app_label].append(perm)
-    return grupos
-
 @login_required
 def add_usuario(request):
     # 1. Validação de Permissão de Acesso
@@ -131,33 +123,25 @@ def add_usuario(request):
         messages.warning(request, f'Limite de {qtd_permitida} usuário(s) ativos atingido para sua empresa.')
         return redirect('/usuarios/lista/')
     # 4. Preparação das Permissões para renderização na Tela
-    todas_permissoes = Permission.objects.all()
-    # Certifique-se de que a função 'agrupar_permissoes_por_grupo' está importada ou declarada no arquivo
+    todas_permissoes = Permission.objects.filter(
+        content_type__app_label__in=APPS_PERMISSOES
+    )
     permissoes_por_grupo = agrupar_permissoes_por_grupo(todas_permissoes)
     grupos_marcados = []
     # 5. Processamento do Formulário (Submissão POST)
     if request.method == 'POST':
         # ✅ CORREÇÃO CHAVE: 'data=' nomeado de forma explícita e 'empresa=' isolada
-        form = UsuarioCadastroForm(data=request.POST, empresa=empresa_alvo)
-        gerar_senha_lib = request.POST.get('gerar_senha_lib') == 'on'
-        senha_liberacao = request.POST.get('senha_liberacao')
+        form = UsuarioCadastroForm(request.POST, files=request.FILES, empresa=empresa_alvo, opfilial=request.POST.get("opfilial"), opformas=request.POST.get("opformas"), optabelas=request.POST.get("optabelas"))
         if form.is_valid():
             try:
-                novo_user = form.save(commit=False)
-                novo_user.first_name = request.POST.get('first_name', '').upper()
-                novo_user.set_password(request.POST.get('password'))
-                # Força o vínculo com a empresa correta do criador
-                novo_user.empresa = empresa_alvo
-                novo_user.gerar_senha_lib = gerar_senha_lib
-                novo_user.senha_liberacao = make_password(senha_liberacao)
-                senha = request.POST.get('password')
-                if senha:
-                    novo_user.password = make_password(senha)
-                novo_user.save()
+                novo_user = form.save()
+                form.save_m2m()
+                registrar_log(
+                    request, "CRIAR", "Usuário", novo_user.first_name,
+                    f"Adicionou o usuário: {novo_user.codigo_local} - {novo_user.first_name}",
+                    novo_user.id, gerar_alteracoes(obj_novo=novo_user)
+                )
                 # Vincula as permissões selecionadas no Checkbox
-                permissoes = form.cleaned_data.get('permissoes')
-                if permissoes:
-                    novo_user.user_permissions.set(permissoes)
                 messages.success(request, 'Usuário cadastrado com sucesso.')
                 return redirect('/usuarios/lista/')
             except Exception as e:
@@ -188,29 +172,26 @@ def add_usuario(request):
 @login_required
 def att_usuario(request, codigo_local):
     usuario = get_object_or_404(Usuario, codigo_local=codigo_local, empresa=request.user.empresa)
+    it_old = Usuario.objects.get(codigo_local=usuario.codigo_local, empresa=request.user.empresa)
     if not request.user.has_perm('filiais.change_usuario'):
         messages.info(request, 'Você não tem permissão para editar usuários.')
         return redirect('/usuarios/lista/')
     filial = usuario.filial_user
-    todas_permissoes = Permission.objects.all()
+    todas_permissoes = Permission.objects.filter(content_type__app_label__in=APPS_PERMISSOES)
     permissoes_por_grupo = agrupar_permissoes_por_grupo(todas_permissoes)
     grupos_marcados = []
     if request.method == 'POST':
-        form = UsuarioCadastroForm(data=request.POST, instance=usuario, empresa=request.user.empresa)
-        gerar_senha_lib = request.POST.get('gerar_senha_lib') == 'on'
-        senha_liberacao = request.POST.get('senha_liberacao')
+        form = UsuarioCadastroForm(
+            request.POST, request.FILES, instance=usuario,      # ou sem instance no cadastro
+            empresa=request.user.empresa, opfilial=request.POST.get("opfilial"), opformas=request.POST.get("opformas"), optabelas=request.POST.get("optabelas"))
         if form.is_valid():
-            user = form.save(commit=False)
-            user.first_name = request.POST.get('first_name')
-            user.save()
-            permissoes = form.cleaned_data.get('permissoes')
-            if permissoes is not None: user.user_permissions.set(permissoes)
-            usuario.gerar_senha_lib = gerar_senha_lib
-            usuario.senha_liberacao = make_password(senha_liberacao)
-            senha = request.POST.get('password')
-            if senha:
-                usuario.password = make_password(senha)
-            usuario.save()
+            user = form.save()
+            form.save_m2m()
+            registrar_log(
+                request, "ALTERAR", "Usuário", user.first_name,
+                f"Alterou o usuário: {user.codigo_local} - {user.first_name}",
+                user.id, gerar_alteracoes(it_old, user)
+            )
             next_url = request.POST.get('next') or request.GET.get('next')
             messages.success(request, 'Usuário atualizado com sucesso.')
             if next_url: return redirect(next_url)
@@ -222,7 +203,13 @@ def att_usuario(request, codigo_local):
                 if all(perm in permissoes_selecionadas for perm in permissoes): grupos_marcados.append(slugify(grupo))
     else:
         permissao_ids = list(usuario.user_permissions.values_list('id', flat=True))
-        form = UsuarioCadastroForm(instance=usuario, initial={'permissoes': permissao_ids}, empresa=request.user.empresa)
+        form = UsuarioCadastroForm(
+            instance=usuario,
+            initial={
+                'permissoes': permissao_ids, 'formas_pagamento': list(usuario.formas_pagamento.values_list('codigo', flat=True)),
+                'tabelas_preco': list(usuario.tabelas_preco.values_list('codigo', flat=True)), 'filiais_permitidas': list(usuario.filiais_permitidas.values_list('codigo', flat=True)),
+            }, empresa=request.user.empresa
+        )
         for grupo, permissoes in permissoes_por_grupo.items():
             if all(perm.id in permissao_ids for perm in permissoes): grupos_marcados.append(slugify(grupo))
     context = {'form': form, 'usuario': usuario, 'filial': filial, 'permissoes_por_grupo': permissoes_por_grupo, 'grupos_marcados': grupos_marcados}
@@ -238,6 +225,11 @@ def del_usuario(request, codigo_local):
         messages.error(request, 'Você não tem permissão para deletar este usuário.')
         return redirect('/usuarios/lista/')
     else:
+        registrar_log(
+            request, "EXCLUIR", "Usuário", usuario.first_name,
+            f"Excluiu o Usuário: {usuario.codigo_local} - {usuario.first_name}",
+            usuario.id, gerar_alteracoes(obj_antigo=usuario)
+        )
         usuario.delete()
         messages.success(request, 'Usuário excluído com sucesso.')
         return redirect('/usuarios/lista/')

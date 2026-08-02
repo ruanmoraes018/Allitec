@@ -26,8 +26,47 @@
                 {% endif %}
             </div>
             <div class="row">
+                <div class="col-sm-4 mb-1">
+                    <div class="card shadow-sm">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <strong><i class="fas fa-history"></i> Minhas atividades</strong>
+                            <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#modalLogs">Ver todas</button>
+                        </div>
+                        <div class="list-group list-group-flush">
+                            {% for log in ultimos_logs %}
+                                <div class="list-group-item">
+                                    {% if log.tipo == "CRIAR" %}
+                                        <small class="fw-bold">{{ log.data|time:"H:i" }}</small> <span style="float: right;" class="badge bg-primary">{{ log.descricao }}</span>
+                                    {% elif log.tipo == "ALTERAR" %}
+                                        <small class="fw-bold">{{ log.data|time:"H:i" }}</small> <span style="float: right;" class="badge bg-warning text-dark">{{ log.descricao }}</span>
+                                    {% elif log.tipo == "EXCLUIR" %}
+                                        <small class="fw-bold">{{ log.data|time:"H:i" }}</small> <span style="float: right;" class="badge bg-danger">{{ log.descricao }}</span>
+                                    {% elif log.tipo == "FATURAR" %}
+                                        <small class="fw-bold">{{ log.data|time:"H:i" }}</small> <span style="float: right;" class="badge bg-success">{{ log.descricao }}</span>
+                                    {% elif log.tipo == "BAIXA" %}
+                                        <small class="fw-bold">{{ log.data|time:"H:i" }}</small> <span style="float: right;" class="badge bg-info text-dark">{{ log.descricao }}</span>
+                                    {% elif log.tipo == "ABERTURA" %}
+                                        <small class="fw-bold">{{ log.data|time:"H:i" }}</small> <span style="float: right;" class="badge bg-info-subtle text-dark">{{ log.descricao }}</span>
+                                    {% elif log.tipo == "FECHAMENTO" %}
+                                        <small class="fw-bold">{{ log.data|time:"H:i" }}</small> <span style="float: right;" class="badge bg-success-subtle text-dark">{{ log.descricao }}</span>
+                                    {% elif log.tipo == "LOGIN" %}
+                                        <small class="fw-bold">{{ log.data|time:"H:i" }}</small> <span style="float: right;" class="badge bg-dark">{{ log.descricao }}</span>
+                                    {% elif log.tipo == "LOGOUT" %}
+                                        <small class="fw-bold">{{ log.data|time:"H:i" }}</small> <span style="float: right;" class="badge bg-dark">{{ log.descricao }}</span>
+                                    {% else %}
+                                        <small class="fw-bold">{{ log.data|time:"H:i" }}</small> <span style="float: right;" class="badge bg-light text-dark">{{ log.get_tipo_display }}</span>
+                                    {% endif %}
+                                </div>
+                            {% empty %}
+                                <div class="list-group-item text-center text-muted">
+                                    Nenhuma atividade hoje.
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
                 {% if request.user.ver_res_orc %}
-                    <div class="col-sm-6 mb-1">
+                    <div class="col-sm-4 mb-1">
                         <div class="card">
                             <div class="card-header bg-secondary-subtle">
                                 <h5 class="card-title text-info-emphasis text-center">
@@ -95,7 +134,7 @@
                     </div>
                 {% endif %}
                 {% if request.user.ver_res_orc_tec %}
-                    <div class="col-sm-6 mb-1">
+                    <div class="col-sm-4 mb-1">
                         <div class="card">
                             <div class="card-header bg-secondary-subtle">
                                 <h5 class="card-title text-info-emphasis text-center">
@@ -132,6 +171,7 @@
                         </div>
                     </div>
                 {% endif %}
+                
                 <!-- KPI -->
                 {% if request.user.ver_conv_orc %}
                     <div class="col-md-3 mb-1">
@@ -450,6 +490,64 @@
                         </div>
                     </div>
                 {% endif %}
+            </div>
+            <div class="modal fade" id="modalLogs" tabindex="-1" aria-labelledby="modalLogsLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header titulo-modal">
+                            <h5 class="modal-title" id="modalLogsLabel"><i class="fas fa-history"></i> Atividades de Hoje</h5>
+                        </div>
+                        <div class="modal-body">
+                            <div class="list-group">
+                                <div class="list-group-item bg-light fw-bold cabecalho-lista">
+                                    <div class="row g-0 align-items-center">
+                                        <div class="col-md-1 border-end">Hora</div>
+                                        <div class="col-md-1 border-end">Tipo</div>
+                                        <div class="col-md-1 border-end">Módulo</div>
+                                        <div class="col-md-7 me-2">Descrição</div>
+                                        <div class="col-md-1"></div>
+                                    </div>
+                                </div>
+                                {% for log in logs_dia %}
+                                    <div class="list-group-item py-1 item-lista">
+                                        <div class="row g-0 align-items-center linha-lista">
+                                            <div class="col-md-1 fw-semibold codigo-col">{{ log.data|time:"H:i:s" }}</div>
+                                            <div class="col-md-1 fw-semibold codigo-col">{{ log.get_tipo_display }}</div>
+                                            <div class="col-md-1 fw-semibold codigo-col">{{ log.modulo }}</div>
+                                            <div class="col-md-7 fw-semibold descricao-col">{{ log.descricao }}</div>
+                                            <div class="col-md-1 fw-semibold codigo-col">
+                                                {% if log.alteracoes %}
+                                                    <button class="btn btn-outline-dark btn-sm" data-bs-toggle="collapse" data-bs-target="#log{{ log.id }}"><i class="fa-solid fa-bars"></i></button>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% if log.alteracoes %}
+                                        <div class="collapse" id="log{{ log.id }}">
+                                            {% for campo, valor in log.alteracoes.items %}
+                                                <div class="list-group-item py-1 item-lista">
+                                                    <div class="row g-0 align-items-center linha-lista">
+                                                        <div class="col-md-2 fw-semibold codigo-col">{{ campo }}</div>
+                                                        <div class="col-md-10 fw-semibold codigo-col">
+                                                            {% if valor.antes != None %}
+                                                                {{ valor.antes }}
+                                                                <i class="fa-solid fa-arrow-right"></i>
+                                                            {% endif %}
+                                                            {{ valor.depois }}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal fade" id="mdResOrc" tabindex="-1" aria-labelledby="mdResOrcLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered modal-sm">

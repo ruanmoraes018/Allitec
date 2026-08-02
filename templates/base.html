@@ -9,6 +9,9 @@
         <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
         <link rel="stylesheet" href="https://code.jquery.com/ui/1.14.1/themes/base/jquery-ui.css">
         <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="{% static 'css/styles.css' %}">
         <link rel="shortcut icon" href="{% static 'img/favicon.ico' %}" type="image/x-icon">
         <meta name="facebook-domain-verification" content="r2z7obkhjoyogff2u0usb7gmzudsif" />
@@ -102,12 +105,11 @@
                             <div class="nav-item dropdown">
                                 <a class="nav-link" href="#" id="notificationsDropdown" role="button"
                                    data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-bell"></i>
+                                    <i class="fas fa-bell text-dark"></i>
                                     {% if notificacoes %}
                                         <span class="position-absolute top-0 start-100 translate-middle badge border border-light rounded-circle bg-danger p-2 badge-pulse">
                                           <span class="visually-hidden">Notificações não lidas</span>
                                         </span>
-
                                     {% endif %}
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationsDropdown" style="width: 300px;">
@@ -128,14 +130,14 @@
                                 <!-- Ícone de Logout Superuser -->
                                 <div class="nav-item ms-3">
                                     <a class="nav-link" href="{% url 'logout-view-superuser' %}" title="Sair" onclick="showLoadingModal()">
-                                        <i class="fa-solid fa-right-from-bracket"></i>
+                                        <i class="fa-solid fa-right-from-bracket text-dark"></i>
                                     </a>
                                 </div>
                             {% else %}
                                 <!-- Ícone de Logout -->
                                 <div class="nav-item ms-3">
                                     <a class="nav-link" href="{% url 'logout-view' %}" title="Sair" onclick="showLoadingModal()">
-                                        <i class="fa-solid fa-right-from-bracket"></i>
+                                        <i class="fa-solid fa-right-from-bracket text-dark"></i>
                                     </a>
                                 </div>
                             {% endif %}
@@ -157,44 +159,53 @@
                     <div class="offcanvas-body">
                         <div class="d-flex flex-column gap-2">
                             {% if not request.user.is_superuser %}
-                                {% if perm_view_tabelapreco or perm_view_marcas or perm_view_formapgto or perm_view_tipocobranca or perm_view_unidades or perm_view_bancos or perm_view_grupos or perm_view_bairros or perm_view_cidades or perm_view_estados %}
+                                {% if perms.regras_produto.view_gruporegraproduto or perms.estoques.view_estoque or perms.informacoes.view_informacoes or perms.tabelas_preco.view_tabelapreco or perms.marcas.view_marca or perms.formas_pgto.view_formapgto or perms.tipo_cobranca.view_tipocobranca or perms.unidades.view_unidade or perms.bancos.view_banco or perms.grupos.view_grupo or perms.bairros.view_bairro or perms.cidades.view_cidade or perms.estados.view_estado %}
                                     <a class="btn btn-dark w-100 text-start" data-bs-toggle="collapse" href="#guiaComplementos" role="button" aria-expanded="false" aria-controls="guiaComplementos">
                                         <i class="fa-solid fa-table"></i> Complementos
                                     </a>
                                     <div class="collapse" id="guiaComplementos">
                                         <div class="p-2">
-                                            {% if perm_view_bairros %}
+                                            {% if perms.bairro.view_bairro %}
                                                 <a href="{% url 'lista-bairros' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Bairros</a>
                                             {% endif %}
-                                            {% if perm_view_cidades %}
+                                            {% if perms.cidades.view_cidade %}
                                                 <a href="{% url 'lista-cidades' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Cidades</a>
                                             {% endif %}
-                                            {% if perm_view_estados %}
+                                            {% if perms.estados.view_estado %}
                                                 <a href="{% url 'lista-estados' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Estados</a>
                                             {% endif %}
-                                            {% if perm_view_marcas %}
+                                            {% if perms.marcas.view_marca %}
                                                 <a href="{% url 'lista-marcas' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Marcas</a>
                                             {% endif %}
-                                            {% if perm_view_grupos %}
+                                            {% if perms.grupos.view_grupo %}
                                                 <a href="{% url 'lista-grupos' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Grupos</a>
                                             {% endif %}
-                                            {% if perm_view_unidades %}
+                                            {% if perms.unidades.view_unidade %}
                                                 <a href="{% url 'lista-unidades' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Unidades</a>
                                             {% endif %}
-                                            {% if perm_view_bancos %}
+                                            {% if perms.bancos.view_banco %}
                                                 <a href="{% url 'lista-bancos' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Bancos</a>
                                             {% endif %}
-                                            {% if perm_view_tipocobranca %}
+                                            {% if perms.tipo_cobranca.view_tipocobranca %}
                                                 <a href="{% url 'lista-tp_cobrancas' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Tipos de Cobrança</a>
                                             {% endif %}
-                                            {% if perm_view_formapgto %}
+                                            {% if perms.formas_pgto.view_formapgto %}
                                                 <a href="{% url 'lista-formas_pgto' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Formas de Pagamento</a>
                                             {% endif %}
-                                            {% if perm_view_tabelapreco %}
+                                            {% if perms.tabelas_preco.view_tabelapreco %}
                                                 <a href="{% url 'lista-tabelas_preco' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Tabelas de Preço</a>
                                             {% endif %}
-                                            {% if perm_view_regraproduto %}
+                                            {% if perms.regras_produto.view_gruporegraproduto %}
+                                                <a href="{% url 'lista-grupos-regras' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Grupos de Regras</a>
+                                            {% endif %}
+                                            {% if perms.regras_produto.view_regraproduto %}
                                                 <a href="{% url 'lista-regras' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Regras de Produto</a>
+                                            {% endif %}
+                                            {% if perms.estoques.view_estoque %}
+                                                <a href="{% url 'lista-estoques' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Estoques</a>
+                                            {% endif %}
+                                            {% if perms.informacoes.view_informacoes %}
+                                                <a href="{% url 'lista-informacoes' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Informações</a>
                                             {% endif %}
                                         </div>
                                     </div>
@@ -210,47 +221,47 @@
                                         <a href="{% url 'lista-propostas' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Propostas</a>
                                     </div>
                                 </div>
-                            {% elif perm_view_pdv or perm_view_filial or perm_view_usuario or perm_view_produtos or perm_view_clientes or perm_view_tecnicos or perm_view_fornecedores or perm_view_vendedores %}
+                            {% elif perms.pdvs.view_pdv or perms.filiais.view_filial or perms.filiais.view_usuario or perms.produtos.view_produtos or perms.clientes.view_clientes or perms.tecnicos.view_tecnicos or perms.fornecedores.view_fornecedores or perms.vendedores.view_vendedores %}
                                 <a class="btn btn-dark w-100 text-start" data-bs-toggle="collapse" href="#guiaCadastros" role="button" aria-expanded="false" aria-controls="guiaCadastros">
                                     <i class="fa-solid fa-box-archive"></i> Cadastros
                                 </a>
                                 <div class="collapse" id="guiaCadastros">
                                     <div class="p-2">
-                                        {% if perm_view_filial %}
+                                        {% if perms.filiais.view_filial %}
                                             <a href="{% url 'lista-filiais' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Filiais</a>
                                         {% endif %}
-                                        {% if perm_view_usuario %}
+                                        {% if perms.filiais.view_usuario %}
                                             <a href="{% url 'lista-usuarios' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Usuários</a>
                                         {% endif %}
-                                        {% if perm_view_produtos %}
+                                        {% if perms.produtos.view_produto %}
                                             <a href="{% url 'lista-produtos' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Produtos</a>
                                         {% endif %}
-                                        {% if perm_view_clientes %}
+                                        {% if perms.clientes.view_cliente %}
                                             <a href="{% url 'lista-clientes' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Clientes</a>
                                         {% endif %}
-                                        {% if perm_view_fornecedores %}
+                                        {% if perms.fornecedores.view_fornecedore %}
                                             <a href="{% url 'lista-fornecedores' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Fornecedores</a>
                                         {% endif %}
-                                        {% if perm_view_tecnicos %}
+                                        {% if perms.tecnicos.view_tecnico %}
                                             <a href="{% url 'lista-tecnicos' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Técnicos</a>
                                         {% endif %}
-                                        {% if perm_view_vendedores %}
+                                        {% if perms.vendedores.view_vendedor %}
                                             <a href="{% url 'lista-vendedores' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Vendedores</a>
                                         {% endif %}
-                                        {% if perm_view_pdv %}
+                                        {% if perms.pdvs.view_pdv %}
                                             <a href="{% url 'lista-pdvs' %}" class="btn btn-dark w-100 mb-1 lista-funcao">PDVs</a>
                                         {% endif %}
                                     </div>
                                 </div>
                             {% endif %}
                             {% if not request.user.is_superuser %}
-                                {% if perm_view_entradas %}
+                                {% if perms.entradas.view_entrada %}
                                     <a class="btn btn-dark w-100 text-start" data-bs-toggle="collapse" href="#guiaEstoque" role="button" aria-expanded="false" aria-controls="guiaEstoque">
                                         <i class="fa-solid fa-box-open"></i> Estoque
                                     </a>
                                     <div class="collapse" id="guiaEstoque">
                                         <div class="p-2">
-                                            {% if perm_view_entradas %}
+                                            {% if perms.entradas.view_entrada %}
                                                 <a href="{% url 'lista-entradas' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Entrada de NF/Pedidos</a>
                                             {% endif %}
                                         </div>
@@ -263,24 +274,24 @@
                                 </a>
                                 <div class="collapse" id="guiaFaturamentos">
                                     <div class="p-2">
-                                        {% if perm_view_contrato %}
+                                        {% if view_contrato %}
                                             <a href="{% url 'lista-contratos' %}" class="btn btn-dark w-100 lista-funcao">Contratos</a>
                                         {% endif %}
                                     </div>
                                 </div>
-                            {% elif perm_view_caixa or perm_view_orcamentos or perm_view_pedido %}
+                            {% elif perms.lancpdvs.view_caixa or perms.orcamentos.view_orcamentos or perms.pedidos.view_pedido %}
                                 <a class="btn btn-dark w-100 text-start" data-bs-toggle="collapse" href="#guiaFaturamentos">
                                     <i class="fa-solid fa-calculator"></i> Faturamento
                                 </a>
                                 <div class="collapse" id="guiaFaturamentos">
                                     <div class="p-2">
-                                        {% if perm_view_pedido %}
+                                        {% if perms.pedidos.view_pedido %}
                                             <a href="{% url 'lista-pedidos' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Pedidos</a>
                                         {% endif %}
-                                        {% if perm_view_caixa %}
+                                        {% if perms.lancpdvs.view_caixa %}
                                             <a href="{% url 'lista-lancamentos' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Lançamentos de Caixa</a>
                                         {% endif %}
-                                        {% if perm_view_orcamentos %}
+                                        {% if perms.orcamentos.view_orcamento %}
                                             <a href="{% url 'lista-orcamentos' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Orçamentos - Portas</a>
                                         {% endif %}
                                     </div>
@@ -295,7 +306,7 @@
                                         <a href="{% url 'lista-mensalidades' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Mensalidades</a>
                                     </div>
                                 </div>
-                            {% elif perm_view_contareceber %}
+                            {% elif perms.contas_receber.view_contareceber %}
                                 <a class="btn btn-dark w-100 text-start" data-bs-toggle="collapse" href="#guiaFinanceiro" role="button" aria-expanded="false" aria-controls="guiaFinanceiro">
                                     <i class="fa-solid fa-building-columns"></i> Financeiro
                                 </a>
@@ -305,7 +316,7 @@
                                     </div>
                                 </div>
                             {% endif %}
-                            {% if not request.user.is_superuser and perm_relatorio_pedidos %}
+                            {% if not request.user.is_superuser or perms.pedidos.relatorio_pedidos or perms.produtos.relatorio_vendas_produto %}
                                 <a class="btn btn-dark w-100 text-start" data-bs-toggle="collapse" href="#guiaRelatorios" role="button" aria-expanded="false" aria-controls="guiaRelatorios">
                                     <i class="fa-solid fa-building-columns"></i> Relatórios
                                 </a>
@@ -379,11 +390,36 @@
                         <input type="hidden" id="solicitacaoId" name="id" value="">
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-danger btn-sm" id="negarSolicitacao"><i class='fa-solid fa-circle-xmark' style='float: none; color: white; margin: 0; font-size: 16px;'></i> Negar</button>
                         <button type="button" class="btn btn-success btn-sm" id="aprovarSolicitacao"><i class='fa-solid fa-circle-check'></i> Aprovar</button>
+                        <button type="button" class="btn btn-danger btn-sm" id="negarSolicitacao"><i class='fa-solid fa-circle-xmark' style='float: none; color: white; margin: 0; font-size: 16px;'></i> Negar</button>
                     </div>
                 </div>
             </div>
+        </div>
+        <div class="modal fade" id="modalAlerta" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning text-dark" style="max-height: 30px;">
+                        <h5 class="modal-title" id='modalAlertaLabel'><i class="fa-solid fa-triangle-exclamation me-2"></i> Alerta</h5>
+                    </div>
+                    <div class="modal-body">
+                        <h6 id='tituloAlerta'></h6>
+                        <p id='descricaoAlerta' class="mb-0" style="text-align: justify;"></p>
+                        <input type="hidden" id='alertaId'>
+                        <input type="hidden" id='alertaTipo'>
+                        <input type="hidden" id='alertaReferencia'>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-warning" id="abrirRegistroAlerta" data-url=""><i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="fotoViewer">
+            <button type="button" class="fechar-viewer"><i class="fas fa-times"></i>
+            </button>
+            <img id="viewerImagem">
         </div>
         <script>
             function showLoadingModal() {
@@ -399,6 +435,8 @@
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script src="https://code.jquery.com/ui/1.14.1/jquery-ui.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+        <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+        
         <!-- Tradução para português -->
         <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
         <!-- Bootstrap JS -->

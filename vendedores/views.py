@@ -12,6 +12,7 @@ from util.permissoes import verifica_permissao, verifica_alguma_permissao
 from bairros.models import Bairro
 from cidades.models import Cidade
 from estados.models import Estado
+from util.logs import gerar_alteracoes, registrar_log
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -84,6 +85,11 @@ def add_vendedor(request):
             vendedor = form.save(commit=False)
             vendedor.vinc_emp = empresa
             vendedor.save()
+            registrar_log(
+                request, "CRIAR", "Vendedor", vendedor.fantasia,
+                f"Adicionou o vendedor: {vendedor.codigo} - {vendedor.fantasia}",
+                vendedor.id, gerar_alteracoes(obj_novo=vendedor)
+            )
             messages.success(request, 'Vendedor adicionado com sucesso!')
             return redirect(f'/vendedores/lista/?tp=cod&s={vendedor.codigo}')
         else:
@@ -100,6 +106,7 @@ def add_vendedor(request):
 @login_required
 def att_vendedor(request, codigo):
     cli = get_object_or_404(Vendedor, codigo=codigo, vinc_emp=request.user.empresa)
+    it_old = Vendedor.objects.get(codigo=cli.codigo, vinc_emp=request.user.empresa)
     form = VendedorForm(instance=cli, empresa=request.user.empresa)
     if not request.user.has_perm('vendedores.change_vendedor'):
         messages.info(request, 'Você não tem permissão para editar vendedores.')
@@ -108,6 +115,11 @@ def att_vendedor(request, codigo):
         form = VendedorForm(request.POST, instance=cli, empresa=request.user.empresa)
         if form.is_valid():
             cli.save()
+            registrar_log(
+                request, "ALTERAR", "Vendedor", cli.fantasia,
+                f"Alterou o vendedor: {cli.codigo} - {cli.fantasia}",
+                cli.id, gerar_alteracoes(it_old, cli)
+            )
             next_url = request.POST.get('next') or request.GET.get('next')
             clie = str(cli.codigo)
             messages.success(request, 'Vendedor atualizado com sucesso!')
@@ -128,6 +140,11 @@ def del_vendedor(request, codigo):
         messages.info(request, 'Você não tem permissão para deletar vendedores.')
         return redirect('/vendedores/lista/')
     cli = get_object_or_404(Vendedor, codigo=codigo, vinc_emp=request.user.empresa)
+    registrar_log(
+        request, "EXCLUIR", "Vendedor", cli.fantasia,
+        f"Excluiu o vendedor: {cli.codigo} - {cli.fantasia}",
+        cli.id, gerar_alteracoes(obj_antigo=cli)
+    )
     cli.delete()
     messages.success(request, 'Vendedor deletado com sucesso!')
     return redirect('/vendedores/lista/')

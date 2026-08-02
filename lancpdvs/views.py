@@ -32,6 +32,8 @@ from vendedores.models import Vendedor
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Sum
 from collections import defaultdict
+from util.logs import gerar_alteracoes, registrar_log
+from util.filiais import aplicar_filtro_filial
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -54,6 +56,8 @@ def lista_lancamentos(request):
     reg = request.GET.get('reg', '10')
     empresa = request.user.empresa
     caixas = Caixa.objects.filter(vinc_emp=empresa)
+    # Aplica a regra de acesso às filiais
+    caixas, aguardando_filial = aplicar_filtro_filial(request, caixas)
     if tp == 'desc' and s:
         norm_s = remove_accents(s).lower()
         caixas = caixas.filter(terminal__nome__icontains=norm_s).order_by('terminal__nome')
@@ -67,7 +71,7 @@ def lista_lancamentos(request):
             caixas = caixas.filter(data_abertura__range=(dt_ini_dt, dt_fim_dt))
         except ValueError: caixas = Caixa.objects.none()
     filtros_ativos = any([s, tp, sit, por_dt == 'Sim', fil and user1])
-    if not filtros_ativos: caixas = caixas.filter(data_abertura__range=(inicio_dia, fim_dia), situacao='Aberto')
+    if not filtros_ativos and not aguardando_filial: caixas = caixas.filter(data_abertura__range=(inicio_dia, fim_dia), situacao='Aberto')
     if sit and sit != 'Todos': caixas = caixas.filter(situacao=sit)
     if fil: caixas = caixas.filter(vinc_fil__codigo=fil)
     if user1: caixas = caixas.filter(usuario__codigo_local=user1)
@@ -122,6 +126,11 @@ def add_lancamento(request):
                 caixa.usuario = request.user
                 caixa.situacao = 'Aberto'
                 caixa.save()
+                registrar_log(
+                    request, "ABERTURA", "Caixa", caixa.terminal.nome,
+                    f"Realizou a abertura do caixa: {caixa.codigo} - {caixa.terminal.nome}",
+                    caixa.id, gerar_alteracoes(obj_novo=caixa)
+                )
                 formas = FormaPgto.objects.filter(vinc_emp=request.user.empresa)
                 for forma in formas:
                     valor = form.cleaned_data.get(f'forma_{forma.codigo}') or Decimal('0')
@@ -142,6 +151,7 @@ def add_lancamento(request):
 @login_required
 def att_lancamento(request, codigo):
     b = get_object_or_404(Caixa, codigo=codigo, vinc_emp=request.user.empresa)
+    it_old = Caixa.objects.get(codigo=b.codigo, vinc_emp=request.user.empresa)
     form = CaixaForm(instance=b, empresa=request.user.empresa)
     if not request.user.has_perm('lancpdvs.change_caixa'):
         messages.info(request, 'Você não tem permissão para editar caixas.')
@@ -150,6 +160,11 @@ def att_lancamento(request, codigo):
         form = CaixaForm(request.POST, instance=b, empresa=request.user.empresa)
         if form.is_valid():
             b.save()
+            registrar_log(
+                request, "ALTERAR", "Caixa", b.terminal.nome,
+                f"Alterou o caixa: {b.codigo} - {b.terminal.nome}",
+                b.id, gerar_alteracoes(it_old, b)
+            )
             next_url = request.POST.get('next') or request.GET.get('next')
             bank = str(b.codigo)
             messages.success(request, 'Caixa atualizado com sucesso!')
@@ -174,6 +189,11 @@ def del_lancamento(request, codigo):
         messages.error(request, 'Não é possível deletar este caixa porque existem movimentos associados a ele.')
         return redirect('/lancpdvs/lista/')
     else:
+        registrar_log(
+            request, "EXCLUIR", "Caixa", b.terminal.caixa,
+            f"Excluiu o caixa: {b.codigo} - {b.terminal.caixa}",
+            b.id, gerar_alteracoes(obj_antigo=b)
+        )
         b.delete()
         messages.success(request, 'Caixa deletado com sucesso!')
         return redirect('/lancpdvs/lista/')
@@ -884,7 +904,23 @@ def finalizar_venda(request):
             else:
                 pedido.atualizar_status_pagamento()
             pedido.save()
-
+        registrar_log(
+            request=request,
+            tipo="FATURAR",
+            modulo="Pedido",
+            objeto=pedido.codigo,
+            objeto_id=pedido.id,
+            descricao=f"Faturou o pedido nº {pedido.codigo}",
+            alteracoes={
+                "Valor Total": pedido.total,
+                "Cliente": str(pedido.cli),
+                "Vendedor": str(pedido.vendedor),
+                "Caixa": str(pedido.caixa.terminal.nome),
+                "Forma de Pagamento": ", ".join(
+                    str(fp.formas_pgto) for fp in pedido.formas_pgto.all()
+                )
+            }
+        )
         return JsonResponse({
             'sucesso': True, 
             'pedido_id': pedido.codigo, 
@@ -1112,22 +1148,11 @@ def status_pagamento_caixa(request, caixa_id):
 def dados_fechamento_caixa(request, caixa_id):
     try:
         caixa = Caixa.objects.get(codigo=caixa_id, vinc_emp=request.user.empresa)
-
         if caixa.situacao != 'Aberto':
             return JsonResponse({'erro': 'Caixa já está fechado.'}, status=400)
-
-        movs = caixa.movimentos.select_related('forma_pagamento').filter(
-            situacao='Ativo'
-        )
-
+        movs = caixa.movimentos.select_related('forma_pagamento').filter(situacao='Ativo')
         totais = defaultdict(lambda: {'forma_id': None, 'descricao': '', 'total': 0.0})
-
         # Saldo inicial em dinheiro (abertura)
-        if caixa.saldo_inicial:
-            totais[0]['forma_id'] = 0
-            totais[0]['descricao'] = 'SALDO INICIAL'
-            totais[0]['total'] += float(caixa.saldo_inicial)
-
         for m in movs:
             fp = m.forma_pagamento
             if not fp:
@@ -1135,61 +1160,53 @@ def dados_fechamento_caixa(request, caixa_id):
             key = fp.codigo
             totais[key]['forma_id'] = fp.codigo
             totais[key]['descricao'] = fp.descricao.upper()
-
             if m.tipo == 'Entrada':
                 totais[key]['total'] += float(m.valor)
             elif m.tipo == 'Saída':
                 totais[key]['total'] -= float(m.valor)
-
         formas = [v for v in totais.values() if v['descricao']]
-
         return JsonResponse({'sucesso': True, 'formas': formas})
-
     except Caixa.DoesNotExist:
         return JsonResponse({'erro': 'Caixa não encontrado.'}, status=404)
     except Exception as e:
         return JsonResponse({'erro': str(e)}, status=500)
-
 
 @login_required
 @require_POST
 @transaction.atomic
 def fechar_caixa(request, caixa_id):
     try:
-        caixa = Caixa.objects.select_for_update().get(
-            codigo=caixa_id,
-            vinc_emp=request.user.empresa
-        )
-
+        caixa = Caixa.objects.select_for_update().get(codigo=caixa_id, vinc_emp=request.user.empresa)
         if caixa.situacao != 'Aberto':
             return JsonResponse({'erro': 'Caixa já está fechado.'}, status=400)
-
         data = json.loads(request.body)
         fechamentos = data.get('fechamentos', [])  # [{forma_id, valor_informado}]
         for item in fechamentos:
             forma_codigo = item.get("forma_codigo")
-
             if not forma_codigo:
                 continue
-
-            forma = FormaPgto.objects.get(
-                codigo=forma_codigo,
-                vinc_emp=request.user.empresa
-            )
-
+            forma = FormaPgto.objects.get(codigo=forma_codigo, vinc_emp=request.user.empresa)
             CaixaFechamento.objects.create(
-                caixa=caixa,
-                forma_pagamento=forma,
-                valor_registrado=Decimal(str(item["valor_sistema"])),
-                valor_informado=Decimal(str(item["valor_informado"])),
-                diferenca=Decimal(str(item["valor_informado"])) - Decimal(str(item["valor_sistema"])),
+                caixa=caixa, forma_pagamento=forma, valor_registrado=Decimal(str(item["valor_sistema"])),
+                valor_informado=Decimal(str(item["valor_informado"])), diferenca=Decimal(str(item["valor_informado"])) - Decimal(str(item["valor_sistema"])),
             )
-
         caixa.situacao = 'Fechado'
         caixa.data_fechamento = timezone.localtime(timezone.now())
         caixa.save(update_fields=['situacao', 'data_fechamento'])
-
+        registrar_log(
+            request=request,
+            tipo="FECHAMENTO",
+            modulo="Caixa",
+            objeto=caixa.codigo,
+            objeto_id=caixa.id,
+            descricao=f"Realizou o fechamento do caixa: {caixa.codigo} - {caixa.terminal.nome}",
+            alteracoes={
+                "Valor Fechamento": caixa.fechamentos.valor_informado,
+                "Formas": ", ".join(
+                    str(fp.forma_pagamento) for fp in caixa.fechamentos.all()
+                )
+            }
+        )
         return JsonResponse({'sucesso': True, 'mensagem': 'Caixa fechado com sucesso!'})
-
     except Exception as e:
         return JsonResponse({'erro': str(e)}, status=500)

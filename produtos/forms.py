@@ -13,12 +13,17 @@ class ProdutoForm(forms.ModelForm):
     marca = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Marca')
     desc_prod = forms.CharField(label="Descrição", widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
     vl_compra = forms.CharField(label='Preço de Compra', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-end', 'style': 'color: #DC143C; font-weight: bold; background: honeydew;'}))
-    estoque_prod = forms.CharField(label='Estoque', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'placeholder': '0.00'}))
-    especifico = forms.ChoiceField(label='', required=False, choices=[('', ''), ('Portinhola', 'Portinhola'), ('Alçapão', 'Alçapão'), ('Coluna Removível', 'Coluna Removível'), ('Serviço/Transporte', 'Serviço/Transporte')], widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
+    estoque_prod = forms.CharField(label='Estoque Atual', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'placeholder': '0,00'}))
+    especifico = forms.ChoiceField(label='', required=False, choices=[('', ''), ('Portinhola', 'Portinhola'), ('Alçapão', 'Alçapão'), ('Coluna Removível', 'Coluna Removível'), ('Serviço/Transporte', 'Serviço/Transporte'), ('Eixo', 'Eixo'), ('Lâmina', 'Lâmina')], widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
+    estoque_minimo = forms.CharField(label='', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'placeholder': '0,00'}))
+    estoque_maximo = forms.CharField(label='', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'placeholder': '0,00'}))
+    diametro_eixo = forms.CharField(label='Diâmetro Eixo (cm)', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'placeholder': '0,00'}))
+    espessura_lam = forms.CharField(label='Espessura Lâmina (cm)', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'placeholder': '0,00'}))
+    peso_m2 = forms.CharField(label='Peso por M² (Kg)', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'placeholder': '0,00'}))
 
     class Meta:
         model = Produto
-        fields = ('situacao', 'tp_prod', 'desc_prod', 'grupo', 'marca', 'unidProd', 'vl_compra', 'estoque_prod', 'lista_orc', 'especifico')
+        fields = ('peso_m2', 'espessura_lam', 'diametro_eixo', 'situacao', 'tp_prod', 'desc_prod', 'grupo', 'marca', 'unidProd', 'vl_compra', 'estoque_prod', 'lista_orc', 'especifico', 'estoque_minimo', 'estoque_maximo')
 
     def __init__(self, *args, **kwargs):
         # Captura e remove a empresa dos kwargs de forma segura
@@ -49,6 +54,16 @@ class ProdutoForm(forms.ModelForm):
         except: self.add_error('vl_compra', 'Valor inválido.')
         try: cleaned_data['estoque_prod'] = parse_decimal(cleaned_data.get('estoque_prod'))
         except: self.add_error('estoque_prod', 'Valor inválido.')
+        try: cleaned_data['estoque_minimo'] = parse_decimal(cleaned_data.get('estoque_minimo'))
+        except: self.add_error('estoque_minimo', 'Valor inválido.')
+        try: cleaned_data['estoque_maximo'] = parse_decimal(cleaned_data.get('estoque_maximo'))
+        except: self.add_error('estoque_maximo', 'Valor inválido.')
+        try: cleaned_data['diametro_eixo'] = parse_decimal(cleaned_data.get('diametro_eixo'))
+        except: self.add_error('diametro_eixo', 'Valor inválido.')
+        try: cleaned_data['espessura_lam'] = parse_decimal(cleaned_data.get('espessura_lam'))
+        except: self.add_error('espessura_lam', 'Valor inválido.')
+        try: cleaned_data['peso_m2'] = parse_decimal(cleaned_data.get('peso_m2'))
+        except: self.add_error('peso_m2', 'Valor inválido.')
         campos_select2 = {
             'unidProd': (Unidade, 'Unidade'),
             'grupo': (Grupo, 'Grupo'),

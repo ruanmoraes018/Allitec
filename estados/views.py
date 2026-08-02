@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from util.permissoes import verifica_permissao
 from filiais.models import Usuario
 from django.db.models import Q
+from util.logs import gerar_alteracoes, registrar_log
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -61,6 +62,11 @@ def add_estado(request):
             e = form.save(commit=False)
             e.vinc_emp = request.user.empresa
             e.save()
+            registrar_log(
+                request, "CRIAR", "Estado", e.nome_estado,
+                f"Adicionou o estado: {e.codigo} - {e.nome_estado}",
+                e.id, gerar_alteracoes(obj_novo=e)
+            )
             messages.success(request, 'Estado adicionado com sucesso!')
             est = str(e.codigo)
             return redirect('/estados/lista/?tp=cod&s=' + est)
@@ -75,6 +81,7 @@ def add_estado(request):
 @login_required
 def att_estado(request, codigo):
     e = get_object_or_404(Estado, codigo=codigo, vinc_emp=request.user.empresa)
+    it_old = Estado.objects.get(codigo=e.codigo, vinc_emp=request.user.empresa)
     form = EstadoForm(instance=e)
     if not request.user.has_perm('estados.change_estado'):
         messages.info(request, 'Você não tem permissão para editar estados.')
@@ -83,6 +90,11 @@ def att_estado(request, codigo):
         form = EstadoForm(request.POST, instance=e)
         if form.is_valid():
             e.save()
+            registrar_log(
+                request, "ALTERAR", "Estado", e.nome_estado,
+                f"Alterou o estado: {e.codigo} - {e.nome_estado}",
+                e.id, gerar_alteracoes(it_old, e)
+            )
             next_url = request.POST.get('next') or request.GET.get('next')
             est = str(e.codigo)
             messages.success(request, 'Estado atualizado com sucesso!')
@@ -101,6 +113,11 @@ def del_estado(request, codigo):
         messages.info(request, 'Você não tem permissão para deletar estados.')
         return redirect('/estados/lista/')
     e = get_object_or_404(Estado, codigo=codigo, vinc_emp=request.user.empresa)
+    registrar_log(
+        request, "EXCLUIR", "Estado", e.nome_estado,
+        f"Excluiu o estado: {e.codigo} - {e.nome_estado}",
+        e.id, gerar_alteracoes(obj_antigo=e)
+    )
     e.delete()
     messages.success(request, 'Estado deletado com sucesso!')
     return redirect('/estados/lista/')

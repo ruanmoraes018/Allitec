@@ -148,7 +148,7 @@ class PedidoFormaPgto(models.Model):
     forma_pgto = models.ForeignKey("formas_pgto.FormaPgto", on_delete=models.PROTECT)
     valor = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["pedido", "forma_pgto"], name="uniq_ped_formapgto")]
+        constraints = [models.UniqueConstraint(fields=["pedido", "forma_pgto"], name="uniq_pedido_formapgto")]
     def __str__(self):
         return f"{self.pedido.id} - {self.forma_pgto.descricao}"
 

@@ -1,5 +1,7 @@
 from datetime import datetime
 from formas_pgto.models import FormaPgto
+from util.logs import gerar_alteracoes, registrar_log
+
 def finalizar_pedido(pedido, formas=None, parcelas=None, parcial=False, request=None):
     from decimal import Decimal
     from django.utils import timezone
@@ -82,3 +84,19 @@ def finalizar_pedido(pedido, formas=None, parcelas=None, parcial=False, request=
     pedido.situacao = "Faturado"
     pedido.dt_fat = timezone.now()
     pedido.save()
+    registrar_log(
+        request=request,
+        tipo="FATURAR",
+        modulo="Pedido",
+        objeto=pedido.codigo,
+        objeto_id=pedido.id,
+        descricao=f"Faturou o pedido nº {pedido.codigo}",
+        alteracoes={
+            "Valor Total": pedido.total,
+            "Cliente": str(pedido.cli),
+            "Vendedor": str(pedido.vendedor),
+            "Forma de Pagamento": ", ".join(
+                str(fp.formas_pgto) for fp in pedido.formas_pgto.all()
+            )
+        }
+    )

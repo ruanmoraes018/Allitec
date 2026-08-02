@@ -27,7 +27,7 @@ class Fornecedor(models.Model):
     uf = models.ForeignKey(Estado, on_delete=models.SET_NULL, null=True)
     complem = models.CharField(max_length=30, blank=True, null=True, default="")
     tel = models.CharField(max_length=30)
-    email = models.EmailField(max_length=40, blank=True, null=True)
+    email = models.EmailField(max_length=40, blank=True, null=True, default="")
     dt_reg = models.DateField(verbose_name="Data de Registro", null=True, blank=True, db_index=True)
     def save(self, *args, **kwargs):
         if self.vinc_emp and not self.codigo:

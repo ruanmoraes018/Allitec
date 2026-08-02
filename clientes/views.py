@@ -14,6 +14,7 @@ from util.permissoes import verifica_permissao, verifica_alguma_permissao
 from bairros.models import Bairro
 from cidades.models import Cidade
 from estados.models import Estado
+from util.logs import gerar_alteracoes, registrar_log
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -87,6 +88,11 @@ def add_cliente(request):
             c = form.save(commit=False)
             c.vinc_emp = empresa  # Busca a filial do usuário logado
             c.save()
+            registrar_log(
+                request, "CRIAR", "Cliente", c.fantasia,
+                f"Adicionou o cliente: {c.codigo} - {c.fantasia}",
+                c.id, gerar_alteracoes(obj_novo=c)
+            )
             messages.success(request, 'Cliente adicionado com sucesso!')
             clie = str(c.codigo)
             return redirect('/clientes/lista/?tp=cod&s=' + clie)
@@ -102,6 +108,7 @@ def add_cliente(request):
 @login_required
 def att_cliente(request, codigo):
     cli = get_object_or_404(Cliente, codigo=codigo, vinc_emp=request.user.empresa)
+    it_old = Cliente.objects.get(codigo=cli.codigo, vinc_emp=request.user.empresa)
     form = ClienteForm(instance=cli, empresa=request.user.empresa, user=request.user)
     if not request.user.has_perm('clientes.change_cliente'):
         messages.info(request, 'Você não tem permissão para editar clientes.')
@@ -110,6 +117,11 @@ def att_cliente(request, codigo):
         form = ClienteForm(request.POST, instance=cli, empresa=request.user.empresa, user=request.user)
         if form.is_valid():
             form.save()
+            registrar_log(
+                request, "ALTERAR", "Cliente", cli.fantasia,
+                f"Alterou o cadastro do cliente: {cli.codigo} - {cli.fantasia}",
+                cli.id, gerar_alteracoes(it_old, cli)
+            )
             next_url = request.POST.get('next') or request.GET.get('next')
             clie = str(cli.codigo)
             messages.success(request, 'Cliente atualizado com sucesso!')
@@ -128,6 +140,11 @@ def del_cliente(request, codigo):
         messages.info(request, 'Você não tem permissão para deletar clientes.')
         return redirect('/clientes/lista/')
     cli = get_object_or_404(Cliente, codigo=codigo, vinc_emp=request.user.empresa)
+    registrar_log(
+        request, "EXCLUIR", "Cliente", cli.fantasia,
+        f"Excluiu o cadastro do cliente: {cli.codigo} - {cli.fantasia}",
+        cli.id, gerar_alteracoes(obj_antigo=cli)
+    )
     cli.delete()
     messages.success(request, 'Cliente deletado com sucesso!')
     return redirect('/clientes/lista/')

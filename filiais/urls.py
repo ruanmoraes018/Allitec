@@ -17,4 +17,10 @@ urlpatterns = [
     path('ajax/verificar-parcelas/', views.verificar_parcelas, name='verificar_parcelas'),
     path('filiais/js/', views.dados_filiais_js, name="dados_filiais_js"),
     path('pagamentos/webhook/', views.webhook_pagamentos, name='webhook_pagamentos'),
+    path("filiais/validar-certificado/", views.validar_certificado, name="validar_certificado",),
+    path(
+        "filiais/<int:codigo>/validar-certificado-salvo/",
+        views.validar_certificado_salvo,
+        name="validar_certificado_salvo"
+    )
 ]

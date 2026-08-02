@@ -10,6 +10,7 @@ from util.permissoes import verifica_permissao
 from filiais.models import Usuario
 from django.views.decorators.http import require_POST
 from django.db.models import Q
+from util.logs import gerar_alteracoes, registrar_log
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -61,6 +62,11 @@ def add_marca(request):
             b = form.save(commit=False)
             b.vinc_emp = request.user.empresa
             b.save()
+            registrar_log(
+                request, "CRIAR", "Marca", b.nome_marca,
+                f"Adicionou a marca: {b.codigo} - {b.nome_marca}",
+                b.id, gerar_alteracoes(obj_novo=b)
+            )
             messages.success(request, 'Marca adicionada com sucesso!')
             bai = str(b.codigo)
             return redirect('/marcas/lista/?tp=cod&s=' + bai)
@@ -80,11 +86,17 @@ def add_marca_ajax(request):
         return JsonResponse({'erro': 'Nome vazio'}, status=400)
     empresa = request.user.empresa
     marca, criada = Marca.objects.get_or_create(nome_marca=nome, vinc_emp=empresa)
+    registrar_log(
+        request, "CRIAR", "Marca", marca.nome_marca,
+        f"Adicionou a marca: {marca.codigo} - {marca.nome_marca}",
+        marca.id, gerar_alteracoes(obj_novo=marca)
+    )
     return JsonResponse({'id': marca.codigo, 'nome': marca.nome_marca, 'criada': criada})
 
 @login_required
 def att_marca(request, codigo):
     b = get_object_or_404(Marca, codigo=codigo, vinc_emp=request.user.empresa)
+    it_old = Marca.objects.get(codigo=b.codigo, vinc_emp=request.user.empresa)
     form = MarcaForm(instance=b)
     if not request.user.has_perm('marcas.change_marca'):
         messages.info(request, 'Você não tem permissão para editar marcas.')
@@ -93,6 +105,11 @@ def att_marca(request, codigo):
         form = MarcaForm(request.POST, instance=b)
         if form.is_valid():
             b.save()
+            registrar_log(
+                request, "ALTERAR", "Marca", b.nome_marca,
+                f"Alterou a marca: {b.codigo} - {b.nome_marca}",
+                b.id, gerar_alteracoes(it_old, b)
+            )
             next_url = request.POST.get('next') or request.GET.get('next')
             bai = str(b.codigo)
             messages.success(request, 'Marca atualizada com sucesso!')
@@ -111,6 +128,11 @@ def del_marca(request, codigo):
         messages.info(request, 'Você não tem permissão para deletar marcas.')
         return redirect('/marcas/lista/')
     b = get_object_or_404(Marca, codigo=codigo, vinc_emp=request.user.empresa)
+    registrar_log(
+        request, "EXCLUIR", "Marca", b.nome_marca,
+        f"Excluiu a marca: {b.codigo} - {b.nome_marca}",
+        b.id, gerar_alteracoes(obj_antigo=b)
+    )
     b.delete()
     messages.success(request, 'Marca deletada com sucesso!')
     return redirect('/marcas/lista/')

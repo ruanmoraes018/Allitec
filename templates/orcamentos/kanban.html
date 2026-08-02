@@ -1,0 +1,615 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+{% load kanban_tags %}
+{% load custom_filters %}
+{% block title %}Kanban de Orçamentos{% endblock %}
+{% block content %}
+    <style>
+        /* ── Tokens ─────────────────────────────────────────────── */
+        :root {--kb-bg: #0f1117; --kb-surface: #1a1d27; --kb-surface2: #222638; --kb-border: #2e3348; --kb-text: #e2e6f0; --kb-muted: #7b82a0; --kb-accent: #4f7fff; --kb-accent2: #7c5cfc; --col-prod: #1d3a5f; --col-prod-top: #2563eb; --col-emb: #1a3a2f; --col-emb-top: #16a34a; --col-ent: #3b2d1a; --col-ent-top: #d97706; --col-inst: #2a1a3a; --col-inst-top: #9333ea; --pri-normal: #3b82f6; --pri-alta: #f59e0b; --pri-urgente: #ef4444; --radius: 10px; --card-radius: 8px; --shadow: 0 2px 12px rgba(0,0,0,.35); --shadow-card: 0 1px 4px rgba(0,0,0,.4);}
+        /* ── Layout base ────────────────────────────────────────── */
+        body { background: var(--kb-bg); color: var(--kb-text); font-family: Times; }
+        .kb-header {background: var(--kb-surface); border-bottom: 1px solid var(--kb-border); padding: 14px 20px; position: sticky; top: 50px; z-index: 200;}
+        .kb-header h1 { font-size: 1.05rem; font-weight: 700; letter-spacing: .01em; color: var(--kb-text); margin: 0; }
+        .kb-header .badge-empresa { font-size: .7rem; color: var(--kb-muted); font-weight: 400; }
+        /* ── Resumo top ─────────────────────────────────────────── */
+        .kb-resumo {background:var(--kb-surface);border-bottom:1px solid var(--kb-border);padding:10px 20px;display:flex;flex-wrap:wrap;gap:6px 20px;align-items:center;}
+        .kb-resumo-item { display: flex; flex-direction: column; align-items: center; min-width: 80px; }
+        .kb-resumo-item .val { font-size: 1.1rem; font-weight: 700; color: var(--kb-text); line-height: 1; }
+        .kb-resumo-item .lbl { font-size: .65rem; color: var(--kb-muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
+        .kb-resumo-sep { width: 1px; height: 36px; background: var(--kb-border); align-self: center; }
+        .kb-resumo-total .val { color: #4ade80; }
+        .kb-resumo-badge { display: inline-flex; align-items: center; gap: 5px; border-radius: 20px; padding: 3px 10px; font-size: .7rem; font-weight: 600; }
+        .kb-resumo-badge.urgente { background: rgba(239,68,68,.15); color: #f87171; }
+        .kb-resumo-badge.alta    { background: rgba(245,158,11,.15); color: #fbbf24; }
+        .kb-resumo-badge.normal  { background: rgba(59,130,246,.15); color: #93c5fd; }
+        .resumo-ativo .val { color: var(--kb-accent) !important; }
+        .resumo-ativo .lbl { color: var(--kb-accent); }
+        /* ── Barra de filtros ───────────────────────────────────── */
+        .kb-filtros {background: var(--kb-surface); border-bottom: 1px solid var(--kb-border); padding: 10px 20px; position: relative; z-index: 150;}
+        .kb-filtros .form-control, .kb-filtros .form-select {background: var(--kb-surface2); border: 1px solid var(--kb-border); color: var(--kb-text); font-size: .8rem; border-radius: 6px; height: 32px; padding: 0 8px;}
+        .kb-filtros .form-control:focus, .kb-filtros .form-select:focus {border-color: var(--kb-accent);box-shadow: 0 0 0 2px rgba(79,127,255,.2);background: var(--kb-surface2); color: var(--kb-text);}
+        .kb-filtros .form-select option { background: var(--kb-surface2); }
+        .kb-filtros input[type="text"] {position: relative; z-index: 1000;}
+        .kb-filtros label { font-size: .7rem; color: var(--kb-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; display: block; }
+        /* pesquisa */
+        .kb-search-wrap { position: relative; }
+        .kb-search-wrap .bi-search { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--kb-muted); font-size: .8rem; pointer-events: none; }
+        .kb-search-wrap .form-control { padding-left: 26px; }
+        /* btn filtro */
+        .kb-btn-filtro { border-radius: 6px; font-size: .78rem; font-weight: 600; height: 32px; padding: 0 14px; border: none; cursor: pointer; }
+        .kb-btn-aplicar { background: var(--kb-accent); color: #fff; }
+        .kb-btn-aplicar:hover { background: #3b6ee8; color: #fff; }
+        .kb-btn-limpar { background: var(--kb-surface2); color: var(--kb-muted); border: 1px solid var(--kb-border); }
+        .kb-btn-limpar:hover { color: var(--kb-text); }
+        .kb-toggle-btn {background:var(--kb-surface2);border:1px solid var(--kb-border);color:var(--kb-muted);border-radius:6px;font-size:.75rem;height:32px;padding:0 12px; cursor: pointer; transition: all .15s;}
+        .kb-toggle-btn.active, .kb-toggle-btn:hover { background: rgba(79,127,255,.15); border-color: var(--kb-accent); color: var(--kb-accent); }
+        .kb-toggle-btn .bi { margin-right: 4px; }
+        /* ── Área das colunas ───────────────────────────────────── */
+        .kb-board-wrap {overflow-x:auto;padding:16px 12px 24px;display:flex;gap:12px;min-height:calc(100vh - 220px);scrollbar-width:thin;scrollbar-color:var(--kb-border) transparent; position: relative; z-index: 1;}
+        .kb-board-wrap::-webkit-scrollbar { height: 6px; }
+        .kb-board-wrap::-webkit-scrollbar-thumb { background: var(--kb-border); border-radius: 3px; }
+        /* ── Coluna ─────────────────────────────────────────────── */
+        .kb-col {flex: 0 0 300px;display:flex;flex-direction:column;background:var(--kb-surface);border-radius:var(--radius);border:1px solid var(--kb-border);overflow:hidden; position: relative; z-index: 1;}
+        .kb-col, .kb-col-body, .kb-board-wrap {transform: none !important;}
+        .modal-backdrop {z-index: 1040;}
+        .modal {z-index: 1050;}
+        .kb-col-header {padding: 12px 14px 10px; border-bottom: 3px solid; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10;}
+        .kb-col-header .col-title { font-size: .82rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; display: flex; align-items: center; gap: 7px; }
+        .kb-col-header .col-count { font-size: .75rem; background: rgba(255,255,255,.08); padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+        .kb-col-header .col-valor { font-size: .72rem; color: var(--kb-muted); margin-top: 2px; }
+        .kb-col-header .col-icon { font-size: 1rem; opacity: .8; }
+        .col-em-producao  .kb-col-header { background: var(--col-prod);  border-color: var(--col-prod-top);  color: #93c5fd; }
+        .col-embalada     .kb-col-header { background: var(--col-emb);   border-color: var(--col-emb-top);   color: #86efac; }
+        .col-entregue     .kb-col-header { background: var(--col-ent);   border-color: var(--col-ent-top);   color: #fcd34d; }
+        .col-instalada    .kb-col-header { background: var(--col-inst);  border-color: var(--col-inst-top);  color: #c4b5fd; }
+        .kb-col-body {flex: 1; overflow-y: auto; padding: 10px 8px; display: flex; flex-direction: column; gap: 8px; scrollbar-width: thin; scrollbar-color: var(--kb-border) transparent; min-height: 200px; position: relative; z-index: 1;}
+        .kb-col-body::-webkit-scrollbar { width: 4px; }
+        .kb-col-body::-webkit-scrollbar-thumb { background: var(--kb-border); border-radius: 2px; }
+        /* Vazia */
+        .kb-col-vazia {flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--kb-muted); font-size: .78rem; opacity: .5; padding: 20px;}
+        .kb-col-vazia .bi { font-size: 1.6rem; }
+        /* ── Card ───────────────────────────────────────────────── */
+        .kb-card {background: var(--kb-surface2); border: 1px solid var(--kb-border); border-radius: var(--card-radius); padding: 10px 12px; cursor: grab; transition: transform .15s, box-shadow .15s, border-color .15s; user-select: none; box-shadow: var(--shadow-card); position: relative; z-index: 0;}
+        .kb-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.5); border-color: rgba(79,127,255,.4); }
+        .kb-card.dragging { opacity: .4; transform: rotate(1.5deg) scale(.97); }
+        .kb-card.drag-over { border-color: var(--kb-accent); box-shadow: 0 0 0 2px rgba(79,127,255,.25); }
+        /* faixa lateral de prioridade */
+        .kb-card::before {content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 2px 2px 0;}
+        .kb-card.pri-normal::before  { background: var(--pri-normal); }
+        .kb-card.pri-alta::before    { background: var(--pri-alta); }
+        .kb-card.pri-urgente::before { background: var(--pri-urgente); }
+        /* badge atrasado */
+        .kb-card.atrasado { border-color: rgba(239,68,68,.35); }
+        .kb-card.atrasado::after {content: '⚠ ATRASADO'; position: absolute; top: 35px; right: 8px; font-size: .58rem; font-weight: 700; letter-spacing: .06em; color: #f87171; background: rgba(239,68,68,.15); border-radius: 4px; padding: 2px 5px;}
+        .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; margin-bottom: 6px; }
+        .card-num { font-size: .95rem; font-weight: 700; color: var(--kb-text); line-height: 1; }
+        .card-num small { font-size: .68rem; color: var(--kb-muted); font-weight: 400; margin-left: 4px; }
+        .card-pri-badge {font-size: .6rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 2px 7px; border-radius: 20px; white-space: nowrap; flex-shrink: 0;}
+        .card-pri-badge.normal  { background: rgba(59,130,246,.15);  color: #93c5fd; }
+        .card-pri-badge.alta    { background: rgba(245,158,11,.15);  color: #fcd34d; }
+        .card-pri-badge.urgente { background: rgba(239,68,68,.18);   color: #fca5a5; }
+        .card-cliente { font-size: .82rem; font-weight: 600; color: var(--kb-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+        .card-solicitante { font-size: .72rem; color: var(--kb-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px; }
+        .card-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+        .card-pill {font-size: .65rem; border-radius: 4px; padding: 2px 7px; background: rgba(255,255,255,.05); color: var(--kb-muted); display: inline-flex; align-items: center; gap: 3px;}
+        .card-pill .bi { font-size: .7rem; }
+        .card-pill.pill-entrega { color: #fbbf24; background: rgba(245,158,11,.1); }
+        .card-pill.pill-inst    { color: #a78bfa; background: rgba(124,92,252,.1); }
+        .card-pill.pill-forn    { color: #6ee7b7; background: rgba(16,185,129,.08); }
+        .card-metrics {display: flex; gap: 10px; border-top: 1px solid var(--kb-border); padding-top: 7px; margin-top: 4px;}
+        .card-metric { display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .card-metric .mv { font-size: .78rem; font-weight: 600; color: var(--kb-text); line-height: 1; }
+        .card-metric .ml { font-size: .6rem; color: var(--kb-muted); margin-top: 1px; }
+        .card-valor {display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--kb-border);}
+        .card-valor .valor-num { font-size: .9rem; font-weight: 700; color: #4ade80; }
+        .card-valor .tipo-entrega-badge {font-size: .62rem; font-weight: 600; border-radius: 4px; padding: 2px 7px;}
+        .tipo-entrega-badge.retirada          { background: rgba(99,102,241,.12); color: #a5b4fc; }
+        .tipo-entrega-badge.entrega           { background: rgba(245,158,11,.12); color: #fcd34d; }
+        .tipo-entrega-badge.entrega-instalacao{ background: rgba(124,92,252,.12); color: #c4b5fd; }
+        .card-fotos-badge { font-size: .65rem; color: var(--kb-muted); display: inline-flex; align-items: center; gap: 3px; }
+        /* drag-over na coluna */
+        .kb-col-body.drop-target { background: rgba(79,127,255,.05); outline: 2px dashed rgba(79,127,255,.3); outline-offset: -6px; border-radius: 6px; }
+        /* ── Spinner / Estado de carregamento ───────────────────── */
+        .kb-loading {position: fixed; inset: 0; background: rgba(15,17,23,.6); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px);}
+        .kb-loading .spinner { width: 40px; height: 40px; border: 3px solid var(--kb-border); border-top-color: var(--kb-accent); border-radius: 50%; animation: spin .7s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        /* ── Refresh bar ────────────────────────────────────────── */
+        .kb-refresh-bar {position: fixed; bottom: 16px; right: 20px; z-index: 300; background: var(--kb-surface); border: 1px solid var(--kb-border); border-radius: 20px; padding: 6px 14px; font-size: .72rem; color: var(--kb-muted); display: flex; align-items: center; gap: 8px; box-shadow: var(--shadow);}
+        .kb-refresh-bar .dot { width: 7px; height: 7px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+        .kb-refresh-bar .progress-ring { width: 16px; height: 16px; }
+        .kb-refresh-bar .progress-ring circle { fill: none; stroke: var(--kb-accent); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 44; stroke-dashoffset: 44; transform-origin: center; transform: rotate(-90deg); transition: stroke-dashoffset .5s linear; }
+        /* ── Toast ─────────────────────────────────────────────── */
+        .kb-toast-wrap { position: fixed; bottom: 70px; right: 20px; z-index: 9998; display: flex; flex-direction: column; gap: 8px; }
+        .kb-toast {background: var(--kb-surface2); border: 1px solid var(--kb-border); border-radius: 8px; padding: 10px 16px; font-size: .8rem; color: var(--kb-text); box-shadow: var(--shadow); display: flex; align-items: center; gap: 10px; animation: toastIn .2s ease; min-width: 240px;}
+        .kb-toast .bi { font-size: 1rem; }
+        .kb-toast.success { border-left: 3px solid #22c55e; } .kb-toast.success .bi { color: #22c55e; }
+        .kb-toast.error   { border-left: 3px solid #ef4444; } .kb-toast.error   .bi { color: #ef4444; }
+        @keyframes toastIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: none; } }
+        /* ── Contador de colunas no header ─────────────────────── */
+        .col-header-info { display: flex; flex-direction: column; }
+        /* ── Filtros colapsáveis ────────────────────────────────── */
+        .kb-filtros-avancados { display: none; }
+        .kb-filtros-avancados.show { display: flex; }
+        /* ── Responsivo ─────────────────────────────────────────── */
+        @media (max-width: 768px) {
+        .kb-col { flex: 0 0 260px; }
+        .kb-board-wrap { padding: 10px 8px; }
+        }
+    </style>
+    <!-- Loading overlay -->
+    <div class="kb-loading" id="kbLoading">
+        <div class="spinner"></div>
+    </div>
+    <!-- Header -->
+    <div class="kb-header d-flex align-items-center justify-content-between">
+        <div>
+            <h1><i class="bi bi-kanban me-2" style="color:var(--kb-accent)"></i>Kanban de Orçamentos</h1>
+            <span class="badge-empresa">{{ request.user.empresa }}</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <button class="kb-toggle-btn {% if filtros.atrasados == '1' %}active{% endif %}" id="btnAtrasados" title="Somente atrasados">
+                <i class="bi bi-exclamation-triangle-fill"></i> Atrasados
+            </button>
+            <button class="kb-toggle-btn {% if filtros.somente_faturados == '1' %}active{% endif %}" id="btnFaturados" title="Somente faturados">
+                <i class="bi bi-receipt-cutoff"></i> Faturados
+            </button>
+            <button class="kb-btn-filtro kb-btn-limpar" id="btnRefresh" title="Atualizar agora">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <a href="{% url 'add-orcamento' %}?next={% url 'kanban_orcamentos' %}" class="kb-btn-filtro kb-btn-aplicar text-decoration-none pt-2">
+                <i class="bi bi-plus-lg me-1"></i>Novo
+            </a>
+        </div>
+    </div>
+    <!-- Resumo rápido (Faturados) -->
+    <div class="kb-resumo">
+        <!-- Modo Faturado -->
+        <div class="kb-resumo-item {% if situacao_ativa == 'Faturado' %}resumo-ativo{% endif %}" style="cursor:pointer" onclick="mudarSituacao('Faturado')">
+            <span class="val">{{ resumo_faturado.quantidade|default:0 }}</span>
+            <span class="lbl">Faturados</span>
+        </div>
+        <div class="kb-resumo-sep"></div>
+        <div class="kb-resumo-item kb-resumo-total">
+            <span class="val">R$ {{ resumo_faturado.total|moeda_br }}</span>
+            <span class="lbl">Valor faturado</span>
+        </div>
+        <div class="kb-resumo-sep"></div>
+        <!-- Modo Aberto -->
+        <div class="kb-resumo-item {% if situacao_ativa == 'Aberto' %}resumo-ativo{% endif %}" style="cursor:pointer" onclick="mudarSituacao('Aberto')">
+            <span class="val" style="color:#60a5fa">{{ resumo_aberto.quantidade|default:0 }}</span>
+            <span class="lbl">Em Aberto</span>
+        </div>
+        <div class="kb-resumo-sep"></div>
+        <!-- Contadores das colunas -->
+        {% for col, dados in contadores.items %}
+        <div class="kb-resumo-item" id="resumo-cnt-{{ col|lower|slugify }}">
+            <span class="val cnt-val">{{ dados.quantidade }}</span>
+            <span class="lbl">{{ col }}</span>
+        </div>
+        {% endfor %}
+        <div class="kb-resumo-sep"></div>
+        <!-- Badges de prioridade -->
+        <div class="d-flex gap-2 align-items-center">
+            {% if resumo_faturado.urgente %}<span class="kb-resumo-badge urgente"><i class="bi bi-fire"></i> {{ resumo_faturado.urgente }} Urgente{% if resumo_faturado.urgente > 1 %}s{% endif %}</span>{% endif %}
+            {% if resumo_faturado.alta %}<span class="kb-resumo-badge alta"><i class="bi bi-arrow-up-circle-fill"></i> {{ resumo_faturado.alta }} Alta{% if resumo_faturado.alta > 1 %}s{% endif %}</span>{% endif %}
+            {% if resumo_faturado.normal %}<span class="kb-resumo-badge normal"><i class="bi bi-circle-fill" style="font-size:.5rem"></i> {{ resumo_faturado.normal }} Normal{% if resumo_faturado.normal > 1 %}s{% endif %}</span>{% endif %}
+        </div>
+    </div>
+    <!-- Filtros -->
+    <div class="kb-filtros">
+        <form id="formFiltros" method="get" autocomplete="off">
+            <div class="d-flex flex-wrap gap-2 align-items-end">
+                <!-- Pesquisa -->
+                <div style="min-width:90px; flex:1 1 90px;">
+                    <label>Pesquisa</label>
+                    <div class="kb-search-wrap">
+                        <i class="bi bi-search"></i> <input type="text" class="form-control" name="pesquisa" value="{{ filtros.pesquisa }}" placeholder="Nº, cliente, obs…">
+                    </div>
+                </div>
+                <!-- Situação -->
+                <div style="min-width:110px;">
+                    <label>Situação</label>
+                    <select class="form-select" name="situacao" id="selectSituacao">
+                        {% for s in situacoes %}
+                            <option value="{{ s }}" {% if filtros.situacao == s %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <!-- Status -->
+                <div style="min-width:130px;">
+                    <label>Status</label>
+                    <select class="form-select" name="status">
+                        <option value="">Todos</option>
+                        {% for s in status_list %}<option value="{{ s }}" {% if filtros.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+                    </select>
+                </div>
+                <!-- Prioridade -->
+                <div style="min-width:110px;">
+                    <label>Prioridade</label>
+                    <select class="form-select" name="prioridade">
+                        <option value="">Todas</option>
+                        {% for p in prioridades %}<option value="{{ p }}" {% if filtros.prioridade == p %}selected{% endif %}>{{ p }}</option>{% endfor %}
+                    </select>
+                </div>
+                <!-- Ordenação -->
+                <div style="min-width:130px;">
+                    <label>Ordenar por</label>
+                    <select class="form-select" name="ordenacao">
+                        {% for k, v in ordenacoes.items %}<option value="{{ k }}" {% if filtros.ordenacao == k %}selected{% endif %}>{{ v }}</option>{% endfor %}
+                    </select>
+                </div>
+                <!-- Botões -->
+                <div class="d-flex gap-2">
+                    <button type="button" class="kb-btn-filtro kb-btn-limpar" id="btnExpandFiltros"><i class="bi bi-sliders"></i> Mais</button>
+                    <button type="submit" class="kb-btn-filtro kb-btn-aplicar"><i class="bi bi-funnel-fill me-1"></i>Filtrar</button>
+                    <a href="{% url 'kanban_orcamentos' %}" class="kb-btn-filtro kb-btn-limpar text-decoration-none"><i class="bi bi-x-lg"></i></a>
+                </div>
+            </div>
+            <!-- Filtros avançados (colapsáveis) -->
+            <div class="kb-filtros-avancados flex-wrap gap-2 align-items-end mt-2" id="filtrosAvancados">
+                <!-- Cliente -->
+                <div style="min-width:160px; flex:1 1 160px;">
+                    <label>Cliente</label>
+                    <select class="form-select select2" name="cliente">
+                        <option value="">Todos</option>
+                        {% for c in clientes %}<option value="{{ c.codigo }}" {% if filtros.cliente == c.codigo|stringformat:"s" %}selected{% endif %}>{{ c.fantasia }}</option>{% endfor %}
+                    </select>
+                </div>
+                <!-- Solicitante -->
+                <div style="min-width:140px; flex:1 1 140px;">
+                    <label>Solicitante</label>
+                    <select class="form-select select2" name="solicitante">
+                        <option value="">Todos</option>
+                        {% for s in solicitantes %}<option value="{{ s.codigo }}" {% if filtros.solicitante == s.codigo|stringformat:"s" %}selected{% endif %}>{{ s.nome }}</option>{% endfor %}
+                    </select>
+                </div>
+                <!-- Fornecedor -->
+                <div style="min-width:140px; flex:1 1 140px;">
+                    <label>Fornecedor</label>
+                    <select class="form-select select2" name="fornecedor">
+                        <option value="">Todos</option>
+                        {% for f in fornecedores %}<option value="{{ f.codigo }}" {% if filtros.fornecedor == f.codigo|stringformat:"s" %}selected{% endif %}>{{ f.fantasia }}</option>{% endfor %}
+                    </select>
+                </div>
+                <!-- Filial -->
+                <div style="min-width:130px;">
+                    <label>Filial</label>
+                    <select class="form-select select2" name="filial">
+                        <option value="">Todas</option>
+                        {% for f in filiais %}<option value="{{ f.codigo }}" {% if filtros.filial == f.codigo|stringformat:"s" %}selected{% endif %}>{{ f.fantasia }}</option>{% endfor %}
+                    </select>
+                </div>
+                <!-- Tipo entrega -->
+                <div style="min-width:140px;">
+                    <label>Tipo entrega</label>
+                    <select class="form-select" name="tipo_entrega">
+                        <option value="">Todos</option>
+                        {% for t in tipos_entrega %}<option value="{{ t }}" {% if filtros.tipo_entrega == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+                    </select>
+                </div>
+                <!-- Tipo de data + Período -->
+                <div class="d-flex gap-2 align-items-end flex-wrap" style="width:100%;">
+                    <div style="min-width:160px;">
+                        <label>Filtrar por data</label>
+                        <select class="form-select" id="selectTipoData">
+                            <option value="emissao"    {% if tipo_data_ativo == "emissao" %}selected{% endif %}>Emissão</option>
+                            <option value="entrega"    {% if tipo_data_ativo == "entrega" %}selected{% endif %}>Entrega</option>
+                            <option value="instalacao" {% if tipo_data_ativo == "instalacao" %}selected{% endif %}>Previsão de Instalação</option>
+                        </select>
+                    </div>
+                    <div style="min-width:120px;">
+                        <label>Data inicial</label>
+                        <input type="date" class="form-control" id="inputDataIni" value="{{ data_ini_visivel }}">
+                    </div>
+                    <div style="min-width:120px;">
+                        <label>Data final</label>
+                        <input type="date" class="form-control" id="inputDataFim" value="{{ data_fim_visivel }}">
+                    </div>
+                    <div class="d-flex gap-2 align-items-end flex-wrap">
+                        <button type="button" class="kb-btn-filtro kb-btn-limpar" onclick="setPeriodo(7)">7d</button>
+                        <button type="button" class="kb-btn-filtro kb-btn-limpar" onclick="setPeriodo(30)">30d</button>
+                        <button type="button" class="kb-btn-filtro kb-btn-limpar" onclick="setPeriodo(90)">90d</button>
+                        <button type="button" class="kb-btn-filtro kb-btn-limpar" onclick="setPeriodo(365)">1 ano</button>
+                        <button type="button" class="kb-btn-filtro kb-btn-limpar" onclick="limparDatas()">Limpar</button>
+                    </div>
+                </div>
+                <!-- Campos ocultos reais enviados ao backend -->
+                <input type="hidden" name="dt_inicial"         id="hidDtIni">
+                <input type="hidden" name="dt_final"           id="hidDtFim">
+                <input type="hidden" name="entrega_inicial"    id="hidEntIni">
+                <input type="hidden" name="entrega_final"      id="hidEntFim">
+                <input type="hidden" name="instalacao_inicial" id="hidInstIni">
+                <input type="hidden" name="instalacao_final"   id="hidInstFim">
+                <!-- Valores -->
+                <div style="min-width:100px;">
+                <label>Valor mínimo</label>
+                <input type="text" class="form-control" name="valor_min" value="{{ filtros.valor_min }}" placeholder="0,00">
+                </div>
+                <div style="min-width:100px;">
+                <label>Valor máximo</label>
+                <input type="text" class="form-control" name="valor_max" value="{{ filtros.valor_max }}" placeholder="0,00">
+                </div>
+            </div>
+            <!-- Hidden toggles -->
+            <input type="hidden" name="atrasados"       id="inputAtrasados"  value="{{ request.GET.atrasados|default:'' }}">
+            <input type="hidden" name="somente_faturados" id="inputFaturados" value="{{ request.GET.somente_faturados|default:'' }}">
+        </form>
+    </div>
+    <!-- Board -->
+    <div class="kb-board-wrap" id="kbBoard">
+        {% for status in status_list %}
+            {% with col_class=status|lower|cut:' '|slugify %}
+                <div class="kb-col col-{{ col_class }}" data-status="{{ status }}">
+                    <div class="kb-col-header">
+                        <div class="col-header-info">
+                            <span class="col-title">
+                                {% if status == "Em Produção" %}<i class="bi bi-gear-fill col-icon"></i>
+                                {% elif status == "Embalada" %}<i class="bi bi-box-fill col-icon"></i>
+                                {% elif status == "Entregue" %}<i class="bi bi-truck col-icon"></i>
+                                {% elif status == "Instalada" %}<i class="bi bi-tools col-icon"></i>
+                                {% endif %}
+                                {{ status }}
+                            </span>
+                            <span class="col-valor mt-1" id="col-valor-{{ col_class }}">
+                                R$ {% if contadores|get_item:status %}{{ contadores|get_item:status|get_item:"total"|moeda_br }}{% else %}0,00{% endif %}
+                            </span>
+                        </div>
+                        <span class="col-count" id="col-count-{{ col_class }}">
+                            {% if contadores|get_item:status %}{{ contadores|get_item:status|get_item:"quantidade" }}{% else %}0{% endif %}
+                        </span>
+                    </div>
+                    <div class="kb-col-body" data-status="{{ status }}" id="col-body-{{ col_class }}">
+                        <!-- Cards carregados via AJAX -->
+                    </div>
+                </div>
+            {% endwith %}
+        {% endfor %}
+    </div>
+    <!-- Refresh bar -->
+    <div class="kb-refresh-bar">
+        <span class="dot"></span>
+        <span id="refreshLabel">Atualizando em <strong id="refreshCount">{{ refresh_seconds }}</strong>s</span>
+        <svg class="progress-ring" viewBox="0 0 16 16">
+            <circle r="7" cx="8" cy="8" id="progressCircle"/>
+        </svg>
+    </div>
+    <!-- Toast container -->
+    <div class="kb-toast-wrap" id="kbToasts"></div>
+    <script>
+        const KB = {urlDados: "{% url 'kanban_dados' %}", urlStatus: "{% url 'alterar_status_orc_kanban' %}", csrfToken: "{{ csrf_token }}", refreshSecs: {{ refresh_seconds }},
+            filtros: {}, refreshTimer: null, refreshRemaining: 0, dragCard: null, dragStatus: null,
+        };
+        /* ── Helpers ─────────────────────────────────────── */
+        function getParams() {
+            const fd = new FormData(document.getElementById("formFiltros"));
+            return new URLSearchParams(fd).toString();
+        }
+        function moeda(v) {return "R$ " + parseFloat(v).toLocaleString("pt-BR", {minimumFractionDigits:2, maximumFractionDigits:2});}
+        function showToast(msg, tipo = "success") {
+            const icon = tipo === "success" ? "bi-check-circle-fill" : "bi-x-circle-fill";
+            const el = document.createElement("div");
+            el.className = `kb-toast ${tipo}`;
+            el.innerHTML = `<i class="bi ${icon}"></i><span>${msg}</span>`;
+            document.getElementById("kbToasts").appendChild(el);
+            setTimeout(() => el.remove(), 3500);
+        }
+        /* ── Carregamento de dados ───────────────────────── */
+        let firstLoad = true;
+        async function carregarDados() {
+            if (firstLoad) document.getElementById("kbLoading").style.display = "flex";
+            try {
+                const r = await fetch(`${KB.urlDados}?${getParams()}`, { headers: { "X-Requested-With": "XMLHttpRequest" }});
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                const data = await r.json();
+                document.querySelectorAll(".modal[id^='menuKanban']").forEach(m => m.remove());
+                const tmp = document.createElement("div");
+                tmp.innerHTML = data.html;
+                // Colunas vão pro board
+                document.getElementById("kbBoard").innerHTML = "";
+                tmp.querySelectorAll(".kb-col").forEach(col => {
+                    document.getElementById("kbBoard").appendChild(col);
+                });
+                // Modais vão pro body
+                tmp.querySelectorAll(".modal[id^='menuKanban']").forEach(modal => {
+                    document.body.appendChild(modal);
+                });
+                // Atualizar contadores das colunas
+                for (const [st, info] of Object.entries(data.colunas)) {
+                    const slug = st.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+                    const cntEl  = document.getElementById(`col-count-${slug}`);
+                    const valEl  = document.getElementById(`col-valor-${slug}`);
+                    if (cntEl) cntEl.textContent = info.quantidade;
+                    if (valEl) valEl.textContent = moeda(info.valor);
+                }
+                initDragDrop();
+            } catch(e) {
+                console.error("Erro ao carregar dados:", e);
+                showToast("Erro ao carregar o kanban.", "error");
+            } finally {
+                document.getElementById("kbLoading").style.display = "none";
+                firstLoad = false;
+            }
+        }
+        /* ── Drag & Drop ─────────────────────────────────── */
+        function initDragDrop() {
+            document.querySelectorAll(".kb-card").forEach(card => {
+                card.addEventListener("dragstart", onDragStart);
+                card.addEventListener("dragend",   onDragEnd);
+
+                // Impede abrir o modal se o usuário estava arrastando
+                card.addEventListener("mousedown", () => { KB.dragging = false; });
+                card.addEventListener("dragstart", () => { KB.dragging = true; });
+                card.addEventListener("click", (e) => {
+                    if (KB.dragging) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        KB.dragging = false;
+                    }
+                });
+            });
+            document.querySelectorAll(".kb-col-body").forEach(col => {
+                col.addEventListener("dragover",   onDragOver);
+                col.addEventListener("dragleave",  onDragLeave);
+                col.addEventListener("drop",       onDrop);
+            });
+        }
+        function onDragStart(e) {
+            KB.dragCard   = e.currentTarget;
+            KB.dragStatus = e.currentTarget.dataset.status;
+            e.currentTarget.classList.add("dragging");
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", e.currentTarget.dataset.codigo);
+        }
+        function onDragEnd(e) {
+            e.currentTarget.classList.remove("dragging");
+            document.querySelectorAll(".kb-col-body").forEach(c => c.classList.remove("drop-target"));
+        }
+        function onDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            e.currentTarget.classList.add("drop-target");
+        }
+        function onDragLeave(e) {
+            e.currentTarget.classList.remove("drop-target");
+        }
+        async function onDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove("drop-target");
+            const novoStatus = e.currentTarget.dataset.status;
+            const codigo     = e.dataTransfer.getData("text/plain");
+            if (!codigo || novoStatus === KB.dragStatus) return;
+            // Mover card visualmente (otimista)
+            if (KB.dragCard) {
+                const oldBody = document.querySelector(`.kb-col-body[data-status="${KB.dragStatus}"]`);
+                e.currentTarget.prepend(KB.dragCard);
+                KB.dragCard.dataset.status = novoStatus;
+                atualizarContadoresColunas(KB.dragStatus, novoStatus, parseFloat(KB.dragCard.dataset.valor || 0));
+            }
+            try {
+                const fd = new FormData();
+                fd.append("codigo", codigo);
+                fd.append("status", novoStatus);
+                fd.append("situacao", document.getElementById("selectSituacao").value);
+                const r = await fetch(KB.urlStatus, {method: "POST", headers: { "X-CSRFToken": KB.csrfToken, "X-Requested-With": "XMLHttpRequest" }, body: fd});
+                const data = await r.json();
+                if (data.ok) {
+                    showToast(`#${codigo} → ${novoStatus}`);
+                    resetRefresh();
+                } else {
+                    showToast(data.erro || "Erro ao alterar status.", "error");
+                    carregarDados(); // reverter
+                }
+            } catch(ex) {
+                showToast("Falha na comunicação.", "error");
+                carregarDados();
+            }
+        }
+        function atualizarContadoresColunas(statusAnt, statusNov, valor) {
+            const slugAnt = statusAnt.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
+            const slugNov = statusNov.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
+            // contagem
+            ["cnt","col-count"].forEach(() => {
+                const ca = document.getElementById(`col-count-${slugAnt}`);
+                const cn = document.getElementById(`col-count-${slugNov}`);
+                if (ca) ca.textContent = Math.max(0, parseInt(ca.textContent||0) - 1);
+                if (cn) cn.textContent = parseInt(cn.textContent||0) + 1;
+            });
+        }
+        /* ── Auto-refresh ────────────────────────────────── */
+        const RING_CIRC = 2 * Math.PI * 7; // ~44
+        function resetRefresh() {
+            KB.refreshRemaining = KB.refreshSecs;
+            clearInterval(KB.refreshTimer);
+            tickRefresh();
+            KB.refreshTimer = setInterval(tickRefresh, 1000);
+        }
+        function tickRefresh() {
+            KB.refreshRemaining--;
+            document.getElementById("refreshCount").textContent = Math.max(0, KB.refreshRemaining);
+            const ratio = 1 - (KB.refreshRemaining / KB.refreshSecs);
+            const circle = document.getElementById("progressCircle");
+            if (circle) circle.style.strokeDashoffset = RING_CIRC * (1 - ratio);
+            if (KB.refreshRemaining <= 0) {
+                clearInterval(KB.refreshTimer);
+                carregarDados().then(resetRefresh);
+            }
+        }
+        /* ── Botões de toggle ────────────────────────────── */
+        document.getElementById("btnAtrasados").addEventListener("click", function() {
+            const inp = document.getElementById("inputAtrasados");
+            const ativo = inp.value === "1";
+            inp.value = ativo ? "" : "1";
+            this.classList.toggle("active", !ativo);
+            carregarDados();
+        });
+        document.getElementById("btnFaturados").addEventListener("click", function() {
+            const inp = document.getElementById("inputFaturados");
+            const ativo = inp.value === "1";
+            inp.value = ativo ? "" : "1";
+            this.classList.toggle("active", !ativo);
+            carregarDados();
+        });
+        document.getElementById("btnRefresh").addEventListener("click", () => {
+            carregarDados().then(resetRefresh);
+        });
+        /* ── Filtros avançados ───────────────────────────── */
+        document.getElementById("btnExpandFiltros").addEventListener("click", function() {
+            const el = document.getElementById("filtrosAvancados");
+            const vis = el.classList.toggle("show");
+            this.classList.toggle("active", vis);
+        });
+        function mudarSituacao(situacao) {
+            document.getElementById("selectSituacao").value = situacao;
+            // Reseta filtros de coluna ao trocar de modo
+            sincronizarHidden();
+            carregarDados().then(resetRefresh);
+        }
+        // Ao trocar situação no select, recarrega imediatamente
+        document.getElementById("selectSituacao").addEventListener("change", function() {
+            carregarDados().then(resetRefresh);
+        });
+        /* ── Init ────────────────────────────────────────── */
+        document.addEventListener("DOMContentLoaded", () => {
+            carregarDados().then(resetRefresh);
+        });
+        const CAMPOS_DATA = {emissao: {ini: "hidDtIni", fim: "hidDtFim"}, entrega: {ini: "hidEntIni", fim: "hidEntFim"}, instalacao:{ini: "hidInstIni", fim: "hidInstFim"},};
+        function limparTodosHidden() {["hidDtIni","hidDtFim","hidEntIni","hidEntFim","hidInstIni","hidInstFim"].forEach(id => document.getElementById(id).value = "");}
+        function sincronizarHidden() {
+            const tipo = document.getElementById("selectTipoData").value;
+            const ini  = document.getElementById("inputDataIni").value;
+            const fim  = document.getElementById("inputDataFim").value;
+            limparTodosHidden();
+            if (ini) document.getElementById(CAMPOS_DATA[tipo].ini).value = ini;
+            if (fim) document.getElementById(CAMPOS_DATA[tipo].fim).value = fim;
+        }
+        function setPeriodo(dias) {
+            const hoje = new Date();
+            const ini  = new Date();
+            ini.setDate(hoje.getDate() - dias);
+            const fmt = d => d.toISOString().split("T")[0];
+            document.getElementById("inputDataIni").value = fmt(ini);
+            document.getElementById("inputDataFim").value = fmt(hoje);
+            sincronizarHidden();
+            carregarDados().then(resetRefresh);
+        }
+        function limparDatas() {
+            document.getElementById("inputDataIni").value = "";
+            document.getElementById("inputDataFim").value = "";
+            limparTodosHidden();
+            carregarDados().then(resetRefresh);
+        }
+        // Sincroniza ao trocar tipo ou digitar data manualmente
+        document.getElementById("selectTipoData").addEventListener("change", sincronizarHidden);
+        document.getElementById("inputDataIni").addEventListener("change", sincronizarHidden);
+        document.getElementById("inputDataFim").addEventListener("change", sincronizarHidden);
+        // Ao submeter o form, sincroniza antes de enviar
+        document.getElementById("formFiltros").addEventListener("submit", function(e) {
+            e.preventDefault();
+            sincronizarHidden();
+            carregarDados().then(resetRefresh);
+        });
+  </script>
+{% endblock %}

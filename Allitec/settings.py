@@ -10,8 +10,8 @@ INSTALLED_APPS = [
     'django.contrib.messages', 'django.contrib.staticfiles', 'core', 'pedidos', 'tabelas_preco', 'vendedores',
     'regras_produto', 'marcas', 'formas_pgto', 'tipo_cobranca', 'lancpdvs', 'pdvs',
     'filiais', 'compras', 'entradas', 'conferencias', 'relatorios', 'propostas',
-    'unidades', 'clientes', 'fornecedores', 'produtos',
-    'orcamentos', 'tecnicos', 'bancos', 'grupos',
+    'unidades', 'clientes', 'fornecedores', 'produtos', 'estoques', 'informacoes',
+    'orcamentos', 'tecnicos', 'bancos', 'grupos', 'django.contrib.humanize',
     'empresas', 'bairros', 'cidades', 'estados', 'contas_receber',
     'notifications', 'mensalidades', 'contratos', 'crispy_forms', 'crispy_bootstrap5',
 ]
@@ -33,7 +33,6 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'filiais.context_processors.user_permissions',
                 'filiais.context_processors.notificacoes',
                 'core.context_processors.financeiro_status',
             ],
@@ -41,9 +40,22 @@ TEMPLATES = [
     },
 ]
 WSGI_APPLICATION = 'Allitec.wsgi.application'
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3', 'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3', 'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'erp',
+        'USER': 'root',
+        'PASSWORD': 'senha',
+        'HOST': 'localhost',
+        'PORT': '3306',
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        },
     }
 }
 AUTH_PASSWORD_VALIDATORS = [
@@ -91,3 +103,6 @@ STATICFILES_DIRS = [
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+DJANGO_NOTIFICATIONS_CONFIG = {
+    'USE_JSONFIELD': True,
+}

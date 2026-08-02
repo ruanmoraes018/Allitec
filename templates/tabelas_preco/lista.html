@@ -19,7 +19,7 @@
                 {% endfor %}
             ]'></div>
         {% endif %}
-        {% if not perm_add_tabelapreco and not perm_change_tabelapreco and not perm_delete_tabelapreco %}
+        {% if not perms.tabelas_preco.add_tabelapreco and not perms.tabelas_preco.change_tabelapreco and not perms.tabelas_preco.delete_tabelapreco %}
             <div class="alert alert-warning">
                 Usuário não autorizado para realizar esta função.
             </div>

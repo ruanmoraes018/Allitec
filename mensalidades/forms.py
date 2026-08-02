@@ -1,4 +1,6 @@
 from django import forms
+
+from util.parse_decimal import parse_decimal
 from .models import Mensalidade
 from empresas.models import Empresa
 
@@ -25,3 +27,13 @@ class MensalidadeForm(forms.ModelForm):
         if self.instance and self.instance.pk:
             if self.instance.dt_venc:
                 self.initial['dt_venc'] = self.instance.dt_venc.strftime('%d/%m/%Y')
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        try: cleaned_data['vl_mens'] = parse_decimal(cleaned_data.get('vl_mens'))
+        except: self.add_error('vl_mens', 'Valor inválido.')
+        try: cleaned_data['vl_multa'] = parse_decimal(cleaned_data.get('vl_multa'))
+        except: self.add_error('vl_multa', 'Valor inválido.')
+        try: cleaned_data['vl_juros'] = parse_decimal(cleaned_data.get('vl_juros'))
+        except: self.add_error('vl_juros', 'Valor inválido.')
+        return cleaned_data

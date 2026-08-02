@@ -19,7 +19,7 @@
                 {% endfor %}
             ]'></div>
         {% endif %}
-        {% if not perm_add_unidade and not perm_change_unidade and not perm_delete_unidade %}
+        {% if not perms.unidades.add_unidade and not perms.unidades.change_unidade and not perms.unidades.delete_unidade %}
             <div class="alert alert-warning">
                 Usuário não autorizado para realizar esta função.
             </div>

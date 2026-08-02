@@ -13,6 +13,7 @@ from filiais.models import Usuario
 from django.db.models import Q
 from django.db import IntegrityError, DatabaseError, transaction
 from django.core.exceptions import ObjectDoesNotExist
+from util.logs import gerar_alteracoes, registrar_log
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -98,6 +99,11 @@ def add_formas_pgto(request):
             c = form.save(commit=False)
             c.vinc_emp = request.user.empresa
             c.save()
+            registrar_log(
+                request, "CRIAR", "Forma de Pagamento", c.descricao,
+                f"Adicionou a forma de pagamento: {c.codigo} - {c.descricao}",
+                c.id, gerar_alteracoes(obj_novo=c)
+            )
             messages.success(request, 'Forma de Pagamento adicionada com sucesso!')
             cid = str(c.codigo)
             return redirect('/formas_pgto/lista/?tp=cod&s=' + cid)
@@ -112,6 +118,7 @@ def add_formas_pgto(request):
 def att_formas_pgto(request, codigo):
     error_messages = []
     c = get_object_or_404(FormaPgto, codigo=codigo, vinc_emp=request.user.empresa)
+    it_old = FormaPgto.objects.get(codigo=c.codigo, vinc_emp=request.user.empresa)
     if not request.user.has_perm('formas_pgto.change_formapgto'):
         messages.info(request, 'Você não tem permissão para editar formas de pagamento.')
         return redirect('/formas_pgto/lista/')
@@ -120,6 +127,11 @@ def att_formas_pgto(request, codigo):
         try:
             if form.is_valid():
                 c = form.save()  # 🔥 ESSENCIAL (salva credenciais corretamente)
+                registrar_log(
+                    request, "ALTERAR", "Forma de Pagamento", c.descricao,
+                    f"Alterou a forma de pagamento: {c.codigo} - {c.descricao}",
+                    c.id, gerar_alteracoes(it_old, c)
+                )
                 next_url = request.POST.get('next') or request.GET.get('next')
                 cid = str(c.codigo)
                 messages.success(request, 'Forma de Pagamento atualizada com sucesso!')
@@ -150,6 +162,11 @@ def del_formas_pgto(request, codigo):
         messages.info(request, 'Você não tem permissão para deletar formas de pagamento.')
         return redirect('/formas_pgto/lista/')
     c = get_object_or_404(FormaPgto, codigo=codigo, vinc_emp=request.user.empresa)
+    registrar_log(
+        request, "EXCLUIR", "Forma de pagamento", c.descricao,
+        f"Excluiu a forma de pagamento: {c.codigo} - {c.descricao}",
+        c.id, gerar_alteracoes(obj_antigo=c)
+    )
     c.delete()
     messages.success(request, 'Forma de Pagamento deletada com sucesso!')
     return redirect('/formas_pgto/lista/')

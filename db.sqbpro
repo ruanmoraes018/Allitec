@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="db.sqlite3" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="3"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="14572"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="auth_group" custom_title="0" dock_id="1" table="4,10:mainauth_group"/><dock_state state="000000ff00000000fd00000001000000020000000000000000fc0100000001fb000000160064006f0063006b00420072006f00770073006500310100000000ffffffff0000012400ffffff000000000000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings/></tab_browse><tab_sql><sql name="SQL 1*">CREATE TABLE filiais_filialfinanceiro (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    tp_chave VARCHAR(20) NOT NULL,
+    chave_pix VARCHAR(100),
+    beneficiario VARCHAR(255),
+    max_parcelas INTEGER NOT NULL DEFAULT 1,
+    max_dias_intervalo INTEGER NOT NULL DEFAULT 30,
+    tp_calc_juros VARCHAR(15) NOT NULL DEFAULT 'Percentual',
+    tp_calc_multa VARCHAR(15) NOT NULL DEFAULT 'Percentual',
+    ft_multa DECIMAL(10,2),
+    ft_juros DECIMAL(10,2),
+    desconto_maximo DECIMAL(10,2) NOT NULL DEFAULT 0,
+    acrescimo_maximo DECIMAL(10,2) NOT NULL DEFAULT 0,
+    limite_credito_padrao DECIMAL(12,2) NOT NULL DEFAULT 0,
+    banco_fil_id BIGINT,
+    filial_id BIGINT NOT NULL UNIQUE,
+
+    FOREIGN KEY (filial_id) REFERENCES filiais_filial(id),
+    FOREIGN KEY (banco_fil_id) REFERENCES bancos_banco(id)
+);
+
+
+CREATE TABLE filiais_filialfiscal (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    crt VARCHAR(5) NOT NULL DEFAULT '1',
+    im VARCHAR(30),
+    suframa VARCHAR(30),
+    certificado VARCHAR(100),
+    senha_certificado VARCHAR(150),
+    serie_nfe INTEGER NOT NULL DEFAULT 1,
+    serie_nfce INTEGER NOT NULL DEFAULT 1,
+    ultimo_numero_nfe INTEGER NOT NULL DEFAULT 0,
+    ultimo_numero_nfce INTEGER NOT NULL DEFAULT 0,
+    ambiente_fiscal VARCHAR(15) NOT NULL DEFAULT 'Homologação',
+    cnae_principal VARCHAR(20),
+    filial_id BIGINT NOT NULL UNIQUE,
+
+    FOREIGN KEY (filial_id) REFERENCES filiais_filial(id)
+);
+
+
+CREATE TABLE filiais_filialorcamento (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    layout_contrato VARCHAR(10) NOT NULL DEFAULT 'Layout 1',
+    layout_prod VARCHAR(10) NOT NULL DEFAULT '1',
+    imp_recibo_orc VARCHAR(20) NOT NULL DEFAULT 'Sim',
+    info_comp TEXT,
+    info_local TEXT,
+    info_orcamento TEXT,
+    mt_qt_lam VARCHAR(100),
+    multi_m2 DECIMAL(10,2),
+    multi_lg_corte1 DECIMAL(10,2),
+    multi_lg_corte2 DECIMAL(10,2),
+    multi_lg_corte3 DECIMAL(10,2),
+    filial_id BIGINT NOT NULL UNIQUE,
+
+    FOREIGN KEY (filial_id) REFERENCES filiais_filial(id)
+);
+
+
+CREATE TABLE filiais_filialcontato (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    celular VARCHAR(20),
+    whatsapp VARCHAR(20),
+    site VARCHAR(200),
+    instagram VARCHAR(80),
+    facebook VARCHAR(80),
+    email_financeiro VARCHAR(254),
+    email_fiscal VARCHAR(254),
+    email_comercial VARCHAR(254),
+    filial_id BIGINT NOT NULL UNIQUE,
+
+    FOREIGN KEY (filial_id) REFERENCES filiais_filial(id)
+);
+
+
+CREATE TABLE filiais_filialestoque (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    controla_lote BOOLEAN NOT NULL DEFAULT 0,
+    controla_validade BOOLEAN NOT NULL DEFAULT 0,
+    filial_id BIGINT NOT NULL UNIQUE,
+
+    FOREIGN KEY (filial_id) REFERENCES filiais_filial(id)
+);
+
+
+CREATE TABLE filiais_filialimpressao (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    imprimir_logo BOOLEAN NOT NULL DEFAULT 1,
+    imp_recibo_cr VARCHAR(20) NOT NULL DEFAULT 'Sim',
+    filial_id BIGINT NOT NULL UNIQUE,
+
+    FOREIGN KEY (filial_id) REFERENCES filiais_filial(id)
+);
+
+
+CREATE TABLE filiais_filialobservacao (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    obs_pedido TEXT,
+    observacao_boleto TEXT,
+    filial_id BIGINT NOT NULL UNIQUE,
+
+    FOREIGN KEY (filial_id) REFERENCES filiais_filial(id)
+);</sql><current_tab id="0"/></tab_sql></sqlb_project>

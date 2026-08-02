@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from util.permissoes import verifica_permissao
 from filiais.models import Usuario
 from django.db.models import Q
+from util.logs import gerar_alteracoes, registrar_log
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -61,6 +62,11 @@ def add_banco(request):
             b = form.save(commit=False)
             b.vinc_emp = request.user.empresa
             b.save()
+            registrar_log(
+                request, "CRIAR", "Banco", b.nome_banco,
+                f"Adicionou o banco: {b.codigo} - {b.nome_banco}",
+                b.id, gerar_alteracoes(obj_novo=b)
+            )
             messages.success(request, 'Banco adicionado com sucesso!')
             bank = str(b.codigo)
             return redirect('/bancos/lista/?tp=cod&s=' + bank)
@@ -75,6 +81,7 @@ def add_banco(request):
 @login_required
 def att_banco(request, codigo):
     b = get_object_or_404(Banco, codigo=codigo, vinc_emp=request.user.empresa)
+    it_old = Banco.objects.get(codigo=b.codigo, vinc_emp=request.user.empresa)
     form = BancoForm(instance=b)
     if not request.user.has_perm('bancos.change_banco'):
         messages.info(request, 'Você não tem permissão para editar bancos.')
@@ -83,6 +90,11 @@ def att_banco(request, codigo):
         form = BancoForm(request.POST, instance=b, vinc_emp=request.user.empresa)
         if form.is_valid():
             b.save()
+            registrar_log(
+                request, "ALTERAR", "Banco", b.nome_banco,
+                f"Alterou o banco: {b.codigo} - {b.nome_banco}",
+                b.id, gerar_alteracoes(it_old, b)
+            )
             next_url = request.POST.get('next') or request.GET.get('next')
             bank = str(b.codigo)
             messages.success(request, 'Banco atualizado com sucesso!')
@@ -101,6 +113,11 @@ def del_banco(request, codigo):
         messages.info(request, 'Você não tem permissão para deletar bancos.')
         return redirect('/bancos/lista/')
     b = get_object_or_404(Banco, codigo=codigo, vinc_emp=request.user.empresa)
+    registrar_log(
+        request, "EXCLUIR", "Banco", b.nome_banco,
+        f"Excluiu o banco: {b.codigo} - {b.nome_banco}",
+        b.id, gerar_alteracoes(obj_antigo=b)
+    )
     b.delete()
     messages.success(request, 'Banco deletado com sucesso!')
     return redirect('/bancos/lista/')

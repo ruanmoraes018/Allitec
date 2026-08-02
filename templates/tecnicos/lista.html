@@ -19,7 +19,7 @@
                 {% endfor %}
             ]'></div>
         {% endif %}
-        {% if not perm_add_tecnico and not perm_change_tecnico and not perm_delete_tecnico %}
+        {% if not perms.tecnicos.add_tecnico and not perms.tecnicos.change_tecnico and not perms.tecnicos.delete_tecnico %}
             <div class="alert alert-warning">
                 Usuário não autorizado para realizar esta função.
             </div>

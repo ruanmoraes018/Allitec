@@ -25,6 +25,9 @@ from estados.models import Estado
 from tabelas_preco.models import TabelaPreco
 import json
 from django.db.models import Q
+from util.logs import gerar_alteracoes, registrar_log
+from django.utils import timezone
+from util.filiais import aplicar_filtro_filial
 
 def parse_decimal(value):
     if value is None or value == "": return Decimal("0")
@@ -46,6 +49,8 @@ def lista_entradas(request):
     hoje = datetime.today()
     empresa = request.user.empresa
     entradas = Entrada.objects.filter(vinc_emp=empresa).prefetch_related("itens__produto")
+    # Aplica a regra de acesso às filiais
+    entradas, aguardando_filial = aplicar_filtro_filial(request, entradas)
     if s: entradas = entradas.filter(numeracao__icontains=s).order_by('numeracao')
     # Filtro por data
     if por_dt == 'Sim' and dt_ini and dt_fim:
@@ -58,12 +63,11 @@ def lista_entradas(request):
         except ValueError: entradas = Entrada.objects.none()
     # Apenas aplica o filtro do dia atual se nenhum filtro estiver ativo
     filtros_ativos = any([s, f_s, por_dt == 'Sim', forn, tp_dt and tp_dt != 'Todos'])
-    if not filtros_ativos: entradas = entradas.filter(dt_emi=hoje, situacao='Pendente')
+    if not filtros_ativos and not aguardando_filial: entradas = entradas.filter(dt_emi=hoje, situacao='Pendente')
     # Filtro por situação
     if f_s and f_s != 'Todos': entradas = entradas.filter(situacao=f_s)
     # Filtro por cliente
     if forn: entradas = entradas.filter(fornecedor__codigo=forn)
-    if fil: entradas = entradas.filter(vinc_fil__codigo=fil)
     fornecedores = Fornecedor.objects.filter(vinc_emp=request.user.empresa)
     filiais = Filial.objects.filter(vinc_emp=request.user.empresa)
     # Paginação
@@ -267,7 +271,12 @@ def criar_fornecedor_por_xml(request):
         cidade = get_or_create_cidade(empresa, cidade_nome)
         bairro = get_or_create_bairro(empresa, bairro_nome)
         fornecedor = Fornecedor.objects.create(vinc_emp=empresa, situacao="Ativo", pessoa="Jurídica" if len(cpf_cnpj) == 14 else "Física", cpf_cnpj=cpf_cnpj, ie=ie or None, razao_social=razao_social, fantasia=fantasia,
-            endereco=endereco or "NÃO INFORMADO", cep=cep or "00000000", numero=numero, bairro=bairro, cidade=cidade, uf=estado, complem="", tel=tel or "00000000000", email="sememail@fornecedor.local", dt_reg=date.today()
+            endereco=endereco or "NÃO INFORMADO", cep=cep or "00000000", numero=numero, bairro=bairro, cidade=cidade, uf=estado, complem="", tel=tel or "00000000000", email="", dt_reg=date.today()
+        )
+        registrar_log(
+            request, "CRIAR", "Fornecedor", fornecedor.fantasia,
+            f"Adicionou o fornecedor: {fornecedor.codigo} - {fornecedor.fantasia} por meio de Entrada de XML de NF-e",
+            fornecedor.id, gerar_alteracoes(obj_novo=fornecedor)
         )
         return JsonResponse({"ok": True, "fornecedor": {"id": fornecedor.codigo, "nome": fornecedor.razao_social or fornecedor.fantasia, "ja_existia": False}})
     except Exception as e: return JsonResponse({"ok": False, "erro": f"Erro ao criar fornecedor: {str(e)}"}, status=400)
@@ -313,6 +322,11 @@ def criar_produto_por_xml(request):
         produto = Produto.objects.create(vinc_emp=empresa, desc_prod=descricao, grupo=grupo, unidProd=unidade, marca=marca, tp_prod=tp_prod if tp_prod in ["Principal", "Adicional"] else "Principal",
             situacao="Ativo", vl_compra=Decimal("0.00"), estoque_prod=Decimal("0.00"))
         ja_existia = False
+        registrar_log(
+            request, "CRIAR", "Produto", produto.desc_prod,
+            f"Adicionou o produto: {produto.codigo} - {produto.desc_prod} por meio de Entrada de XML de NF-e",
+            produto.id, gerar_alteracoes(obj_novo=produto)
+        )
     else: ja_existia = True
     if ean and ean not in ["SEM GTIN", "SEMGTIN"]: CodigoProduto.objects.get_or_create(vinc_emp=empresa, codigo=ean, defaults={"produto": produto})
     if fornecedor and codigo_fornecedor: ProdutoFornecedor.objects.update_or_create(vinc_emp=empresa, fornecedor=fornecedor, codigo_fornecedor=codigo_fornecedor, defaults={"produto": produto, "descricao_fornecedor": descricao_fornecedor})
@@ -352,6 +366,11 @@ def criar_produtos_em_massa(request):
             produto = Produto.objects.create(vinc_emp=empresa, desc_prod=descricao, grupo=grupo, unidProd=unidade, marca=marca,
                 tp_prod=tp_prod if tp_prod in ["Principal", "Adicional"] else "Principal", situacao="Ativo", vl_compra=Decimal("0.00"), estoque_prod=Decimal("0.00"))
             ja_existia = False
+            registrar_log(
+                request, "CRIAR", "Produto", produto.desc_prod,
+                f"Adicionou o produto: {produto.codigo} - {produto.desc_prod} por meio de Entrada de XML de NF-e",
+                produto.id, gerar_alteracoes(obj_novo=produto)
+            )
         else:
             ja_existia = True
         # 🔗 EAN
@@ -424,6 +443,14 @@ def add_entrada(request):
                     ProdutoTabela.objects.update_or_create(produto=produto, tabela=tabela, defaults={"vl_prod": valor, "margem": margem})
             entrada.total = entrada.atualizar_total()
             entrada.save(update_fields=["total"])
+            tipo = "NF-e"
+            if entrada.tipo == "Pedido":
+                tipo = "Pedido"
+            registrar_log(
+                request, "CRIAR", f"Entrada de {tipo}", entrada.numeracao,
+                f"Realizou a entrada de {tipo}: {entrada.numeracao}",
+                entrada.id, gerar_alteracoes(obj_novo=entrada)
+            )
             messages.success(request, f'Registro de {entrada.tipo} - {entrada.numeracao} realizado com sucesso!')
             return redirect(f'/entradas/lista/?tp=numeracao&s={entrada.numeracao}')
         form = EntradaForm(empresa=empresa, user=request.user)
@@ -438,6 +465,7 @@ def add_entrada(request):
 def att_entrada(request, codigo):
     error_messages = []
     entrada = get_object_or_404(Entrada, codigo=codigo, vinc_emp=request.user.empresa)
+    it_old = Entrada.objects.get(codigo=entrada.codigo, vinc_emp=request.user.empresa)
     if not request.user.has_perm('entradas.change_entrada'):
         messages.info(request, 'Você não tem permissão para editar entradas de NF/Pedidos.')
         return redirect('/entradas/lista/')
@@ -458,6 +486,14 @@ def att_entrada(request, codigo):
             if entrada.vinc_fil and entrada.vinc_fil.vinc_emp != request.user.empresa: return HttpResponseForbidden()
             entrada.vinc_emp = request.user.empresa
             entrada.save()
+            tipo = "NF-e"
+            if entrada.tipo == "Pedido":
+                tipo = "Pedido"
+            registrar_log(
+                request, "ALTERAR", "Entrada", entrada.numeracao,
+                f"Alterou a entrada de {tipo}: {entrada.numeracao}",
+                entrada.id, gerar_alteracoes(it_old, entrada)
+            )
             next_url = request.POST.get('next') or request.GET.get('next')
             produtos_dict = montar_produtos_post(request.POST)
             itens_ids_mantidos = []
@@ -516,6 +552,14 @@ def del_entrada(request, codigo):
     if entrada.situacao != 'Pendente':
         messages.warning(request, 'NF/Pedidos só podem ser deletados com status <i>Pendente</i>!')
         return redirect(f'/entradas/lista/?tp=numero&s={entrada.numeracao}')
+    tipo = "NF-e"
+    if entrada.tipo == "Pedido":
+        tipo = "Pedido"
+    registrar_log(
+        request, "EXCLUIR", "Entrada", entrada.numeracao,
+        f"Excluiu a entrada de {tipo}: {entrada.numeracao}",
+        entrada.id, gerar_alteracoes(obj_antigo=entrada)
+    )
     entrada.delete()
     messages.success(request, f'Registro de {entrada.tipo} - {entrada.numeracao} deletado com sucesso!')
     return redirect('/entradas/lista/')
@@ -531,10 +575,27 @@ def efetivar_entrada(request, codigo):
         if entrada.situacao == 'Pendente':
             entrada.situacao = "Efetivada"
             entrada.save()
+            tipo = "NF-e"
+            if entrada.tipo == "Pedido":
+                tipo = "Pedido"
+            registrar_log(
+                request=request,
+                tipo="FATURAR",
+                modulo="Entrada",
+                objeto=entrada.numeracao,
+                descricao=f"Realizou a efetivação da entrada de {tipo}: {entrada.numeracao}",
+                objeto_id=entrada.id,
+                alteracoes={
+                    "Fornecedor": entrada.fornecedor.fantasia,
+                    "Nº": entrada.numeracao,
+                    "Data de Emissão": timezone.localdate(entrada.dt_emi).strftime("%d/%m/%Y"),
+                    "Data de Efetivação": timezone.localdate().strftime("%d/%m/%Y"),
+                }
+            )
             for item in entrada.itens.all():
                 produto = item.produto
                 produto.estoque_prod = (produto.estoque_prod or 0) + (item.quantidade or 0)
-                produto.vl_compra = str(item.preco_unitario)  # já que vl_compra é CharField
+                produto.vl_compra = parse_decimal(item.preco_unitario)  # já que vl_compra é CharField
                 produto.save(update_fields=["estoque_prod", "vl_compra"])
             messages.success(request, f'Registro de {entrada.tipo} - {entrada.numeracao} efetivado com sucesso!')
         else: messages.warning(request, f'Entrada {entrada.numeracao} já foi efetivada antes.')
@@ -544,13 +605,29 @@ def efetivar_entrada(request, codigo):
 @login_required
 def cancelar_entrada(request, codigo):
     entrada = get_object_or_404(Entrada, codigo=codigo, vinc_emp=request.user.empresa)
+    motivo = request.POST.get("motivo")
     if not request.user.has_perm('entradas.cancelar_entrada'):
         messages.info(request, 'Você não tem permissão para cancelar entradas de NF/Pedidos.')
         return redirect('/entradas/lista/')
     if request.method == 'POST':  # segurança extra
         if entrada.situacao == 'Efetivada':
             entrada.situacao = "Cancelada"
+            entrada.motivo = motivo
             entrada.save()
+            tipo = "NF-e"
+            if entrada.tipo == "Pedido":
+                tipo = "Pedido"
+            registrar_log(
+                request=request,
+                tipo="CANCELAR",
+                modulo="Entrada",
+                objeto=entrada.numeracao,
+                descricao=f"Cancelou a efetivação da entrada de {tipo}: {entrada.numeracao}",
+                objeto_id=entrada.id,
+                alteracoes={
+                    "Motivo": entrada.motivo,
+                }
+            )
             for item in entrada.itens.all():
                 produto = item.produto
                 produto.estoque_prod = (produto.estoque_prod or 0) - (item.quantidade or 0)

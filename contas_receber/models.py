@@ -31,6 +31,8 @@ class ContaReceber(models.Model):
     situacao = models.CharField(max_length=14, choices=SITUACAO, default='Aberta')
     observacao = models.TextField(blank=True, null=True)
     obs_internas = models.TextField(blank=True, null=True)
+
+    motivo = models.TextField(blank=True, null=True, default="")
     titulo_origem = models.ForeignKey(
         "self",
         on_delete=models.CASCADE,

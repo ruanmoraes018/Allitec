@@ -29,6 +29,8 @@ from django.template.loader import render_to_string
 from django.http import HttpResponse
 from weasyprint import HTML, CSS
 from util.logo_impressao import img_base64
+from util.logs import gerar_alteracoes, registrar_log
+from util.filiais import aplicar_filtro_filial
 
 @verifica_permissao('pedidos.view_pedido')
 @login_required
@@ -47,8 +49,11 @@ def lista_pedidos(request):
     inicio_dia = datetime.combine(hoje, time.min)
     fim_dia = datetime.combine(hoje, time.max)
     empresa = request.user.empresa
-    pedidos = Pedido.objects.filter(vinc_emp=empresa).prefetch_related("itens__produto")
-    if s: pedidos = pedidos.filter(codigo__iexact=s).order_by('codigo')
+    pedidos = (Pedido.objects.filter(vinc_emp=empresa).prefetch_related("itens__produto"))
+    # Aplica a regra de acesso às filiais
+    pedidos, aguardando_filial = aplicar_filtro_filial(request, pedidos)
+    if s:
+        pedidos = pedidos.filter(codigo__iexact=s).order_by('codigo')
     # Filtro por data
     if por_dt == 'Sim' and dt_ini and dt_fim:
         try:
@@ -58,34 +63,46 @@ def lista_pedidos(request):
             elif tp_dt == 'Fatura': pedidos = pedidos.filter(dt_fat__range=(dt_ini_dt, dt_fim_dt))
         except ValueError: pedidos = Pedido.objects.none()
     # Apenas aplica o filtro do dia atual se nenhum filtro estiver ativo
-    filtros_ativos = any([s, f_s, por_dt == 'Sim', cli, tp_dt and tp_dt != 'Todos'])
-    if not filtros_ativos: pedidos = pedidos.filter(dt_emi__range=(inicio_dia, fim_dia), situacao='Aberto')
-    # Filtro por situação
-    if f_s and f_s != 'Todos': pedidos = pedidos.filter(situacao=f_s)
-    if cli: pedidos = pedidos.filter(cli__codigo=cli)
-    if fil: pedidos = pedidos.filter(vinc_fil__codigo=fil)
-    if vend: pedidos = pedidos.filter(vendedor__codigo=vend)
+    filtros_ativos = any([s, f_s, por_dt == 'Sim', cli, vend, tp_dt and tp_dt != 'Todos', fil,])
+    if not filtros_ativos and not aguardando_filial:
+        pedidos = pedidos.filter(dt_emi__range=(inicio_dia, fim_dia), situacao='Aberto')
+    # Situação
+    if f_s and f_s != 'Todos':
+        pedidos = pedidos.filter(situacao=f_s)
+    # Cliente
+    if cli:
+        pedidos = pedidos.filter(cli__codigo=cli)
+    # Vendedor
+    if vend:
+        pedidos = pedidos.filter(vendedor__codigo=vend)
     # Paginação
-    if reg == 'todos': num_pagina = pedidos.count() or 1
+    if reg == 'todos':
+        num_pagina = pedidos.count() or 1
     else:
-        try: num_pagina = int(reg) if int(reg) > 0 else 10
-        except ValueError: num_pagina = 10
+        try:
+            num_pagina = int(reg)
+            if num_pagina <= 0:
+                num_pagina = 10
+        except ValueError:
+            num_pagina = 10
     paginator = Paginator(pedidos, num_pagina)
     page = request.GET.get('page')
     pedidos = paginator.get_page(page)
+    # Resumo da página
     ped_ab_pg = sum(1 for p in pedidos.object_list if p.situacao == 'Aberto')
     ped_fat_pg = sum(1 for p in pedidos.object_list if p.situacao == 'Faturado')
     ped_canc_pg = sum(1 for p in pedidos.object_list if p.situacao == 'Cancelado')
-    # Total da página atual
     tot_ab_pg = sum((p.total or Decimal('0.00')) for p in pedidos.object_list if p.situacao == 'Aberto')
     tot_fat_pg = sum((p.total or Decimal('0.00')) for p in pedidos.object_list if p.situacao == 'Faturado')
     tot_canc_pg = sum((p.total or Decimal('0.00')) for p in pedidos.object_list if p.situacao == 'Cancelado')
-    return render(request, 'pedidos/lista.html', {
-        'pedidos': pedidos, 's': s, 'fil': fil, 'cli': cli, 'sit': f_s, 'vend': vend,
-        'filiais': Filial.objects.filter(vinc_emp=request.user.empresa), 'clientes': Cliente.objects.filter(vinc_emp=request.user.empresa),
-        'vendedores': Vendedor.objects.filter(vinc_emp=request.user.empresa), 'tot_ab': tot_ab_pg, 'tot_fat': tot_fat_pg, 'tot_canc': tot_canc_pg,
-        'ped_ab': ped_ab_pg, 'ped_fat': ped_fat_pg, 'ped_canc': ped_canc_pg, 'dt_ini': dt_ini, 'dt_fim': dt_fim, 'p_dt': por_dt, 'tp_dt': tp_dt, 'reg': reg,
-    })
+    return render(request,'pedidos/lista.html', {
+            'pedidos': pedidos, 's': s, 'fil': fil, 'cli': cli, 'sit': f_s, 'vend': vend,
+            'filiais': Filial.objects.filter(vinc_emp=empresa), 'clientes': Cliente.objects.filter(vinc_emp=empresa),'vendedores': Vendedor.objects.filter(vinc_emp=empresa),
+            'tot_ab': tot_ab_pg, 'tot_fat': tot_fat_pg, 'tot_canc': tot_canc_pg, 'ped_ab': ped_ab_pg, 'ped_fat': ped_fat_pg, 'ped_canc': ped_canc_pg,
+            'dt_ini': dt_ini, 'dt_fim': dt_fim, 'p_dt': por_dt, 'tp_dt': tp_dt, 'reg': reg,
+        }
+    )
+
 def pedidos_por_produto(request, produto_id):
     pedidos = PedidoProduto.objects.filter(produto__codigo=produto_id, vinc_emp=request.user.empresa).select_related('pedido', 'pedido__cliente')
     data = []
@@ -204,6 +221,11 @@ def add_pedido(request):
             pedido.total = pedido.atualizar_total()
             pedido.save(update_fields=["total"])
             # Exibe mensagem de sucesso e redireciona para a lista de pedidos
+            registrar_log(
+                request, "CRIAR", "Pedido", pedido.codigo,
+                f"Registrou o pedido, Nº: {pedido.codigo}",
+                pedido.id, gerar_alteracoes(obj_novo=pedido)
+            )
             messages.success(request, f'Pedido gerado com sucesso!')
             return redirect(f'/pedidos/lista/?s={pedido.codigo}')
         else:
@@ -220,6 +242,7 @@ def add_pedido(request):
 @login_required
 def att_pedido(request, codigo):
     pedido = get_object_or_404(Pedido, codigo=codigo, vinc_emp=request.user.empresa)
+    it_old = Pedido.objects.get(codigo=pedido.codigo, vinc_emp=request.user.empresa)
     if not request.user.has_perm('pedidos.change_pedido'):
         messages.info(request, 'Você não tem permissão para editar pedidos.')
         return redirect('/pedidos/lista/')
@@ -284,6 +307,11 @@ def att_pedido(request, codigo):
                 if p.valor != pedido.total:
                     p.status = "cancelado"
                     p.save(update_fields=["status"])
+            registrar_log(
+                request, "ALTERAR", "Pedido", pedido.codigo,
+                f"Alterou o registro do pedido, Nº: {pedido.codigo}",
+                pedido.id, gerar_alteracoes(it_old, pedido)
+            )
             messages.success(request, 'Pedido atualizado com sucesso!')
             if next_url: return redirect(next_url)
             return redirect(f'/pedidos/lista/?s={pedido.codigo}')
@@ -348,6 +376,11 @@ def clonar_pedido(request, codigo):
                     itens_existentes[key] = novo
             pedido.total = pedido.atualizar_total()
             pedido.save(update_fields=["total"])
+            registrar_log(
+                request, "CRIAR", "Pedido", pedido.codigo,
+                f"Registrou o pedido, Nº: {pedido.codigo} a partir da clonagem do pedido Nº: {pedido_origem.codigo}",
+                pedido.id, gerar_alteracoes(obj_novo=pedido)
+            )
             messages.success(request, "Pedido clonado com sucesso!")
             return redirect(f'/pedidos/lista/?s={pedido.codigo}')
     else: form = PedidoForm(instance=pedido_origem, empresa=empresa, user=request.user)
@@ -362,6 +395,11 @@ def del_pedido(request, codigo):
     if pedido.situacao != 'Aberto':
         messages.warning(request, 'Pedidos só podem ser deletados com Situação em <i>Aberto</i>!')
         return redirect(f'/pedidos/lista/?s={pedido.codigo}')
+    registrar_log(
+        request, "EXCLUIR", "Pedido", pedido.codigo,
+        f"Excluiu o pedido, Nº: {pedido.codigo}",
+        pedido.id, gerar_alteracoes(obj_antigo=pedido)
+    )
     pedido.delete()
     messages.success(request, f'Pedido deletado com sucesso!')
     return redirect('/pedidos/lista/')
@@ -447,6 +485,18 @@ def cancelar_pedido(request, codigo):
     pedido.dt_canc = datetime.now()  # opcional (log de cancelamento)
     pedido.motivo = motivo
     pedido.save(update_fields=["situacao", "dt_fat"])
+    registrar_log(
+        request=request,
+        tipo="CANCELAR",
+        modulo="Pedido",
+        objeto=pedido.codigo,
+        objeto_id=pedido.id,
+        descricao=f"Cancelou o pedido, nº {pedido.codigo}",
+        alteracoes={
+            "Motivo": pedido.motivo,
+            "Data do Cancelamento": pedido.dt_canc,
+        }
+    )
     messages.success(request, f'Pedido {pedido.codigo} cancelado com sucesso!')
     return redirect(f'/pedidos/lista/?s={pedido.codigo}')
 

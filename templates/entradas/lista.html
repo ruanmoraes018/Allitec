@@ -20,6 +20,11 @@
                 {% endfor %}
             ]'></div>
         {% endif %}
+        {% if not perms.entradas.add_entrada and not perms.entradas.change_entrada and not perms.entradas.delete_entrada %}
+            <div class="alert alert-warning">
+                Usuário não autorizado para realizar esta função.
+            </div>
+        {% endif %}
         <div class="card border-0 shadow-sm rounded-3 mb-2">
             <div class="card-body p-0 mb-2">
                 <form method="GET" id="search-form">

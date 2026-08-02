@@ -10,6 +10,7 @@
                     <a href="{% url 'inicio' %}" class="text-decoration-none text-secondary" id="item-naveg"><i class="fas fa-home me-1"></i> Principal</a>
                 </li>
                 <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">Listagem de Orçamentos</li>
+                <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page"><a class="btn btn-sm btn-light border" href="{% url 'kanban_orcamentos' %}">Kanban</a></li>
             </ol>
         </nav>
         {% if messages %}
@@ -19,6 +20,11 @@
                     {% if not forloop.last %},{% endif %}
                 {% endfor %}
             ]'></div>
+        {% endif %}
+        {% if not perms.orcamentos.add_orcamento and not perms.orcamentos.change_orcamento and not perms.orcamentos.delete_orcamento %}
+            <div class="alert alert-warning">
+                Usuário não autorizado para realizar esta função.
+            </div>
         {% endif %}
         <div class="card border-0 shadow-sm rounded-3 mb-2">
             <div class="card-body p-0 mb-2">

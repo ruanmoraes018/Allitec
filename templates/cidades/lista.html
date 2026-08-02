@@ -19,7 +19,7 @@
                 {% endfor %}
             ]'></div>
         {% endif %}
-        {% if not perm_add_cidade and not perm_change_cidade and not perm_delete_cidade %}
+        {% if not perms.cidades.add_cidade and not perms.cidades.change_cidade and not perms.cidades.delete_cidade %}
             <div class="alert alert-warning">
                 Usuário não autorizado para realizar esta função.
             </div>

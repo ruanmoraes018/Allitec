@@ -12,6 +12,7 @@ from util.permissoes import verifica_permissao, verifica_alguma_permissao
 from bairros.models import Bairro
 from cidades.models import Cidade
 from estados.models import Estado
+from util.logs import gerar_alteracoes, registrar_log
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -84,6 +85,11 @@ def add_fornecedor(request):
             c = form.save(commit=False)
             c.vinc_emp = empresa  # Busca a filial do usuário logado
             c.save()
+            registrar_log(
+                request, "CRIAR", "Fornecedor", c.fantasia,
+                f"Adicionou o fornecedor: {c.codigo} - {c.fantasia}",
+                c.id, gerar_alteracoes(obj_novo=c)
+            )
             messages.success(request, 'Fornecedor adicionado com sucesso!')
             clie = str(c.codigo)
             return redirect('/fornecedores/lista/?tp=cod&s=' + clie)
@@ -99,6 +105,7 @@ def add_fornecedor(request):
 @login_required
 def att_fornecedor(request, codigo):
     cli = get_object_or_404(Fornecedor, codigo=codigo, vinc_emp=request.user.empresa)
+    it_old = Fornecedor.objects.get(codigo=cli.codigo, vinc_emp=request.user.empresa)
     form = FornecedorForm(instance=cli, empresa=request.user.empresa)
     if not request.user.has_perm('fornecedores.change_fornecedor'):
         messages.info(request, 'Você não tem permissão para editar fornecedores.')
@@ -107,6 +114,11 @@ def att_fornecedor(request, codigo):
         form = FornecedorForm(request.POST, instance=cli, empresa=request.user.empresa)
         if form.is_valid():
             cli.save()
+            registrar_log(
+                request, "ALTERAR", "Fornecedor", cli.fantasia,
+                f"Alterou o cadastro do fornecedor: {cli.codigo} - {cli.fantasia}",
+                cli.id, gerar_alteracoes(it_old, cli)
+            )
             next_url = request.POST.get('next') or request.GET.get('next')
             clie = str(cli.codigo)
             messages.success(request, 'Fornecedor atualizado com sucesso!')
@@ -127,6 +139,11 @@ def del_fornecedor(request, codigo):
         messages.info(request, 'Você não tem permissão para deletar fornecedores.')
         return redirect('/fornecedores/lista/')
     cli = get_object_or_404(Fornecedor, codigo=codigo, vinc_emp=request.user.empresa)
+    registrar_log(
+        request, "EXCLUIR", "Fornecedor", cli.fantasia,
+        f"Excluiu o cadastro do fornecedor: {cli.codigo} - {cli.fantasia}",
+        cli.id, gerar_alteracoes(obj_antigo=cli)
+    )
     cli.delete()
     messages.success(request, 'Fornecedor deletado com sucesso!')
     return redirect('/fornecedores/lista/')

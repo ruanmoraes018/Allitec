@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from util.permissoes import verifica_permissao
 from django.db.models import Q
 from django.views.decorators.http import require_POST
+from util.logs import gerar_alteracoes, registrar_log
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -60,6 +61,11 @@ def add_unidade(request):
             c = form.save(commit=False)
             c.vinc_emp = request.user.empresa
             c.save()
+            registrar_log(
+                request, "CRIAR", "Unidade", c.nome_unidade,
+                f"Adicionou a unidade: {c.codigo} - {c.nome_unidade}",
+                c.id, gerar_alteracoes(obj_novo=c)
+            )
             messages.success(request, 'Unidade adicionada com sucesso!')
             cid = str(c.codigo)
             return redirect('/unidades/lista/?tp=cod&s=' + cid)
@@ -79,11 +85,17 @@ def add_unidade_ajax(request):
         return JsonResponse({'erro': 'Nome vazio'}, status=400)
     empresa = request.user.empresa
     unidade, criado = Unidade.objects.get_or_create(nome_unidade=nome, vinc_emp=empresa)
+    registrar_log(
+        request, "CRIAR", "Unidade", unidade.nome_unidade,
+        f"Adicionou a unidade: {unidade.codigo} - {unidade.nome_unidade}",
+        unidade.id, gerar_alteracoes(obj_novo=unidade)
+    )
     return JsonResponse({'id': unidade.codigo, 'nome': unidade.nome_unidade, 'criado': criado})
 
 @login_required
 def att_unidade(request, codigo):
     c = get_object_or_404(Unidade, codigo=codigo, vinc_emp=request.user.empresa)
+    it_old = Unidade.objects.get(codigo=c.codigo, vinc_emp=request.user.empresa)
     form = UnidadeForm(instance=c)
     if not request.user.has_perm('unidades.change_unidade'):
         messages.info(request, 'Você não tem permissão para editar unidades.')
@@ -93,6 +105,11 @@ def att_unidade(request, codigo):
         if form.is_valid():
             c = form.save(commit=False)
             c.save()
+            registrar_log(
+                request, "ALTERAR", "Unidade", c.nome_unidade,
+                f"Alterou a unidade: {c.codigo} - {c.nome_unidade}",
+                c.id, gerar_alteracoes(it_old, c)
+            )
             cid = str(c.codigo)
             messages.success(request, 'Unidade atualizada com sucesso!')
             next_url = request.POST.get('next') or request.GET.get('next')
@@ -111,6 +128,11 @@ def del_unidade(request, codigo):
         messages.info(request, 'Você não tem permissão para deletar unidades.')
         return redirect('/unidades/lista/')
     c = get_object_or_404(Unidade, codigo=codigo, vinc_emp=request.user.empresa)
+    registrar_log(
+        request, "EXCLUIR", "Unidade", c.nome_unidade,
+        f"Excluiu a unidade: {c.codigo} - {c.nome_unidade}",
+        c.id, gerar_alteracoes(obj_antigo=c)
+    )
     c.delete()
     messages.success(request, 'Unidade deletada com sucesso!')
     return redirect('/unidades/lista/')

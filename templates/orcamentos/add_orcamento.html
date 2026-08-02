@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+
 {% load static %}
 {% load crispy_forms_tags %}
 {% block title %}Gerar Orçamento{% endblock %}
@@ -20,27 +21,30 @@
                         {"text": "{% for message in error_messages %}{{ message }}<br>{% endfor %}", "tag": "error"}
                     ]'></div>
                 {% endif %}
-                <div class="card">
+                <div class="card tab-container">
                     <div class="card-header">
                         <span>INCLUSÃO DE ORÇAMENTOS</span>
                     </div>
                     <div class="form-buttons text-center" style="margin-left: 10px; margin-top: 10px;">
-                        <button type="button" class="btn btn-dark mb-1" id="medidasBtn">Medidas</button>
-                        <button type="button" class="btn btn-dark mb-1" id="clienteBtn">Dados Gerais</button>
-                        <button type="button" class="btn btn-dark mb-1" id="prod_servBtn">Produtos</button>
-                        <button type="button" class="btn btn-dark mb-1" id="adicionaisBtn">Adicionais</button>
-                        <button type="button" class="btn btn-dark mb-1" id="form_pgtoBtn">Formas de Pagamento</button>
+                        <button type="button" class="btn btn-dark mb-1 menu-btn" data-section="medidas" id="medidasBtn">Medidas</button>
+                        <button type="button" class="btn btn-dark mb-1 menu-btn" data-section="clientes" id="clienteBtn">Dados Gerais</button>
+                        <button type="button" class="btn btn-dark mb-1 menu-btn" data-section="prod_serv" id="prod_servBtn">Produtos</button>
+                        <button type="button" class="btn btn-dark mb-1 menu-btn" data-section="adicionais" id="adicionaisBtn">Adicionais</button>
+                        <button type="button" class="btn btn-dark mb-1 menu-btn" data-section="secao_formas_pgto" id="form_pgtoBtn">Formas de Pagamento</button>
                     </div>
                     <div class="card-body">
                         <!--Cliente-->
+                        <input type="hidden" id="id_fotos_remover" name="fotos_remover">
+                        <input type="hidden" name="next" value="{{ next }}">
                         <div class="form-section" id="clientes">
                             <div class="row" style="margin-left: -8px;">
                                 <div class="col-md-1">{{ form.codigo|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.vinc_fil|as_crispy_field }}</div>
-                                <div class="col-md-3">{{ form.solicitante|as_crispy_field }}</div>
+                                <div class="col-md-2">{{ form.solicitante|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.fornecedor|as_crispy_field }}</div>
-                                <div class="col-md-2">{{ form.dt_emi|as_crispy_field }}</div>
+                                <div class="col-md-1">{{ form.dt_emi|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.dt_ent|as_crispy_field }}</div>
+                                <div class="col-md-2">{{ form.dt_prev_instalacao|as_crispy_field }}</div>
                             </div>
                             <hr>
                             <div class="row" style="margin-left: -8px;">
@@ -77,20 +81,22 @@
                                     <label for="id_cidade_txt" class="form-label">Cidade*</label>
                                     <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_cidade_txt" name="cidade_txt" disabled="disabled">
                                 </div>
-                                <div class="col-md-2" id="div_id_uf">
+                                <div class="col-md-2 mb-2" id="div_id_uf">
                                     <label for="id_uf_txt" class="form-label requiredField">Estado*</label>
                                     <input type="text" class="form-control form-control-sm border-dark-subtle text-uppercase" id="id_uf_txt" name="uf_txt" disabled="disabled">
                                 </div>
+                                <hr>
+                                <div class="col-md-2">{{ form.tipo_entrega|as_crispy_field }}</div>
+                                <div class="col-md-2 mb-2">{{ form.prioridade|as_crispy_field }}</div>
+                                <hr>
                                 <div class="col-md-12">{{ form.obs_cli|as_crispy_field }}</div>
                             </div>
                         </div>
                         <!--Medidas-->
-                        <div class="form-section" id="medidas">
+                        <div class="form-section active-section" id="medidas">
                             <div class="row" style="margin-left: -8px;">
                                 <div class="row g-2 align-items-end">
-                                    <div class="col-md-2">
-                                        {{ form.tabela_preco|as_crispy_field }}
-                                    </div>
+                                    <div class="col-md-2">{{ form.tabela_preco|as_crispy_field }}</div>
                                     <div class="col-md-2">
                                         <label for="qtd_portas" class="form-label">Nº de Portas:</label>
                                         <input type="number" id="qtd_portas" class="form-control form-control-sm" min="1" value="1">
@@ -107,17 +113,17 @@
                                             <!-- Cabeçalho -->
                                             <div class="list-group-item bg-light fw-bold cabecalho-lista">
                                                 <div class="row align-items-center">
-                                                    <div class="col-md-1 border-end">#</div>
-                                                    <div class="col-md-1 border-end">Largura</div>
-                                                    <div class="col-md-1 border-end">Altura</div>
+                                                    <div class="col-md-1 text-center border-end"><div class="border-bottom">Altura</div>Largura</div>
                                                     <div class="col-md-1 text-center border-end"><div class="border-bottom">Lg. Corte</div>At. Corte</div>
                                                     <div class="col-md-1 text-center border-end"><div class="border-bottom">Q. Lâm.</div>M²</div>
                                                     <div class="col-md-1 text-center border-end"><div class="border-bottom">Ft. Peso</div>Peso</div>
-                                                    <div class="col-md-1 border-end">Rolo</div>
-                                                    <div class="col-md-1 border-end">Tp. Lâm.</div>
-                                                    <div class="col-md-1 border-end">Tp. Vão</div>
-                                                    <div class="col-md-2 text-center border-end"><div class="border-bottom" style="font-size: 0.875rem;">Guia Esquerdo</div>Guia Direito</div>
-                                                    <div class="col-md-1">Exc.</div>
+                                                    <div class="col-md-2 text-center border-end"><div class="border-bottom">Rolo</div>Tp. Lâmina</div>
+                                                    <div class="col-md-1 text-center border-end"><div class="border-bottom" style="font-size: 0.875rem;">Guia Esquerdo</div>Guia Direito</div>
+                                                    <div class="col-md-1 text-center border-end"><div class="border-bottom">Tp. Vão</div>Acabamento Guia</div>
+                                                    <div class="col-md-1 text-center border-end"><div class="border-bottom">Tp. Acionamento</div>Lado Motor</div>
+                                                    <div class="col-md-1 text-center border-end"><div class="border-bottom">Tp. Mola</div>Tp. Travamento</div>
+                                                    <div class="col-md-1 text-center border-end"><div class="border-bottom">Posição Eixo</div>Tp. Instalação</div>
+                                                    <div class="col-md-1 text-center"><div class="border-bottom">Testeira</div>Qtd. Pares Trava</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -146,7 +152,7 @@
                             </div>
                         </div>
                         <!--Form. Pgto.-->
-                        <div class="form-section" id="form_pgto">
+                        <div class="form-section" id="secao_formas_pgto">
                             <div class="row" style="margin-left: -8px;">
                                 <div class="col-md-3" id="div_id_form_pgto">{{ form.formas_pgto|as_crispy_field }}</div>
                                 <div class="col-md-2" id="div_id_vl_form_pgto">
@@ -163,9 +169,7 @@
                                 </div>
                                 <div class="col-md-1">
                                     <label class="form-label">&nbsp;</label> <!-- Label vazio só para alinhar -->
-                                    <button type="button" class="btn btn-success btn-sm form-control" id="addItemValorFormBtn">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
+                                    <button type="button" class="btn btn-success btn-sm form-control" id="addItemValorFormBtn"><i class="fas fa-plus"></i></button>
                                 </div>
                                 <div class="col-md-2" id="div_id_desconto">
                                     <label for="id_desconto" class="form-label">Desconto (-)</label>
@@ -173,8 +177,7 @@
                                         <input type="text" step="0.01" placeholder="0,00" min="0.01" class="form-control form-control-sm border-dark-subtle valor_os" readonly="readonly"
                                             id="id_desconto" name="desconto" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
                                         <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao" data-permissao="orcamentos.atribuir_desconto" data-acao="atribuir_desconto" id="btnDesconto"
-                                            data-modulo="Orçamentos" data-registro-desc="Criação de Novo Orçamento">
-                                            <i class="fa-solid fa-pen-to-square"></i>
+                                            data-modulo="Orçamentos" data-registro-desc="Criação de Novo Orçamento"> <i class="fa-solid fa-pen-to-square"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -186,8 +189,7 @@
                                             id="id_acrescimo" name="acrescimo" style="color: #2E8B57; font-weight: bold; background-color: #D3D3D3;">
                                         </button>
                                         <button type="button" class="btn btn-outline-secondary btn-sm btn-permissao" data-permissao="orcamentos.atribuir_acrescimo" data-acao="atribuir_acrescimo" id="btnAcrescimo"
-                                                data-modulo="Orçamentos" data-registro-desc="Criação de Novo Orçamento">
-                                            <i class="fa-solid fa-pen-to-square"></i>
+                                            data-modulo="Orçamentos" data-registro-desc="Criação de Novo Orçamento"> <i class="fa-solid fa-pen-to-square"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -238,12 +240,8 @@
     <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header titulo-modal">
-                    <h5 class="modal-title" id="staticBackdropLabel"><i class="fa-regular fa-circle-question"></i> Confirmação!</h5>
-                </div>
-                <div class="modal-body">
-                    <p>Você confirma a INCLUSÃO DO ORÇAMENTO?</p>
-                </div>
+                <div class="modal-header titulo-modal"><h5 class="modal-title" id="staticBackdropLabel"><i class="fa-regular fa-circle-question"></i> Confirmação!</h5></div>
+                <div class="modal-body"><p>Você confirma a INCLUSÃO DO ORÇAMENTO?</p></div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>
                     <button type="button" class="btn btn-secondary btn-sm" id="btnRecusa" data-bs-dismiss="modal"><u>N</u>ão</button>
@@ -302,9 +300,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <form>
-                    <div class="modal-header titulo-modal">
-                        <h5 class="modal-title"></h5>
-                    </div>
+                    <div class="modal-header titulo-modal"><h5 class="modal-title"></h5></div>
                     <div class="modal-body">
                         <div class="row g-3">
                             <div class="col-md-2">
@@ -448,6 +444,98 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-primary btn-sm" id="confirmarDesconto">Atribuir</button>
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="modalDetalhePorta" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header titulo-modal">
+                    <h5 class="modal-title">Detalhes — Porta <span id="modalPortaNumero"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="modalPortaId">
+                    <div class="row g-2">
+                        <!-- Pintura da Porta -->
+                        <div class="col-md-3">
+                            <label class="form-label">Pintura</label>
+                            <select class="form-select form-select-sm" id="det_pintura_porta">
+                                <option value="Sim">Sim</option>
+                                <option value="Não">Não</option>
+                            </select>
+                        </div>
+                        <!-- Cor da Porta -->
+                        <div class="col-md-3">
+                            <label class="form-label">Cor da Porta</label>
+                            <select class="form-select form-select-sm" id="det_cor_porta">
+                                <option value="">---------</option>
+                                <option value="Preto">Preto</option>
+                                <option value="Branco">Branco</option>
+                                <option value="Amarelo">Amarelo</option>
+                                <option value="Vermelho">Vermelho</option>
+                                <option value="Cinza Grafite">Cinza Grafite</option>
+                                <option value="Cinza Chumbo">Cinza Chumbo</option>
+                                <option value="Cinza Claro">Cinza Claro</option>
+                                <option value="Chumbo">Chumbo</option>
+                                <option value="Roxo Açaí">Roxo Açaí</option>
+                                <option value="Azul Pepsi">Azul Pepsi</option>
+                                <option value="Azul Claro">Azul Claro</option>
+                                <option value="Azul Royal">Azul Royal</option>
+                                <option value="Azul Marinho">Azul Marinho</option>
+                                <option value="Verde">Verde</option>
+                                <option value="Verde Musgo">Verde Musgo</option>
+                                <option value="Verde Bandeira">Verde Bandeira</option>
+                                <option value="Bege">Bege</option>
+                                <option value="Bege Areia">Bege Areia</option>
+                                <option value="Marrom">Marrom</option>
+                                <option value="Marrom Café">Marrom Café</option>
+                                <option value="Laranja">Laranja</option>
+                                <option value="Vinho">Vinho</option>
+                                <option value="Prata">Prata</option>
+                            </select>
+                        </div>
+                        <!-- Nº Série Motor -->
+                        <div class="col-md-3">
+                            <label class="form-label">Nº Série Motor</label>
+                            <input type="text" class="form-control form-control-sm" id="det_nr_serie_motor" placeholder="Ex: ABC123">
+                        </div>
+                        <!-- Garantia Motor -->
+                        <div class="col-md-3">
+                            <label class="form-label">Garantia Motor (meses)</label>
+                            <input type="number" class="form-control form-control-sm" id="det_garantia_motor_meses" placeholder="12">
+                        </div>
+                        <!-- Passagem Pedestre -->
+                        <div class="col-md-3">
+                            <label class="form-label">Passagem Pedestre</label>
+                            <select class="form-select form-select-sm" id="det_possui_passagem">
+                                <option value="false">Não</option>
+                                <option value="true">Sim</option>
+                            </select>
+                        </div>
+                        <!-- Largura Passagem -->
+                        <div class="col-md-3" id="det_grupo_passagem" style="display:none">
+                            <label class="form-label">Largura Passagem (cm)</label>
+                            <input type="number" class="form-control form-control-sm" id="det_largura_passagem" placeholder="0">
+                        </div>
+                        <!-- Altura Passagem -->
+                        <div class="col-md-3" id="det_grupo_altura_passagem" style="display:none">
+                            <label class="form-label">Altura Passagem (cm)</label>
+                            <input type="number" class="form-control form-control-sm" id="det_altura_passagem" placeholder="0">
+                        </div>
+                        <!-- Foto do Vão -->
+                        {% include "componentes/upload_fotos.html" %}
+                        <!-- Obs. Porta -->
+                        <div class="col-12">
+                            <label class="form-label">Observações da Porta</label>
+                            <textarea class="form-control form-control-sm" id="det_obs_porta" rows="3" placeholder="Observações internas sobre esta porta..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="btnSalvarDetalhesPorta">Salvar</button>
                 </div>
             </div>
         </div>

@@ -10,6 +10,7 @@ from util.permissoes import verifica_permissao
 from filiais.models import Usuario
 from django.views.decorators.http import require_POST
 from django.db.models import Q
+from util.logs import gerar_alteracoes, registrar_log
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -61,6 +62,11 @@ def add_grupo(request):
             g = form.save(commit=False)
             g.vinc_emp = request.user.empresa
             g.save()
+            registrar_log(
+                request, "CRIAR", "Grupo", g.nome_grupo,
+                f"Adicionou o grupo: {g.codigo} - {g.nome_grupo}",
+                g.id, gerar_alteracoes(obj_novo=g)
+            )
             messages.success(request, 'Grupo adicionado com sucesso!')
             gp = str(g.codigo)
             return redirect('/grupos/lista/?tp=cod&s=' + gp)
@@ -79,11 +85,17 @@ def add_grupo_ajax(request):
     if not nome: return JsonResponse({'erro': 'Nome vazio'}, status=400)
     empresa = request.user.empresa
     grupo, criada = Grupo.objects.get_or_create(nome_grupo=nome, vinc_emp=empresa)
+    registrar_log(
+            request, "CRIAR", "Grupo", grupo.nome_grupo,
+            f"Adicionou o grupo: {grupo.codigo} - {grupo.nome_grupo}",
+            grupo.id, gerar_alteracoes(obj_novo=grupo)
+        )
     return JsonResponse({'id': grupo.codigo, 'nome': grupo.nome_grupo, 'criada': criada})
 
 @login_required
 def att_grupo(request, codigo):
     g = get_object_or_404(Grupo, codigo=codigo, vinc_emp=request.user.empresa)
+    it_old = Grupo.objects.get(codigo=g.codigo, vinc_emp=request.user.empresa)
     form = GrupoForm(instance=g)
     if not request.user.has_perm('grupos.change_grupo'):
         messages.info(request, 'Você não tem permissão para editar grupos.')
@@ -92,6 +104,11 @@ def att_grupo(request, codigo):
         form = GrupoForm(request.POST, instance=g)
         if form.is_valid():
             g.save()
+            registrar_log(
+                request, "ALTERAR", "Grupo", g.nome_grupo,
+                f"Alterou o grupo: {g.codigo} - {g.nome_grupo}",
+                g.id, gerar_alteracoes(it_old, g)
+            )
             next_url = request.POST.get('next') or request.GET.get('next')
             gp = str(g.codigo)
             messages.success(request, 'Grupo atualizado com sucesso!')
@@ -110,6 +127,11 @@ def del_grupo(request, codigo):
         messages.info(request, 'Você não tem permissão para deletar grupos.')
         return redirect('/grupos/lista/')
     g = get_object_or_404(Grupo, codigo=codigo, vinc_emp=request.user.empresa)
+    registrar_log(
+        request, "EXCLUIR", "Grupo", g.nome_grupo,
+        f"Excluiu o grupo: {g.codigo} - {g.nome_grupo}",
+        g.id, gerar_alteracoes(obj_antigo=g)
+    )
     g.delete()
     messages.success(request, 'Grupo deletado com sucesso!')
     return redirect('/grupos/lista/')

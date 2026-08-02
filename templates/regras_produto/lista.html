@@ -19,7 +19,7 @@
                 {% endfor %}
             ]'></div>
         {% endif %}
-        {% if not perm_add_regraproduto and not perm_change_regraproduto and not perm_delete_regraproduto %}
+        {% if not perms.regras_produto.add_regraproduto and not perms.regras_produto.change_regraproduto and not perms.regras_produto.delete_regraproduto %}
             <div class="alert alert-warning">
                 Usuário não autorizado para realizar esta função.
             </div>

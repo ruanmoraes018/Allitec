@@ -20,7 +20,7 @@
                 {% endfor %}
             ]'></div>
         {% endif %}
-        {% if not perm_add_contareceber and not perm_change_contareceber and not perm_delete_contareceber %}
+        {% if not perms.contas_receber.add_contareceber and not perms.contas_receber.change_contareceber and not perms.contas_receber.delete_contareceber %}
             <div class="alert alert-warning">
                 Usuário não autorizado para realizar esta função.
             </div>

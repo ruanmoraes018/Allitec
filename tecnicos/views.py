@@ -9,6 +9,7 @@ import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
 from django.db.models import Q
+from util.logs import gerar_alteracoes, registrar_log
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -72,6 +73,11 @@ def add_tecnico(request):
             t = form.save(commit=False)
             t.vinc_emp = empresa
             t.save()
+            registrar_log(
+                request, "CRIAR", "Técnico", t.nome,
+                f"Adicionou o técnico: {t.codigo} - {t.nome}",
+                t.id, gerar_alteracoes(obj_novo=t)
+            )
             messages.success(request, 'Técnico adicionado com sucesso!')
             tec = str(t.codigo)
             return redirect('/tecnicos/lista/?tp=cod&s=' + tec)
@@ -86,6 +92,7 @@ def add_tecnico(request):
 @login_required
 def att_tecnico(request, codigo):
     tec = get_object_or_404(Tecnico, codigo=codigo, vinc_emp=request.user.empresa)
+    it_old = Tecnico.objects.get(codigo=tec.codigo, vinc_emp=request.user.empresa)
     form = TecnicoForm(data=request.POST, instance=tec, empresa=request.user.empresa)
     if not request.user.has_perm('tecnicos.change_tecnico'):
         messages.info(request, 'Você não tem permissão para editar técnicos.')
@@ -95,6 +102,11 @@ def att_tecnico(request, codigo):
         if form.is_valid():
             tec = form.save(commit=False)
             tec.save()
+            registrar_log(
+                request, "ALTERAR", "Técnico", tec.nome,
+                f"Alterou o técnico: {tec.codigo} - {tec.nome}",
+                tec.id, gerar_alteracoes(it_old, tec)
+            )
             t = str(tec.codigo)
             messages.success(request, 'Técnico atualizado com sucesso!')
             next_url = request.POST.get('next') or request.GET.get('next')
@@ -115,6 +127,11 @@ def del_tecnico(request, codigo):
         messages.info(request, 'Você não tem permissão para deletar técnicos.')
         return redirect('/tecnicos/lista/')
     tec = get_object_or_404(Tecnico, codigo=codigo, vinc_emp=request.user.empresa)
+    registrar_log(
+        request, "EXCLUIR", "Técnico", tec.nome,
+        f"Excluiu o técnico: {tec.codigo} - {tec.nome}",
+        tec.id, gerar_alteracoes(obj_antigo=tec)
+    )
     tec.delete()
     messages.success(request, 'Técnico deletado com sucesso!')
     return redirect('/tecnicos/lista/')

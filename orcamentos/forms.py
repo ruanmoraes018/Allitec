@@ -39,14 +39,17 @@ class OrcamentoForm(forms.ModelForm):
     acrescimo = forms.CharField(required=False,widget=forms.TextInput(attrs={'class': f'{c}','style': f'{st}','placeholder': '0,00','readonly': 'readonly'}))
     dt_emi = forms.DateField(label='Dt. Emissão',input_formats=['%d/%m/%Y'],widget=forms.TextInput(attrs={'class': f'{c}'}))
     dt_ent = forms.DateField(label='Dt. Entrega',required=False,input_formats=['%d/%m/%Y'],widget=forms.TextInput(attrs={'class': f'{c}'}))
+    dt_prev_instalacao = forms.DateField(label='Dt. Previsão Instalação',required=False,input_formats=['%d/%m/%Y'],widget=forms.TextInput(attrs={'class': f'{c}'}))
     # subtotal = forms.CharField(widget=forms.TextInput(attrs={'class': f'{c}','hidden': ''}))
     # total = forms.CharField(widget=forms.TextInput(attrs={'class': f'{c}','hidden': ''}))
     formas_pgto = forms.ChoiceField(label='Formas de Pagamento', required=False, widget=forms.Select(attrs={'class': f'{s}'}))
     tabela_preco = forms.ChoiceField(label='Tabela de Preço', widget=forms.Select(attrs={'class': f'{s}'}))
     codigo = forms.CharField(required=False, widget=forms.TextInput(attrs={'readonly': 'readonly'}))
+    tipo_entrega = forms.ChoiceField(label="Tipo de Entrega", choices=[('Retirada', 'Retirada'),('Entrega', 'Entrega'),('Entrega e Instalação', 'Entrega e Instalação')], widget=forms.Select(attrs={'class': f'{s}'}))
+    prioridade = forms.ChoiceField(label="Prioridade", choices=[('Normal', 'Normal'),('Alta', 'Alta'),('Urgente', 'Urgente')], widget=forms.Select(attrs={'class': f'{s}'}))
     class Meta:
         model = Orcamento
-        exclude = ('motivo', 'dt_fat', 'vinc_emp', 'situacao', 'status', 'status_pagamento', 'num_orcamento', 'subtotal', 'total')
+        exclude = ('motivo', 'dt_fat', 'vinc_emp', 'situacao', 'status', 'status_pagamento', 'ocasiao', 'num_orcamento', 'subtotal', 'total')
     def __init__(self, *args, **kwargs):
         self.empresa = kwargs.pop('empresa', None)
         self.user = kwargs.pop('user', None)
@@ -77,6 +80,7 @@ class OrcamentoForm(forms.ModelForm):
                 if self.instance.fornecedor: self.initial['fornecedor'] = str(self.instance.fornecedor.codigo)
                 if self.instance.dt_emi: self.initial['dt_emi'] = self.instance.dt_emi.strftime('%d/%m/%Y')
                 if self.instance.dt_ent: self.initial['dt_ent'] = self.instance.dt_ent.strftime('%d/%m/%Y')
+                if self.instance.dt_prev_instalacao: self.initial['dt_prev_instalacao'] = self.instance.dt_prev_instalacao.strftime('%d/%m/%Y')
             else:
                 # ✅ Se for CRIAÇÃO (Novo Registro): Pré-seleciona a filial do usuário logado
                 if self.user and self.user.filial_user:
@@ -107,6 +111,7 @@ class OrcamentoForm(forms.ModelForm):
         if getattr(self.instance, 'pk', None):
             if getattr(self.instance, 'dt_emi', None): self.initial['dt_emi'] = self.instance.dt_emi.strftime('%d/%m/%Y')
             if getattr(self.instance, 'dt_ent', None): self.initial['dt_ent'] = self.instance.dt_ent.strftime('%d/%m/%Y')
+            if getattr(self.instance, 'dt_prev_instalacao', None): self.initial['dt_prev_instalacao'] = self.instance.dt_prev_instalacao.strftime('%d/%m/%Y')
     def clean_obs_cli(self):
         return self.cleaned_data['obs_cli'].upper()
     def clean_obs_form_pgto(self):

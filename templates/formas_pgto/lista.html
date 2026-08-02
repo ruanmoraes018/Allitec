@@ -19,7 +19,7 @@
                 {% endfor %}
             ]'></div>
         {% endif %}
-        {% if not perm_add_formapgto and not perm_change_formapgto and not perm_delete_formapgto %}
+        {% if not perms.formas_pgto.add_formapgto and not perms.formas_pgto.change_formapgto and not perms.formas_pgto.delete_formapgto %}
             <div class="alert alert-warning">
                 Usuário não autorizado para realizar esta função.
             </div>

@@ -18,7 +18,7 @@ class ContaReceberForm(forms.ModelForm):
     observacao = forms.CharField(label='Observações', required=False, widget=forms.Textarea(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase', 'rows': 2}))
     class Meta:
         model = ContaReceber
-        exclude = ('tipo', 'vinc_emp', 'situacao', 'valor_pago', 'orcamento', 'pedido', 'forma_pgto', 'desconto', 'data_emissao')
+        exclude = ('tipo', 'vinc_emp', 'situacao', 'valor_pago', 'orcamento', 'pedido', 'forma_pgto', 'desconto', 'data_emissao', 'motivo')
         widgets = {'data_vencimento': forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle',}),}
     def __init__(self, *args, empresa=None, **kwargs):
         super().__init__(*args, **kwargs)

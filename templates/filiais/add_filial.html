@@ -14,7 +14,7 @@
     <div class="formularios">
         <form method="POST" id="createForm" enctype="multipart/form-data">
             {% csrf_token %}
-            {% if form %}
+            {% if form and f_financeiro and f_fiscal and f_orcamento and f_contato and f_estoque and f_impressao and f_observacao %}
                 {% if error_messages %}
                     <div id="toast-messages" data-messages='[
                         {"text": "{% for message in error_messages %}{{ message }}<br>{% endfor %}", "tag": "error"}
@@ -38,23 +38,34 @@
                                     alt="Logo da filial" title="Clique para alterar a imagem" style="cursor: pointer; width: 90px; height: 90px; border: 1px solid #ddd; border-radius: 5px;">
                             </div>
                             <div class="col-md-2">{{ form.tel|as_crispy_field }}</div>
-                            <div class="col-md-4">{{ form.email|as_crispy_field }}</div>
+                            <div class="col-md-3">{{ form.email|as_crispy_field }}</div>
+                            <div class="col-md-2">{{ f_contato.celular|as_crispy_field }}</div>
+                            <div class="col-md-3">{{ f_contato.whatsapp|as_crispy_field }}</div>
+                            <div class="col-md-2">{{ f_contato.site|as_crispy_field }}</div>
+                            <div class="col-md-3">{{ f_contato.email_financeiro|as_crispy_field }}</div>
+                            <div class="col-md-2">{{ f_contato.email_fiscal|as_crispy_field }}</div>
+                            <div class="col-md-3">{{ f_contato.email_comercial|as_crispy_field }}</div>
+                            <div class="col-md-2">{{ f_contato.instagram|as_crispy_field }}</div>
+                            <div class="col-md-3">{{ f_contato.facebook|as_crispy_field }}</div>
                         </div>
-                        <div class="card" style="margin: 0; margin-top: 5px;">
+                        <div class="card tab-container" style="margin: 0; margin-top: 5px;">
                             <div class="form-buttons" style="margin-left: 10px; margin-top: 1px;">
                                 <div class="card-header bg-white">
-                                    <button type="button" class="btn btn-dark" id="endBtn">Endereço</button>
-                                    <button type="button" class="btn btn-dark" id="faturBtn">Faturamento</button>
-                                    <button type="button" class="btn btn-dark" id="complBtn">Complementos</button>
-                                    <button type="button" class="btn btn-dark" id="financBtn">Financeiro</button>
-                                    <button type="button" class="btn btn-dark" id="impBtn">Impressão</button>
+                                    <button type="button" class="btn btn-dark menu-btn" data-section="enderecos" id="endBtn">Endereço</button>
+                                    <button type="button" class="btn btn-dark menu-btn" data-section="faturamentos" id="faturBtn">Faturamento</button>
+                                    <button type="button" class="btn btn-dark menu-btn" data-section="complementos" id="complBtn">Fiscal</button>
+                                    <button type="button" class="btn btn-dark menu-btn" data-section="financeiros" id="financBtn">Financeiro</button>
+                                    <button type="button" class="btn btn-dark menu-btn" data-section="impressoes" id="impBtn">Impressão</button>
+                                    <button type="button" class="btn btn-dark menu-btn" data-section="dados_observacoes" id="dadosObsBtn">Observações</button>
+                                    <button type="button" class="btn btn-dark menu-btn" data-section="dados_orcamentos" id="orcamentoBtn">Orçamento (Portas)</button>
                                 </div>
                             </div>
-                            <div class="form-section" id="enderecos">
+                            <div class="form-section active-section" id="enderecos">
                                 <div class="row" style="margin-bottom: 10px;">
                                     <div class="col-md-2">{{ form.cep|as_crispy_field }}</div>
-                                    <div class="col-md-4">{{ form.endereco|as_crispy_field }}</div>
-                                    <div class="col-md-1">{{ form.numero|as_crispy_field }}</div>
+                                    <div class="col-md-8">{{ form.endereco|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.numero|as_crispy_field }}</div>
+                                    <div class="col-md-5">{{ form.complem|as_crispy_field }}</div>
                                     <div class="col-md-3">
                                         <label class="form-label mb-2">Bairro*</label>
                                         <div class="input-group input-group-sm" id="bairro-wrapper">
@@ -75,8 +86,7 @@
                                             </button>
                                         </div>
                                     </div>
-                                    <div class="col-md-2">{{ form.cidade_fil|as_crispy_field }}</div>
-                                    <div class="col-md-3">{{ form.complem|as_crispy_field }}</div>
+                                    <div class="col-md-3">{{ form.cidade_fil|as_crispy_field }}</div>
                                     <div class="col-md-1">{{ form.uf|as_crispy_field }}</div>
                                 </div>
                             </div>
@@ -86,83 +96,100 @@
                                     <div class="col-md-3">{{ form.vendedor|as_crispy_field }}</div>
                                     <div class="col-md-3">{{ form.cli|as_crispy_field }}</div>
                                     <div class="col-md-3">{{ form.tec|as_crispy_field }}</div>
-                                    <div class="accordion" id="acOrc">
-                                        <div class="accordion-item">
-                                            <h2 class="accordion-header">
-                                                <button class="accordion-button mt-1 fw-bold collapsed" style="max-height: 30px; background-color: #A9A9A9;" type="button" data-bs-toggle="collapse" data-bs-target="#colOrc" aria-expanded="false" aria-controls="colOrc">
-                                                    Configurações de Orçamento - Portas
-                                                </button>
-                                            </h2>
-                                            <div id="colOrc" class="accordion-collapse collapse" data-bs-parent="#acOrc">
-                                                <div class="accordion-body">
-                                                    <div class="row">
-                                                        <div class="col-md-3">
-                                                            <label class="form-label">Fator M²*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de M² Utilizado em Orçamentos - Portas"></i></label>
-                                                            {{ form.multi_m2|as_crispy_field }}
-                                                        </div>
-                                                        <div class="col-md-2">
-                                                            <label class="form-label">Fator L. Crt*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de Largura de Corte Para opção (Fora do Vão) Utilizado em Orçamentos - Portas"></i></label>
-                                                            {{ form.multi_lg_corte1|as_crispy_field }}
-                                                        </div>
-                                                        <div class="col-md-2">
-                                                            <label class="form-label">Fator L. Crt*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de Largura de Corte Para opção (Dentro do Vão) Utilizado em Orçamentos - Portas"></i></label>
-                                                            {{ form.multi_lg_corte2|as_crispy_field }}
-                                                        </div>
-                                                        <div class="col-md-2">
-                                                            <label class="form-label">Fator L. Crt*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de Largura de Corte Para opção (1 Lado Dentro do Vão) Utilizado em Orçamentos - Portas"></i></label>
-                                                            {{ form.multi_lg_corte3|as_crispy_field }}
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <label class="form-label">Fator Qtde. Lâm.*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de Qtde. de Lâminas Utilizado em Orçamentos - Portas"></i></label>
-                                                            {{ form.mt_qt_lam|as_crispy_field }}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <div class="col-md-3">{{ form.agrupa_itens|as_crispy_field }}</div>
+                                    <div class="col-md-3">{{ f_estoque.estoque_padrao|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_estoque.controla_lote|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_estoque.controla_validade|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_estoque.ativar_alerta_estoque|as_crispy_field }}</div>
                                 </div>
                             </div>
                             <div class="form-section" id="complementos">
                                 <div class="row" style="margin-bottom: 10px;">
-                                    <div class="col-md-2">{{ form.tp_chave|as_crispy_field }}</div>
-                                    <div class="col-md-2">{{ form.chave_pix|as_crispy_field }}</div>
-                                    <div class="col-md-2">{{ form.banco_fil|as_crispy_field }}</div>
-                                    <div class="col-md-4">{{ form.beneficiario|as_crispy_field }}</div>
-                                    <div class="col-md-2">{{ form.agrupa_itens|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_fiscal.crt|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_fiscal.im|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_fiscal.suframa|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_fiscal.cnae_principal|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_fiscal.serie_nfe|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_fiscal.serie_nfce|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_fiscal.ultimo_numero_nfe|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_fiscal.ultimo_numero_nfce|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_fiscal.ambiente_fiscal|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ f_fiscal.csc|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_fiscal.cod_csc|as_crispy_field }}</div>
+                                    <div class="col-md-10">{{ f_fiscal.certificado|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_fiscal.senha_certificado|as_crispy_field }}</div>
                                 </div>
                             </div>
                             <div class="form-section" id="financeiros">
                                 <div class="row" style="margin-bottom: 10px;">
-                                    <div class="col-md-2">{{ form.tp_calc_juros|as_crispy_field }}</div>
-                                    <div class="col-md-1">{{ form.ft_juros|as_crispy_field }}</div>
-                                    <div class="col-md-2">{{ form.tp_calc_multa|as_crispy_field }}</div>
-                                    <div class="col-md-1">{{ form.ft_multa|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_financeiro.tp_chave|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_financeiro.chave_pix|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_financeiro.banco_fil|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ f_financeiro.beneficiario|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_financeiro.tp_calc_juros|as_crispy_field }}</div>
+                                    <div class="col-md-1">{{ f_financeiro.ft_juros|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_financeiro.tp_calc_multa|as_crispy_field }}</div>
+                                    <div class="col-md-1">{{ f_financeiro.ft_multa|as_crispy_field }}</div>
                                     <div class="col-md-3">
                                         <label class="form-label">Máx. Parcelas<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Contas à Receber"></i></label>
-                                        {{ form.max_parcelas|as_crispy_field }}
+                                        {{ f_financeiro.max_parcelas|as_crispy_field }}
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label">Máx. (Dias Intervalo)<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Contas à Receber"></i></label>
-                                        {{ form.max_dias_intervalo|as_crispy_field }}
+                                        {{ f_financeiro.max_dias_intervalo|as_crispy_field }}
                                     </div>
+                                    <div class="col-md-2">{{ f_financeiro.desconto_maximo|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_financeiro.acrescimo_maximo|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_financeiro.limite_credito_padrao|as_crispy_field }}</div>
                                 </div>
                             </div>
                             <div class="form-section" id="impressoes">
                                 <div class="row" style="margin-bottom: 10px;">
-                                    <div class="col-md-2">{{ form.layout_contrato|as_crispy_field }}</div>
-                                    <div class="col-md-2">{{ form.layout_prod|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_impressao.imprimir_logo|as_crispy_field }}</div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Imprimir Recibo <i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Contas à Receber"></i></label>
+                                        {{ f_impressao.imp_recibo_cr|as_crispy_field }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-section" id="dados_observacoes">
+                                <div class="row" style="margin-bottom: 10px;">
+                                    <div class="col-md-4">{{ f_observacao.obs_pedido|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ f_observacao.observacao_nfe|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ f_observacao.observacao_boleto|as_crispy_field }}</div>
+                                </div>
+                            </div>
+                            <div class="form-section" id="dados_orcamentos">
+                                <div class="row" style="margin-bottom: 10px;">
+                                    <div class="col-md-2">{{ f_orcamento.layout_contrato|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_orcamento.layout_prod|as_crispy_field }}</div>
                                     <div class="col-md-2">
                                         <label class="form-label">Quest. Imp. Recibo <i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Orçamentos - Portas"></i></label>
-                                        {{ form.imp_recibo_orc|as_crispy_field }}
+                                        {{ f_orcamento.imp_recibo_orc|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-6">{{ f_orcamento.info_comp|as_crispy_field }}</div>
+                                    <div class="col-md-6">{{ f_orcamento.info_orcamento|as_crispy_field }}</div>
+                                    <div class="col-md-6">{{ f_orcamento.info_local|as_crispy_field }}</div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Fator M²*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de M² Utilizado em Orçamentos - Portas"></i></label>
+                                        {{ f_orcamento.multi_m2|as_crispy_field }}
                                     </div>
                                     <div class="col-md-2">
-                                        <label class="form-label">Quest. Imp. Recibo <i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Contas à Receber"></i></label>
-                                        {{ form.imp_recibo_cr|as_crispy_field }}
+                                        <label class="form-label">Fator Larg. Corte (Op. 1)*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de Largura de Corte Para opção (Fora do Vão) Utilizado em Orçamentos - Portas"></i></label>
+                                        {{ f_orcamento.multi_lg_corte1|as_crispy_field }}
                                     </div>
-                                    <div class="col-md-4">{{ form.info_comp|as_crispy_field }}</div>
-                                    <div class="col-md-6">{{ form.info_orcamento|as_crispy_field }}</div>
-                                    <div class="col-md-6">{{ form.info_local|as_crispy_field }}</div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Fator Larg. Corte (Op. 2)*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de Largura de Corte Para opção (Dentro do Vão) Utilizado em Orçamentos - Portas"></i></label>
+                                        {{ f_orcamento.multi_lg_corte2|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Fator Larg. Corte (Op. 3)*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de Largura de Corte Para opção (1 Lado Dentro do Vão) Utilizado em Orçamentos - Portas"></i></label>
+                                        {{ f_orcamento.multi_lg_corte3|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Fator Qtde. Lâm.*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de Qtde. de Lâminas Utilizado em Orçamentos - Portas"></i></label>
+                                        {{ f_orcamento.mt_qt_lam|as_crispy_field }}
+                                    </div>
                                 </div>
                             </div>
                         </div>

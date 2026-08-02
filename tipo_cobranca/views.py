@@ -8,6 +8,7 @@ import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
 from django.db.models import Q
+from util.logs import gerar_alteracoes, registrar_log
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -59,6 +60,11 @@ def add_tp_cobranca(request):
             c = form.save(commit=False)
             c.vinc_emp = request.user.empresa
             c.save()
+            registrar_log(
+                request, "CRIAR", "Tipo de Cobrança", c.descricao,
+                f"Adicionou o tipo de cobrança: {c.codigo} - {c.descricao}",
+                c.id, gerar_alteracoes(obj_novo=c)
+            )
             messages.success(request, 'Tipo de Cobrança adicionado com sucesso!')
             cid = str(c.codigo)
             return redirect('/tp_cobrancas/lista/?tp=cod&s=' + cid)
@@ -73,6 +79,7 @@ def add_tp_cobranca(request):
 @login_required
 def att_tp_cobranca(request, codigo):
     c = get_object_or_404(TipoCobranca, codigo=codigo, vinc_emp=request.user.empresa)
+    it_old = TipoCobranca.objects.get(codigo=c.codigo, vinc_emp=request.user.empresa)
     form = TipoCobrancaForm(instance=c)
     if not request.user.has_perm('tipo_cobranca.change_tipocobranca'):
         messages.info(request, 'Você não tem permissão para editar tipos de cobrança.')
@@ -82,6 +89,11 @@ def att_tp_cobranca(request, codigo):
         if form.is_valid():
             c = form.save(commit=False)
             c.save()
+            registrar_log(
+                request, "ALTERAR", "Tipo de Cobrança", c.descricao,
+                f"Alterou o tipo de cobrança: {c.codigo} - {c.descricao}",
+                c.id, gerar_alteracoes(it_old, c)
+            )
             cid = str(c.codigo)
             messages.success(request, 'Tipo de Cobrança atualizado com sucesso!')
             next_url = request.POST.get('next') or request.GET.get('next')
@@ -100,6 +112,11 @@ def del_tp_cobranca(request, codigo):
         messages.info(request, 'Você não tem permissão para deletar tipos de cobrança.')
         return redirect('/tp_cobrancas/lista/')
     c = get_object_or_404(TipoCobranca, codigo=codigo, vinc_emp=request.user.empresa)
+    registrar_log(
+        request, "EXCLUIR", "Tipo de Cobrança", c.descricao,
+        f"Excluiu o tipo de cobrança: {c.codigo} - {c.descricao}",
+        c.id, gerar_alteracoes(obj_antigo=c)
+    )
     c.delete()
     messages.success(request, 'Tipo de Cobrança deletado com sucesso!')
     return redirect('/tp_cobrancas/lista/')

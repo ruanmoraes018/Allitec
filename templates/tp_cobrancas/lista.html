@@ -19,7 +19,7 @@
                 {% endfor %}
             ]'></div>
         {% endif %}
-        {% if not perm_add_tipocobranca and not perm_change_tipocobranca and not perm_delete_tipocobranca %}
+        {% if not perms.tipo_cobranca.add_tipocobranca and not perms.tipo_cobranca.change_tipocobranca and not perms.tipo_cobranca.delete_tipocobranca %}
             <div class="alert alert-warning">
                 Usuário não autorizado para realizar esta função.
             </div>

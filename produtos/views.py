@@ -22,6 +22,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.views.decorators.http import require_POST
 import json
 from util.parse_decimal import parse_decimal
+from util.logs import gerar_alteracoes, registrar_log
+from .services import criar_alerta, resolver_alerta
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -46,7 +48,7 @@ def lista_produtos(request):
     else: produtos_qs = produtos_qs.order_by(ordem)
     if tp == 'desc' and s:
         norm_s = remove_accents(s).lower()
-        produtos_qs = produtos_qs.filter(desc_normalizado__icontains=norm_s)
+        produtos_qs = produtos_qs.filter(desc_prod__icontains=norm_s)
     elif tp == 'cod':
         if s:
             try: produtos_qs = produtos_qs.filter(codigo__iexact=s)
@@ -111,6 +113,7 @@ def att_prod_lote(request):
         gp = None
         unidade = None
         marca = None
+        it_old = None
         if switch_grupo == 'on' and grupo_id: gp = Grupo.objects.filter(codigo=grupo_id, vinc_emp=empresa).first()
         if switch_unidade == 'on' and unidade_id: unidade = Unidade.objects.filter(codigo=unidade_id, vinc_emp=empresa).first()
         if switch_marca == 'on' and marca_id: marca = Marca.objects.filter(codigo=marca_id, vinc_emp=empresa).first()
@@ -118,19 +121,29 @@ def att_prod_lote(request):
             if switch_grupo == 'on' and grupo_id and gp:
                 produto.grupo = gp
                 alguma_alteracao = True
+                it_old = Produto.objects.get(codigo=produto.codigo, vinc_emp=request.user.empresa)
             if switch_unidade == 'on' and unidade_id and unidade:
                 produto.unidProd = unidade
                 alguma_alteracao = True
+                it_old = Produto.objects.get(codigo=produto.codigo, vinc_emp=request.user.empresa)
             if switch_lista_orc == 'on':
                 produto.lista_orc = True
                 alguma_alteracao = True
+                it_old = Produto.objects.get(codigo=produto.codigo, vinc_emp=request.user.empresa)
             if switch_marca == 'on' and marca_id and marca:
                 produto.marca = marca
                 alguma_alteracao = True
+                it_old = Produto.objects.get(codigo=produto.codigo, vinc_emp=request.user.empresa)
             if switch_situacao == 'on' and situacao in ['Ativo', 'Inativo']:
                 produto.situacao = situacao
                 alguma_alteracao = True
+                it_old = Produto.objects.get(codigo=produto.codigo, vinc_emp=request.user.empresa)
             produto.save()
+            registrar_log(
+                request, "ALTERAR", "Produto", produto.desc_prod,
+                f"Alterou o produto: {produto.codigo} - {produto.desc_prod}",
+                produto.id, gerar_alteracoes(it_old, produto)
+            )
         if alguma_alteracao: messages.success(request, 'Campos atualizados com sucesso!')
         else: messages.info(request, 'Nenhuma alteração realizada.')
     else: messages.info(request, 'Nenhuma alteração realizada.')
@@ -171,6 +184,12 @@ def att_preco_lote(request):
                 continue
             ProdutoTabela.objects.update_or_create(produto=p, tabela=tabela, defaults={'vl_prod': vl_prod, 'margem': margem})
             alguma_alteracao = True
+            it_old = Produto.objects.get(codigo=p.codigo, vinc_emp=request.user.empresa)
+            registrar_log(
+                request, "ALTERAR", "Produto", p.desc_prod,
+                f"Alterou a tabela de preço do produto: {p.codigo} - {p.desc_prod}",
+                p.id, gerar_alteracoes(it_old, p)
+            )
         if alguma_alteracao:
             tipo_label = "margem" if tp_atrib == "0" else "valor"
             messages.success(request, f"Tabela de preço atualizada com base em {tipo_label} com sucesso!")
@@ -209,6 +228,12 @@ def att_tb_preco_lote(request):
                 return JsonResponse({'ok': False, 'msg': 'Tipo de atribuição inválido.'})
             ProdutoTabela.objects.update_or_create(produto=produto, tabela=tabela, defaults={'vl_prod': valor, 'margem': margem,})
             valores_ret[str(pid)] = {'vl_prod': float(valor), 'margem': float(margem),}
+            it_old = Produto.objects.get(codigo=item.codigo, vinc_emp=request.user.empresa)
+            registrar_log(
+                request, "ALTERAR", "Produto", item.desc_prod,
+                f"Alterou a tabela de preço do produto: {item.codigo} - {item.desc_prod}",
+                item.id, gerar_alteracoes(it_old, item)
+            )
         return JsonResponse({'ok': True, 'tabela_nome': getattr(tabela, 'descricao', str(tabela)), 'valores': valores_ret,})
     except TabelaPreco.DoesNotExist: return JsonResponse({'ok': False, 'msg': 'Tabela de preço não encontrada.'})
     except Produto.DoesNotExist: return JsonResponse({'ok': False, 'msg': 'Um dos produtos não foi encontrado.'})
@@ -250,7 +275,11 @@ def buscar_produtos(request):
     for prod in produtos:
         tabela = None
         if tabela_id: tabela = ProdutoTabela.objects.filter(produto=prod, tabela__codigo=tabela_id, tabela__vinc_emp=empresa).first()
-        data.append({'id': prod.codigo, 'desc_prod': prod.desc_prod, 'unidProd': prod.unidProd.nome_unidade if prod.unidProd else '', 'grupo': prod.grupo.nome_grupo if prod.grupo else '', 'estoque_prod': getattr(prod, 'estoque_prod', None), 'vl_compra': prod.vl_compra, 'vl_prod': float(tabela.vl_prod) if tabela else None, 'tp_prod': prod.tp_prod, 'especifico': prod.especifico if prod.especifico else ''})
+        data.append({'id': prod.codigo, 'desc_prod': prod.desc_prod, 'unidProd': prod.unidProd.nome_unidade if prod.unidProd else '', 
+            'grupo': prod.grupo.nome_grupo if prod.grupo else '', 'estoque_prod': getattr(prod, 'estoque_prod', None), 'vl_compra': prod.vl_compra, 
+            'vl_prod': float(tabela.vl_prod) if tabela else None, 'tp_prod': prod.tp_prod, 'especifico': prod.especifico if prod.especifico else '', 
+            'diametro_eixo': float(prod.diametro_eixo) if prod.diametro_eixo else None, 'espessura_lam': float(prod.espessura_lam) if prod.espessura_lam else None, 
+            'peso_m2': float(prod.peso_m2) if prod.peso_m2 else None,})
     return JsonResponse({'produtos': data})
 
 @login_required
@@ -338,6 +367,12 @@ def salvar_tabelas_produto_ajax(request):
             except Exception: margem = Decimal('0.00')
             ProdutoTabela.objects.update_or_create(produto=produto, tabela=tabela, defaults={'vl_prod': vl_prod, 'margem': margem})
             tabelas_ids_recebidas.append(tabela.codigo)
+            it_old = Produto.objects.get(codigo=produto.codigo, vinc_emp=request.user.empresa)
+            registrar_log(
+                request, "ALTERAR", "Produto", produto.desc_prod,
+                f"Alterou a tabela de preço do produto: {produto.codigo} - {produto.desc_prod}",
+                produto.id, gerar_alteracoes(it_old, produto)
+            )
         ProdutoTabela.objects.filter(produto=produto).exclude(tabela__codigo__in=tabelas_ids_recebidas).delete()
         return JsonResponse({'ok': True, 'msg': 'Tabelas do produto salvas com sucesso.'})
     except Produto.DoesNotExist: return JsonResponse({'ok': False, 'msg': 'Produto não encontrado.'}, status=404)
@@ -370,6 +405,34 @@ def add_produto(request):
             p.vinc_emp = empresa
             p.lista_orc = lista_orc
             p.save()
+            if p.estoque_minimo > 0:
+                if p.estoque_prod <= p.estoque_minimo:
+                    quantidade = int(p.estoque_prod) if p.estoque_prod == int(p.estoque_prod) else p.estoque_prod
+                    criar_alerta(
+                        empresa=p.vinc_emp, tipo='ESTOQUE_MINIMO', referencia=p.codigo, titulo='Alerta de Estoque mínimo',
+                        descricao=(
+                            f'Atenção! O produto ({p.desc_prod}) atingiu o estoque mínimo configurado e possui apenas {quantidade} unidades disponíveis em estoque. ' +
+                            'Recomendamos realizar a reposição o quanto antes para evitar a falta do produto e possíveis impactos nas vendas.'
+                        ),
+                        usuarios=Usuario.objects.filter(empresa=p.vinc_emp, receber_alerta_estoque=True, filial_user__estoque__ativar_alerta_estoque=True,),
+                        remetente=p, verb='Estoque mínimo', dados={'produto': p.codigo}
+                    )
+                else:
+                    resolver_alerta(empresa=p.vinc_emp, tipo='ESTOQUE_MINIMO', referencia=p.codigo)
+            if p.estoque_maximo > 0:
+                if p.estoque_prod >= p.estoque_maximo:
+                    quantidade = int(p.estoque_prod) if p.estoque_prod == int(p.estoque_prod) else p.estoque_prod
+                    criar_alerta(
+                        empresa=p.vinc_emp, tipo='ESTOQUE_MAXIMO', referencia=p.codigo, titulo='Alerta de Estoque Máximo',
+                        descricao=(
+                            f'Atenção! O produto ({p.desc_prod}) ultrapassou o estoque máximo configurado, totalizando {quantidade} unidades disponíveis em estoque. ' +
+                            'Recomendamos organizar os produtos que sobraram para evitar desperdícios de mercadorias.'
+                        ),
+                        usuarios=Usuario.objects.filter(empresa=p.vinc_emp, receber_alerta_estoque_maximo=True, filial_user__estoque__ativar_alerta_estoque=True,),
+                        remetente=p, verb='Estoque máximo', dados={'produto': p.codigo}
+                    )
+                else:
+                    resolver_alerta(empresa=p.vinc_emp, tipo='ESTOQUE_MAXIMO', referencia=p.codigo)
             tab_preco_dict = {}
             for key, value in request.POST.items():
                 if key.startswith("tab_preco["):
@@ -409,6 +472,11 @@ def add_produto(request):
                     messages.warning(request, f"O código '{codigo}' já está vinculado a outro produto desta empresa.")
                     continue
                 CodigoProduto.objects.create(produto=p, codigo=codigo, vinc_emp=empresa)
+            registrar_log(
+                request, "CRIAR", "Produto", p.desc_prod,
+                f"Adicionou o produto: {p.codigo} - {p.desc_prod}",
+                p.id, gerar_alteracoes(obj_novo=p)
+            )
             messages.success(request, 'Produto adicionado com sucesso!')
             return redirect(f'/produtos/lista/?tp=cod&s={p.codigo}')
     except ObjectDoesNotExist: error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
@@ -431,6 +499,7 @@ def att_produto(request, codigo):
         return redirect('/produtos/lista/')
     try:
         p = get_object_or_404(Produto, codigo=codigo, vinc_emp=empresa)
+        it_old = Produto.objects.get(codigo=p.codigo, vinc_emp=empresa)
         if request.method == "POST":
             form = ProdutoForm(request.POST, instance=p, empresa=empresa)
             lista_orc = request.POST.get('lista_orc') == 'on'
@@ -451,6 +520,34 @@ def att_produto(request, codigo):
                 p.estoque_prod = estoque_atual
             p.lista_orc = lista_orc
             p.save()
+            if p.estoque_minimo > 0:
+                if p.estoque_prod <= p.estoque_minimo:
+                    quantidade = int(p.estoque_prod) if p.estoque_prod == int(p.estoque_prod) else p.estoque_prod
+                    criar_alerta(
+                        empresa=p.vinc_emp, tipo='ESTOQUE_MINIMO', referencia=p.codigo, titulo='Alerta de Estoque mínimo',
+                        descricao=(
+                            f'Atenção! O produto ({p.desc_prod}) atingiu o estoque mínimo configurado e possui apenas {quantidade} unidades disponíveis em estoque. ' +
+                            'Recomendamos realizar a reposição o quanto antes para evitar a falta do produto e possíveis impactos nas vendas.'
+                        ),
+                        usuarios=Usuario.objects.filter(empresa=p.vinc_emp, receber_alerta_estoque=True, filial_user__estoque__ativar_alerta_estoque=True,),
+                        remetente=p, verb='Estoque mínimo', dados={'produto': p.codigo}
+                    )
+                else:
+                    resolver_alerta(empresa=p.vinc_emp, tipo='ESTOQUE_MINIMO', referencia=p.codigo)
+            if p.estoque_maximo > 0:
+                if p.estoque_prod >= p.estoque_maximo:
+                    quantidade = int(p.estoque_prod) if p.estoque_prod == int(p.estoque_prod) else p.estoque_prod
+                    criar_alerta(
+                        empresa=p.vinc_emp, tipo='ESTOQUE_MAXIMO', referencia=p.codigo, titulo='Alerta de Estoque Máximo',
+                        descricao=(
+                            f'Atenção! O produto ({p.desc_prod}) ultrapassou o estoque máximo configurado, totalizando {quantidade} unidades disponíveis em estoque. ' +
+                            'Recomendamos organizar os produtos que sobraram para evitar desperdícios de mercadorias.'
+                        ),
+                        usuarios=Usuario.objects.filter(empresa=p.vinc_emp, receber_alerta_estoque_maximo=True, filial_user__estoque__ativar_alerta_estoque=True,),
+                        remetente=p, verb='Estoque máximo', dados={'produto': p.codigo}
+                    )
+                else:
+                    resolver_alerta(empresa=p.vinc_emp, tipo='ESTOQUE_MAXIMO', referencia=p.codigo)
             tab_preco_dict = {}
             for key, value in request.POST.items():
                 if key.startswith("tab_preco["):
@@ -495,6 +592,11 @@ def att_produto(request, codigo):
                 cod_sec_ids.append(ep.id)
             # Remove códigos antigos não reenviados
             CodigoProduto.objects.filter(produto=p).exclude(codigo__in=cod_sec_ids).delete()
+            registrar_log(
+                request, "ALTERAR", "Produto", p.desc_prod,
+                f"Alterou o produto: {p.codigo} - {p.desc_prod}",
+                p.id, gerar_alteracoes(it_old, p)
+            )
             messages.success(request, 'Produto atualizado com sucesso!')
             next_url = request.POST.get('next') or request.GET.get('next')
             if next_url: return redirect(next_url)
@@ -536,6 +638,34 @@ def clonar_produto(request, codigo):
                 novo_produto.lista_orc = lista_orc
                 novo_produto.estoque_prod = Decimal('0.00')
                 novo_produto.save()
+                if novo_produto.estoque_minimo > 0:
+                    if novo_produto.estoque_prod <= novo_produto.estoque_minimo:
+                        quantidade = int(novo_produto.estoque_prod) if novo_produto.estoque_prod == int(novo_produto.estoque_prod) else novo_produto.estoque_prod
+                        criar_alerta(
+                            empresa=novo_produto.vinc_emp, tipo='ESTOQUE_MINIMO', referencia=novo_produto.codigo, titulo='Alerta de Estoque mínimo',
+                            descricao=(
+                                f'Atenção! O produto ({novo_produto.desc_prod}) atingiu o estoque mínimo configurado e possui apenas {quantidade} unidades disponíveis em estoque. ' +
+                                'Recomendamos realizar a reposição o quanto antes para evitar a falta do produto e possíveis impactos nas vendas.'
+                            ),
+                            usuarios=Usuario.objects.filter(empresa=novo_produto.vinc_emp, receber_alerta_estoque=True, filial_user__estoque__ativar_alerta_estoque=True,),
+                            remetente=novo_produto, verb='Estoque mínimo', dados={'produto': novo_produto.codigo}
+                        )
+                    else:
+                        resolver_alerta(empresa=novo_produto.vinc_emp, tipo='ESTOQUE_MINIMO', referencia=novo_produto.codigo)
+                if novo_produto.estoque_maximo > 0:
+                    if novo_produto.estoque_prod >= novo_produto.estoque_maximo:
+                        quantidade = int(novo_produto.estoque_prod) if novo_produto.estoque_prod == int(novo_produto.estoque_prod) else novo_produto.estoque_prod
+                        criar_alerta(
+                            empresa=novo_produto.vinc_emp, tipo='ESTOQUE_MAXIMO', referencia=novo_produto.codigo, titulo='Alerta de Estoque Máximo',
+                            descricao=(
+                                f'Atenção! O produto ({novo_produto.desc_prod}) ultrapassou o estoque máximo configurado, totalizando {quantidade} unidades disponíveis em estoque. ' +
+                                'Recomendamos organizar os produtos que sobraram para evitar desperdícios de mercadorias.'
+                            ),
+                            usuarios=Usuario.objects.filter(empresa=novo_produto.vinc_emp, receber_alerta_estoque_maximo=True, filial_user__estoque__ativar_alerta_estoque=True,),
+                            remetente=novo_produto, verb='Estoque máximo', dados={'produto': novo_produto.codigo}
+                        )
+                    else:
+                        resolver_alerta(empresa=p.vinc_emp, tipo='ESTOQUE_MAXIMO', referencia=p.codigo)
                 tab_preco_dict = {}
                 for key, value in request.POST.items():
                     if key.startswith("tab_preco["):
@@ -579,6 +709,11 @@ def clonar_produto(request, codigo):
                         continue
                     # Cria o código somente se ele foi informado manualmente no clone
                     CodigoProduto.objects.create(produto=novo_produto, codigo=codigo, vinc_emp=empresa)
+                registrar_log(
+                    request, "CRIAR", "Produto", novo_produto.desc_prod,
+                    f"Adicionou o produto: {novo_produto.codigo} - {novo_produto.desc_prod} apartir da clonagem do produto: {p.codigo}",
+                    novo_produto.id, gerar_alteracoes(obj_novo=novo_produto)
+                )
                 messages.success(request, 'Produto clonado com sucesso!')
                 return redirect(f'/produtos/lista/?tp=cod&s={novo_produto.codigo}')
             else:
@@ -605,6 +740,11 @@ def del_produto(request, codigo):
         return redirect('lista-produtos')
     if request.method == "POST":
         p = get_object_or_404(Produto, codigo=codigo, vinc_emp=request.user.empresa)
+        registrar_log(
+            request, "EXCLUIR", "Produto", p.desc_prod,
+            f"Excluiu o produto: {p.codigo} - {p.desc_prod}",
+            p.id, gerar_alteracoes(obj_antigo=p)
+        )
         p.delete()
         transaction.commit()
         connection.close()

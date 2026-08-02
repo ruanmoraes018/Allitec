@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from util.logs import gerar_alteracoes, registrar_log
 from .models import Bairro
 from .forms import BairroForm
 import unicodedata
@@ -62,6 +63,11 @@ def add_bairro(request):
             b = form.save(commit=False)
             b.vinc_emp = request.user.empresa
             b.save()
+            registrar_log(
+                request, "CRIAR", "Bairro", b.nome_bairro,
+                f"Adicionou o bairro: {b.codigo} - {b.nome_bairro}",
+                b.id, gerar_alteracoes(obj_novo=b)
+            )
             messages.success(request, 'Bairro adicionado com sucesso!')
             bai = str(b.codigo)
             return redirect('/bairros/lista/?tp=cod&s=' + bai)
@@ -80,11 +86,17 @@ def add_bairro_ajax(request):
     if not nome: return JsonResponse({'erro': 'Nome vazio'}, status=400)
     empresa = request.user.empresa
     bairro, criado = Bairro.objects.get_or_create(nome_bairro=nome, vinc_emp=empresa)
+    registrar_log(
+        request, "CRIAR", "Bairro", bairro.nome_bairro,
+        f"Adicionou o bairro: {bairro.codigo} - {bairro.nome_bairro}",
+        bairro.id, gerar_alteracoes(obj_novo=bairro)
+    )
     return JsonResponse({'id': bairro.codigo, 'nome': bairro.nome_bairro, 'criado': criado})
 
 @login_required
 def att_bairro(request, codigo):
     b = get_object_or_404(Bairro, codigo=codigo, vinc_emp=request.user.empresa)
+    it_old = Bairro.objects.get(codigo=b.codigo, vinc_emp=request.user.empresa)
     form = BairroForm(instance=b)
     if not request.user.has_perm('bairros.change_bairro'):
         messages.info(request, 'Você não tem permissão para editar bairros.')
@@ -93,6 +105,11 @@ def att_bairro(request, codigo):
         form = BairroForm(request.POST, instance=b)
         if form.is_valid():
             b.save()
+            registrar_log(
+                request, "ALTERAR", "Bairro", b.nome_bairro,
+                f"Alterou o bairro: {b.codigo} - {b.nome_bairro}",
+                b.id, gerar_alteracoes(it_old, b)
+            )
             next_url = request.POST.get('next') or request.GET.get('next')
             bai = str(b.codigo)
             messages.success(request, 'Bairro atualizado com sucesso!')
@@ -111,6 +128,11 @@ def del_bairro(request, codigo):
         messages.info(request, 'Você não tem permissão para deletar bairros.')
         return redirect('/bairros/lista/')
     b = get_object_or_404(Bairro, codigo=codigo, vinc_emp=request.user.empresa)
+    registrar_log(
+        request, "EXCLUIR", "Bairro", b.nome_bairro,
+        f"Excluiu o bairro: {b.codigo} - {b.nome_bairro}",
+        b.id, gerar_alteracoes(obj_antigo=b)
+    )
     b.delete()
     messages.success(request, 'Bairro deletado com sucesso!')
     return redirect('/bairros/lista/')

@@ -175,19 +175,32 @@
                                                 <div class="col-md-1">
                                                     {{ form.estoque_prod|as_crispy_field }}
                                                 </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label">Estoque Mínimo <i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado para Alertas quando atinge a quantidade definida."></i></label>
+                                                    {{ form.estoque_minimo|as_crispy_field }}
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label">Estoque Máximo <i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado para Alertas quando ultrapassa a quantidade definida."></i></label>
+                                                    {{ form.estoque_maximo|as_crispy_field }}
+                                                </div>
                                                 <div class="col-md-1">
                                                     <label class="form-label">Tipo<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Orçamentos - Portas"></i></label>
                                                     {{ form.tp_prod|as_crispy_field }}
                                                 </div>
-                                                <div class="col-md-2 ms-2 form-check form-switch">
+                                                <div class="col-md-2 form-check form-switch">
                                                     <input class="form-check-input" type="checkbox" id="id_lista_orc" name="lista_orc" {% if p.lista_orc %}checked{% endif %}>
                                                     <label class="form-check-label" for="id_lista_orc">
-                                                        Exibir na Lista (Orçamentos)
+                                                        Exibir em Orç. - Portas
                                                     </label>
                                                 </div>
                                                 <div class="col-md-2">
                                                     <label class="form-label">Produto Específico<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Orçamentos - Portas"></i></label>
                                                     {{ form.especifico|as_crispy_field }}
+                                                </div>
+                                                <div class="col-md-2">
+                                                    {{ form.diametro_eixo|as_crispy_field }}
+                                                    {{ form.espessura_lam|as_crispy_field }}
+                                                    {{ form.peso_m2|as_crispy_field }}
                                                 </div>
                                             </div>
                                             <div class="row" style="margin-left:-10px; margin-right: -10px;">

@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+
 urlpatterns = [
     path("lista/", views.lista_regras, name='lista-regras'),
     path("lista_ajax/", views.lista_regras_ajax, name='lista-ajax'),
