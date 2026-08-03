@@ -60,7 +60,7 @@ class FilialForm(forms.ModelForm):
     tb_preco = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Tabela de Preço Padrão')
     vendedor = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Vendedor Padrão')
     agrupa_itens = forms.ChoiceField(label="Agrupar Itens", choices=[(True, 'Sim'), (False, 'Não')], widget=forms.Select(attrs={'class': f'{s}'}))
-    
+
     def _parse_decimal(self, valor):
         if valor in [None, '']: return Decimal('0.00')
         valor = str(valor).strip()
@@ -169,7 +169,7 @@ class FilialFinanceiroForm(forms.ModelForm):
     desconto_maximo = forms.CharField(label='Desconto Máximo %', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
     acrescimo_maximo = forms.CharField(label='Acréscimo Máximo %', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
     limite_credito_padrao = forms.CharField(label='Limite Crédito Máximo', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
-    
+
     class Meta:
         model = FilialFinanceiro
         exclude = ("filial",)
@@ -191,14 +191,14 @@ class FilialFinanceiroForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         campos_select2 = {
-            'banco_fil': (Estoque, 'Banco'),
+            'banco_fil': (Banco, 'Banco'),
         }
         for nome_campo, (model_classe, nome_exibicao) in campos_select2.items():
             codigo = cleaned_data.get(nome_campo)
             # Se o usuário preencheu o campo (não é None e nem string vazia)
             if codigo and codigo != '':
                 try:
-                    objeto_real = model_classe.objects.get(codigo=codigo, empresa=self.empresa)
+                    objeto_real = model_classe.objects.get(codigo=codigo, vinc_emp=self.empresa)
                     cleaned_data[nome_campo] = objeto_real  # Substitui pelo objeto do banco
                 except model_classe.DoesNotExist:
                     self.add_error(nome_campo, f"{nome_exibicao} inválido(a) para esta empresa.")
@@ -259,7 +259,7 @@ class FilialOrcamentoForm(forms.ModelForm):
     class Meta:
         model = FilialOrcamento
         exclude = ("filial",)
-    
+
     def __init__(self, *args, **kwargs):
         # Captura e remove a empresa dos kwargs de forma segura
         self.empresa = kwargs.pop('empresa', None)
@@ -346,7 +346,7 @@ class FilialImpressaoForm(forms.ModelForm):
     class Meta:
         model = FilialImpressao
         exclude = ("filial",)
-    
+
     def __init__(self, *args, **kwargs):
         # Captura e remove a empresa dos kwargs de forma segura
         self.empresa = kwargs.pop('empresa', None)
@@ -393,7 +393,7 @@ class FilialObservacaoForm(forms.ModelForm):
                 # ✅ CORREÇÃO: Se veio vazio ou '', força a ser None para o Django salvar como NULL
                 cleaned_data[nome_campo] = None
         return cleaned_data
-    
+
 class FilialReadOnlyForm(forms.ModelForm):
     class Meta:
         model = Filial

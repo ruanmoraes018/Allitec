@@ -60,67 +60,69 @@ def add_bairro(request):
     if request.method == 'POST':
         form = BairroForm(request.POST)
         if form.is_valid():
+            nome = form.cleaned_data['nome_bairro'].strip().upper()
+            empresa = request.user.empresa
+            # Verifica duplicata antes de salvar
+            if Bairro.objects.filter(nome_bairro=nome, vinc_emp=empresa).exists():
+                messages.warning(request, f'O bairro "{nome}" já está cadastrado.')
+                return render(request, 'bairros/add.html', {'form': form})
             b = form.save(commit=False)
-            b.vinc_emp = request.user.empresa
+            b.nome_bairro = nome
+            b.vinc_emp = empresa
             b.save()
-            registrar_log(
-                request, "CRIAR", "Bairro", b.nome_bairro,
-                f"Adicionou o bairro: {b.codigo} - {b.nome_bairro}",
-                b.id, gerar_alteracoes(obj_novo=b)
-            )
+            registrar_log(request, "CRIAR", "Bairro", b.nome_bairro, f"Adicionou o bairro: {b.codigo} - {b.nome_bairro}", b.id, gerar_alteracoes(obj_novo=b))
             messages.success(request, 'Bairro adicionado com sucesso!')
-            bai = str(b.codigo)
-            return redirect('/bairros/lista/?tp=cod&s=' + bai)
+            return redirect('/bairros/lista/?tp=cod&s=' + str(b.codigo))
         else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+            error_messages = [f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!" for field in form if field.errors]
             return render(request, 'bairros/add.html', {'form': form, 'error_messages': error_messages})
-    else: form = BairroForm()
+    else:
+        form = BairroForm()
     return render(request, 'bairros/add.html', {'form': form})
 
 @login_required
 @require_POST
 def add_bairro_ajax(request):
     nome = request.POST.get('nome', '').strip().upper()
-    if not nome: return JsonResponse({'erro': 'Nome vazio'}, status=400)
+    if not nome:
+        return JsonResponse({'erro': 'Nome vazio'}, status=400)
     empresa = request.user.empresa
     bairro, criado = Bairro.objects.get_or_create(nome_bairro=nome, vinc_emp=empresa)
-    registrar_log(
-        request, "CRIAR", "Bairro", bairro.nome_bairro,
-        f"Adicionou o bairro: {bairro.codigo} - {bairro.nome_bairro}",
-        bairro.id, gerar_alteracoes(obj_novo=bairro)
-    )
+    if criado:
+        registrar_log(request, "CRIAR", "Bairro", bairro.nome_bairro, f"Adicionou o bairro: {bairro.codigo} - {bairro.nome_bairro}", bairro.id, gerar_alteracoes(obj_novo=bairro))
     return JsonResponse({'id': bairro.codigo, 'nome': bairro.nome_bairro, 'criado': criado})
 
 @login_required
 def att_bairro(request, codigo):
     b = get_object_or_404(Bairro, codigo=codigo, vinc_emp=request.user.empresa)
-    it_old = Bairro.objects.get(codigo=b.codigo, vinc_emp=request.user.empresa)
-    form = BairroForm(instance=b)
     if not request.user.has_perm('bairros.change_bairro'):
         messages.info(request, 'Você não tem permissão para editar bairros.')
         return redirect('/bairros/lista/')
+    it_old = Bairro.objects.get(codigo=b.codigo, vinc_emp=request.user.empresa)
+    form = BairroForm(instance=b)
     if request.method == 'POST':
         form = BairroForm(request.POST, instance=b)
         if form.is_valid():
+            nome = form.cleaned_data['nome_bairro'].strip().upper()
+            empresa = request.user.empresa
+            # Verifica duplicata excluindo o próprio registro
+            if Bairro.objects.filter(nome_bairro=nome, vinc_emp=empresa).exclude(codigo=codigo).exists():
+                messages.warning(request, f'O bairro "{nome}" já está cadastrado.')
+                return render(request, 'bairros/att.html', {'form': form, 'b': b})
+            b = form.save(commit=False)
+            b.nome_bairro = nome
+            b.vinc_emp = empresa
             b.save()
-            registrar_log(
-                request, "ALTERAR", "Bairro", b.nome_bairro,
-                f"Alterou o bairro: {b.codigo} - {b.nome_bairro}",
-                b.id, gerar_alteracoes(it_old, b)
-            )
-            next_url = request.POST.get('next') or request.GET.get('next')
-            bai = str(b.codigo)
+            registrar_log(request, "ALTERAR", "Bairro", b.nome_bairro, f"Alterou o bairro: {b.codigo} - {b.nome_bairro}",  b.id, gerar_alteracoes(it_old, b))
             messages.success(request, 'Bairro atualizado com sucesso!')
-            if next_url: return redirect(next_url)
-            else: return redirect('/bairros/lista/?tp=cod&s=' + bai)
+            next_url = request.POST.get('next') or request.GET.get('next')
+            if next_url:
+                return redirect(next_url)
+            return redirect('/bairros/lista/?tp=cod&s=' + str(b.codigo))
         else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+            error_messages = [f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!" for field in form if field.errors]
             return render(request, 'bairros/att.html', {'form': form, 'b': b, 'error_messages': error_messages})
-    else: return render(request, 'bairros/att.html', {'form': form, 'b': b})
+    return render(request, 'bairros/att.html', {'form': form, 'b': b})
 
 @login_required
 def del_bairro(request, codigo):

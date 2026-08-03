@@ -4,6 +4,7 @@ from empresas.models import Empresa
 from bancos.models import Banco
 from produtos.models import Produto, ProdutoTabela, CodigoProduto
 from clientes.models import Cliente
+from vendedores.models import Vendedor
 from tecnicos.models import Tecnico
 from orcamentos.models import Orcamento, PortaOrcamento, PortaProduto, PortaAdicional
 from grupos.models import Grupo
@@ -29,6 +30,7 @@ class FilialInline(admin.TabularInline):
 class MensalidadeInline(admin.TabularInline):
     model = Mensalidade
     extra = 0
+    max_num = 10
     fields = ('num_mens', 'situacao', 'empresa', 'empresa_fantasia', 'created_at', 'dt_venc', 'vl_mens')
     readonly_fields = ('created_at', 'empresa_fantasia')
     show_change_link = True
@@ -51,6 +53,13 @@ class RegraInline(admin.TabularInline):
 
 class ClienteInline(admin.TabularInline):
     model = Cliente
+    extra = 0
+    max_num = 10
+    fields = ('fantasia', 'cpf_cnpj', 'cidade', 'situacao')
+    show_change_link = True
+
+class VendedorInline(admin.TabularInline):
+    model = Vendedor
     extra = 0
     fields = ('fantasia', 'cpf_cnpj', 'cidade', 'situacao')
     show_change_link = True
@@ -88,6 +97,7 @@ class GrupoInline(admin.TabularInline):
 class ProdutoInline(admin.TabularInline):
     model = Produto
     extra = 0
+    max_num = 10
     fields = ('desc_prod', 'grupo', 'unidProd', 'estoque_prod')
     show_change_link = True
 
@@ -118,6 +128,7 @@ class EntradaInline(admin.TabularInline):
 class PedidoInline(admin.TabularInline):
     model = Pedido
     extra = 0
+    max_num = 10
     fields = ('cli', 'id', 'dt_emi', 'situacao', 'motivo', 'total')
     show_change_link = True
 
@@ -150,7 +161,7 @@ class EmpresaAdmin(admin.ModelAdmin):
     list_display = ('id', 'razao_social', 'cnpj')
     search_fields = ('razao_social', 'cnpj')
     inlines = [FilialInline, MensalidadeInline, BancoInline, ClienteInline, TecnicoInline, ProdutoInline, BairroInline, CidadeInline, EstadoInline,
-                GrupoInline, FormaPgtoInline, EntradaInline, PedidoInline, MarcaInline, TabelaPrecoInline, RegraInline
+                GrupoInline, FormaPgtoInline, EntradaInline, PedidoInline, MarcaInline, TabelaPrecoInline, RegraInline, VendedorInline
     ]
 # Inlines para os modelos relacionados à Filial
 class UsuarioInline(admin.StackedInline):

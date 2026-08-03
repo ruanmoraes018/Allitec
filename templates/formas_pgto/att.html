@@ -121,32 +121,22 @@
 
         container.innerHTML = "";
         if (!CAMPOS_GATEWAY[gateway]) return;
-
         CAMPOS_GATEWAY[gateway].forEach(campo => {
             const valor = credenciais[campo.name] || "";
             const div = document.createElement("div");
             div.className = "mb-2";
-
             if (campo.type === "file") {
                 // Se já existir um caminho salvo, mostramos um aviso amigável para o usuário
                 const jaTemArquivo = credenciais["certificado_path"] ? `<small class="text-success d-block">✓ Certificado já enviado (${credenciais["certificado_path"].split('/').pop()})</small>` : "";
-
                 div.innerHTML = `
                     <label class="form-label">${campo.label}</label>
-                    <input type="file"
-                           class="form-control form-control-sm border-dark-subtle"
-                           name="${campo.name}"
-                           id="id_${campo.name}"
-                           accept=".pem,.crt,.key">
+                    <input type="file" class="form-control form-control-sm border-dark-subtle" name="${campo.name}" id="id_${campo.name}" accept=".pem,.crt,.key">
                     ${jaTemArquivo}
                 `;
             } else {
                 div.innerHTML = `
                     <label class="form-label">${campo.label}</label>
-                    <input type="text"
-                           class="form-control form-control-sm border-dark-subtle cred-input"
-                           data-name="${campo.name}"
-                           value="${valor}">
+                    <input type="text" class="form-control form-control-sm border-dark-subtle cred-input" data-name="${campo.name}" value="${valor}">
                 `;
             }
             container.appendChild(div);

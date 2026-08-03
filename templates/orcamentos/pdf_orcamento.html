@@ -46,9 +46,7 @@
                         <td style="width: 22.5%; text-align: justify; background-color: gray;"><strong>DT. EMISSÃO</strong></td>
                         <td style="width: 22.5%; text-align: justify;">
                             {% load tz %}
-                            {% timezone "UTC" %}
-                                {{ o.dt_emi|date:"d/m/Y | H:i" }}
-                            {% endtimezone %}
+                            {{ o.dt_emi|localtime|date:"d/m/Y | H:i" }}
                         </td>
                     </tr>
                     <tr>

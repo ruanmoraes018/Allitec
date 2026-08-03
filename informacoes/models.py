@@ -8,7 +8,7 @@ class Informacoes(models.Model):
     empresa = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
 
     def save(self, *args, **kwargs):
-        if self.vinc_emp and not self.codigo:
+        if self.empresa and not self.codigo:
             with transaction.atomic():
                 ult = (Informacoes.objects.select_for_update().filter(empresa=self.empresa).aggregate(models.Max('codigo'))['codigo__max'] or 0)
                 self.codigo = ult + 1

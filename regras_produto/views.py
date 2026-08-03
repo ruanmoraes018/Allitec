@@ -27,7 +27,7 @@ from util.logs import gerar_alteracoes, registrar_log
 from decimal import ROUND_UP
 from django.forms import inlineformset_factory
 
-ItemFormSet = inlineformset_factory(RegraProduto, RegraProdutoItem, form=RegraProdutoItemForm, extra=1, can_delete=True)
+ItemFormSet = inlineformset_factory(RegraProduto, RegraProdutoItem, form=RegraProdutoItemForm, extra=0, can_delete=True)
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -202,7 +202,7 @@ def calcular_expressao_segura(expr, contexto):
 import re
 
 def _avaliar_condicoes(condicoes, contexto):
-    
+
     def eh_numero(v):
         # Aceita apenas strings que parecem números: "1.5", "1,5", "10", "-3"
         return bool(re.match(r'^-?\d+([.,]\d+)?$', str(v).strip()))
@@ -299,7 +299,7 @@ def aplicar_regras_porta(request):
                     if not preco:
                         continue
                     item_resultado = {
-                        'id': produto.codigo, 'codigo': produto.codigo, 'desc_prod': produto.desc_prod, 'desc_prod_regra': descricao, 
+                        'id': produto.codigo, 'codigo': produto.codigo, 'desc_prod': produto.desc_prod, 'desc_prod_regra': descricao,
                         'unidProd': str(produto.unidProd) if produto.unidProd else '', 'tp_prod': produto.tp_prod, 'vl_compra': float(produto.vl_compra),
                         'vl_unit': float(preco.vl_prod), 'qtd': float(qtd), 'regra_origem': regra.codigo,
                         # ✅ ADICIONE:
@@ -469,7 +469,7 @@ def att_regra(request, cod_local):
     it_old = RegraProduto.objects.get(cod_local=regra.cod_local, vinc_emp=empresa)
     if request.method == "POST":
         form = RegraProdutoForm(request.POST, instance=regra, empresa=empresa)
-        itens_formset = ItemFormSet(request.POST, instance=regra, prefix='itens', form_kwargs={'empresa': empresa})
+        itens_formset = ItemFormSet(request.POST, instance=regra, prefix='itens', form_kwargs={'empresa': request.user.empresa})
         if form.is_valid():
             try:
                 with transaction.atomic():

@@ -33,10 +33,10 @@ class Filial(models.Model):
     cep = models.CharField(max_length=10, verbose_name='CEP')
     numero = models.CharField(max_length=10, verbose_name='Nº')
     tb_preco = models.ForeignKey('tabelas_preco.TabelaPreco', on_delete=models.SET_NULL, null=True)
-    vendedor = models.ForeignKey('vendedores.Vendedor', on_delete=models.SET_NULL, null=True)
+    vendedor = models.ForeignKey('vendedores.Vendedor', on_delete=models.SET_NULL, null=True, blank=True)
     cli = models.ForeignKey('clientes.Cliente', on_delete=models.SET_NULL, null=True)
-    tec = models.ForeignKey('tecnicos.Tecnico', on_delete=models.SET_NULL, null=True)
-    bairro_fil = models.ForeignKey('bairros.Bairro', on_delete=models.SET_NULL, null=True)
+    tec = models.ForeignKey('tecnicos.Tecnico', on_delete=models.SET_NULL, null=True, blank=True)
+    bairro_fil = models.ForeignKey('bairros.Bairro', on_delete=models.SET_NULL, null=True, blank=True)
     complem = models.CharField(max_length=20, verbose_name='Complemento', blank=True)
     cidade_fil = models.ForeignKey('cidades.Cidade', on_delete=models.SET_NULL, null=True)
     uf = models.ForeignKey('estados.Estado', on_delete=models.SET_NULL, null=True)
@@ -49,7 +49,7 @@ class Filial(models.Model):
     principal = models.BooleanField(default=False, verbose_name='Filial Principal')
     vinculada_a = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='filiais_secundarias', verbose_name='Filial Vinculada à')
     agrupa_itens = models.BooleanField(default=True, verbose_name="Agrupar itens no pedido")
-    
+
     def garantir_configuracoes(self):
         FilialFinanceiro.objects.get_or_create(filial=self)
         FilialFiscal.objects.get_or_create(filial=self)
@@ -185,7 +185,7 @@ class Usuario(AbstractUser):
     gerar_senha_lib = models.BooleanField(default=False, verbose_name='Gerar Senha de Liberação')
     senha_liberacao = models.CharField(max_length=255, blank=True, null=True, verbose_name='Senha de Liberação', help_text="Para nova senha, preencha esse campo!")
     is_master = models.BooleanField(default=False)
-    tel = models.CharField(max_length=20, blank=True, verbose_name="Telefone")
+    tel = models.CharField(max_length=20, blank=True, verbose_name="Telefone", null=True)
     foto = models.ImageField(upload_to=caminho_foto_usuario, blank=True, null=True,)
     desconto_maximo = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     limite_credito = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -239,7 +239,7 @@ class Usuario(AbstractUser):
             if self.filial_user: return f"{self.username} - Emp: {self.empresa.fantasia}/Filial P.: {self.filial_user.fantasia}"
             return f"{self.username} - Emp: {self.empresa.fantasia}"
         return f"{self.username} (GLOBAL)"
-    
+
 class LogUsuario(models.Model):
     TIPOS = (
         ("CRIAR", "Criou"), ("ALTERAR", "Alterou"), ("EXCLUIR", "Excluiu"), ("FATURAR", "Faturou"), ("CANCELAR", "Cancelou"), ("BAIXA", "Baixa Financeira"),

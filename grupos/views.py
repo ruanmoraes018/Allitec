@@ -59,67 +59,69 @@ def add_grupo(request):
     if request.method == 'POST':
         form = GrupoForm(request.POST)
         if form.is_valid():
-            g = form.save(commit=False)
-            g.vinc_emp = request.user.empresa
-            g.save()
-            registrar_log(
-                request, "CRIAR", "Grupo", g.nome_grupo,
-                f"Adicionou o grupo: {g.codigo} - {g.nome_grupo}",
-                g.id, gerar_alteracoes(obj_novo=g)
-            )
+            nome = form.cleaned_data['nome_grupo'].strip().upper()
+            empresa = request.user.empresa
+            # Verifica duplicata antes de salvar
+            if Grupo.objects.filter(nome_grupo=nome, vinc_emp=empresa).exists():
+                messages.warning(request, f'O grupo "{nome}" já está cadastrado.')
+                return render(request, 'grupos/add.html', {'form': form})
+            b = form.save(commit=False)
+            b.nome_grupo = nome
+            b.vinc_emp = empresa
+            b.save()
+            registrar_log(request, "CRIAR", "Grupo", b.nome_grupo, f"Adicionou o grupo: {b.codigo} - {b.nome_grupo}", b.id, gerar_alteracoes(obj_novo=b))
             messages.success(request, 'Grupo adicionado com sucesso!')
-            gp = str(g.codigo)
-            return redirect('/grupos/lista/?tp=cod&s=' + gp)
+            return redirect('/grupos/lista/?tp=cod&s=' + str(b.codigo))
         else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+            error_messages = [f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!" for field in form if field.errors]
             return render(request, 'grupos/add.html', {'form': form, 'error_messages': error_messages})
-    else: form = GrupoForm()
+    else:
+        form = GrupoForm()
     return render(request, 'grupos/add.html', {'form': form})
 
 @login_required
 @require_POST
 def add_grupo_ajax(request):
     nome = request.POST.get('nome', '').strip().upper()
-    if not nome: return JsonResponse({'erro': 'Nome vazio'}, status=400)
+    if not nome:
+        return JsonResponse({'erro': 'Nome vazio'}, status=400)
     empresa = request.user.empresa
-    grupo, criada = Grupo.objects.get_or_create(nome_grupo=nome, vinc_emp=empresa)
-    registrar_log(
-            request, "CRIAR", "Grupo", grupo.nome_grupo,
-            f"Adicionou o grupo: {grupo.codigo} - {grupo.nome_grupo}",
-            grupo.id, gerar_alteracoes(obj_novo=grupo)
-        )
-    return JsonResponse({'id': grupo.codigo, 'nome': grupo.nome_grupo, 'criada': criada})
+    grupo, criado = Grupo.objects.get_or_create(nome_grupo=nome, vinc_emp=empresa)
+    if criado:
+        registrar_log(request, "CRIAR", "Grupo", grupo.nome_grupo, f"Adicionou o grupo: {grupo.codigo} - {grupo.nome_grupo}", grupo.id, gerar_alteracoes(obj_novo=grupo))
+    return JsonResponse({'id': grupo.codigo, 'nome': grupo.nome_grupo, 'criado': criado})
 
 @login_required
 def att_grupo(request, codigo):
     g = get_object_or_404(Grupo, codigo=codigo, vinc_emp=request.user.empresa)
-    it_old = Grupo.objects.get(codigo=g.codigo, vinc_emp=request.user.empresa)
-    form = GrupoForm(instance=g)
     if not request.user.has_perm('grupos.change_grupo'):
         messages.info(request, 'Você não tem permissão para editar grupos.')
         return redirect('/grupos/lista/')
+    it_old = Grupo.objects.get(codigo=g.codigo, vinc_emp=request.user.empresa)
+    form = GrupoForm(instance=g)
     if request.method == 'POST':
         form = GrupoForm(request.POST, instance=g)
         if form.is_valid():
+            nome = form.cleaned_data['nome_grupo'].strip().upper()
+            empresa = request.user.empresa
+            # Verifica duplicata excluindo o próprio registro
+            if Grupo.objects.filter(nome_grupo=nome, vinc_emp=empresa).exclude(codigo=codigo).exists():
+                messages.warning(request, f'O grupo "{nome}" já está cadastrado.')
+                return render(request, 'grupos/att.html', {'form': form, 'g': g})
+            g = form.save(commit=False)
+            g.nome_grupo = nome
+            g.vinc_emp = empresa
             g.save()
-            registrar_log(
-                request, "ALTERAR", "Grupo", g.nome_grupo,
-                f"Alterou o grupo: {g.codigo} - {g.nome_grupo}",
-                g.id, gerar_alteracoes(it_old, g)
-            )
-            next_url = request.POST.get('next') or request.GET.get('next')
-            gp = str(g.codigo)
+            registrar_log(request, "ALTERAR", "Grupo", g.nome_grupo, f"Alterou o grupo: {g.codigo} - {g.nome_grupo}",  g.id, gerar_alteracoes(it_old, g))
             messages.success(request, 'Grupo atualizado com sucesso!')
-            if next_url: return redirect(next_url)
-            else: return redirect('/grupos/lista/?tp=cod&s=' + gp)
+            next_url = request.POST.get('next') or request.GET.get('next')
+            if next_url:
+                return redirect(next_url)
+            return redirect('/grupos/lista/?tp=cod&s=' + str(g.codigo))
         else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+            error_messages = [f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!" for field in form if field.errors]
             return render(request, 'grupos/att.html', {'form': form, 'g': g, 'error_messages': error_messages})
-    else: return render(request, 'grupos/att.html', {'form': form, 'g': g})
+    return render(request, 'grupos/att.html', {'form': form, 'g': g})
 
 @login_required
 def del_grupo(request, codigo):

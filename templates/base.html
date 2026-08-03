@@ -165,7 +165,7 @@
                                     </a>
                                     <div class="collapse" id="guiaComplementos">
                                         <div class="p-2">
-                                            {% if perms.bairro.view_bairro %}
+                                            {% if perms.bairros.view_bairro %}
                                                 <a href="{% url 'lista-bairros' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Bairros</a>
                                             {% endif %}
                                             {% if perms.cidades.view_cidade %}
@@ -221,7 +221,7 @@
                                         <a href="{% url 'lista-propostas' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Propostas</a>
                                     </div>
                                 </div>
-                            {% elif perms.pdvs.view_pdv or perms.filiais.view_filial or perms.filiais.view_usuario or perms.produtos.view_produtos or perms.clientes.view_clientes or perms.tecnicos.view_tecnicos or perms.fornecedores.view_fornecedores or perms.vendedores.view_vendedores %}
+                            {% elif perms.pdvs.view_pdv or perms.filiais.view_filial or perms.filiais.view_usuario or perms.produtos.view_produto or perms.clientes.view_cliente or perms.tecnicos.view_tecnico or perms.fornecedores.view_fornecedor or perms.vendedores.view_vendedor %}
                                 <a class="btn btn-dark w-100 text-start" data-bs-toggle="collapse" href="#guiaCadastros" role="button" aria-expanded="false" aria-controls="guiaCadastros">
                                     <i class="fa-solid fa-box-archive"></i> Cadastros
                                 </a>
@@ -239,7 +239,7 @@
                                         {% if perms.clientes.view_cliente %}
                                             <a href="{% url 'lista-clientes' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Clientes</a>
                                         {% endif %}
-                                        {% if perms.fornecedores.view_fornecedore %}
+                                        {% if perms.fornecedores.view_fornecedor %}
                                             <a href="{% url 'lista-fornecedores' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Fornecedores</a>
                                         {% endif %}
                                         {% if perms.tecnicos.view_tecnico %}
@@ -279,7 +279,7 @@
                                         {% endif %}
                                     </div>
                                 </div>
-                            {% elif perms.lancpdvs.view_caixa or perms.orcamentos.view_orcamentos or perms.pedidos.view_pedido %}
+                            {% elif perms.lancpdvs.view_caixa or perms.orcamentos.view_orcamento or perms.pedidos.view_pedido %}
                                 <a class="btn btn-dark w-100 text-start" data-bs-toggle="collapse" href="#guiaFaturamentos">
                                     <i class="fa-solid fa-calculator"></i> Faturamento
                                 </a>
@@ -436,7 +436,7 @@
         <script src="https://code.jquery.com/ui/1.14.1/jquery-ui.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
         <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
-        
+
         <!-- Tradução para português -->
         <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
         <!-- Bootstrap JS -->

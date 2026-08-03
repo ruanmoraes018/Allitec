@@ -46,15 +46,16 @@ WSGI_APPLICATION = 'Allitec.wsgi.application'
 #     }
 # }
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'erp',
-        'USER': 'root',
-        'PASSWORD': 'senha',
-        'HOST': 'localhost',
-        'PORT': '3306',
-        'OPTIONS': {
-            'charset': 'utf8mb4',
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "allitec$erp",
+        "USER": "allitec",
+        "PASSWORD": "MinhaSenha123",
+        "HOST": "allitec.mysql.pythonanywhere-services.com",
+        "PORT": "3306",
+        "OPTIONS": {
+            "charset": "utf8mb4",
+            "init_command": "SET NAMES utf8mb4",
         },
     }
 }
@@ -78,7 +79,7 @@ AUTHENTICATION_BACKENDS = [
     'contas.auth_backends.EmpresaCaseInsensitiveBackend',  # autenticação case-insensitive (se quiser manter)
 ]
 LANGUAGE_CODE = 'pt-br'
-TIME_ZONE = 'America/Sao_Paulo'  # ou America/Sao_Paulo
+TIME_ZONE = 'America/Belem'  # ou America/Sao_Paulo
 USE_TZ = True
 USE_I18N = True
 DATE_INPUT_FORMATS = ['%d/%m/%Y']
@@ -106,3 +107,4 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 DJANGO_NOTIFICATIONS_CONFIG = {
     'USE_JSONFIELD': True,
 }
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000

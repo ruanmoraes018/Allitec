@@ -210,16 +210,16 @@
                                 <div class="form-section" id="tabelas">
                                     <div class="row mb-2">
                                         <div class="col-md-3 mb-2">
-                                            {{ form.opformas|as_crispy_field }}
+                                            {{ form.optabelas|as_crispy_field }}
                                         </div>
-                                        <div class="card card-formas" style="margin: 0;">
+                                        <div class="card card-tabelas" style="margin: 0;">
                                             <div class="card-header text-center" style="margin-left: -11.25px; margin-right: -11.25px;">
-                                                Formas de Pagamento do Usuário
+                                                Tabelas de Preço do Usuário
                                             </div>
                                             <div class="card-body">
                                                 <div class="col-md-12">
                                                     <ul class="list-group">
-                                                        {% for checkbox in form.formas_pagamento %}
+                                                        {% for checkbox in form.tabelas_preco %}
                                                             <li class="list-group-item position-relative">
                                                                 {{ checkbox.tag }}
                                                                 <label class="form-check-label stretched-link ms-2" for="{{ checkbox.id_for_label }}">
@@ -236,16 +236,16 @@
                                 <div class="form-section" id="formas_user">
                                     <div class="row mb-2">
                                         <div class="col-md-3 mb-2">
-                                            {{ form.optabelas|as_crispy_field }}
+                                            {{ form.opformas|as_crispy_field }}
                                         </div>
-                                        <div class="card card-tabelas" style="margin: 0;">
+                                        <div class="card card-formas" style="margin: 0;">
                                             <div class="card-header text-center" style="margin-left: -11.25px; margin-right: -11.25px;">
-                                                Tabelas de Preço do Usuário
+                                                Formas de Pagamento do Usuário
                                             </div>
                                             <div class="card-body">
                                                 <div class="col-md-12">
                                                     <ul class="list-group">
-                                                        {% for checkbox in form.tabelas_preco %}
+                                                        {% for checkbox in form.formas_pagamento %}
                                                             <li class="list-group-item position-relative">
                                                                 {{ checkbox.tag }}
                                                                 <label class="form-check-label stretched-link ms-2" for="{{ checkbox.id_for_label }}">

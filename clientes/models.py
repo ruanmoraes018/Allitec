@@ -1,6 +1,5 @@
 from django.db import models
 from datetime import datetime
-from django.db import models
 import unicodedata
 from bairros.models import Bairro
 from cidades.models import Cidade

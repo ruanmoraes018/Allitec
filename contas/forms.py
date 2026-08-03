@@ -24,7 +24,7 @@ class UsuarioCadastroForm(forms.ModelForm):
     senha_liberacao = forms.CharField(label="Senha de Liberação", help_text="Para nova senha, preencha esse campo!", required=False, widget=forms.TextInput(attrs={'class': f'{c}'}))
     is_active = forms.TypedChoiceField(label='Situação', choices=(('True', 'Ativo'), ('False', 'Inativo')), coerce=lambda x: x in ['True', 'true', '1', True], widget=forms.Select(attrs={'class': f'{s}'}))
     #
-    tel = forms.CharField(label="Fone", max_length=20, widget=forms.TextInput(attrs={'maxlength': '20', 'class': f'{c}'}))
+    tel = forms.CharField(label="Fone", required=False, max_length=20, widget=forms.TextInput(attrs={'maxlength': '20', 'class': f'{c}'}))
     desconto_maximo = forms.CharField(label='Desconto Máximo %', widget=forms.TextInput(attrs={'class': f'{c} text-end'}))
     limite_credito = forms.CharField(label='Limite Crédito', widget=forms.TextInput(attrs={'class': f'{c} text-end'}))
     formas_pagamento = forms.ModelMultipleChoiceField(
@@ -33,7 +33,7 @@ class UsuarioCadastroForm(forms.ModelForm):
         queryset=TabelaPreco.objects.none(),required=False, widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input ms-1'}), label="Tabelas de Preço",)
     filiais_permitidas = forms.ModelMultipleChoiceField(
         queryset=Filial.objects.none(),required=False,widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input ms-1'}),label="Filiais Permitidas",)
-    vendedor = forms.ChoiceField(label="Vendedor", widget=forms.Select(attrs={"class":  f'{s}'}))
+    vendedor = forms.ChoiceField(label="Vendedor", required=False, widget=forms.Select(attrs={"class":  f'{s}'}))
     opfilial = forms.ChoiceField(label="Acessar todas as filiais", choices=[('0', 'Não'), ('1', 'Sim')], widget=forms.Select(attrs={'class': f'{s}'}))
     opformas = forms.ChoiceField(label="Utilizar todas as formas de pagamento", choices=[('0', 'Não'), ('1', 'Sim')], widget=forms.Select(attrs={'class': f'{s}'}))
     optabelas = forms.ChoiceField(label="Utilizar todas as tabelas de preço", choices=[('0', 'Não'), ('1', 'Sim')], widget=forms.Select(attrs={'class': f'{s}'}))
@@ -75,8 +75,8 @@ class UsuarioCadastroForm(forms.ModelForm):
             'is_active', 'filial_user', 'first_name', 'username', 'email', 'password', 'permissoes', 'receber_alerta_estoque', 'receber_alerta_estoque_maximo',
             'gerar_senha_lib', 'senha_liberacao', 'ver_res_orc', 'ver_res_orc_tec', 'foto', 'tel', 'desconto_maximo', 'limite_credito', 'formas_pagamento',
             'ver_conv_orc', 'ver_ticket_medio', 'ver_valor_perdido', 'ver_vl_total_faturado', 'ver_tempo_medio_faturamento', 'tabelas_preco', 'filiais_permitidas',
-            'ver_peso_total', 'ver_situacao_orcamentos', 'ver_evolucao_orcamentos', 'ver_ranking_tecnicos', 'ver_ranking_clientes', 'ver_situacao_valor_orcamentos', 
-            'ver_m2_total', 'ver_faturamento_diario', 'ver_top_10_produtos_qtde', 'ver_top_10_produtos_vl', 'ver_formas_orcamentos', 'ver_status_orcamentos', 
+            'ver_peso_total', 'ver_situacao_orcamentos', 'ver_evolucao_orcamentos', 'ver_ranking_tecnicos', 'ver_ranking_clientes', 'ver_situacao_valor_orcamentos',
+            'ver_m2_total', 'ver_faturamento_diario', 'ver_top_10_produtos_qtde', 'ver_top_10_produtos_vl', 'ver_formas_orcamentos', 'ver_status_orcamentos',
             'ver_cores_orcamentos', 'ver_caracteristicas_orcamentos', 'vendedor', 'opfilial', 'opformas', 'optabelas',
         ]
     def __init__(self, *args, **kwargs):
@@ -176,7 +176,7 @@ class UsuarioCadastroForm(forms.ModelForm):
             else:
                 user.tabelas_preco.set(self.cleaned_data.get("tabelas_preco", []))
         return user
-    
+
     def clean(self):
         cleaned_data = super().clean()
         formas = []

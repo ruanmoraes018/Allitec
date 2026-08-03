@@ -46,7 +46,7 @@ class RegraProdutoItemForm(forms.ModelForm):
         to_field_name="codigo",
         widget=forms.Select(attrs={"class": "produto-select form-select form-select-sm"})
     )
-    
+
     condicoes_json = forms.CharField(
         required=False,
         widget=forms.HiddenInput()
@@ -65,40 +65,53 @@ class RegraProdutoItemForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.empresa = empresa
 
-        if self.empresa:
-            # Garante a isolação multiempresa: limita a validação apenas aos produtos da empresa logada
-            self.fields["produto"].queryset = Produto.objects.filter(vinc_emp=self.empresa)
+        self.fields["produto"] = forms.ChoiceField(
+            choices=[('', 'Escolha uma opção')],
+            widget=forms.Select(attrs={"class": "produto-select form-select form-select-sm"}),
+            required=True
+        )
 
-        # Trata as opções exibidas no HTML/Select sem quebrar a validação
         codigo_enviado = self.data.get(self.add_prefix('produto')) if self.data else None
 
-        if codigo_enviado:
+        if codigo_enviado and self.empresa:
             prod = Produto.objects.filter(codigo=codigo_enviado, vinc_emp=self.empresa).first()
             if prod:
-                self.fields["produto"].choices = [(prod.codigo, f"{prod.codigo} - {prod.desc_prod}")]
+                self.fields["produto"].choices = [
+                    ('', 'Escolha uma opção'),
+                    (str(prod.codigo), f"{prod.codigo} - {prod.desc_prod}")
+                ]
+                self.initial['produto'] = str(prod.codigo)
+
         elif self.instance and self.instance.pk and self.instance.produto_id:
-            p = self.instance.produto
-            self.fields["produto"].choices = [(p.codigo, f"{p.codigo} - {p.desc_prod}")]
-            
-            # Pré-popula condições do JSON
+            try:
+                p = Produto.objects.get(pk=self.instance.produto_id)
+                self.fields["produto"].choices = [
+                    ('', 'Escolha uma opção'),
+                    (str(p.codigo), f"{p.codigo} - {p.desc_prod}")
+                ]
+                self.initial['produto'] = str(p.codigo)
+            except Produto.DoesNotExist:
+                pass
+
             condicoes = list(self.instance.condicoes.values('campo', 'operador', 'valor', 'ordem'))
             if condicoes:
                 self.fields["condicoes_json"].initial = json.dumps(condicoes)
 
     def clean_produto(self):
-        # Como o ModelChoiceField (com to_field_name) já valida e retorna o objeto Produto correto da empresa,
-        # basta pegar o valor já validado.
-        produto = self.cleaned_data.get("produto")
-        if not produto:
+        codigo = self.cleaned_data.get("produto")
+        if not codigo:
             raise forms.ValidationError("Produto é obrigatório.")
-        return produto
+        prod = Produto.objects.filter(codigo=codigo, vinc_emp=self.empresa).first()
+        if not prod:
+            raise forms.ValidationError("Produto inválido.")
+        return prod
 
 
 # Mantém apenas o ItemFormSet
 ItemFormSet = inlineformset_factory(
     RegraProduto, RegraProdutoItem,
     form=RegraProdutoItemForm,
-    extra=1, can_delete=True
+    extra=0, can_delete=True
 )
 
 class ImportarRegraProdutoForm(forms.Form):

@@ -219,7 +219,7 @@ $(document).ready(function() {
     });
     // Mostrar/ocultar campos de Formas, Filiais e Tabelas
     function cardUsuario(select, card) {
-        if (select.val() === '0') {card.removeClass('d-none');} 
+        if (select.val() === '0') {card.removeClass('d-none');}
         else {card.addClass('d-none');}
     }
     cardUsuario($('#id_opfilial'), $('.card-filiais'));
@@ -232,7 +232,7 @@ $(document).ready(function() {
     $('.mb-3').removeClass('mb-3');
     $('#id_alterar_senha').on('change', function () {
         $('#id_password').prop('readonly', !this.checked);
-        if (this.checked) {$('#id_password').css('background-color', 'white');} 
+        if (this.checked) {$('#id_password').css('background-color', 'white');}
         else {$('#id_password').css('background-color', '#A9A9A9');}
     });
     $('label[for="id_alterar_senha"]').on('click', function () {
@@ -580,9 +580,9 @@ $(document).ready(function() {
                 if (existente) {
                     existente.qtd += item.qtd;
                     existente.total = existente.qtd * existente.preco;
-                } 
+                }
                 else {itens.push(item);}
-            } 
+            }
             else {itens.push(item);}
         }
         aplicarDescontoGeral(); // 🔥 reaplica se existir
@@ -595,7 +595,7 @@ $(document).ready(function() {
     function adicionarItemAoCarrinhoCaixa(itemDevolucao) {
         // Monta o objeto exatamente no formato que o seu array 'itens' e a função 'renderItens()' utilizam
         let item = {
-            produto_id: String(itemDevolucao.codigo_produto), desc: itemDevolucao.descricao, qtd: parseBR(itemDevolucao.quantidade), preco: parseBR(itemDevolucao.vl_unit), 
+            produto_id: String(itemDevolucao.codigo_produto), desc: itemDevolucao.descricao, qtd: parseBR(itemDevolucao.quantidade), preco: parseBR(itemDevolucao.vl_unit),
             total: parseBR(itemDevolucao.subtotal), ajuste: 0, tipo_ajuste: null, is_devolucao: true, item_pedido_id: itemDevolucao.item_pedido_id
         };
         // Regra de segurança: Não agrupa itens de devolução para não misturar as referências das linhas originais
@@ -641,7 +641,7 @@ $(document).ready(function() {
         let valor = parseBR($('#campo_desconto').val());
         let final = totalBase;
         if (tipo === 'percentual') {valor = (valor / 100) * totalBase;}
-        if ($('#operacao').val() === 'desconto') {final -= valor;} 
+        if ($('#operacao').val() === 'desconto') {final -= valor;}
         else {final += valor;}
         $('#valor-final-caixa').text('R$ ' + formatBR(final));
     });
@@ -672,7 +672,7 @@ $(document).ready(function() {
         itens.forEach(item => {
             let base = item.qtd * item.preco;
             let ajuste = 0;
-            if (descontoGeral.tipo === 'percentual') {ajuste = base * (descontoGeral.valor / 100);} 
+            if (descontoGeral.tipo === 'percentual') {ajuste = base * (descontoGeral.valor / 100);}
             else {
                 let proporcao = base / totalBase;
                 ajuste = descontoGeral.valor * proporcao;
@@ -730,7 +730,7 @@ $(document).ready(function() {
         }).then(r => r.json()).then(resp => {
             itens.forEach(item => {
                 const novoPreco = resp.precos[String(item.produto_id)]; // 🔥 garante string
-                if (novoPreco !== undefined) {item.preco = novoPreco;} 
+                if (novoPreco !== undefined) {item.preco = novoPreco;}
                 else {item.preco = 0;}
                 item.total = item.qtd * item.preco;
             });
@@ -800,7 +800,7 @@ $(document).ready(function() {
             $("#id_unidProdutoEd").val(dados.unidProd || "");
             $("#id_marcaProdEd").val(dados.marca || "");
             $("#id_grupoProdEd").val(dados.grupo || "");
-        } 
+        }
         catch (e) {console.warn('Erro ao buscar dados do produto:', e);}
         // 🔥 OUTROS CAMPOS
         $('#id_preco_unitEd').prop('disabled', true);
@@ -809,8 +809,8 @@ $(document).ready(function() {
         $('#id_preco_unitEd').val(formatBR(item.preco));
         $('#id_desc_acresEd').val(formatBR(Math.abs(item.ajuste || 0)));
         $('#id_tipo_desc_acresEd').val(descontoGeral.tipo === 'percentual' ? 'Percentual' : 'Valor');
-        if (item.ajuste < 0) {$('#lblDescAcres').text('Desconto');} 
-        else if (item.ajuste > 0) {$('#lblDescAcres').text('Acréscimo');} 
+        if (item.ajuste < 0) {$('#lblDescAcres').text('Desconto');}
+        else if (item.ajuste > 0) {$('#lblDescAcres').text('Acréscimo');}
         else {$('#lblDescAcres').text('Ajuste');}
         $('#edProdModalItem').modal('show');
     });
@@ -1103,7 +1103,7 @@ $(document).ready(function() {
                     `;
                 });
                 let cor = "";
-                if (v.situacao === "Faturado") {cor = "badge text-bg-success";} 
+                if (v.situacao === "Faturado") {cor = "badge text-bg-success";}
                 else {cor = "badge text-bg-danger";}
                 // 🔥 ícone condicional
                 const iconeDevolucao = v.tem_devolucao ? `<i class="fa-solid fa-arrows-rotate text-primary-emphasis fa-spin me-1" title="Pedido com itens devolvidos."></i> ` : '';
@@ -1241,7 +1241,7 @@ $(document).ready(function() {
         const caixa = $(this).data("caixa");
         const movimento = $(this).data("movimento");
         $.get(`/lancpdvs/caixa/${caixa}/movimento/${movimento}/`, function (data) {
-            if (data.sucesso) {imprimirComprovanteEntrada(data);} 
+            if (data.sucesso) {imprimirComprovanteEntrada(data);}
             else {toast(data.erro, "error");}
         });
     });
@@ -1249,7 +1249,7 @@ $(document).ready(function() {
         const caixa = $(this).data("caixa");
         const movimento = $(this).data("movimento");
         $.get(`/lancpdvs/caixa/${caixa}/movimento/${movimento}/`, function (data) {
-            if (data.sucesso) {imprimirComprovanteSaida(data);} 
+            if (data.sucesso) {imprimirComprovanteSaida(data);}
             else {toast(data.erro, "error");}
         });
     });
@@ -1340,7 +1340,7 @@ $(document).ready(function() {
     $(document).on('change', '.chk-item-devolver', function() {
         let $linha = $(this).closest('tr');
         let $inputQtd = $linha.find('.input-qtd-devolver');
-        if ($(this).is(':checked')) {$inputQtd.prop('disabled', false).focus();} 
+        if ($(this).is(':checked')) {$inputQtd.prop('disabled', false).focus();}
         else {$inputQtd.prop('disabled', true);}
     });
     // 3. EVENTO DE CONFIRMAÇÃO: Quando clica em "Injetar no Carrinho"
@@ -1379,7 +1379,7 @@ $(document).ready(function() {
                     modalInstance.hide();
                     // Limpa o modal para uma próxima utilização
                     resetarCamposModal(true);
-                } 
+                }
                 else {toast(`Erro na validação: ${response.erro}`, "error");}
             },
             error: function(xhr, status, error) {toast(`Erro ao validar itens: ${error}`, "error");},
@@ -1444,7 +1444,7 @@ $(document).ready(function() {
             totalInformado += informado;
             // destaca linha com diferença
             const linha = $(this).closest('.linha-fechamento');
-            if (Math.abs(informado - sistema) > 0.009) {linha.css('background', '#fff8e1');} 
+            if (Math.abs(informado - sistema) > 0.009) {linha.css('background', '#fff8e1');}
             else {linha.css('background', '');}
         });
         const diferenca = totalInformado - totalSistema;
@@ -1480,7 +1480,7 @@ $(document).ready(function() {
                 toast(resp.mensagem, 'success');
                 bootstrap.Modal.getInstance(document.getElementById('modalFechamentoCaixa')).hide();
                 setTimeout(() => window.location.href = `/lancpdvs/lista/?s=${CAIXA_ID}`, 3000);
-            } 
+            }
             else {
                 toast(resp.erro || 'Erro ao fechar caixa.', 'error');
                 fecharLoading();
@@ -1552,13 +1552,13 @@ $(document).ready(function() {
     $('#id_portao_social').on('change', function () {verificarPortaoSocial();});
     function verificarOpEixo() {
         const p_e = $('#id_especifico').val();
-        if (p_e === 'Eixo') {$("#div_id_diametro_eixo").removeClass("d-none");} 
+        if (p_e === 'Eixo') {$("#div_id_diametro_eixo").removeClass("d-none");}
         else {$("#div_id_diametro_eixo").addClass("d-none");}
     }
     verificarOpEixo();
     function verificarOpLam() {
         const p_e = $('#id_especifico').val();
-        if (p_e === 'Lâmina') {$("#div_id_espessura_lam, #div_id_peso_m2").removeClass("d-none");} 
+        if (p_e === 'Lâmina') {$("#div_id_espessura_lam, #div_id_peso_m2").removeClass("d-none");}
         else {$("#div_id_espessura_lam, #div_id_peso_m2").addClass("d-none");}
     }
     verificarOpLam();
@@ -1571,6 +1571,15 @@ $(document).ready(function() {
     $('#id_especifico').on('change', function () {
         verificarOpEixo();
         verificarOpLam();
+    });
+    function verificarGateway() {
+        const p_e = $('#id_gateway').val();
+        if (p_e != 'nenhum') {$("#div_id_ambiente").removeClass("d-none");}
+        else {$("#div_id_ambiente").addClass("d-none");}
+    }
+    verificarGateway();
+    $('#id_gateway').on('change', function () {
+        verificarGateway();
     });
     // Clicar no EDIT
     $(document).on("click", ".edit-status", function () {
@@ -1622,13 +1631,34 @@ $(document).ready(function() {
     });
     $(function () {$('[data-bs-toggle="tooltip"]').each(function () {new bootstrap.Tooltip(this);});});
     $(function () {
-        function iniciarSelect2(ctx=document){
-            $(ctx).find('.produto-select').each(function(){
-                if($(this).hasClass("select2-hidden-accessible"))
-                    return;
-                $(this).select2({placeholder:opSel, allowClear:true, minimumInputLength:1, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/produtos/lista_ajax1/')}).on('select2:open', focSel2);
+        function iniciarSelect2(ctx) {
+            ctx = ctx || document;
+            $(ctx).find('.produto-select').each(function () {
+                if ($(this).hasClass("select2-hidden-accessible")) return;
+
+                var $sel = $(this);
+                var $selected = $sel.find('option[value!=""]:selected');
+                var valorAtual = $selected.val() || '';
+                var textoAtual = $selected.text() || '';
+
+                $sel.select2({
+                    placeholder: opSel,
+                    allowClear: true,
+                    minimumInputLength: 1,
+                    templateResult: rendOpt,
+                    templateSelection: d => d.text,
+                    language: lingSel,
+                    ajax: ajSel2('/produtos/lista_ajax1/')
+                }).on('select2:open', focSel2);
+
+                if (valorAtual) {
+                    // Remove duplicatas que o trigger anterior pode ter criado
+                    $sel.find('option[value="' + valorAtual + '"]').not(':last').remove();
+                    $sel.val(valorAtual).trigger('change.select2');
+                }
             });
         }
+        // Inicializa ao carregar — passa o tbody para pegar todas as linhas existentes
         const OPERADORES = ['=', '>', '<', '>=', '<=', 'IN'];
         const OPERADORES_LABEL = {'=': 'Igual', '>': 'Maior', '<': 'Menor', '>=': 'Maior ou igual', '<=': 'Menor ou igual', 'IN': 'Está entre'};
         // Monta select de operadores
@@ -1668,13 +1698,19 @@ $(document).ready(function() {
             const $condRow = $itemRow.next('.condicoes-row');
             const $tbody = $condRow.find('.cond-tbody');
             if ($tbody.data('carregado')) return;
+
+            $tbody.empty();
+
             const raw = $itemRow.find('input[name$="-condicoes_json"]').val();
             if (raw) {
                 try {
                     const condicoes = JSON.parse(raw);
-                    condicoes.forEach(c => {
-                        $tbody.append(novaLinhaCond(c.campo, c.operador, c.valor, c.ordem));
-                    });
+                    condicoes
+                        // Filtra linhas completamente vazias
+                        .filter(c => c.campo && c.campo.trim() !== '')
+                        .forEach(c => {
+                            $tbody.append(novaLinhaCond(c.campo, c.operador, c.valor, c.ordem));
+                        });
                 } catch(e) {}
             }
             $tbody.data('carregado', true);
@@ -1705,13 +1741,37 @@ $(document).ready(function() {
         });
         // Adicionar item — mantém lógica existente mas inicializa a nova linha
         $("#add-item").click(function () {
+            $('#tabela-itens tbody .condicoes-row:visible').each(function() {
+                $(this).hide();
+            });
+
             let total = $("#id_itens-TOTAL_FORMS");
             let index = parseInt(total.val());
-            let template = $("#empty-itens").html().replaceAll("__prefix__", index);
-            const $novas = $(template);
-            $("#tabela-itens tbody").append($novas);
+            let html = $("#empty-itens").html().replaceAll("__prefix__", index);
+
+            let $container = $('<tbody>').append($.parseHTML(html.trim()));
+            let $itemRow = $container.find('tr.item-row').detach();
+            let $condRow = $container.find('tr.condicoes-row').detach();
+
+            let $tbody = $("#tabela-itens tbody");
+            $tbody.append($itemRow);
+            $tbody.append($condRow);
+
             total.val(index + 1);
-            iniciarSelect2();
+
+            // Busca o select diretamente no DOM já inserido
+            var $novoSelect = $tbody.find('tr.item-row').last().find('.produto-select');
+            if ($novoSelect.length && !$novoSelect.hasClass('select2-hidden-accessible')) {
+                $novoSelect.select2({
+                    placeholder: opSel,
+                    allowClear: true,
+                    minimumInputLength: 1,
+                    templateResult: rendOpt,
+                    templateSelection: d => d.text,
+                    language: lingSel,
+                    ajax: ajSel2('/produtos/lista_ajax1/')
+                }).on('select2:open', focSel2);
+            }
         });
         // Remover linha — remove item-row E condicoes-row juntos
         $(document).on('click', '.remover-linha', function () {
@@ -1785,7 +1845,12 @@ $(document).ready(function() {
             });
         });
         // Inicialização
-        iniciarSelect2();
+        $('#tabela-itens tbody .cond-tbody').empty();
+        $('#tabela-itens tbody .condicoes-row').hide();
+
+        $('#tabela-itens tbody .item-row').each(function () {
+            iniciarSelect2(this);
+        });
         controlarTipo();
     });
     // Teste
@@ -2280,7 +2345,7 @@ $(document).ready(function() {
             let descReal = $(this).find('input[name*="[valor_desc_real]"]').val();
             let operacao = ($(this).find('input[name*="[operacao]"]').val() || '').toLowerCase();
             let descNum = parseBR(descReal);
-            if (operacao === "desconto") {descontoP += descNum;} 
+            if (operacao === "desconto") {descontoP += descNum;}
             else {descontoP -= descNum;}
         });
         let freteTxt = $('#total-frete-p').is('input') ? $('#total-frete-p').val() : $('#total-frete-p').text();
@@ -2695,7 +2760,7 @@ $(document).ready(function() {
             toast(`Quantidade deve ser informada!`, "warning");
             return;
         }
-        try {await salvarTabelasProdutoAjax(cod, tabelasEntTmp);} 
+        try {await salvarTabelasProdutoAjax(cod, tabelasEntTmp);}
         catch (xhr) {
             let msg = xhr.responseJSON?.msg || "Erro ao salvar tabelas no produto.";
             toast(`${msg}`, "error");
@@ -2870,7 +2935,7 @@ $(document).ready(function() {
         if (dsctNum > 0) {
             if (tipo === "valor") {textoDesc = `<span style="color:${cor}; font-weight:bold;">${sinal} R$ ${dsct}</span>`;}
             else if (tipo === "percentual") {textoDesc = `<span style="color:${cor}; font-weight:bold;">${sinal} ${dsct}%</span>`;}
-        } 
+        }
         else {textoDesc = `<span class="text-muted fw-bold">0,00</span>`;}
         // 🔴 VALIDAÇÕES
         if (!cod) {
@@ -3023,10 +3088,10 @@ $(document).ready(function() {
         let operacao = $('#operacao').val();
         let valor = parseBR($('#campo_desconto').val()) || 0;
         let ajuste = 0;
-        if (tipo === 'valor') {ajuste = valor;} 
+        if (tipo === 'valor') {ajuste = valor;}
         else {ajuste = totalBase * (valor / 100);}
         let totalFinal = totalBase;
-        if (operacao === 'desconto') {totalFinal -= ajuste;} 
+        if (operacao === 'desconto') {totalFinal -= ajuste;}
         else {totalFinal += ajuste;}
         if (totalFinal < 0) totalFinal = 0;
         $('#valor-final').text('R$ ' + formatBR(totalFinal));
@@ -3073,19 +3138,19 @@ $(document).ready(function() {
         });
         if (totalBase <= 0) return;
         let valorTotalAjuste = 0;
-        if (tipo === 'valor') {valorTotalAjuste = valor;} 
+        if (tipo === 'valor') {valorTotalAjuste = valor;}
         else {valorTotalAjuste = totalBase * (valor / 100);}
         let acumulado = 0;
         itens.forEach((item, index) => {
             let proporcao = item.total / totalBase;
             let valorRateado;
-            if (index === itens.length - 1) {valorRateado = valorTotalAjuste - acumulado;} 
+            if (index === itens.length - 1) {valorRateado = valorTotalAjuste - acumulado;}
             else {
                 valorRateado = parseBR((valorTotalAjuste * proporcao));
                 acumulado += valorRateado;
             }
             let totalFinal = item.total;
-            if (operacao === "desconto") {totalFinal -= valorRateado;} 
+            if (operacao === "desconto") {totalFinal -= valorRateado;}
             else {totalFinal += valorRateado;}
             if (totalFinal < 0) totalFinal = 0;
             let idx = item.tr.data("id");
@@ -3601,7 +3666,7 @@ $(document).ready(function() {
             $('#campo_2').prop('readonly', false).removeClass('bg-secondary');
         }
     }
-    if ($('#id_num_conta').val() != '') {$('#id_num_conta').prop('readonly', true).addClass('bg-secondary');} 
+    if ($('#id_num_conta').val() != '') {$('#id_num_conta').prop('readonly', true).addClass('bg-secondary');}
     else {$('#id_num_conta').prop('readonly', false).removeClass('bg-secondary');}
     function calcularPreviewTbPreco(formatarCampos = false) {
         if (bloqueioCalcTbPreco) return;
@@ -3619,17 +3684,17 @@ $(document).ready(function() {
                 if (formatarCampos) {
                     $('#campo_1').val(formatBR(margem));
                     $('#campo_2').val(formatBR(valor));
-                } 
+                }
                 else {$('#campo_2').val(valor);}
             } else {
                 margem = vlCompra > 0 ? ((valor - vlCompra) / vlCompra) * 100 : 0;
                 if (formatarCampos) {
                     $('#campo_2').val(formatBR(valor));
                     $('#campo_1').val(formatBR(margem));
-                } 
+                }
                 else {$('#campo_1').val(margem);}
             }
-        } 
+        }
         finally {bloqueioCalcTbPreco = false;}
     }
     $(document).on('click', '#mdAttTbPrecoEnt', function () {
@@ -4061,7 +4126,7 @@ $(document).ready(function() {
                             default:
                                 icone = '<i class="fa-solid fa-bell text-warning me-2"></i>';
                         }
-                    } 
+                    }
                     else {icone = '<i class="fa-solid fa-walkie-talkie text-primary me-2"></i>';}
                     const titulo = tipoNot === 'ALERTA' ? (n.titulo || 'Alerta') : (n.verb || 'Notificação');
                     lista.append(`
@@ -4124,7 +4189,7 @@ $(document).ready(function() {
     });
     $(document).on('click', '#abrirRegistroAlerta', function(){
         const url = $(this).data('url');
-        if (url) {window.open(url, '_blank');} 
+        if (url) {window.open(url, '_blank');}
         else {console.log('Alerta sem URL definida');}
     });
     function toggleSenhaField() {
@@ -4890,11 +4955,11 @@ $(document).ready(function() {
             const $saldo = $modal.find('.saldo-restante');
             $saldo.removeClass('saldo-ok saldo-erro saldo-animar');
             void $saldo[0].offsetWidth;
-            if (Math.abs(saldo) < 0.001) {$saldo.html('<i class="fa-solid fa-check"></i> Sem Saldo Restante! ').addClass('saldo-ok saldo-animar');} 
+            if (Math.abs(saldo) < 0.001) {$saldo.html('<i class="fa-solid fa-check"></i> Sem Saldo Restante! ').addClass('saldo-ok saldo-animar');}
             else if (saldo < 0) {
                 const troco = Math.abs(saldo);
                 $saldo.html('<i class="fa-solid fa-sack-dollar"></i> Troco: R$ ' + formatBR(troco)).addClass('saldo-ok saldo-animar');
-            } 
+            }
             else {$saldo.html('<i class="fa-solid fa-triangle-exclamation"></i> Saldo Restante: R$ ' + formatBR(saldo)).addClass('saldo-erro saldo-animar');}
             $input.val(formatBR(saldo));
         }
@@ -4946,7 +5011,7 @@ $(document).ready(function() {
                     if (!editando) {
                         const $campo = $modal.find('.dt-fat-pedido');
                         $campo.focus();
-                        try {$campo.datepicker('show');} 
+                        try {$campo.datepicker('show');}
                         catch(e){}
                     }
                 },
@@ -5176,7 +5241,7 @@ $(document).ready(function() {
                     const valor = parseBR($(this).data('valor') || 0);
                     if (valor <= 0) return;
                     const obj = {forma: $(this).data('forma'), valor: valor, parcelas: parseInt($(this).data('parcelas') || 1), dias: parseInt($(this).data('dias') || 0)};
-                    if (gateway && gateway !== 'nenhum') {formasGateway.push(obj);} 
+                    if (gateway && gateway !== 'nenhum') {formasGateway.push(obj);}
                     else {formasNormais.push(obj);}
                 });
                 // 🔥 PRIORIDADE TOTAL PARA PIX (gateway)
@@ -5185,7 +5250,7 @@ $(document).ready(function() {
                         if (!resp.erro && resp.qr_code) {
                             toast('Existe um PIX pendente para este pedido', 'warning');
                             abrirModalPix([resp], ctx.id);
-                        } 
+                        }
                         else {gerarPix($modal, ctx.id, formasGateway);}
                     }).fail(function () {
                         gerarPix($modal, ctx.id, formasGateway);
@@ -5204,7 +5269,7 @@ $(document).ready(function() {
                     const valor = parseBR($(this).data('valor') || 0);
                     if (valor <= 0) return;
                     const obj = {forma_id:$(this).data('forma'),valor:valor,parcelas:parseInt($(this).data('parcelas') || 1),dias:parseInt($(this).data('dias') || 0)};
-                    if (gateway && gateway !== 'nenhum') {formasGateway.push(obj); } 
+                    if (gateway && gateway !== 'nenhum') {formasGateway.push(obj); }
                     else {formasNormais.push(obj);}
                 });
                 // 🔥 TEM PIX → NÃO FINALIZA AINDA
@@ -5216,7 +5281,7 @@ $(document).ready(function() {
                             window._caixaPagamentoPendente = {formasNormais, formasGateway, parcelas};
                             const modalPix = abrirModalPix(resp.pagamentos, 0);
                             monitorarPagamentoCaixa(modalPix);
-                        } 
+                        }
                         else {toast(`Erro ao gerar PIX!`, "error");}
                     });
                     return;
@@ -5244,7 +5309,7 @@ $(document).ready(function() {
                 if (troco > 0) {
                     $modal.find('.troco-container').removeClass('d-none');
                     $modal.find('.troco').val(formatBR(troco));
-                } 
+                }
                 else {$modal.find('.troco-container').addClass('d-none');}
                 // 🔥 SEM PIX → FINALIZA DIRETO
                 finalizarVendaCompleta(formasNormais, parcelas);
@@ -5423,7 +5488,7 @@ $(document).ready(function() {
                 cancelarVenda();
                 $('.modal-pagamento').modal('hide');
                 $("#id_cod_produtoCaixa").focus();
-            } 
+            }
             else {toast(`${resp.erro}`, "error");}
         });
     }
@@ -5452,7 +5517,7 @@ $(document).ready(function() {
         if (event.which === 13 || event.keyCode === 13) {
             event.preventDefault(); // Evita que a página recarregue se estiver dentro de um <form>
             let codigo = $(this).val().trim();
-            if (codigo) {$("#btnBuscarPedidoTroca").click();} 
+            if (codigo) {$("#btnBuscarPedidoTroca").click();}
             else {
                 toast("Código do Pedido é necessário!", "warning");
                 return;
@@ -5753,10 +5818,10 @@ $(document).ready(function() {
     function calcTesteira(porta) {
         let peso = parseBR($(`.peso[data-porta="${porta}"]`).val()) || 0;
         let resultado = 0;
-        if (peso <= 150) {resultado = 32;} 
-        else if (peso > 150 && peso <= 350) {resultado = 36;} 
-        else if (peso > 350 && peso <= 550) {resultado = 42;} 
-        else if (peso > 550 && peso <= 750) {resultado = 45;} 
+        if (peso <= 150) {resultado = 32;}
+        else if (peso > 150 && peso <= 350) {resultado = 36;}
+        else if (peso > 350 && peso <= 550) {resultado = 42;}
+        else if (peso > 550 && peso <= 750) {resultado = 45;}
         else if (peso > 750) {resultado = 50;}
         $(`.testeira[data-porta="${porta}"]`).val(formatBR(resultado));
     }
@@ -5783,7 +5848,7 @@ $(document).ready(function() {
             formula = formula.replace(new RegExp(`\\b${nome}\\b`, 'g'), valor);
         });
         let resultado = 0;
-        try {resultado = Function(`"use strict"; return (${formula});`)();} 
+        try {resultado = Function(`"use strict"; return (${formula});`)();}
         catch (e) {
             console.error("Erro na fórmula:", formula, e);
             return;
@@ -6001,7 +6066,7 @@ $(document).ready(function() {
             if (!origem) return;
             const qtdManual = $tr.data('qtd-manual');
             let qtdExibida = null;
-            if (qtdManual !== undefined && qtdManual !== null) {qtdExibida = parseBR(qtdManual) || 0;} 
+            if (qtdManual !== undefined && qtdManual !== null) {qtdExibida = parseBR(qtdManual) || 0;}
             else {
                 const txt = $tr.find('.qtd-div').text();
                 qtdExibida = txt ? parseBR(txt) : 0;
@@ -6016,7 +6081,7 @@ $(document).ready(function() {
             if (!origem) return;
             const qtdManual = $tr.data('qtd-manual');
             let qtdExibida = null;
-            if (qtdManual !== undefined && qtdManual !== null) {qtdExibida = parseBR(qtdManual) || 0;} 
+            if (qtdManual !== undefined && qtdManual !== null) {qtdExibida = parseBR(qtdManual) || 0;}
             else {
                 const txt = $tr.find('.qtd-div').text();
                 qtdExibida = txt ? parseBR(txt) : 0;
@@ -6035,7 +6100,7 @@ $(document).ready(function() {
             let qtdManual = $tr.data('qtd-manual');
             let qtdBackend = Number(item.qtd) || 0;
             let qtd;
-            if (qtdManual !== undefined && qtdManual !== null && qtdManual > 0) {qtd = Number(qtdManual);} 
+            if (qtdManual !== undefined && qtdManual !== null && qtdManual > 0) {qtd = Number(qtdManual);}
             else {qtd = qtdBackend;}
             if ($tr.data('regra-origem') && qtd <= 0) {
                 $tr.hide();
@@ -6369,7 +6434,7 @@ $(document).ready(function() {
         $('#det_pintura_porta').val(d.pintura_porta ?? 'Sim');
         $('#det_cor_porta').val(d.cor_porta ?? '');
         $('#det_nr_serie_motor').val(d.nr_serie_motor ?? '');
-        $('#det_garantia_motor_meses').val(d.garantia_motor_meses ?? '');
+        $('#det_garantia_motor_meses').val(d.garantia_motor_meses ?? '12');
         $('#det_possui_passagem').val(d.possui_passagem_pedestre ? 'true' : 'false');
         $('#det_largura_passagem').val(d.largura_passagem ?? '');
         $('#det_altura_passagem').val(d.altura_passagem ?? '');
@@ -6401,7 +6466,7 @@ $(document).ready(function() {
     function inicializarCamposDecimais() {
         const CAMPOS = '.larg, .alt';
         $(CAMPOS).each(function () {
-            if (!$(this).val()) {$(this).val('0,00');} 
+            if (!$(this).val()) {$(this).val('0,00');}
             else {$(this).val(formatInputBR($(this).val()));}
         });
     }
@@ -6409,7 +6474,7 @@ $(document).ready(function() {
     // evita duplicar evento
     $(document).off('focus.decimal').on('focus.decimal', CAMPOS_DECIMAIS, function () {
         let val = $(this).val();
-        if (!val || val === '0,00') {$(this).data('raw', '');} 
+        if (!val || val === '0,00') {$(this).data('raw', '');}
         else {$(this).data('raw', parseBR(val) * 100);}
         this.select();
     });
@@ -6428,7 +6493,7 @@ $(document).ready(function() {
     });
     $(document).off('blur.decimal').on('blur.decimal', CAMPOS_DECIMAIS, function () {
         let val = $(this).val();
-        if (!val || val === '') {$(this).val('0,00');} 
+        if (!val || val === '') {$(this).val('0,00');}
         else {$(this).val(formatInputBR(val));}
         if ($(this).hasClass('alt')) {atualizarAltCorte($(this));}
     });
@@ -6859,8 +6924,8 @@ $(document).ready(function() {
                 posicao_eixo: $(`.posicao-eixo[data-porta="${p}"]`).val() || '', tp_instalacao: $(`.tipo-instalacao[data-porta="${p}"]`).val() || '',
                 testeira: getFloat(`.testeira[data-porta="${p}"]`) || null, qtd_pares_trava: getFloat(`.qtd-pares-trava[data-porta="${p}"]`) || 0,
                 // Campos do modal de detalhes
-                pintura_porta: det.pintura_porta ?? 'Sim', cor_porta: det.cor_porta ?? '', nr_serie_motor: det.nr_serie_motor ?? '', 
-                garantia_motor_meses: det.garantia_motor_meses ?? null, possui_passagem_pedestre: det.possui_passagem_pedestre ?? false, 
+                pintura_porta: det.pintura_porta ?? 'Sim', cor_porta: det.cor_porta ?? '', nr_serie_motor: det.nr_serie_motor ?? '',
+                garantia_motor_meses: det.garantia_motor_meses ?? null, possui_passagem_pedestre: det.possui_passagem_pedestre ?? false,
                 largura_passagem: det.largura_passagem ?? 0, altura_passagem: det.altura_passagem ?? 0, obs_porta: det.obs_porta ?? '',
                 // foto_vao é enviada separado via FormData — não entra no JSON
             });
@@ -6906,7 +6971,7 @@ $(document).ready(function() {
         const numeracao = $("#id_numeracao").val();
         let campoInvalido = null;
         let nomeCampo = '';
-        
+
         if (temPintura === "Sim" && (!corSelecionada || corSelecionada === "")) {
             toast(`Escolha uma cor da pintura antes de gravar!`, "warning");
             $("#medidasBtn").click();
@@ -7908,7 +7973,7 @@ $(document).ready(function() {
                 },
                 complete: function() {fecharLoading();}
             });
-        } 
+        }
         else {$("#fantasia_fantasia").attr("hidden", true).text("");}
     });
     $("#id_empresa_login").on("input", function() {
@@ -8297,13 +8362,25 @@ $(document).ready(function() {
         $('#data, #data_inicio, #data_fim, #data_inicio1, #data_inicio2, #data_fim2, #data_fim1').prop('disabled', !usarDataAtivo);
     }
     function verificarBtnPintura() {
-        const ativarPintura = $('#id_pintura').val() === 'Sim';
+        const ativarPintura  = $('#id_pintura').val() === 'Sim';
         const ativarPinturaP = $('#det_pintura_porta').val() === 'Sim';
-        $('#id_cor').val("").prop('disabled', !ativarPintura);
-        $('#det_cor_porta').val("").prop('disabled', !ativarPinturaP);
+
+        $('#id_cor').prop('disabled', !ativarPintura);
+        $('#det_cor_porta').prop('disabled', !ativarPinturaP);
+
+        // Só limpa se desativou — não limpa se já tem valor selecionado
+        if (!ativarPintura)  $('#id_cor').val("");
+        if (!ativarPinturaP) $('#det_cor_porta').val("");
+
+        atualizarCor();
     }
-    verificarEstadoUsarData();
+
+    // Chama nos eventos de mudança também
+    $('#id_pintura').on('change', verificarBtnPintura);
+    $('#det_pintura_porta').on('change', verificarBtnPintura);
+
     verificarBtnPintura();
+    verificarEstadoUsarData();
     verificarEstadoSwitch('#switchData', '#dtVisita, #pxVisita');
     verificarEstadoSwitch('#switchIdSis', '#prin');
     verificarEstadoSwitch('#switchIdSis1', '#prin1');
@@ -8607,6 +8684,118 @@ $(document).ready(function() {
     // Marcas
     $('#marca, #marca1, #campo-marca-produto').select2({
         placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/marcas/lista_ajax/')}).on('select2:open', focSel2);
+    // Bairros
+    $.fn.addNovoInline = function(opts) {
+        return this.each(function() {
+            var $wrap    = $(this);
+            var $selArea = $wrap.find('[id$="-select-area"]');
+            var $inpArea = $wrap.find('[id$="-input-area"]');
+            var $input   = $inpArea.find('input[type=text]');
+            var $btnNovo = $wrap.find('[id^="btn-novo-"]');
+            var $btnOk   = $wrap.find('[id^="btn-confirmar-"]');
+            var $btnCan  = $wrap.find('[id^="btn-cancelar-"]');
+            var $select  = $selArea.find('select');
+
+            // ── Select2 ──────────────────────────────────
+            if (opts.select2) {
+                $select.select2(opts.select2).on('select2:open', focSel2);
+            }
+
+            function abrir() {
+                $select.select2('close');
+                $selArea.hide(); $inpArea.show();
+                $btnNovo.hide(); $btnOk.show(); $btnCan.show();
+                $input.val('').focus();
+            }
+            function fechar() {
+                $selArea.show(); $inpArea.hide();
+                $btnNovo.show(); $btnOk.hide(); $btnCan.hide();
+            }
+            function salvar() {
+                var nome = $.trim($input.val());
+                if (!nome) { $input.focus(); return; }
+                $btnOk.prop('disabled', true);
+                $.post(opts.url, { nome: nome, csrfmiddlewaretoken: CSRF_TOKEN })
+                    .done(function(res) {
+                        if (res.erro) { alert(res.erro); return; }
+                        var $opt = $select.find('option[value="' + res.id + '"]');
+                        if ($opt.length) {
+                            $select.val(res.id);
+                        } else {
+                            $select.append(new Option(res.nome, res.id, true, true));
+                        }
+                        // Notifica o Select2 da mudança
+                        $select.trigger('change');
+                        toast('Registro criado com sucesso!', 'success');
+                        if (!res.criado) {
+                            alert('"' + res.nome + '" já existe e foi selecionado.');
+                        }
+                        fechar();
+                    })
+                    .fail(function(xhr) {
+                        var msg = xhr.responseJSON?.erro || 'Erro na requisição.';
+                        alert(msg);
+                    })
+                    .always(function() { $btnOk.prop('disabled', false); });
+            }
+
+            $btnNovo.on('click', abrir);
+            $btnCan.on('click', fechar);
+            $btnOk.on('click', salvar);
+            $input.on('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); salvar(); }
+                if (e.key === 'Escape') fechar();
+            });
+        });
+    };
+
+    // ─── Init ────────────────────────────────────────
+    var CSRF_TOKEN = $('[name=csrfmiddlewaretoken]').val();
+
+    $('#bairro-wrapper').addNovoInline({
+        url: '/bairros/add-ajax/',
+        select2: {
+            placeholder: opSel,
+            allowClear: true,
+            templateResult: rendOpt,
+            templateSelection: d => d.text,
+            language: lingSel,
+            ajax: ajSel2('/bairros/lista_ajax/')
+        }
+    });
+    $('#marca-wrapper').addNovoInline({
+        url: '/marcas/add-ajax/',
+        select2: {
+            placeholder: opSel,
+            allowClear: true,
+            templateResult: rendOpt,
+            templateSelection: d => d.text,
+            language: lingSel,
+            ajax: ajSel2('/marcas/lista_ajax/')
+        }
+    });
+    $('#grupo-wrapper').addNovoInline({
+        url: '/grupos/add-ajax/',
+        select2: {
+            placeholder: opSel,
+            allowClear: true,
+            templateResult: rendOpt,
+            templateSelection: d => d.text,
+            language: lingSel,
+            ajax: ajSel2('/grupos/lista_ajax/')
+        }
+    });
+    $('#unidade-wrapper').addNovoInline({
+        url: '/unidades/add-ajax/',
+        select2: {
+            placeholder: opSel,
+            allowClear: true,
+            templateResult: rendOpt,
+            templateSelection: d => d.text,
+            language: lingSel,
+            ajax: ajSel2('/unidades/lista_ajax/')
+        }
+    });
     // Selects unificados
     $('#id_unid_prod, #unid, #id_unidadeProduto, #id_form_pgto, #userSelect, #id_tp_chave, [id^="sel-status"]').select2({placeholder: 'Selecione uma opção', allowClear: true});
     // Funções referentes aos formulários de cadastro e edição
@@ -8992,7 +9181,7 @@ $(document).ready(function() {
             url: '/pedidos/detalhes_ajax/' + id + '/', type: 'GET', success: function(response) {
                 $('#infoEntModalLabel').html(`<strong><i class="fa-solid fa-circle-info text-white"></i> Detalhes - Pedido Nº ${response.id}</strong>`);
                 let situacaoColor = "#005eff";
-                if (response.situacao === "Faturado") {situacaoColor = "#3CB371";} 
+                if (response.situacao === "Faturado") {situacaoColor = "#3CB371";}
                 else if (response.situacao === "Cancelado") {situacaoColor = "#B22222";}
                 const tabelaItens = montarTabelaItensPedido(response.itens);
                 let motivoCancelamento = '';
@@ -9105,8 +9294,8 @@ $(document).ready(function() {
             url: '/contas_receber/detalhes_ajax/' + id + '/', type: 'GET',
             success: function(response) {
                 let cor = "#005eff";
-                if (response.situacao === "Aberta") {cor = "#005eff";} 
-                else if (response.situacao === "Paga") {cor = "#3CB371";} 
+                if (response.situacao === "Aberta") {cor = "#005eff";}
+                else if (response.situacao === "Paga") {cor = "#3CB371";}
                 else if (response.vencido) { cor = "#B22222";}
                 const tabelaFormas = montarTabelaFormasCR(response.formas);
                 $('#infoEntModalLabel').html(`<strong><i class="fa-solid fa-file-invoice-dollar text-white"></i> Conta à Receber - Nº ${response.num_conta}</strong>`);

@@ -59,23 +59,24 @@ def add_marca(request):
     if request.method == 'POST':
         form = MarcaForm(request.POST)
         if form.is_valid():
+            nome = form.cleaned_data['nome_marca'].strip().upper()
+            empresa = request.user.empresa
+            # Verifica duplicata antes de salvar
+            if Marca.objects.filter(nome_marca=nome, vinc_emp=empresa).exists():
+                messages.warning(request, f'A marca "{nome}" já está cadastrada.')
+                return render(request, 'marcas/add.html', {'form': form})
             b = form.save(commit=False)
-            b.vinc_emp = request.user.empresa
+            b.nome_marca = nome
+            b.vinc_emp = empresa
             b.save()
-            registrar_log(
-                request, "CRIAR", "Marca", b.nome_marca,
-                f"Adicionou a marca: {b.codigo} - {b.nome_marca}",
-                b.id, gerar_alteracoes(obj_novo=b)
-            )
+            registrar_log(request, "CRIAR", "Marca", b.nome_marca, f"Adicionou a marca: {b.codigo} - {b.nome_marca}", b.id, gerar_alteracoes(obj_novo=b))
             messages.success(request, 'Marca adicionada com sucesso!')
-            bai = str(b.codigo)
-            return redirect('/marcas/lista/?tp=cod&s=' + bai)
+            return redirect('/marcas/lista/?tp=cod&s=' + str(b.codigo))
         else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+            error_messages = [f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!" for field in form if field.errors]
             return render(request, 'marcas/add.html', {'form': form, 'error_messages': error_messages})
-    else: form = MarcaForm()
+    else:
+        form = MarcaForm()
     return render(request, 'marcas/add.html', {'form': form})
 
 @login_required
@@ -85,42 +86,42 @@ def add_marca_ajax(request):
     if not nome:
         return JsonResponse({'erro': 'Nome vazio'}, status=400)
     empresa = request.user.empresa
-    marca, criada = Marca.objects.get_or_create(nome_marca=nome, vinc_emp=empresa)
-    registrar_log(
-        request, "CRIAR", "Marca", marca.nome_marca,
-        f"Adicionou a marca: {marca.codigo} - {marca.nome_marca}",
-        marca.id, gerar_alteracoes(obj_novo=marca)
-    )
-    return JsonResponse({'id': marca.codigo, 'nome': marca.nome_marca, 'criada': criada})
+    marca, criado = Marca.objects.get_or_create(nome_marca=nome, vinc_emp=empresa)
+    if criado:
+        registrar_log(request, "CRIAR", "Marca", marca.nome_marca, f"Adicionou a marca: {marca.codigo} - {marca.nome_marca}", marca.id, gerar_alteracoes(obj_novo=marca))
+    return JsonResponse({'id': marca.codigo, 'nome': marca.nome_marca, 'criado': criado})
 
 @login_required
 def att_marca(request, codigo):
     b = get_object_or_404(Marca, codigo=codigo, vinc_emp=request.user.empresa)
-    it_old = Marca.objects.get(codigo=b.codigo, vinc_emp=request.user.empresa)
-    form = MarcaForm(instance=b)
     if not request.user.has_perm('marcas.change_marca'):
         messages.info(request, 'Você não tem permissão para editar marcas.')
         return redirect('/marcas/lista/')
+    it_old = Marca.objects.get(codigo=b.codigo, vinc_emp=request.user.empresa)
+    form = MarcaForm(instance=b)
     if request.method == 'POST':
         form = MarcaForm(request.POST, instance=b)
         if form.is_valid():
+            nome = form.cleaned_data['nome_marca'].strip().upper()
+            empresa = request.user.empresa
+            # Verifica duplicata excluindo o próprio registro
+            if Marca.objects.filter(nome_marca=nome, vinc_emp=empresa).exclude(codigo=codigo).exists():
+                messages.warning(request, f'A marca "{nome}" já está cadastrada.')
+                return render(request, 'marcas/att.html', {'form': form, 'b': b})
+            b = form.save(commit=False)
+            b.nome_marca = nome
+            b.vinc_emp = empresa
             b.save()
-            registrar_log(
-                request, "ALTERAR", "Marca", b.nome_marca,
-                f"Alterou a marca: {b.codigo} - {b.nome_marca}",
-                b.id, gerar_alteracoes(it_old, b)
-            )
-            next_url = request.POST.get('next') or request.GET.get('next')
-            bai = str(b.codigo)
+            registrar_log(request, "ALTERAR", "Marca", b.nome_marca, f"Alterou a marca: {b.codigo} - {b.nome_marca}",  b.id, gerar_alteracoes(it_old, b))
             messages.success(request, 'Marca atualizada com sucesso!')
-            if next_url: return redirect(next_url)
-            else: return redirect('/marcas/lista/?tp=cod&s=' + bai)
+            next_url = request.POST.get('next') or request.GET.get('next')
+            if next_url:
+                return redirect(next_url)
+            return redirect('/marcas/lista/?tp=cod&s=' + str(b.codigo))
         else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
+            error_messages = [f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!" for field in form if field.errors]
             return render(request, 'marcas/att.html', {'form': form, 'b': b, 'error_messages': error_messages})
-    else: return render(request, 'marcas/att.html', {'form': form, 'b': b})
+    return render(request, 'marcas/att.html', {'form': form, 'b': b})
 
 @login_required
 def del_marca(request, codigo):

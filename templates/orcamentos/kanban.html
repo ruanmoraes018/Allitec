@@ -146,9 +146,9 @@
     <!-- Header -->
     <div class="kb-header d-flex align-items-center justify-content-between">
         <div>
-            <h1><i class="bi bi-kanban me-2" style="color:var(--kb-accent)"></i>Kanban de Orçamentos</h1>
+            <h4><i class="bi bi-kanban me-2" style="color:var(--kb-accent)"></i>Kanban de Orçamentos</h4>
             <span class="badge-empresa">{{ request.user.empresa }}</span>
-        </div>
+        </div><br>
         <div class="d-flex align-items-center gap-2">
             <button class="kb-toggle-btn {% if filtros.atrasados == '1' %}active{% endif %}" id="btnAtrasados" title="Somente atrasados">
                 <i class="bi bi-exclamation-triangle-fill"></i> Atrasados
