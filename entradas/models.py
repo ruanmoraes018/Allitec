@@ -18,6 +18,7 @@ class Entrada(models.Model):
     serie = models.CharField(max_length=5, blank=True, null=True)
     nat_op = models.CharField(max_length=255, blank=True, null=True)
     chave_acesso = models.CharField(max_length=44, blank=True, null=True)
+    xml_nfe = models.FileField(upload_to='entradas/xml/%Y/%m/', null=True, blank=True, verbose_name='XML NF-e')
     obs = models.TextField(default="", blank=True)
     frete = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)

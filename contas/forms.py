@@ -91,18 +91,11 @@ class UsuarioCadastroForm(forms.ModelForm):
             filiais_ativas = Filial.objects.filter(vinc_emp=self.empresa, situacao="Ativa")
             self.fields["filial_user"].choices = [("", "Escolha uma opção"), *[(str(f.codigo), f.fantasia.upper()) for f in filiais_ativas]]
             vendedores = Vendedor.objects.filter(vinc_emp=self.empresa)
-            self.fields["formas_pagamento"].queryset = FormaPgto.objects.filter(
-                vinc_emp=self.empresa, situacao="Ativo"
-            )
-            self.fields["tabelas_preco"].queryset = TabelaPreco.objects.filter(
-                vinc_emp=self.empresa
-            )
-            self.fields["filiais_permitidas"].queryset = Filial.objects.filter(
-                vinc_emp=self.empresa, situacao="Ativa"
-            )
+            self.fields["formas_pagamento"].queryset = FormaPgto.objects.filter(vinc_emp=self.empresa, situacao="Ativo")
+            self.fields["tabelas_preco"].queryset = TabelaPreco.objects.filter(vinc_emp=self.empresa)
+            self.fields["filiais_permitidas"].queryset = Filial.objects.filter(vinc_emp=self.empresa, situacao="Ativa")
             self.fields["vendedor"].choices = [("", "---------")] + [(str(v.codigo), v.fantasia) for v in vendedores]
-            if self.instance and self.instance.pk and self.instance.filial_user:
-                self.initial["filial_user"] = str(self.instance.filial_user.codigo)
+            if self.instance and self.instance.pk and self.instance.filial_user: self.initial["filial_user"] = str(self.instance.filial_user.codigo)
         else:
             self.fields["filial_user"].choices = [("", "Escolha uma filial")]
         permissoes = Permission.objects.filter(content_type__app_label__in=APPS_PERMISSOES )
@@ -116,20 +109,14 @@ class UsuarioCadastroForm(forms.ModelForm):
                     grupo_permissoes[grupo].append(perm)
                     break
         self.grupo_permissoes = grupo_permissoes
-
     # ✅ VALIDAÇÃO EXTRA À PROVA DE ERROS
     def clean_filial_user(self):
         codigo_enviado = self.cleaned_data.get('filial_user')
-        if not codigo_enviado:
-            raise forms.ValidationError("Por favor, selecione uma filial.")
-        if not self.empresa:
-            raise forms.ValidationError("Erro: empresa não definida no formulário.")
-        try:
-            filial = Filial.objects.get(codigo=codigo_enviado, vinc_emp=self.empresa)
-        except Filial.DoesNotExist:
-            raise forms.ValidationError("A filial selecionada não existe para a sua empresa.")
-        if filial.situacao != 'Ativa':
-            raise forms.ValidationError("A filial selecionada não está ativa.")
+        if not codigo_enviado: raise forms.ValidationError("Por favor, selecione uma filial.")
+        if not self.empresa: raise forms.ValidationError("Erro: empresa não definida no formulário.")
+        try: filial = Filial.objects.get(codigo=codigo_enviado, vinc_emp=self.empresa)
+        except Filial.DoesNotExist: raise forms.ValidationError("A filial selecionada não existe para a sua empresa.")
+        if filial.situacao != 'Ativa': raise forms.ValidationError("A filial selecionada não está ativa.")
         # Retornamos o objeto Filial completo. O Django vai saber salvar no banco!
         return filial
     def save(self, commit=True):
@@ -137,8 +124,7 @@ class UsuarioCadastroForm(forms.ModelForm):
         senha = self.cleaned_data.get("password")
         senha_lib = self.cleaned_data.get("senha_liberacao")
         # Empresa
-        if self.empresa:
-            user.empresa = self.empresa
+        if self.empresa: user.empresa = self.empresa
         # Nome
         user.first_name = self.cleaned_data.get("first_name", "").upper()
         # Filial padrão
@@ -146,35 +132,25 @@ class UsuarioCadastroForm(forms.ModelForm):
         # Ativo
         user.is_active = self.cleaned_data.get("is_active")
         # Senha do login
-        if senha:
-            user.set_password(senha)
-        elif user.pk:
-            user.password = Usuario.objects.get(pk=user.pk).password
+        if senha: user.set_password(senha)
+        elif user.pk: user.password = Usuario.objects.get(pk=user.pk).password
         # Senha de liberação
         user.gerar_senha_lib = self.cleaned_data.get("gerar_senha_lib")
-        if senha_lib:
-            user.senha_liberacao = make_password(senha_lib)
-        elif user.pk:
-            user.senha_liberacao = Usuario.objects.get(pk=user.pk).senha_liberacao
+        if senha_lib: user.senha_liberacao = make_password(senha_lib)
+        elif user.pk: user.senha_liberacao = Usuario.objects.get(pk=user.pk).senha_liberacao
         if commit:
             user.save()
             # Permissões
             user.user_permissions.set(self.cleaned_data.get("permissoes", []))
             # Filiais
-            if self.opfilial == "1":
-                user.filiais_permitidas.set(Filial.objects.filter(vinc_emp=self.empresa, situacao="Ativa"))
-            else:
-                user.filiais_permitidas.set(self.cleaned_data.get("filiais_permitidas", []))
+            if self.opfilial == "1": user.filiais_permitidas.set(Filial.objects.filter(vinc_emp=self.empresa, situacao="Ativa"))
+            else: user.filiais_permitidas.set(self.cleaned_data.get("filiais_permitidas", []))
             # Formas de pagamento
-            if self.opformas == "1":
-                user.formas_pagamento.set(FormaPgto.objects.filter(vinc_emp=self.empresa, situacao="Ativo"))
-            else:
-                user.formas_pagamento.set(self.cleaned_data.get("formas_pagamento", []))
+            if self.opformas == "1": user.formas_pagamento.set(FormaPgto.objects.filter(vinc_emp=self.empresa, situacao="Ativo"))
+            else: user.formas_pagamento.set(self.cleaned_data.get("formas_pagamento", []))
             # Tabelas de preço
-            if self.optabelas == "1":
-                user.tabelas_preco.set(TabelaPreco.objects.filter(vinc_emp=self.empresa))
-            else:
-                user.tabelas_preco.set(self.cleaned_data.get("tabelas_preco", []))
+            if self.optabelas == "1": user.tabelas_preco.set(TabelaPreco.objects.filter(vinc_emp=self.empresa))
+            else: user.tabelas_preco.set(self.cleaned_data.get("tabelas_preco", []))
         return user
 
     def clean(self):

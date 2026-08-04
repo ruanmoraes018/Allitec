@@ -2,7 +2,7 @@ from collections import OrderedDict
 
 APPS_PERMISSOES = [
     'formas_pgto','tipo_cobranca','entradas','bairros','cidades','estados','grupos','bancos','unidades','filiais','tabelas_preco','lancpdvs','pdvs','clientes','fornecedores',
-    'vendedores','produtos','orcamentos','tecnicos','pedidos','marcas','regras_produto','contas_receber', 'estoques', 'informacoes',
+    'vendedores','produtos','orcamentos','tecnicos','pedidos','marcas','regras_produto','contas_receber', 'estoques', 'informacoes', 'contas_pagar',
 ]
 ORDEM_CODENAME = [
     'view_caixa','add_caixa','change_caixa','delete_caixa','caixa_outro_user',
@@ -29,6 +29,7 @@ ORDEM_CODENAME = [
     'view_regraproduto','add_regraproduto','change_regraproduto','delete_regraproduto',
     'view_pedido','add_pedido','change_pedido','delete_pedido','clonar_pedido','atribuir_desconto_ped','atribuir_acrescimo_ped','faturar_pedido','cancelar_pedido','vender_sem_estoque_ped','alt_vl_ped','alterar_data_faturamento','relatorio_pedidos',
     'view_contareceber','add_contareceber','change_contareceber','delete_contareceber','atribuir_desconto_cr','baixar_cr','estornar_cr',
+    'view_contapagar','add_contapagar','change_contapagar','delete_contapagar','baixar_cp','estornar_cp',
     'view_estoque', 'add_estoque', 'change_estoque', 'delete_estoque',
     'view_informacoes', 'add_informacoes', 'change_informacoes', 'delete_informacoes',
     'view_gruporegraproduto', 'add_gruporegraproduto', 'change_gruporegraproduto', 'delete_gruporegraproduto',
@@ -49,7 +50,7 @@ CATEGORIAS_PERMISSOES = OrderedDict({
         'Pedidos','Caixas','Orçamentos'
     ],
     'Financeiro': [
-        'Contas à Receber'
+        'Contas à Receber', 'Contas à Pagar'
     ]
 })
 GRUPOS_PERMISSOES = OrderedDict({
@@ -85,6 +86,7 @@ GRUPOS_PERMISSOES = OrderedDict({
         'vender_sem_estoque_ped','alt_vl_ped','alterar_data_faturamento','relatorio_pedidos'
     ],
     'Contas à Receber': ['view_contareceber','add_contareceber','change_contareceber','delete_contareceber','atribuir_desconto_cr','baixar_cr','estornar_cr'],
+    'Contas à Pagar': ['view_contapagar','add_contapagar','change_contapagar','delete_contapagar','baixar_cp','estornar_cp'],
     'Grupo de Regras': ['view_gruporegraproduto', 'add_gruporegraproduto', 'change_gruporegraproduto', 'delete_gruporegraproduto',],
 })
 def agrupar_permissoes_por_grupo(permissoes):

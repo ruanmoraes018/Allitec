@@ -16,7 +16,7 @@
             <div id="django-messages" data-messages='[
                 {% for message in messages %}
                     {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
-                    {% if not forloocr.last %},{% endif %}
+                    {% if not forloop.last %},{% endif %}
                 {% endfor %}
             ]'></div>
         {% endif %}
@@ -295,7 +295,7 @@
                                     </h5>
                                 </div>
                                 <div class="modal-body">
-                                    <p>Você confirma o PAGAMENTO DA MENSALIDADE <strong>{{ cr.num_conta }}</strong>?</p>
+                                    <p>Você confirma o PAGAMENTO DA CONTA À RECEBER <strong>{{ cr.num_conta }}</strong>?</p>
                                 </div>
                                 <div class="modal-footer">
                                     <form method="post" action="{% url 'pagar-conta-receber' cr.codigo %}">

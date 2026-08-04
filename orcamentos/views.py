@@ -832,16 +832,16 @@ def faturar_orcamento(request, codigo):
     orcamento.dt_fat = timezone.now()
     orcamento.save(update_fields=['situacao', 'dt_fat'])
     tem_avista = any((f.formas_pgto.tipo or "").strip().lower() == "a vista" for f in formas)
-    imp_recibo = (orcamento.vinc_fil.imp_recibo_orc or "Não").strip()
+    imp_recibo = (orcamento.vinc_fil.orcamento_porta.imp_recibo_orc or "Não").strip()
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         registrar_log(request=request, tipo="FATURAR", modulo="Orçamento", objeto=orcamento.codigo, objeto_id=orcamento.id, descricao=f"Faturou o orçamento nº {orcamento.codigo}",
-            alteracoes={"Valor Total":orcamento.total,"Cliente":str(orcamento.cli),"Técnico":str(orcamento.solicitante),"Forma de Pagamento":", ".join(str(fp.formas_pgto) for fp in orcamento.formas_pgto.all())}
+            alteracoes={"Valor Total": str(orcamento.total),"Cliente":str(orcamento.cli),"Técnico":str(orcamento.solicitante),"Forma de Pagamento":", ".join(str(fp.formas_pgto) for fp in orcamento.formas_pgto.all())}
         )
         return JsonResponse({"success": True, "codigo": orcamento.codigo, "tem_avista": tem_avista, "imp_recibo": imp_recibo, "url_recibo": reverse("recibo_orcamento", args=[orcamento.codigo]),
             "redirect": f"/orcamentos/lista/?s={orcamento.codigo}",
         })
     registrar_log(request=request, tipo="FATURAR", modulo="Orçamento", objeto=orcamento.codigo, objeto_id=orcamento.id, descricao=f"Faturou o orçamento nº {orcamento.codigo}",
-        alteracoes={"Valor Total":orcamento.total,"Cliente":str(orcamento.cli),"Técnico":str(orcamento.solicitante),"Forma de Pagamento":", ".join(str(fp.formas_pgto) for fp in orcamento.formas_pgto.all())}
+        alteracoes={"Valor Total": str(orcamento.total),"Cliente":str(orcamento.cli),"Técnico":str(orcamento.solicitante),"Forma de Pagamento":", ".join(str(fp.formas_pgto) for fp in orcamento.formas_pgto.all())}
     )
     messages.success(request, f"Orçamento {orcamento.codigo} faturado com sucesso.")
     return redirect(f"/orcamentos/lista/?s={orcamento.codigo}")

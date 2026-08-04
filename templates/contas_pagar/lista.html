@@ -1,0 +1,482 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+{% block title %}Lista - Contas à Pagar{% endblock %}
+{% block content %}
+    <div class="container-fluid py-3 min-vh-100">
+        <nav class="mt-5" aria-label="breadcrumb">
+            <ol class="breadcrumb p-2 m-2">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'inicio' %}" class="text-decoration-none text-secondary" id="item-naveg"><i class="fas fa-home me-1"></i> Principal</a>
+                </li>
+                <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">Listagem de Contas à Pagar</li>
+            </ol>
+        </nav>
+        {% if messages %}
+            <div id="django-messages" data-messages='[
+                {% for message in messages %}
+                    {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
+                    {% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ]'></div>
+        {% endif %}
+        {% if not perms.contas_pagar.add_contapagar and not perms.contas_pagar.change_contapagar and not perms.contas_pagar.delete_contapagar %}
+            <div class="alert alert-warning">
+                Usuário não autorizado para realizar esta função.
+            </div>
+        {% endif %}
+        <div class="card border-0 shadow-sm rounded-3 mb-2">
+            <div class="card-body p-0 mb-2">
+                <form method="GET" id="search-form">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-xl-2 col-md-4 flex-md-fill">
+                            <label for="vinc_emp" class="form-label small text-secondary fw-semibold">Filial</label>
+                            <select name="fil" id="vinc_emp" class="form-select form-select-sm">
+                                <option value="">Escolha uma opção</option>
+                                {% for f in filiais %}
+                                    <option value="{{ f.codigo }}" {% if request.GET.fil == f.codigo|stringformat:"s" %}selected{% endif %}>{{ f }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-md-4 flex-md-fill">
+                            <label for="fornecedor" class="form-label small text-secondary fw-semibold">Fornecedor</label>
+                            <select class="form-select form-select-sm" id="fornecedor" name="forn">
+                                <option value="">Escolha uma opção</option>
+                                {% for f in fornecedores %}
+                                    <option value="{{ f.codigo }}" {% if request.GET.forn == f.codigo|stringformat:"s" %}selected{% endif %}>{{ f }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label for="situacao" class="form-label small text-secondary fw-semibold">Situação</label>
+                            <select class="form-select" name="sit" id="situacao">
+                                <option value="Aberta" {% if request.GET.sit == 'Aberta' %}selected{% endif %}>Aberta</option>
+                                <option value="Paga" {% if request.GET.sit == 'Paga' %}selected{% endif %}>Paga</option>
+                                <option value="todas" {% if request.GET.sit == 'todas' %}selected{% endif %}>Todas</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label for="list_p" class="form-label small text-secondary fw-semibold">Data de</label>
+                            <select class="form-select" name="list_p" id="list_p">
+                                <option value="dt_v" {% if list_p == 'dt_v' %}selected{% endif %}>Dt. Vencimento</option>
+                                <option value="dt_e" {% if list_p == 'dt_e' %}selected{% endif %}>Dt. Emissão</option>
+                                <option value="dt_p" {% if list_p == 'dt_p' %}selected{% endif %}>Dt. Pagamento</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label for="usar-data" class="form-label small text-secondary fw-semibold">Filtrar Data</label>
+                            <select class="form-select" id="usar-data" name="p_dt">
+                                <option value="Sim" {% if request.GET.p_dt == 'Sim' %}selected{% endif %}>Sim</option>
+                                <option value="Nao" {% if request.GET.p_dt == 'Nao' %}selected{% endif %}>Não</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-md-4">
+                            <label class="form-label small text-secondary fw-semibold">Período</label>
+                            <div class="input-group">
+                                <input class="form-control" type="text" name="dt_ini" id="data_inicio1" placeholder="De" value="{{ request.GET.dt_ini }}">
+                                <span class="input-group-text bg-white text-secondary"><i class="fas fa-calendar-alt"></i></span>
+                                <input class="form-control" type="text" name="dt_fim" id="data_fim1" placeholder="Até" value="{{ request.GET.dt_fim }}">
+                            </div>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label class="form-label small text-secondary fw-semibold">Exibir</label>
+                            <select class="form-select" id="qtd_reg" name="reg">
+                                <option value="10" {% if request.GET.reg == '10' %}selected{% endif %}>10</option>
+                                <option value="20" {% if request.GET.reg == '20' %}selected{% endif %}>20</option>
+                                <option value="30" {% if request.GET.reg == '30' %}selected{% endif %}>30</option>
+                                <option value="40" {% if request.GET.reg == '40' %}selected{% endif %}>40</option>
+                                <option value="50" {% if request.GET.reg == '50' %}selected{% endif %}>50</option>
+                                <option value="todos" {% if request.GET.reg == 'todos' %}selected{% endif %}>Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-1 col-md-2">
+                            <label class="form-label small text-secondary fw-semibold">Ordem</label>
+                            <select class="form-select" id="ordem" name="ordem">
+                                <option value="filial__fantasia" {% if request.GET.ordem == 'filial__fantasia' %}selected{% endif %}>Filial</option>
+                                <option value="fornecedor__fantasia" {% if request.GET.ordem == 'fornecedor__fantasia' %}selected{% endif %}>Fornecedor</option>
+                                <option value="data_vencimento" {% if request.GET.ordem == 'data_vencimento' %}selected{% endif %}>Dt. Venc.</option>
+                                <option value="data_emissao" {% if request.GET.ordem == 'data_emissao' %}selected{% endif %}>Dt. Emissão</option>
+                                <option value="data_pagamento" {% if request.GET.ordem == 'data_pagamento' %}selected{% endif %}>Dt. Pgto.</option>
+                            </select>
+                        </div>
+                        <div class="col-xl-auto col-md-12 d-grid">
+                            <button class="btn btn-dark px-4" title="Consultar" type="submit" id="data-btn">
+                                <i class="fa-solid fa-magnifying-glass"></i> Filtrar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+            <div class="list-group">
+                <!-- Cabeçalho -->
+                <div class="list-group-item bg-light fw-bold cabecalho-lista">
+                    <div class="row align-items-center">
+                        <div class="col-md-1 text-center border-end"><div class="border-bottom">Ações</div>Nº Conta</div>
+                        <div class="col-md-1 text-center border-end">Situação</div>
+                        <div class="col-md-2 border-end">Filial</div>
+                        <div class="col-md-3 border-end">Fornecedor</div>
+                        <div class="col-md-1 text-center border-end" style="font-size: 0.9rem;"><div class="border-bottom">Dt. Emissão</div>Dt. Vencimento</div>
+                        <div class="col-md-1 text-center border-end"><div class="border-bottom">Vl. Parcela</div>Vl. Restante</div>
+                        <div class="col-md-1 text-center border-end">Dias Atraso</div>
+                        <div class="col-md-1 text-center border-end"><div class="border-bottom">Vl. Juros</div>Vl. Multa</div>
+                        <div class="col-md-1 text-center" style="font-size: 0.95rem;"><div class="border-bottom">Vl. Pago</div>Dt. Pagamento</div>
+                    </div>
+                </div>
+                <!-- Registros -->
+                {% for cp in contas_pagar %}
+                    <div class="list-group-item py-1 item-lista">
+                        <div class="row align-items-center linha-lista">
+                            <div class="col-md-1 text-center border-end">
+                                <div class="border-bottom acoes-col">
+                                    <button class="btn btn-dark btn-sm mb-1" data-bs-toggle="modal" data-bs-target="#menuModal{{ cp.codigo }}" title="Opções">
+                                        <i class="fa-solid fa-bars"></i>
+                                    </button>
+                                </div>
+                                <div class="border-bottom text-center fw-bold text-secondary descricao-col" data-label="Código:">
+                                    <small class="f-flex d-md-none">Código:</small> #{{ cp.num_conta }}
+                                </div>
+                            </div>
+                            <div class="col-1 text-center codigo-col" style="min-width: 90px;" data-label="Situação:">
+                                {% if cp.situacao == 'Aberta' %}
+                                    <span class="badge bg-primary"><i class="fa-regular fa-clock fa-spin-pulse"></i> {{ cp.situacao }}</span>
+                                {% else %}
+                                    <span class="badge bg-success"><i class="fa-regular fa-circle-check fa-shake"></i> {{ cp.situacao }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-2 fw-bold codigo-col" data-label="Filial:">
+                                {{ cp.filial.fantasia }}
+                            </div>
+                            <div class="col-md-3 fw-bold descricao-col" data-label="Fornecedor:">
+                                {{ cp.fornecedor.fantasia }}
+                            </div>
+                            <div class="col-md-1 text-center fw-bold" style="font-size: 0.9rem;">
+                                <div class="border-bottom descricao-col" data-label="Dt. Emissão:">
+                                    <small class="f-flex d-md-none">Dt. Emissão:</small> {{ cp.data_emissao|date:"d/m/Y" }}
+                                </div>
+                                <div class="border-bottom descricao-col" data-label="Dt. Vencimento:">
+                                    <small class="f-flex d-md-none">Dt. Vencimento:</small> {{ cp.data_vencimento|date:"d/m/Y" }}
+                                </div>
+                            </div>
+                            <div class="col-md-1 text-center fw-bold">
+                                <div class="border-bottom descricao-col text-success" data-label="Vl. Parcela:">
+                                    <small class="f-flex d-md-none">Vl. Parcela:</small> {{ cp.valor|moeda_br}}
+                                </div>
+                                <div class="border-bottom descricao-col text-secondary" data-label="Vl. Restante:">
+                                    <small class="f-flex d-md-none">Vl. Restante:</small> {% if cp.saldo %} {{ cp.saldo|moeda_br }} {% else %} 0,00 {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-1 text-center fw-bold descricao-col" data-label="Dias Atraso:">
+                                {% if cp.dias_atraso > 0 %}
+                                    <span class="fw-bold text-danger">{{ cp.dias_atraso }}</span>
+                                {% else %}
+                                    <span class="fw-bold text-secondary">{{ cp.dias_atraso }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-1 text-center fw-bold">
+                                <div class="border-bottom descricao-col" data-label="Vl. Juros:">
+                                    <small class="f-flex d-md-none">Vl. Juros:</small> {{ cp.valor_juros|moeda_br }}
+                                </div>
+                                <div class="border-bottom descricao-col" data-label="Vl. Multa:">
+                                    <small class="f-flex d-md-none">Vl. Multa:</small> {{ cp.valor_multa|moeda_br }}
+                                </div>
+                            </div>
+                            <div class="col-md-1 fw-bold">
+                                {% if cp.situacao == "Paga" %}
+                                    <div class="border-bottom descricao-col text-success text-center" data-label="{% if cp.situacao != 'Aberta' %}Vl. Pago:{% endif %}">
+                                        <small class="f-flex d-md-none">Vl. Pago:</small> {{ cp.valor_pago|moeda_br }}
+                                    </div>
+                                    <div class="border-bottom descricao-col text-center" data-label="{% if cp.situacao != 'Aberta' %}Dt. Pagamento:{% endif %}">
+                                        <small class="f-flex d-md-none">Dt. Pagamento:</small> {{ cp.data_pagamento|date:"d/m/Y" }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Modal ÚNICO para cada pedido -->
+                    <div class="modal fade" id="modal-{{ cp.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLabel-{{ cp.codigo }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title" id="modalLabel-{{ cp.codigo }}">
+                                        <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                    </h5>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Você confirma a EXCLUSÃO DA CONTA À PAGAR <strong>{{ cp.num_conta }}</strong>?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post" action="{% url 'del-conta_pagar' cp.codigo %}" class="form-excluir">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-confirmar" id="confirmBtn" disabled>
+                                            <u>S</u>im <span class="contador">3</span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnRecusa">
+                                            <u>N</u>ão
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Modal de opções do pedido -->
+                    <div class="modal fade modal-sm" id="menuModal{{ cp.codigo }}" data-orcamento-id="{{ cp.codigo }}" tabindex="-1" aria-labelledby="menuModalLabel{{ cp.codigo }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal"><h5 class="modal-title fw-bold mx-auto" id="menuModalLabel{{ cp.codigo }}">Opções - {{ cp.codigo }}</h5></div>
+                                <div class="modal-body p-2">
+                                    <a href="{% url 'att-conta_pagar' cp.codigo %}?next={{ request.get_full_path|urlencode }}" data-permissao="contas_pagar.change_contapagar" data-msg-negado="Seu usuário não pode editar contas à pagar!" class="btn btn-light w-100 text-start menu-opcao op-editar border border-secondary btn-permissao" >
+                                        <i class="fas fa-edit"></i> Editar
+                                    </a>
+                                    {% if cp.situacao == 'Aberta' %}
+                                        <button class="btn btn-light w-100 text-start menu-opcao op-deletar btn-delete border border-secondary btn-permissao" data-orcamento-id="{{ cp.codigo }}" data-permissao="contas_pagar.delete_contapagar" data-msg-negado="Seu usuário não pode deletar contas à pagar!">
+                                            <i class="fas fa-trash"></i> Deletar
+                                        </button>
+                                        <button class="btn btn-light w-100 text-start menu-opcao op-faturar border border-secondary btn-permissao" data-id="{{ cp.codigo }}" data-permissao="contas_pagar.baixar_cp" data-msg-negado="Seu usuário não pode realizar baixas em contas à pagar!" data-bs-toggle="modal" data-bs-target="#mdInfoBaixa-{{ cp.codigo }}">
+                                            <i class="fa-solid fa-circle-down"></i> Pagar
+                                        </button>
+                                    {% else %}
+                                        <button class="btn btn-light w-100 text-start menu-opcao op-estornar border border-secondary btn-permissao" data-id="{{ cp.codigo }}" data-permissao="contas_pagar.estornar_cp" data-msg-negado="Seu usuário não pode realizar estornos em contas à pagar!" data-bs-toggle="modal" data-bs-target="#mdEstorno-{{ cp.codigo }}">
+                                            <i class="fa-solid fa-arrow-rotate-left"></i> Estornar
+                                        </button>
+                                    {% endif %}
+                                    <button class="btn btn-light w-100 text-start menu-opcao op-detalhe-cp border border-secondary" data-id="{{ cp.codigo }}" data-bs-toggle="modal" data-bs-target="#infoEntModalP{{ cp.codigo }}">
+                                        <i class="fa-solid fa-circle-info"></i> Detalhes
+                                    </button>
+                                    <div class="dropdown w-100">
+                                        <button class="btn btn-light w-100 text-start menu-opcao op-imprimir border border-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="true">
+                                            <i class="fa-solid fa-print"></i> Impressão
+                                        </button>
+                                        <ul class="dropdown-menu w-100">
+                                            <li>
+                                                <a href="{% url 'recibo_cp' cp.codigo %}" target="_blank" class="dropdown-item list-group-item list-group-item-action list-group-item-dark"><i class="fa-solid fa-file-pdf text-danger"></i> Recibo</a>
+                                            </li>  
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary btn-sm mx-auto" data-bs-dismiss="modal">Fechar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="mdEstorno-{{ cp.codigo }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title"><i class="fa-regular fa-circle-question"></i>Confirmação</h5>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Ao estornar esta conta à pagar, todos os pagamentos associados a este título serão cancelados.</p>
+                                    <p class="mb-2">Você confirma o ESTORNO DA CONTA À PAGAR <strong>{{ cp.num_conta }}</strong>?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post" action="{% url 'estornar-conta-pagar' cp.codigo %}" class="form-excluir">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                            <u>S</u>im <span class="contador">3</span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                            <u>N</u>ão
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="infoEntModal" tabindex="-1" aria-labelledby="infoEntModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title" id="infoEntModalLabel"></h5>
+                                </div>
+                                <div class="modal-body" id="infoEntBody"></div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="mdInfoBaixa-{{ cp.codigo }}" data-bs-backdrop="true" data-bs-keyboard="false" tabindex="-1" aria-labelledby="mdInfoBaixaLabel{{ cp.codigo }}" aria-hidden="true">
+                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title" id="mdInfoBaixaLabel{{ cp.codigo }}"><i class="fa-solid fa-cash-register"></i> Baixa de Contas à Pagar</h5>
+                                </div>
+                                <form method="post" action="{% url 'pagar-conta-pagar' cp.codigo %}">
+                                    {% csrf_token %}
+                                    <div class="modal-body">
+                                        <div class="row">
+                                            <div class="col-md-2">
+                                                <label for="num_conta_cp" class="col-form-label">Nº Conta:</label>
+                                                <input type="text" class="form-control form-control-sm" disabled="disabled" id="num_conta_cp{{ cp.codigo }}" value="{{ cp.num_conta }}" name="num_conta_cp">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="filial_cp" class="col-form-label">Filial:</label>
+                                                <select class="form-select form-select-sm filial-select" id="filial_cp{{ cp.codigo }}" name="filial_cp">
+                                                    {% if cp.filial %}
+                                                        <option value="{{ cp.filial.codigo }}" selected>
+                                                            {{ cp.filial.fantasia }}
+                                                        </option>
+                                                    {% endif %}
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="dt_pag_cp" class="col-form-label">Dt. Pagamento:</label>
+                                                <input type="text" class="form-control form-control-sm" id="dt_pag_cp-{{ cp.codigo }}" name="dt_pag_cp">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="fornecedor_cp" class="col-form-label">Fornecedor:</label>
+                                                <input type="text" class="form-control form-control-sm" disabled="disabled" id="fornecedor_cp{{ cp.codigo }}" value="{{ cp.fornecedor.fantasia }}" name="fornecedor_cp">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="valor_cp" class="col-form-label">Valor Conta:</label>
+                                                <input type="text" class="form-control form-control-sm text-end" disabled="disabled" id="valor_cp{{ cp.codigo }}" value="{{ cp.valor }}" name="valor_cp">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="tot_juros_cp" class="col-form-label">Total Juros:</label>
+                                                <input type="text" class="form-control form-control-sm text-end" disabled="disabled" id="tot_juros_cp{{ cp.codigo }}" value="{{ cp.valor_juros|moeda_br }}" name="tot_juros_cp">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="tot_multa_cp" class="col-form-label">Total Multa:</label>
+                                                <input type="text" class="form-control form-control-sm text-end" disabled="disabled" id="tot_multa_cp{{ cp.codigo }}" value="{{ cp.valor_multa|moeda_br }}" name="tot_multa_cp">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="desc_j_cp" class="col-form-label">Desconto Juros (%):</label>
+                                                <input type="text" class="form-control form-control-sm text-end" id="desc_j_cp{{ cp.codigo }}" value="0.00" name="desc_j_cp">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="juros_cp" class="col-form-label">Valor Juros:</label>
+                                                <input type="text" class="form-control form-control-sm text-end" id="juros_cp{{ cp.codigo }}" value="{{ cp.valor_juros|moeda_br }}" name="juros_cp">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="desc_m_cp" class="col-form-label">Desconto Multa (%):</label>
+                                                <input type="text" class="form-control form-control-sm text-end" id="desc_m_cp{{ cp.codigo }}" value="0.00" name="desc_m_cp">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label for="multa_cp" class="col-form-label">Valor Multa:</label>
+                                                <input type="text" class="form-control form-control-sm text-end" id="multa_cp{{ cp.codigo }}" value="{{ cp.valor_multa|moeda_br }}" name="multa_cp">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="vl_tot_cp" class="col-form-label">Total à Pagar:</label>
+                                                <input type="text" class="form-control form-control-sm text-end fw-bold text-primary" disabled="disabled" id="vl_tot_cp{{ cp.codigo }}" value="{{ cp.valor_total|moeda_br }}" name="vl_tot_cp">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label for="vl_pg_cp" class="col-form-label">Vl. Pagamento:</label>
+                                                <input type="text" class="form-control form-control-sm text-end" id="vl_pg_cp{{ cp.codigo }}" value="{{ cp.valor_total|moeda_br }}" name="vl_pg_cp">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-dark btn-sm btn-baixar-cp" data-bs-toggle="modal" data-bs-target="#mdBaixa-{{ cp.codigo }}">Baixar</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                                        <div class="modal fade" id="mdBaixa-{{ cp.codigo }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="mdBaixaLabel-{{ cp.codigo }}" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content">
+                                                    <div class="modal-header titulo-modal">
+                                                        <h5 class="modal-title" id="mdBaixaLabel-{{ cp.codigo }}">
+                                                            <i class="fa-regular fa-circle-question"></i> Confirmação!
+                                                        </h5>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <p>Você confirma o PAGAMENTO DA CONTA À PAGAR <strong>{{ cp.num_conta }}</strong>?</p>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="submit" class="btn btn-primary btn-confirmar" disabled>
+                                                            <u>S</u>im <span class="contador">3</span>
+                                                        </button>
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                            <u>N</u>ão
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="modalRecibo">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header titulo-modal">
+                                    <h5 class="modal-title"><i class="fa-solid fa-file-contract"></i> Imprimir Recibo</h5>
+                                </div>
+                                <div class="modal-body text-center">
+                                    Deseja imprimir o RECIBO deste PAGAMENTO?
+                                </div>
+                                <div class="modal-footer">
+                                    <button class="btn btn-success btn-sm" id="simRecibo">Sim</button>
+                                    <button class="btn btn-secondary btn-sm" id="naoRecibo">Não</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="list-group-item text-center py-3 text-muted">
+                        <i class="fas fa-folder-open fs-2 d-block mb-3 opacity-50"></i> Nenhuma conta à pagar encontrada.
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="card-footer bg-white border-top p-1">
+                <div class="row align-items-center">
+                    <div class="col-md-4 text-center text-md-start d-flex justify-content-center justify-content-md-start">
+                        <ul class="list-group list-group-horizontal-sm">
+                            <li class="list-group-item"><small>Vencidas:</small> <span class="badge bg-danger ms-1">R$ {{ tot_vencido|moeda_br }}</span></li>
+                            <li class="list-group-item"><small>À Vencer:</small> <span class="badge bg-dark ms-1">R$ {{ tot_vencer|moeda_br }}</span></li>
+                            <li class="list-group-item"><small>Juros:</small> <span class="badge bg-info ms-1">R$ {{ tot_j|moeda_br }}</span></li>
+                            <li class="list-group-item"><small>Multa:</small> <span class="badge bg-warning ms-1">R$ {{ tot_m|moeda_br }}</span></li>
+                            <li class="list-group-item"><small>Total Geral:</small> <span class="badge bg-success ms-1">R$ {{ tot_g|moeda_br }}</span></li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4 mt-1 d-flex justify-content-center">
+                        {% if contas_pagar.paginator.num_pages > 1 %}
+                            <nav aria-label="Navegação de páginas">
+                                <ul class="pagination pagination-sm m-0 gap-1 border-0">
+                                    {% if contas_pagar.number > 3 %}
+                                        <li class="page-item">
+                                            <a class="page-link rounded border-0 text-dark" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">1</a>
+                                        </li>
+                                    {% endif %}
+                                    {% if contas_pagar.number > 4 %}
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    {% endif %}
+                                    {% for num in contas_pagar.paginator.page_range %}
+                                        {% if num >= contas_pagar.number|add:'-2' and num <= contas_pagar.number|add:'2' %}
+                                            {% if contas_pagar.number == num %}
+                                                <li class="page-item active" aria-current="page">
+                                                    <span class="page-link rounded border-0 bg-dark text-white fw-bold">{{ num }}</span>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item">
+                                                    <a class="page-link rounded border-0 text-dark" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                                                </li>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if contas_pagar.number < contas_pagar.paginator.num_pages|add:'-3' %}
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    {% endif %}
+                                    {% if contas_pagar.number < contas_pagar.paginator.num_pages and contas_pagar.number < contas_pagar.paginator.num_pages|add:'-2' %}
+                                        <li class="page-item">
+                                            <a class="page-link rounded border-0 text-dark" href="?page={{ contas_pagar.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ contas_pagar.paginator.num_pages }}</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4 mt-1 text-center text-md-end">
+                        <a id="add-link" href="{% url 'add-conta_pagar' %}" class="btn-permissao" data-permissao="contas_pagar.add_contapagar" data-msg-negado="Seu usuário não pode adicionar contas à pagar!">
+                            <button type="button" class="btn btn-primary btn-sm px-3 shadow-sm fw-semibold" id="add-conta-pagar">
+                                <i class="fas fa-plus me-1"></i> Novo
+                            </button>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

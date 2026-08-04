@@ -13,4 +13,5 @@ urlpatterns = [
     path('criar_fornecedor_xml/', views.criar_fornecedor_por_xml, name='criar-fornecedor-xml'),
     path('criar_produto_xml/', views.criar_produto_por_xml, name='criar-produto-xml'),
     path('criar_produtos_em_massa/', views.criar_produtos_em_massa, name='criar-produtos-em-massa'),
+    path('danfe/<int:codigo>/', views.gerar_danfe, name='gerar_danfe'),
 ]

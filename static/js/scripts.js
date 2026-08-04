@@ -1976,28 +1976,71 @@ $(document).ready(function() {
         setTimeout(() => {limparBackdropsDuplicados();}, 150);
     });
     $(document).on('shown.bs.modal', '[id^="efetivarModal-"]', function () {
-        const inpParc = $(this).find('#inpParc');
-        const inpDiasPriParc = $(this).find('#inpDiasPriParc');
-        const inpIntervalo = $(this).find('#inpIntervalo');
-        const dtEfetivacao = $(this).find('#dt_efet_ent');
-        const dtFatura = $(this).find('.dt-fat-orcamento');
-        const inpDtPriParc = $(this).find('#inpDtPriParc');
-        // Valores default
-        if (!inpParc.val()) {inpParc.val(1);}
-        if (!inpDiasPriParc.val()) {inpDiasPriParc.val(1);}
-        if (!inpIntervalo.val()) {inpIntervalo.val(0);}
-        if (!dtEfetivacao.val()) {dtEfetivacao.val(obterDataAtual2());}
-        if (!dtFatura.val()) {dtFatura.val(obterDataAtual2());}
-        if (dtEfetivacao.val()) {inpDtPriParc.val(addDtInterv(dtEfetivacao.val(), inpDiasPriParc.val()));}
-        $('#dt_efet_ent, #inpDiasPriParc').on('change', function () {
-            const dtEfetiv = $('#dt_efet_ent').val();
-            const interv = $('#inpDiasPriParc').val();
+        const $modal = $(this);
+        const entradaId = this.id.replace('efetivarModal-', '');
+        const $inpParc        = $modal.find('#inpParc');
+        const $inpDiasPriParc = $modal.find('#inpDiasPriParc');
+        const $inpIntervalo   = $modal.find('#inpIntervalo');
+        const $dtEfetivacao   = $modal.find('#dt_efet_ent');
+        const $inpDtPriParc   = $modal.find('#inpDtPriParc');
+        const $previewArea    = $modal.find(`#preview-parcelas-${entradaId}`);
+        const $previewBody    = $modal.find(`#preview-parcelas-body-${entradaId}`);
+        const $previewTotal   = $modal.find(`#preview-parcelas-total-${entradaId}`);
+        // ── Valores default ──────────────────────────────────────────────
+        if (!$inpParc.val())        $inpParc.val(1);
+        if (!$inpDiasPriParc.val()) $inpDiasPriParc.val(1);
+        if (!$inpIntervalo.val())   $inpIntervalo.val(0);
+        if (!$dtEfetivacao.val())   $dtEfetivacao.val(obterDataAtual2());
+        if ($dtEfetivacao.val())    $inpDtPriParc.val(addDtInterv($dtEfetivacao.val(), $inpDiasPriParc.val()));
+        // ── Sincroniza Dt. 1ª Parcela com efetivação + dias ─────────────
+        $modal.find('#dt_efet_ent, #inpDiasPriParc').off('change.efet').on('change.efet', function () {
+            const dtEfetiv = $modal.find('#dt_efet_ent').val();
+            const interv   = $modal.find('#inpDiasPriParc').val();
             if (dtEfetiv && interv) {
-                const nvDtPriParc = addDtInterv(dtEfetiv, interv);
-                $('#inpDtPriParc').val(nvDtPriParc);
+                $inpDtPriParc.val(addDtInterv(dtEfetiv, interv));
             }
         });
+        // ── Pré-visualização do XML ──────────────────────────────────────
+        const cobranca = xmlImportado?.cobranca;
+        if (!cobranca || !cobranca.duplicatas?.length) return;
+        const dups = cobranca.duplicatas;
+        // Preenche controles com os dados das duplicatas
+        $inpParc.val(dups.length);
+        $inpIntervalo.val('');     // intervalo irregular → limpa
+        $inpDiasPriParc.val('');  // vencimentos já fixos pelo XML
+        // 1ª parcela: data de vencimento da primeira dup (converte YYYY-MM-DD → DD/MM/YYYY)
+        const primeiraVenc = isoParaBrCompleto(dups[0].vencimento);
+        $inpDtPriParc.val(primeiraVenc);
+        // Monta tabela
+        let totalGeral = 0;
+        const linhas = dups.map((dup, i) => {
+            const valor = parseFloat(dup.valor) || 0;
+            totalGeral += valor;
+            return `
+                <tr>
+                    <td class="text-center">${i + 1}</td>
+                    <td class="text-center">${dup.numero || '-'}</td>
+                    <td class="text-center">${isoParaBrCompleto(dup.vencimento)}</td>
+                    <td class="text-end">${formatBR(valor)}</td>
+                </tr>
+            `;
+        }).join('');
+        $previewBody.html(linhas);
+        $previewTotal.text(formatBR(totalGeral));
+        $previewArea.slideDown(200);
     });
+    // Limpa preview ao fechar o modal
+    $(document).on('hidden.bs.modal', '[id^="efetivarModal-"]', function () {
+        const entradaId = this.id.replace('efetivarModal-', '');
+        $(`#preview-parcelas-body-${entradaId}`).html('');
+        $(`#preview-parcelas-${entradaId}`).hide();
+    });
+    // Helper: YYYY-MM-DD → DD/MM/YYYY
+    function isoParaBrCompleto(dataIso) {
+        if (!dataIso) return '';
+        const [ano, mes, dia] = dataIso.split('-');
+        return `${dia}/${mes}/${ano}`;
+    }
     $(document).on('shown.bs.modal', '[id^="faturarModal-"]', function () {
         const dtFatura = $(this).find('.dt-fat-orcamento');
         // Valores default
@@ -3533,7 +3576,7 @@ $(document).ready(function() {
                     <td class="text-end">${formatBR(item.subtotal)}</td><td class="produto-vinculado-cell" style="min-width:260px;">${statusVinculo}</td>
                     <td class="text-center" style="width:90px;">
                         <div class="btn-group dropstart">
-                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Ações</button>
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-bars"></i></button>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item acao-vincular-produto" href="#" data-idx="${i}"><i class="fa-solid fa-link me-2"></i>Vincular</a></li>
                                 <li><a class="dropdown-item acao-criar-produto" href="#" data-idx="${i}"><i class="fa-solid fa-plus me-2"></i>Criar novo</a></li>
@@ -4023,6 +4066,12 @@ $(document).ready(function() {
         if (!xmlImportado.fornecedor || !xmlImportado.fornecedor.id) {
             toast(`Cadastre o fornecedor antes de confirmar a importação!`, "warning");
             return;
+        }
+        // ✅ NOVO: injeta o arquivo XML num input hidden do form principal
+        if (xmlArquivoSelecionado) {
+            const dt = new DataTransfer();
+            dt.items.add(xmlArquivoSelecionado);
+            document.getElementById('input-xml-entrada').files = dt.files;
         }
         $('#id_numeracao').val(xmlImportado.nota.numero || '');
         $('#id_tipo').val("Nota Fiscal");

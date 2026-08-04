@@ -24,7 +24,7 @@ class EntradaForm(forms.ModelForm):
 
     class Meta:
         model = Entrada
-        exclude = ('vinc_emp', 'situacao', 'motivo')
+        exclude = ('vinc_emp', 'situacao', 'motivo', 'xml_nfe')
 
     def __init__(self, *args, **kwargs):
         # Captura e remove a empresa dos kwargs de forma segura

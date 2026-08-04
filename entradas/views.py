@@ -207,6 +207,18 @@ def ler_xml_entrada(request):
                 "valor_unitario": formatar_decimal_en(valor_unitario), "desconto": formatar_decimal_en(desconto), "subtotal": formatar_decimal_en(subtotal),
                 "produto_vinculado": {"id": produto_vinculado.codigo, "descricao": produto_vinculado.desc_prod} if produto_vinculado else None, "candidatos": candidatos,
             })
+            cobranca = None
+            cobr = root.find(".//nfe:cobr", ns)
+            if cobr is not None:
+                fat = cobr.find("nfe:fat", ns)
+                duplicatas = []
+                for dup in cobr.findall("nfe:dup", ns):
+                    duplicatas.append({"numero": get_text(dup, "nfe:nDup", ns), "vencimento": get_text(dup, "nfe:dVenc", ns), "valor": formatar_decimal_en(to_decimal(get_text(dup, "nfe:vDup", ns))),})
+                cobranca = {
+                    "fat_numero": get_text(fat, "nfe:nFat", ns) if fat is not None else "",
+                    "fat_valor": formatar_decimal_en(to_decimal(get_text(fat, "nfe:vLiq", ns))) if fat is not None else "0.00",
+                    "duplicatas": duplicatas, "cobranca": cobranca,
+                }
         return JsonResponse({
             "ok": True,
             "nota": {"numero": get_text(ide, "nfe:nNF", ns), "serie": get_text(ide, "nfe:serie", ns), "data_emissao": formatar_data_br(dh_emi), "data_emissao_input": formatar_data_input(dh_emi),
@@ -396,6 +408,33 @@ def montar_produtos_post(post_data):
             produtos_dict[idx]["tabelas"][tab_idx][campo] = value
     return produtos_dict
 
+import requests
+from django.conf import settings
+from django.http import HttpResponse
+
+@login_required
+def gerar_danfe(request, codigo):
+    entrada = get_object_or_404(Entrada, codigo=codigo, vinc_emp=request.user.empresa)
+    api = settings.MEU_DANFE_API_KEY
+    if not entrada.xml_nfe:
+        return JsonResponse({"ok": False, "erro": "XML não disponível para esta entrada."}, status=404)
+    try:
+        with entrada.xml_nfe.open('rb') as f:
+            xml_bytes = f.read()
+        resp = requests.post(settings.MEU_DANFE_URL, headers={'accept': 'application/json', 'Api-Key': api, 'Content-Type': 'text/plain',}, data=xml_bytes, timeout=30,)
+        if resp.status_code != 200:
+            try:
+                detalhe = resp.json()
+            except Exception:
+                detalhe = resp.text
+            return JsonResponse({"ok": False, "erro": "Erro ao gerar DANFE.", "detalhe": detalhe}, status=502)
+        nome_arquivo = f"danfe_{entrada.chave_acesso or entrada.numeracao}.pdf"
+        return HttpResponse(resp.content, content_type='application/pdf', headers={'Content-Disposition': f'inline; filename="{nome_arquivo}"'},)
+    except requests.Timeout:
+        return JsonResponse({"ok": False, "erro": "Timeout ao conectar com o Meu Danfe."}, status=504)
+    except Exception as e:
+        return JsonResponse({"ok": False, "erro": f"Erro inesperado: {str(e)}"}, status=500)
+
 @verifica_alguma_permissao('entradas.add_entrada', 'entradas.change_entrada', 'entradas.delete_entrada')
 @login_required
 @transaction.atomic
@@ -410,7 +449,7 @@ def add_entrada(request):
         return redirect('/entradas/lista/')
     try:
         if request.method == "POST":
-            form = EntradaForm(data=request.POST, empresa=empresa, user=request.user)
+            form = EntradaForm(data=request.POST, files=request.FILES, empresa=empresa, user=request.user)
             if not form.is_valid():
                 error_messages = [f"Campo ({field.label}) é obrigatório!" for field in form if field.errors]
                 return render(request, 'entradas/add.html', {'form': form, 'error_messages': error_messages})
@@ -419,6 +458,10 @@ def add_entrada(request):
             if entrada.vinc_fil and entrada.vinc_fil.vinc_emp != empresa: return HttpResponseForbidden()
             entrada.vinc_emp = empresa
             entrada.save()
+            # ✅ NOVO: salva o XML se veio
+            xml_file = request.FILES.get('xml_nfe')
+            if xml_file:
+                entrada.xml_nfe.save(f"Emp {entrada.vinc_emp.fantasia} - nfe_{entrada.chave_acesso or entrada.numeracao}.xml", xml_file, save=True)
             produtos_dict = montar_produtos_post(request.POST)
             for dados in produtos_dict.values():
                 try: produto = Produto.objects.get(codigo=dados.get("codigo"), vinc_emp=empresa)
