@@ -224,7 +224,7 @@
                     <div class="modal fade modal-sm" id="menuModal{{ cr.codigo }}" data-orcamento-id="{{ cr.codigo }}" tabindex="-1" aria-labelledby="menuModalLabel{{ cr.codigo }}" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered">
                             <div class="modal-content">
-                                <div class="modal-header titulo-modal"><h5 class="modal-title fw-bold mx-auto" id="menuModalLabel{{ cr.codigo }}">Opções - {{ cr.codigo }}</h5></div>
+                                <div class="modal-header titulo-modal"><h5 class="modal-title fw-bold mx-auto" id="menuModalLabel{{ cr.codigo }}">Opções - {{ cr.num_conta }}</h5></div>
                                 <div class="modal-body p-2">
                                     <a href="{% url 'att-conta-receber' cr.codigo %}?next={{ request.get_full_path|urlencode }}" data-permissao="contas_receber.change_contareceber" data-msg-negado="Seu usuário não pode editar contas à receber!" class="btn btn-light w-100 text-start menu-opcao op-editar border border-secondary btn-permissao" >
                                         <i class="fas fa-edit"></i> Editar
@@ -335,7 +335,7 @@
                                         <div class="row">
                                             <div class="col-md-2">
                                                 <label for="num_conta_cr" class="col-form-label">Nº Conta:</label>
-                                                <input type="text" class="form-control form-control-sm" disabled="disabled" id="num_conta_cr{{ cr.codigo }}" value="{{ cr.num_conta }}" name="num_conta_cr">
+                                                <input type="text" class="form-control form-control-sm border-dark-subtle focus-ring focus-ring-dark" disabled="disabled" id="num_conta_cr{{ cr.codigo }}" value="{{ cr.num_conta }}" name="num_conta_cr">
                                             </div>
                                             <div class="col-md-6">
                                                 <label for="filial_cr" class="col-form-label">Filial:</label>
@@ -349,43 +349,43 @@
                                             </div>
                                             <div class="col-md-4">
                                                 <label for="dt_pag_cr" class="col-form-label">Dt. Pagamento:</label>
-                                                <input type="text" class="form-control form-control-sm" id="dt_pag_cr-{{ cr.codigo }}" name="dt_pag_cr">
+                                                <input type="text" class="form-control form-control-sm border-dark-subtle focus-ring focus-ring-dark" id="dt_pag_cr-{{ cr.codigo }}" name="dt_pag_cr">
                                             </div>
                                             <div class="col-md-6">
                                                 <label for="cliente_cr" class="col-form-label">Cliente:</label>
-                                                <input type="text" class="form-control form-control-sm" disabled="disabled" id="cliente_cr{{ cr.codigo }}" value="{{ cr.cliente.fantasia }}" name="cliente_cr">
+                                                <input type="text" class="form-control form-control-sm border-dark-subtle focus-ring focus-ring-dark" disabled="disabled" id="cliente_cr{{ cr.codigo }}" value="{{ cr.cliente.fantasia }}" name="cliente_cr">
                                             </div>
                                             <div class="col-md-3">
                                                 <label for="valor_cr" class="col-form-label">Valor Conta:</label>
-                                                <input type="text" class="form-control form-control-sm text-end" disabled="disabled" id="valor_cr{{ cr.codigo }}" value="{{ cr.valor }}" name="valor_cr">
+                                                <input type="text" class="form-control form-control-sm border-dark-subtle focus-ring focus-ring-dark text-end" disabled="disabled" id="valor_cr{{ cr.codigo }}" value="{{ cr.valor|moeda_br }}" name="valor_cr">
                                             </div>
                                             <div class="col-md-3">
                                                 <label for="tot_juros_cr" class="col-form-label">Total Juros:</label>
-                                                <input type="text" class="form-control form-control-sm text-end" disabled="disabled" id="tot_juros_cr{{ cr.codigo }}" value="{{ cr.valor_juros|moeda_br }}" name="tot_juros_cr">
+                                                <input type="text" class="form-control form-control-sm border-dark-subtle focus-ring focus-ring-dark text-end" disabled="disabled" id="tot_juros_cr{{ cr.codigo }}" value="{{ cr.valor_juros|moeda_br }}" name="tot_juros_cr">
                                             </div>
                                             <div class="col-md-3">
                                                 <label for="tot_multa_cr" class="col-form-label">Total Multa:</label>
-                                                <input type="text" class="form-control form-control-sm text-end" disabled="disabled" id="tot_multa_cr{{ cr.codigo }}" value="{{ cr.valor_multa|moeda_br }}" name="tot_multa_cr">
+                                                <input type="text" class="form-control form-control-sm border-dark-subtle focus-ring focus-ring-dark text-end" disabled="disabled" id="tot_multa_cr{{ cr.codigo }}" value="{{ cr.valor_multa|moeda_br }}" name="tot_multa_cr">
                                             </div>
                                             <div class="col-md-3">
                                                 <label for="desc_j_cr" class="col-form-label">Desconto Juros (%):</label>
-                                                <input type="text" class="form-control form-control-sm text-end" id="desc_j_cr{{ cr.codigo }}" value="0.00" name="desc_j_cr">
+                                                <input type="text" class="form-control form-control-sm border-dark-subtle focus-ring focus-ring-dark text-end" id="desc_j_cr{{ cr.codigo }}" value="0.00" name="desc_j_cr">
                                             </div>
                                             <div class="col-md-3">
                                                 <label for="juros_cr" class="col-form-label">Valor Juros:</label>
-                                                <input type="text" class="form-control form-control-sm text-end" id="juros_cr{{ cr.codigo }}" value="{{ cr.valor_juros|moeda_br }}" name="juros_cr">
+                                                <input type="text" class="form-control form-control-sm border-dark-subtle focus-ring focus-ring-dark text-end" id="juros_cr{{ cr.codigo }}" value="{{ cr.valor_juros|moeda_br }}" name="juros_cr">
                                             </div>
                                             <div class="col-md-3">
                                                 <label for="desc_m_cr" class="col-form-label">Desconto Multa (%):</label>
-                                                <input type="text" class="form-control form-control-sm text-end" id="desc_m_cr{{ cr.codigo }}" value="0.00" name="desc_m_cr">
+                                                <input type="text" class="form-control form-control-sm border-dark-subtle focus-ring focus-ring-dark text-end" id="desc_m_cr{{ cr.codigo }}" value="0.00" name="desc_m_cr">
                                             </div>
                                             <div class="col-md-2">
                                                 <label for="multa_cr" class="col-form-label">Valor Multa:</label>
-                                                <input type="text" class="form-control form-control-sm text-end" id="multa_cr{{ cr.codigo }}" value="{{ cr.valor_multa|moeda_br }}" name="multa_cr">
+                                                <input type="text" class="form-control form-control-sm border-dark-subtle focus-ring focus-ring-dark text-end" id="multa_cr{{ cr.codigo }}" value="{{ cr.valor_multa|moeda_br }}" name="multa_cr">
                                             </div>
                                             <div class="col-md-3">
                                                 <label for="vl_tot_cr" class="col-form-label">Total à Pagar:</label>
-                                                <input type="text" class="form-control form-control-sm text-end fw-bold text-primary" disabled="disabled" id="vl_tot_cr{{ cr.codigo }}" value="{{ cr.valor_total|moeda_br }}" name="vl_tot_cr">
+                                                <input type="text" class="form-control form-control-sm border-dark-subtle focus-ring focus-ring-dark text-end fw-bold text-primary" disabled="disabled" id="vl_tot_cr{{ cr.codigo }}" value="{{ cr.valor_total|moeda_br }}" name="vl_tot_cr">
                                             </div>
                                             <div class="col-md-4">
                                                 <label for="formas_pgto_cr" class="col-form-label">Formas de Pagamento</label>
@@ -398,7 +398,7 @@
                                             </div>
                                             <div class="col-md-2">
                                                 <label for="vl_pg_cr" class="col-form-label">Vl. Pagamento:</label>
-                                                <input type="text" class="form-control form-control-sm text-end" id="vl_pg_cr{{ cr.codigo }}" value="{{ cr.valor_total|moeda_br }}" name="vl_pg_cr">
+                                                <input type="text" class="form-control form-control-sm border-dark-subtle focus-ring focus-ring-dark text-end" id="vl_pg_cr{{ cr.codigo }}" value="{{ cr.valor_total|moeda_br }}" name="vl_pg_cr">
                                             </div>
                                             <div class="col-sm-12 col-md-1 col-lg-1">
                                                 <button type="button" id="btn_inc_forma{{ cr.codigo }}" class="btn btn-dark btn-sm" style="width: 100%; margin-top: 35.5px;">

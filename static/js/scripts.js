@@ -538,7 +538,7 @@ $(document).ready(function() {
                 let partes = valor.split('*');
                 let qtd = partes[0].replace(',', '.').trim();
                 let cod = partes[1]?.trim();
-                qtd = parseFloat(qtd);
+                qtd = parseBR(qtd);
                 // 🔥 se quantidade válida
                 if(!isNaN(qtd) && cod){
                     $('#id_quantidadeCaixa').val(formatBR(qtd));
@@ -1438,7 +1438,7 @@ $(document).ready(function() {
         let totalSistema = 0;
         let totalInformado = 0;
         $('.inp-fechamento').each(function () {
-            const sistema = parseFloat($(this).data('sistema')) || 0;
+            const sistema = parseBR($(this).data('sistema')) || 0;
             const informado = parseBR($(this).val()) || 0;
             totalSistema += sistema;
             totalInformado += informado;
@@ -1834,7 +1834,7 @@ $(document).ready(function() {
         $("#id_tipo").on("change", controlarTipo);
         // Simulação
         $("#btn-simular").click(function(){
-            let contexto={larg_c: parseFloat($("#sim-larg").val()) || 0, alt_c: parseFloat($("#sim-alt").val()) || 0, peso: parseFloat($("#sim-peso").val()) || 0,
+            let contexto={larg_c: parseBR($("#sim-larg").val()) || 0, alt_c: parseBR($("#sim-alt").val()) || 0, peso: parseBR($("#sim-peso").val()) || 0,
                 tipo_lamina: $("#sim-tipo-lamina").val(), tipo_pintura: $("#sim-tipo-pintura").val(), tem_pintura: $("#sim-tem-pintura").val()==="true"
             };
             contexto.area = contexto.larg_c * contexto.alt_c;
@@ -1956,7 +1956,7 @@ $(document).ready(function() {
     });
     // NOVO TESTE
     $(function () {
-        const seletorDatasGerais = '[id^="dt_pag_cr-"], #data_inicio1, #data_emi_ini1, #data_emi_fim1, #data_ent_ini1, #data_ent_fim1, #data_inst_ini1, #data_inst_fim1, #data_inicio2, #data_fim2, .inp-vencimento, #data_fim1, #id_data_vencimento, #dt_efet_ent, #inpDtPriParc, #id_dt_inicio, #data, #id_dt_emi, #id_dt_prev_instalacao, #id_dt_ent, #id_dt_venc, #id_data_certificado, #id_data_emissao, #id_data_emissao1, #id_data_entrega, #id_data_nascimento_administrador, #id_data_nascimento, #id_data_doc, #id_data_prop, #id_data_aniversario, #id_dt_visita, #id_px_visita, #dtVisita, #pxVisita';
+        const seletorDatasGerais = '[id^="dt_pag_cr-"], [id^="cel-dt-"], [id^="dt_pag_cp-"], #data_inicio1, #data_emi_ini1, #data_emi_fim1, #data_ent_ini1, #data_ent_fim1, #data_inst_ini1, #data_inst_fim1, #data_inicio2, #data_fim2, .inp-vencimento, #data_fim1, #id_data_vencimento, #dt_efet_ent, #inpDtPriParc, #id_dt_inicio, #data, #id_dt_emi, #id_dt_prev_instalacao, #id_dt_ent, #id_dt_venc, #id_data_certificado, #id_data_emissao, #id_data_emissao1, #id_data_entrega, #id_data_nascimento_administrador, #id_data_nascimento, #id_data_doc, #id_data_prop, #id_data_aniversario, #id_dt_visita, #id_px_visita, #dtVisita, #pxVisita';
         $(seletorDatasGerais).datepicker({
             changeMonth: true, changeYear: true, dateFormat: "dd/mm/yy",  monthNamesShort: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"], dayNamesMin: ["Do", "2ª", "3ª", "4ª", "5ª", "6ª", "Sá"]
         });
@@ -1976,8 +1976,9 @@ $(document).ready(function() {
         setTimeout(() => {limparBackdropsDuplicados();}, 150);
     });
     $(document).on('shown.bs.modal', '[id^="efetivarModal-"]', function () {
-        const $modal = $(this);
-        const entradaId = this.id.replace('efetivarModal-', '');
+        iniciarLoading();
+        const $modal      = $(this);
+        const entradaId   = this.id.replace('efetivarModal-', '');
         const $inpParc        = $modal.find('#inpParc');
         const $inpDiasPriParc = $modal.find('#inpDiasPriParc');
         const $inpIntervalo   = $modal.find('#inpIntervalo');
@@ -1987,11 +1988,59 @@ $(document).ready(function() {
         const $previewBody    = $modal.find(`#preview-parcelas-body-${entradaId}`);
         const $previewTotal   = $modal.find(`#preview-parcelas-total-${entradaId}`);
         // ── Valores default ──────────────────────────────────────────────
-        if (!$inpParc.val())        $inpParc.val(1);
-        if (!$inpDiasPriParc.val()) $inpDiasPriParc.val(1);
-        if (!$inpIntervalo.val())   $inpIntervalo.val(0);
-        if (!$dtEfetivacao.val())   $dtEfetivacao.val(obterDataAtual2());
-        if ($dtEfetivacao.val())    $inpDtPriParc.val(addDtInterv($dtEfetivacao.val(), $inpDiasPriParc.val()));
+        setTimeout(() => {
+            if (!$inpParc.val())        $inpParc.val('1');
+            if (!$inpDiasPriParc.val()) $inpDiasPriParc.val('30');
+            if (!$inpIntervalo.val())   $inpIntervalo.val('30');
+            if (!$dtEfetivacao.val())   $dtEfetivacao.val(obterDataAtual2());
+            if ($dtEfetivacao.val())    $inpDtPriParc.val(addDtInterv($dtEfetivacao.val(), $inpDiasPriParc.val()));
+        }, 150);
+        // ── Botão Gerar parcelas manualmente ────────────────────────────────
+        $modal.find('.btn-gerar-parcelas').off('click.gerar').on('click.gerar', function () {
+            const dtEfetiv    = $dtEfetivacao.val();
+            const diasPri     = parseInt($inpDiasPriParc.val()) || '1';
+            const intervalo   = parseInt($inpIntervalo.val())   || '30';
+            const qtdParc     = parseInt($inpParc.val())        || '1';
+            const dtPriParc   = $inpDtPriParc.val();  // DD/MM/YYYY
+            const tpCobId     = $modal.find('#selTpCob').val();
+            const tpCobLabel  = $modal.find('#selTpCob option:selected').text();
+
+            if (!dtPriParc) {
+                toast('Informe a data da 1ª parcela!', 'warning');
+                return;
+            }
+            if (!tpCobId) {
+                toast('Selecione um tipo de cobrança!', 'warning');
+                return;
+            }
+
+            // Se já existem parcelas (do XML ou de geração anterior), confirma substituição
+            if (duplicatas.length > 0) {
+                if (!confirm(`Já existem ${duplicatas.length} parcela(s). Deseja substituí-las?`)) return;
+            }
+
+            // Calcula o total da entrada para dividir em partes iguais
+            const totalEntrada = parseBR($modal.find('#total_entrada').val()) || 0;
+            const valorParc    = totalEntrada > 0 ? (totalEntrada / qtdParc) : 0;
+
+            // Gera as parcelas
+            duplicatas = [];
+            const dtBase = brParaIso(dtPriParc);
+
+            for (let i = 0; i < qtdParc; i++) {
+                const dtVenc = adicionarDias(dtBase, i === 0 ? 0 : intervalo * i);
+                duplicatas.push({
+                    numero:         `${String(i + 1).padStart(3, '0')}`,
+                    tp_conta:       tpCobId,
+                    tp_conta_label: tpCobLabel.trim(),
+                    vencimento:     dtVenc,
+                    valor:          valorParc.toFixed(2),
+                });
+            }
+
+            renderLinhas();
+            $previewArea.slideDown(200);
+        });
         // ── Sincroniza Dt. 1ª Parcela com efetivação + dias ─────────────
         $modal.find('#dt_efet_ent, #inpDiasPriParc').off('change.efet').on('change.efet', function () {
             const dtEfetiv = $modal.find('#dt_efet_ent').val();
@@ -2000,34 +2049,180 @@ $(document).ready(function() {
                 $inpDtPriParc.val(addDtInterv(dtEfetiv, interv));
             }
         });
-        // ── Pré-visualização do XML ──────────────────────────────────────
-        const cobranca = xmlImportado?.cobranca;
-        if (!cobranca || !cobranca.duplicatas?.length) return;
-        const dups = cobranca.duplicatas;
+        
+        // ── Carrega duplicatas do JSON embutido ──────────────────────────
+        const script = document.getElementById(`cobrancas-json-${entradaId}`);
+        let duplicatas = [];
+        if (script) {
+            try {
+                duplicatas = JSON.parse(script.textContent);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        if (!duplicatas.length) {
+            $previewArea.hide();
+            return;
+        }
         // Preenche controles com os dados das duplicatas
-        $inpParc.val(dups.length);
-        $inpIntervalo.val('');     // intervalo irregular → limpa
-        $inpDiasPriParc.val('');  // vencimentos já fixos pelo XML
-        // 1ª parcela: data de vencimento da primeira dup (converte YYYY-MM-DD → DD/MM/YYYY)
-        const primeiraVenc = isoParaBrCompleto(dups[0].vencimento);
-        $inpDtPriParc.val(primeiraVenc);
-        // Monta tabela
-        let totalGeral = 0;
-        const linhas = dups.map((dup, i) => {
-            const valor = parseFloat(dup.valor) || 0;
-            totalGeral += valor;
-            return `
-                <tr>
-                    <td class="text-center">${i + 1}</td>
-                    <td class="text-center">${dup.numero || '-'}</td>
-                    <td class="text-center">${isoParaBrCompleto(dup.vencimento)}</td>
-                    <td class="text-end">${formatBR(valor)}</td>
-                </tr>
-            `;
-        }).join('');
-        $previewBody.html(linhas);
-        $previewTotal.text(formatBR(totalGeral));
+        $inpParc.val(duplicatas.length);
+        $inpIntervalo.val('');
+        $inpDiasPriParc.val('');
+        $inpDtPriParc.val(isoParaBrCompleto(duplicatas[0].vencimento));
+        // ── Funções de renderização e recálculo ──────────────────────────
+        function recalcularTotal() {
+            const total = duplicatas.reduce((acc, d) => acc + (parseBR(d.valor) || 0), 0);
+            $previewTotal.text(formatBR(total));
+            $inpParc.val(duplicatas.length);
+            // Atualiza numeração das linhas
+            $previewBody.find('tr').each(function (i) {
+                $(this).find('td:first').text(i + 1);
+            });
+        }
+        function renderLinhas() {
+            $previewBody.empty();
+            duplicatas.forEach((dup, i) => {
+                console.log(`renderLinhas — dup[${i}]:`, JSON.stringify(dup));
+                const valor = parseBR(dup.valor) || 0;
+                const $tr = $(`
+                    <tr data-idx="${i}">
+                        <td class="text-center">${i + 1}</td>
+                        <td class="text-center" data-campo="numero">${dup.numero || '-'}</td>
+                        <td class="text-center d-none" data-campo="num_tp_conta">
+                            <input type="hidden" value="${dup.num_tp_conta || ''}">
+                        </td>
+                        <td class="text-center editavel" data-campo="tp_conta">
+                            ${dup.tp_conta_label || dup.tp_conta || '-'}
+                        </td>
+                        <td class="text-center editavel" data-campo="vencimento">${isoParaBrCompleto(dup.vencimento)}</td>
+                        <td class="text-end editavel" data-campo="valor">${formatBR(valor)}</td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-link btn-sm p-0 text-danger btn-excluir-parcela" title="Excluir parcela">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `);
+                $previewBody.append($tr);
+            });
+            recalcularTotal();
+            bindEventos();
+        }
+        function bindEventos() {
+            // ── Exclusão ────────────────────────────────────────────────
+            $previewBody.find('.btn-excluir-parcela').off('click').on('click', function () {
+                const idx = $(this).closest('tr').data('idx');
+                if (duplicatas.length <= 1) {
+                    toast('É necessário manter ao menos uma parcela!', 'warning');
+                    return;
+                }
+                duplicatas.splice(idx, 1);
+                renderLinhas();
+            });
+            // ── Edição inline ────────────────────────────────────────────
+            $previewBody.find('td.editavel').off('click').on('click', function () {
+                const $td    = $(this);
+                if ($td.find('input').length) return; // já em edição
+                const campo  = $td.data('campo');
+                const idx    = $td.closest('tr').data('idx');
+                const valAtual = duplicatas[idx][campo] || '';
+                let $input;
+                if (campo === 'vencimento') {
+                    // Data: mostra DD/MM/YYYY e converte de/para ISO
+                    $input = $(`<input type="text" class="form-control form-control-sm text-center p-0" maxlength="10" placeholder="DD/MM/AAAA" id="cel-dt-${idx}" value="${isoParaBrCompleto(valAtual)}">`);
+                    $input.datepicker({
+                        changeMonth: true, changeYear: true, dateFormat: "dd/mm/yy",  monthNamesShort: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"], dayNamesMin: ["Do", "2ª", "3ª", "4ª", "5ª", "6ª", "Sá"]
+                    });
+                    $input.on('blur keydown', function (e) {
+                        if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== 'Escape') return;
+                        if (e.key === 'Escape') {
+                            renderLinhas(); return;
+                        }
+                        const digitado = $input.val().trim();
+                        const isoNovo  = brParaIso(digitado);
+                        if (!isoNovo) {
+                            $input.addClass('is-invalid');
+                            $input.focus();
+                            return;
+                        }
+                        duplicatas[idx].vencimento = isoNovo;
+                        renderLinhas();
+                    });
+                } else if (campo === 'valor') {
+                    // Valor numérico
+                    const numAtual = parseBR(duplicatas[idx].valor) || 0;
+                    $input = $(`<input type="text" id="cel-parcela-${idx}" class="form-control form-control-sm text-end p-0" value="${formatBR(numAtual)}">`);
+                    $input.on('blur keydown', function (e) {
+                        if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== 'Escape') return;
+                        if (e.key === 'Escape') {
+                            renderLinhas(); return;
+                        }
+                        const novo = parseBR($input.val());
+                        if (isNaN(novo) || novo <= 0) {
+                            $input.addClass('is-invalid');
+                            $input.focus();
+                            return;
+                        }
+                        duplicatas[idx].valor = novo.toFixed(2);
+                        renderLinhas();
+                    });
+                } else if (campo === 'tp_conta') {
+                    const opAtual  = duplicatas[idx].tp_conta       || '';
+                    const lblAtual = duplicatas[idx].tp_conta_label || opAtual;
+                    $input = $(`
+                        <select class="form-select form-select-sm w-100" id="cel-tp-conta-${idx}">
+                            ${opAtual ? `<option value="${opAtual}" selected>${lblAtual}</option>` : ''}
+                        </select>
+                    `);
+                    $td.html($input);
+                    let selecionou = false;  // ← flag para distinguir seleção de cancelamento
+                    $input.select2({placeholder: opSel, allowClear: true, templateResult: rendOpt, templateSelection: d => d.text, language: lingSel, dropdownParent: $(document.body),  // ← troca aqui
+                        ajax: ajSel2('/tp_cobrancas/lista_ajax/'),
+                    }).on('select2:open', focSel2);
+                    $input.on('select2:select', function (e) {
+                        selecionou = true;
+                        duplicatas[idx].tp_conta       = e.params.data.id;
+                        duplicatas[idx].tp_conta_label = e.params.data.text;  // ← já vem do ajax
+                        console.log('select2:select:', e.params.data);        // confirma o que vem
+                        renderLinhas();
+                    });
+                    $input.on('select2:close', function () {
+                        if (!selecionou) {
+                            setTimeout(() => renderLinhas(), 200); // ← aguarda o select2:select processar
+                        }
+                    });
+                    $input.on('select2:select', function (e) {
+                        selecionou = true;  // ← marca antes de renderizar
+                        duplicatas[idx].tp_conta       = e.params.data.id;
+                        duplicatas[idx].tp_conta_label = e.params.data.text;
+                        renderLinhas();
+                    });
+                    $input.on('select2:clear', function () {
+                        selecionou = true;  // clear também é uma ação intencional
+                        duplicatas[idx].tp_conta       = '';
+                        duplicatas[idx].tp_conta_label = '';
+                        renderLinhas();
+                    });
+                    $input.select2('open');
+                    return;
+                }
+                $td.html($input);
+                $input.focus().select();
+            });
+        }
+        $modal.find('form').off('submit.parcelas').on('submit.parcelas', function () {
+            // Remove campo anterior se existir
+            $(this).find('input[name="parcelas_json"]').remove();
+            console.log(duplicatas);
+            // Injeta parcelas atuais
+            $(this).append(
+                $('<input type="hidden" name="parcelas_json">').val(JSON.stringify(duplicatas))
+            );
+        });
+        // ── Renderização inicial ─────────────────────────────────────────
+        renderLinhas();
         $previewArea.slideDown(200);
+        fecharLoading();
     });
     // Limpa preview ao fechar o modal
     $(document).on('hidden.bs.modal', '[id^="efetivarModal-"]', function () {
@@ -2035,6 +2230,26 @@ $(document).ready(function() {
         $(`#preview-parcelas-body-${entradaId}`).html('');
         $(`#preview-parcelas-${entradaId}`).hide();
     });
+    function brParaIso(dataBr) {
+        if (!dataBr) return null;
+        const partes = dataBr.split('/');
+        if (partes.length !== 3) return null;
+        const [dia, mes, ano] = partes;
+        if (!dia || !mes || !ano || ano.length !== 4) return null;
+        const d = new Date(`${ano}-${mes}-${dia}`);
+        if (isNaN(d.getTime())) return null;
+        return `${ano}-${mes.padStart(2,'0')}-${dia.padStart(2,'0')}`;
+    }
+    // Adiciona N dias a uma data ISO (YYYY-MM-DD) e retorna YYYY-MM-DD
+    function adicionarDias(dataIso, dias) {
+        if (!dataIso) return '';
+        const d = new Date(dataIso + 'T00:00:00');
+        d.setDate(d.getDate() + dias);
+        const ano = d.getFullYear();
+        const mes = String(d.getMonth() + 1).padStart(2, '0');
+        const dia = String(d.getDate()).padStart(2, '0');
+        return `${ano}-${mes}-${dia}`;
+    }
     // Helper: YYYY-MM-DD → DD/MM/YYYY
     function isoParaBrCompleto(dataIso) {
         if (!dataIso) return '';
@@ -2248,6 +2463,120 @@ $(document).ready(function() {
         recalcularBaixa(modal);
         const restante = atualizarRestante(modal);
         modal.find('[id^="vl_pg_cr"]').val(formatBR(restante > 0 ? restante : 0));
+    });
+    //  BAIXA DE CONTAS A PAGAR
+    function recalcularBaixaCP(modal) {
+        const valorConta       = parseBR(modal.find('[id^="valor_cp"]').val());
+        const totalJurosOrig   = parseBR(modal.find('[id^="tot_juros_cp"]').val());
+        const totalMultaOrig   = parseBR(modal.find('[id^="tot_multa_cp"]').val());
+        const percDescJuros    = parseBR(modal.find('[id^="desc_j_cp"]').val()) || 0;
+        const percDescMulta    = parseBR(modal.find('[id^="desc_m_cp"]').val()) || 0;
+        const descontoJuros = totalJurosOrig * (percDescJuros / 100);
+        const descontoMulta = totalMultaOrig * (percDescMulta / 100);
+        const jurosFinal    = Math.max(totalJurosOrig - descontoJuros, 0);
+        const multaFinal    = Math.max(totalMultaOrig - descontoMulta, 0);
+        const totalPagar    = valorConta + jurosFinal + multaFinal;
+        modal.find('[id^="juros_cp"]').val(formatBR(jurosFinal));
+        modal.find('[id^="multa_cp"]').val(formatBR(multaFinal));
+        modal.find('[id^="vl_tot_cp"]').val(formatBR(totalPagar));
+        modal.find('[id^="vl_pg_cp"]').val(formatBR(totalPagar));
+        return { jurosFinal, multaFinal, descontoFinal: descontoJuros + descontoMulta, totalPagar };
+    }
+    $(document).on('shown.bs.modal', '[id^="mdInfoBaixaCP-"]', function () {
+        // Garante que é modal de CP (não de CR)
+        const modal = $(this);
+        if (!modal.find('[id^="valor_cp"]').length) return;
+        const contaId  = modal.attr('id').split('-')[1];
+        const dtPagCp  = modal.find('[id^="dt_pag_cp-"]');
+        // ---------- Datepicker ----------
+        if (!dtPagCp.val()) {
+            dtPagCp.val(obterDataAtual2());
+        }
+        modal.find('[id^="desc_j_cp"], [id^="desc_m_cp"]').off('input.baixacp').on('input.baixacp', function () {
+            let valor = this.value.replace(/[^\d]/g, '');
+            if (!valor) valor = '0';
+            valor = (parseInt(valor, 10) / 100);
+            if (parseBR(valor) > 100) { valor = '100,00'; }
+            this.value = valor;
+            recalcularBaixaCP(modal);
+        });
+        // ---------- Botão Baixar → abre modal de confirmação ----------
+        modal.find('.btn-baixar-cp').off('click.baixarcp').on('click.baixarcp', function () {
+            // Recalcula antes de confirmar para garantir valores atualizados
+            recalcularBaixaCP(modal);
+            // O data-bs-toggle/target já abre o mdBaixa automaticamente
+        });
+        const mdBaixa = $(`#mdBaixaCP-${contaId}`);
+        // ---------- Countdown no botão Sim ----------
+        mdBaixa.off('shown.bs.modal.countdown').on('shown.bs.modal.countdown', function () {
+            const btnConfirmar = $(this).find('.btn-confirmar');
+            const spanContador = btnConfirmar.find('.contador');
+            let segundos = 3;
+            btnConfirmar.prop('disabled', true);
+            spanContador.text(segundos);
+            const timer = setInterval(function () {
+                segundos--;
+                spanContador.text(segundos);
+                if (segundos <= 0) {
+                    clearInterval(timer);
+                    btnConfirmar.prop('disabled', false);
+                    spanContador.text('');
+                }
+            }, 1000);
+            // Limpa timer se modal fechar antes
+            mdBaixa.one('hidden.bs.modal', function () { clearInterval(timer); });
+        });
+        // ---------- Submit AJAX com modal de recibo ----------
+        mdBaixa.off('click.confirmarcp').on('click.confirmarcp', '.btn-confirmar-cp', function () {
+            console.log('Clique confirmar');
+            const form = modal.find('form');
+            form.find('.campo-calc-cp').remove();
+            const calc = recalcularBaixaCP(modal);
+            form.append(`<input type="hidden" class="campo-calc-cp" name="juros"    value="${formatBR(calc.jurosFinal)}">`);
+            form.append(`<input type="hidden" class="campo-calc-cp" name="multa"    value="${formatBR(calc.multaFinal)}">`);
+            form.append(`<input type="hidden" class="campo-calc-cp" name="desconto" value="${formatBR(calc.descontoFinal)}">`);
+            console.log(form.serialize());
+            console.log(form.attr('action'));
+            $.ajax({
+                url: form.attr('action'),
+                method: 'POST',
+                data: form.serialize(),
+                headers: { 'X-Requested-With': 'XMLHttpRequest', "X-CSRFToken": $("input[name=csrfmiddlewaretoken]").val() },
+                success: function (resp) {
+                    mdBaixa.modal('hide');
+                    modal.modal('hide');
+                    if (resp.imp_recibo === 'Auto') {
+                        window.open(resp.url_recibo, '_blank');
+                        window.location = resp.redirect;
+                        return;
+                    }
+                    if (resp.imp_recibo === 'Sim') {
+                        $('#modalRecibo').data('url', resp.url_recibo).data('redirect', resp.redirect).modal('show');
+                        return;
+                    }
+                    window.location = resp.redirect;
+                },
+                error: function () {
+                    toast('Erro ao registrar pagamento. Tente novamente.', 'error');
+                }
+            });
+        });
+        // ---------- Cálculo inicial ----------
+        recalcularBaixaCP(modal);
+    });
+    $(document).on('click', '#simRecibo', function () {
+        const modal    = $('#modalRecibo');
+        const url      = modal.data('url');
+        const redirect = modal.data('redirect');
+        window.open(url, '_blank');
+        modal.modal('hide');
+        window.location = redirect;
+    });
+    $(document).on('click', '#naoRecibo', function () {
+        const modal    = $('#modalRecibo');
+        const redirect = modal.data('redirect');
+        modal.modal('hide');
+        window.location = redirect;
     });
     document.addEventListener('focusin', function (e) {if (e.target.closest('.select2-container') || e.target.closest('.ui-datepicker')) {e.stopPropagation();}}, true);
     $(document).on('shown.bs.modal', '#mdResOrc', function () {
@@ -3684,13 +4013,12 @@ $(document).ready(function() {
             updateMassChangesButton();
             toast("Tabela aplicada com sucesso!", "success");
             bootstrap.Modal.getInstance(document.getElementById('attTbPrecModal'))?.hide();
-            finalizarLoading();
+            fecharLoading();
         } catch (e) {
             console.error(e);
             toast("Erro na requisição", "error");
         } finally {
-            fecharLoadingCompleto();
-            finalizarLoading();
+            fecharLoading();
         }
     });
     let bloqueioCalcTbPreco = false;
@@ -3810,13 +4138,12 @@ $(document).ready(function() {
             });
             toast("Tabela aplicada com sucesso!", "success");
             bootstrap.Modal.getInstance(document.getElementById('attTbPrecModalEnt')).hide();
-            finalizarLoading();
+            fecharLoading();
         } catch (e) {
             console.error(e);
             toast("Erro na requisição", "error");
         } finally {
-            fecharLoadingCompleto();
-            finalizarLoading();
+            fecharLoading();
         }
     });
     function atualizarTabelaProdutoEnt($tr, tabelaNome, dadosTabela) {
@@ -3892,10 +4219,10 @@ $(document).ready(function() {
             console.error(e);
             toast('Erro na requisição', "error");
         } finally {
-            finalizarLoading();
             bootstrap.Modal.getInstance(document.getElementById('modalCriarProdutoMassa')).hide();
             $('.task-checkbox-xml').prop('checked', false);
             $('#select-all-xml').prop('checked', false);
+            fecharLoading();
         }
     });
     $(document).on('click', '#btn-criar-fornecedor-xml', function () {
@@ -4041,26 +4368,6 @@ $(document).ready(function() {
         $tbody.append(linha);
         setTimeout(() => {calcTotalEntrada();}, 50);
     }
-    function fecharLoadingCompleto(callback = null) {
-        const el = document.getElementById('loadingModal');
-        if (!el) {
-            if (typeof callback === 'function') callback();
-            return;
-        }
-        const modal = bootstrap.Modal.getInstance(el);
-        if (!modal) {
-            if (typeof callback === 'function') callback();
-            return;
-        }
-        el.addEventListener('hidden.bs.modal', function handler() {
-            el.removeEventListener('hidden.bs.modal', handler);
-            document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
-            document.body.classList.remove('modal-open');
-            document.body.style.paddingRight = '';
-            if (typeof callback === 'function') {callback(); }
-        });
-        fecharLoading();
-    }
     $('#confirmar-importacao-xml').on('click', async function () {
         if (!xmlImportado) return;
         if (!xmlImportado.fornecedor || !xmlImportado.fornecedor.id) {
@@ -4072,6 +4379,9 @@ $(document).ready(function() {
             const dt = new DataTransfer();
             dt.items.add(xmlArquivoSelecionado);
             document.getElementById('input-xml-entrada').files = dt.files;
+        }
+        if (xmlImportado?.cobranca) {
+            $('#cobranca_json').val(JSON.stringify(xmlImportado.cobranca));
         }
         $('#id_numeracao').val(xmlImportado.nota.numero || '');
         $('#id_tipo').val("Nota Fiscal");
@@ -4092,8 +4402,8 @@ $(document).ready(function() {
         $('#tabela-produtos tbody').html('');
         let itensOrdenados = xmlImportado.itens.filter(item => item.produto_vinculado && Number(item.produto_vinculado.id)).sort((a, b) => Number(a.produto_vinculado.id) - Number(b.produto_vinculado.id));
         if (!itensOrdenados.length) {
-            fecharLoadingCompleto();
             toast(`Vincule ou cadastre os produtos antes de confirmar`, "warning");
+            fecharLoading();
             return;
         }
         iniciarLoading();
@@ -4105,17 +4415,13 @@ $(document).ready(function() {
         const previewModal = bootstrap.Modal.getInstance(previewEl);
         if (previewModal) {
             $(previewEl).one('hidden.bs.modal', function () {
-                fecharLoadingCompleto(function () {
-                    toast('Dados do XML carregados no formulário.', "success");
-                    finalizarLoading();
-                });
+                toast('Dados do XML carregados no formulário.', "success");
+                fecharLoading();
             });
             previewModal.hide();
         } else {
-            fecharLoadingCompleto(function () {
-                toast('Dados do XML carregados no formulário.', "success");
-                finalizarLoading();
-            });
+            toast('Dados do XML carregados no formulário.', "success");
+            fecharLoading();
         }
     });
     function inicializarSelect2VinculoProdutoXml() {
@@ -5795,13 +6101,6 @@ $(document).ready(function() {
         });
     }
     let loadingTimeout = null;
-    function finalizarLoading() {
-        if (loadingTimeout) {clearTimeout(loadingTimeout);}
-        loadingTimeout = setTimeout(() => {
-            fecharLoading();
-            loadingTimeout = null;
-        }, 2500);
-    }
     function fecharLoading() {
         $('#loadingOverlay').removeClass('show');
         setTimeout(() => {
@@ -8059,9 +8358,7 @@ $(document).ready(function() {
             });
         }
     }
-    $("#django-messages").length &&
-    JSON.parse($("#django-messages").attr("data-messages"))
-        .forEach(msg => toast(msg.text, msg.tag));
+    $("#django-messages").length && JSON.parse($("#django-messages").attr("data-messages")).forEach(msg => toast(msg.text, msg.tag));
     $(".copiar").on("click", function () {
         let link = $(this).closest(".btn-group").find(".link-rillpay").attr("href");
         if (!link) {
@@ -8673,7 +8970,7 @@ $(document).ready(function() {
     $('#id_solicitante, #tecnico, #id_tec').select2({
         placeholder:opSel, allowClear:true, minimumInputLength:1, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/tecnicos/lista_ajax/')}).on('select2:open', focSel2);
     // Filiais
-    $('#filial, #id_filial, #vinc_emp, #id_vinc_emp, [id^=filial_cr], #id_filial_user, #id_vinc_fil').select2({
+    $('#filial, #id_filial, #vinc_emp, #id_vinc_emp, [id^=filial_cr], [id^=filial_cp], #id_filial_user, #id_vinc_fil').select2({
         placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/filiais/lista_ajax/')}).on('select2:open', focSel2);
     // Usuários
     $('#usuario').select2({
@@ -8715,18 +9012,18 @@ $(document).ready(function() {
         width: '100%', dropdownParent: $('#modalCriarProdutoMassa'), placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel,ajax:ajSel2('/grupos/lista_ajax/')}).on('select2:open', focSel2);
     // Bancos
     $('#id_banco_fil').select2({
-        placeholder:'Selecione um banco', allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/bancos/lista_ajax/')}).on('select2:open', focSel2);
+        placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/bancos/lista_ajax/')}).on('select2:open', focSel2);
     // Formas de Pagamento
     $('#forma_saida, #forma_entrada, .forma-pgto, #id_formas_pgto, #id_form_pgto, [id^="formas_pgto_cr"], [id^="formaPgtoSelect-"]').each(function () {
         const $sel = $(this);
         const $modalPai = $sel.closest('.modal');
-        $sel.select2({placeholder: 'Selecione uma forma', allowClear: true, templateResult: rendOpt, templateSelection: d => d.text, language: lingSel,
+        $sel.select2({placeholder: opSel, allowClear: true, templateResult: rendOpt, templateSelection: d => d.text, language: lingSel,
             ajax: ajSel2('/formas_pgto/lista_ajax/'), dropdownParent: $modalPai.length ? $modalPai : $(document.body) // 🔥 AQUI
         }).on('select2:open', focSel2);
     });
     // Tipos de Cobrança
-    $('#selTpCob').select2({
-        placeholder:'Selecione um tipo', allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/tp_cobrancas/lista_ajax/')}).on('select2:open', focSel2);
+    $('#selTpCob, #id_tp_conta, #id_tp_cobranca').select2({
+        placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/tp_cobrancas/lista_ajax/')}).on('select2:open', focSel2);
     // Grupos
     $('#grupo, #grupo1, #campo-grupo-produto').select2({
         placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/grupos/lista_ajax/')}).on('select2:open', focSel2);
@@ -8862,7 +9159,7 @@ $(document).ready(function() {
         let mes = (dataAtual.getMonth() + 1).toString().padStart(2, '0'); // Adiciona zero à esquerda, se necessário
         let dia = dataAtual.getDate().toString().padStart(2, '0'); // Adiciona zero à esquerda, se necessário
         return `${dia}/${mes}/${ano}`;}
-    const seletorAutoData = '[id^="dt_pag_cr-"], #id_data_vencimento, .dt-fat-orcamento, .dt-fat-pedido, #id_dt_inicio, #id_dt_venc, #data, #id_dt_emi, #dt_efet_ent, #inpDtPriParc, #id_dt_prev_instalacao, #id_dt_ent, #id_data_aniversario, #id_data_emissao, #data_inicio1, #data_emi_ini1, #data_emi_fim1, #data_ent_ini1, #data_ent_fim1, #data_inst_ini1, #data_inst_fim1, #data_fim1, #data_inicio2, #data_fim2, #id_data_doc, #id_data_prop, #id_dt_visita, #dtVisita, #id_dt_criacao';
+    const seletorAutoData = '[id^="dt_pag_cr-"], [id^="cel-dt-"], [id^="dt_pag_cp-"], #id_data_vencimento, .dt-fat-orcamento, .dt-fat-pedido, #id_dt_inicio, #id_dt_venc, #data, #id_dt_emi, #dt_efet_ent, #inpDtPriParc, #id_dt_prev_instalacao, #id_dt_ent, #id_data_aniversario, #id_data_emissao, #data_inicio1, #data_emi_ini1, #data_emi_fim1, #data_ent_ini1, #data_ent_fim1, #data_inst_ini1, #data_inst_fim1, #data_fim1, #data_inicio2, #data_fim2, #id_data_doc, #id_data_prop, #id_dt_visita, #dtVisita, #id_dt_criacao';
     $(seletorAutoData).each(function () {if (!$(this).val()) {$(this).val(obterDataAtual2());}});
     if ($('#id_qtd, #id_quantidade').val() === '') {$('#id_qtd, #id_quantidade').val('1.00');}
     if ($('#id_rolo').val() === '') {$('#id_rolo').val('0.60');}
@@ -8890,7 +9187,7 @@ $(document).ready(function() {
         value = value.replace(/(\d{2})(\d)/, '$1/$2');
         return value.substring(0, 10);
     };
-    const seletorMascaraData = '[id^="dt_pag_cr-"], #id_data_vencimento, #id_dt_inicio, #data, .dt-fat-orcamento, .dt-fat-pedido, #id_dt_emi, #dt_efet_ent, #inpDtPriParc, #id_dt_prev_instalacao, #id_dt_ent, #id_dt_venc, #id_data_aniversario, #id_data_prop, #id_data_certificado, #id_data_nascimento, #id_data_nascimento_administrador, #data_inicio1, #data_emi_ini1, #data_emi_fim1, #data_ent_ini1, #data_ent_fim1, #data_inst_ini1, #data_inst_fim1, #data_fim1, #data_inicio2, #data_fim2, #id_data_emissao, #id_data_entrega, #id_dt_criacao';
+    const seletorMascaraData = '[id^="dt_pag_cr-"], [id^="cel-dt-"], [id^="dt_pag_cp-"], #id_data_vencimento, #id_dt_inicio, #data, .dt-fat-orcamento, .dt-fat-pedido, #id_dt_emi, #dt_efet_ent, #inpDtPriParc, #id_dt_prev_instalacao, #id_dt_ent, #id_dt_venc, #id_data_aniversario, #id_data_prop, #id_data_certificado, #id_data_nascimento, #id_data_nascimento_administrador, #data_inicio1, #data_emi_ini1, #data_emi_fim1, #data_ent_ini1, #data_ent_fim1, #data_inst_ini1, #data_inst_fim1, #data_fim1, #data_inicio2, #data_fim2, #id_data_emissao, #id_data_entrega, #id_dt_criacao';
     $(document).on('input', seletorMascaraData, function (event) {dataFormatada(event);});
     const dataFormatada1 = (event) => {
         let input = event.target;
@@ -8913,7 +9210,7 @@ $(document).ready(function() {
     if ($("#id_qtd_usu, #id_qtd_ass").val() === '') {$("#id_qtd_usu, #id_qtd_ass").val('1');}
     if ($("#id_desc_imp").val() === '') {$("#id_desc_imp").val('IMPLANTAÇÃO/TREINAMENTO');}
     if ($("#id_desc_ass").val() === '') {$("#id_desc_ass").val('ASSESSORIA MENSAL');}
-    let selectors = '#id_peso_m2, #id_espessura_lam, #det_largura_passagem, #det_altura_passagem, #id_diametro_eixo, #id_limite_credito, #id_desconto_maximo, #id_acrescimo_maximo, #id_limite_credito_padrao, #id_estoque_minimo, #id_estoque_maximo, #id_desc_acresEd, #id_preco_unitEd, #id_lg_ps, #id_at_ps, #vl_saida, #vl_entrada, #id_vl_imp, #id_dsct_imp, #id_vl_fin_imp, #id_vl_ass, #id_dsct_ass, #id_vl_fin_ass, #id_vl_p_s, #editValorItemInput, #editValorItemAdcInput, #valorPgto, .money, #id_quantidadeP, #id_quantidadeEd, #id_vl_form_pgto, #id_multi_m2, #id_multi_lg_corte1, #id_multi_lg_corte2, #id_multi_lg_corte3, .inp-valor-pgto, #id_desc_acres, #id_preco_unitP, [id^=desc_m_cr], [id^=desc_j_cr], [id^=juros_cr], [id^=multa_cr], [id^=vl_pg_cr], .inp-valor, #id_valor, #id_juros, #id_multa, #id_vl_juros, #id_vl_multa, #id_ft_juros, #id_ft_multa, .valor-prod, .valor-prod-adc, .qtd-prod-adc, .qtd-prod, #campo_1, #campo_2, #id_margem, #id_vl_prod, #id_vl_tab, #id_vl_tabEnt, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
+    let selectors = '#id_peso_m2, #id_espessura_lam, #det_largura_passagem, #det_altura_passagem, #id_diametro_eixo, #id_limite_credito, #id_desconto_maximo, #id_acrescimo_maximo, #id_limite_credito_padrao, #id_estoque_minimo, #id_estoque_maximo, #id_desc_acresEd, #id_preco_unitEd, #id_lg_ps, #id_at_ps, #vl_saida, #vl_entrada, #id_vl_imp, #id_dsct_imp, #id_vl_fin_imp, #id_vl_ass, #id_dsct_ass, #id_vl_fin_ass, #id_vl_p_s, #editValorItemInput, #editValorItemAdcInput, #valorPgto, .money, #id_quantidadeP, #id_quantidadeEd, #id_vl_form_pgto, #id_multi_m2, #id_multi_lg_corte1, #id_multi_lg_corte2, #id_multi_lg_corte3, .inp-valor-pgto, #id_desc_acres, #id_preco_unitP, [id^=desc_m_cr], [id^=desc_j_cr], [id^="cel-parcela-"], [id^=desc_m_cp], [id^=desc_j_cp], [id^=juros_cr], [id^=juros_cp], [id^=multa_cr], [id^=multa_cp], [id^=vl_pg_cr], [id^=vl_pg_cp], .inp-valor, #id_valor, #id_juros, #id_multa, #id_vl_juros, #id_vl_multa, #id_ft_juros, #id_ft_multa, .valor-prod, .valor-prod-adc, .qtd-prod-adc, .qtd-prod, #campo_1, #campo_2, #id_margem, #id_vl_prod, #id_vl_tab, #id_vl_tabEnt, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
     function calcDscoImp() {
         const imp = parseBR($("#id_vl_imp").val());
         const dsct = parseBR($("#id_dsct_imp").val());
@@ -9401,6 +9698,82 @@ $(document).ready(function() {
                                 <strong>Formas de Pagamento</strong>
                             </div>
                             <div class="card-body">${tabelaFormas}</div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label>Observações</label>
+                        <textarea class="form-control" disabled>${response.obs}</textarea>
+                    </div>
+                    <div class="mt-3">
+                        <label>Observações Internas</label>
+                        <textarea class="form-control" disabled>${response.obs_internas}</textarea>
+                    </div>
+                `);
+                fecharLoading();
+                $('#infoEntModal').modal('show');
+            },
+            error: function(xhr) {
+                fecharLoading();
+                console.error('Erro:', xhr.responseText);
+            }
+        });
+    }
+    // Lista para Contas A Pagar
+    $(document).on('click', '.op-detalhe-cp', function() {
+        iniciarLoading();
+        const id = $(this).data('id');
+        listarContaPagar(id);
+    });
+    function listarContaPagar(id) {
+        $.ajax({
+            url: '/contas_pagar/detalhes_ajax/' + id + '/', type: 'GET',
+            success: function(response) {
+                let cor = "#005eff";
+                if (response.situacao === "Aberta") {cor = "#005eff";}
+                else if (response.situacao === "Paga") {cor = "#3CB371";}
+                else if (response.vencido) { cor = "#B22222";}
+                $('#infoEntModalLabel').html(`<strong><i class="fa-solid fa-file-invoice-dollar text-white"></i> Conta à Pagar - Nº ${response.num_conta}</strong>`);
+                $('#infoEntBody').html(`
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <label>Nº Conta</label>
+                            <input class="form-control form-control-sm fw-bold" value="${response.num_conta}" disabled>
+                        </div>
+                        <div class="col-md-5">
+                            <label>Filial</label>
+                            <input class="form-control form-control-sm fw-bold" value="${response.filial}" disabled>
+                        </div>
+                        <div class="col-md-5">
+                            <label>Fornecedor</label>
+                            <input class="form-control form-control-sm fw-bold" value="${response.fornecedor}" disabled>
+                        </div>
+                        <div class="col-md-3">
+                            <label>Emissão</label>
+                            <input class="form-control form-control-sm fw-bold" value="${response.data_emissao}" disabled>
+                        </div>
+                        <div class="col-md-3">
+                            <label>Vencimento</label>
+                            <input class="form-control form-control-sm fw-bold" value="${response.data_vencimento}" disabled>
+                        </div>
+                        <div class="col-md-3">
+                            <label>Pagamento</label>
+                            <input class="form-control form-control-sm fw-bold" value="${response.data_pagamento || '-'}" disabled>
+                        </div>
+                        <div class="col-md-3">
+                            <label>Situação</label>
+                            <input class="form-control form-control-sm fw-bold text-center" style="background:${cor};color:white" value="${response.situacao}" disabled>
+                        </div>
+                        <div class="col-md-3">
+                            <label>Valor</label>
+                            <input class="form-control form-control-sm fw-bold text-success" value="R$ ${formatBR(response.valor)}" disabled>
+                        </div>
+                        <div class="col-md-4">
+                            <label>Juros</label>
+                            <input class="form-control form-control-sm" value="R$ ${formatBR(response.juros)}" disabled>
+                        </div>
+                        <div class="col-md-5">
+                            <label>Multa</label>
+                            <input class="form-control form-control-sm" value="R$ ${formatBR(response.multa)}" disabled>
                         </div>
                     </div>
                     <div class="mt-3">

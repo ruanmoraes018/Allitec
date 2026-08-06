@@ -36,6 +36,7 @@ class Filial(models.Model):
     vendedor = models.ForeignKey('vendedores.Vendedor', on_delete=models.SET_NULL, null=True, blank=True)
     cli = models.ForeignKey('clientes.Cliente', on_delete=models.SET_NULL, null=True)
     tec = models.ForeignKey('tecnicos.Tecnico', on_delete=models.SET_NULL, null=True, blank=True)
+    tp_conta = models.ForeignKey('tipo_cobranca.TipoCobranca', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Tipo de Conta")
     bairro_fil = models.ForeignKey('bairros.Bairro', on_delete=models.SET_NULL, null=True, blank=True)
     complem = models.CharField(max_length=20, verbose_name='Complemento', blank=True)
     cidade_fil = models.ForeignKey('cidades.Cidade', on_delete=models.SET_NULL, null=True)
@@ -166,6 +167,7 @@ class FilialImpressao(models.Model):
     filial = models.OneToOneField('filiais.Filial', on_delete=models.CASCADE, related_name='impressao')
     imprimir_logo = models.BooleanField(default=True)
     imp_recibo_cr = models.CharField(max_length=20, verbose_name="Questionar Imp. de Recibo", choices=[('Sim','Sim'), ('Não', 'Não'), ('Auto', 'Auto')], default='Sim')
+    imp_recibo_cp = models.CharField(max_length=20, verbose_name="Questionar Imp. de Recibo", choices=[('Sim','Sim'), ('Não', 'Não'), ('Auto', 'Auto')], default='Sim')
 
 class FilialObservacao(models.Model):
     filial = models.OneToOneField('filiais.Filial', on_delete=models.CASCADE, related_name='observacoes')

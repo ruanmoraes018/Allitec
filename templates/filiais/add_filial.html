@@ -93,9 +93,10 @@
                             <div class="form-section" id="faturamentos">
                                 <div class="row" style="margin-bottom: 10px;">
                                     <div class="col-md-3">{{ form.tb_preco|as_crispy_field }}</div>
-                                    <div class="col-md-3">{{ form.vendedor|as_crispy_field }}</div>
-                                    <div class="col-md-3">{{ form.cli|as_crispy_field }}</div>
-                                    <div class="col-md-3">{{ form.tec|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.vendedor|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.cli|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.tec|as_crispy_field }}</div>
+                                    <div class="col-md-3">{{ form.tp_conta|as_crispy_field }}</div>
                                     <div class="col-md-3">{{ form.agrupa_itens|as_crispy_field }}</div>
                                     <div class="col-md-3">{{ f_estoque.estoque_padrao|as_crispy_field }}</div>
                                     <div class="col-md-2">{{ f_estoque.controla_lote|as_crispy_field }}</div>
@@ -149,6 +150,10 @@
                                     <div class="col-md-2">
                                         <label class="form-label">Imprimir Recibo <i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Contas à Receber"></i></label>
                                         {{ f_impressao.imp_recibo_cr|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Imprimir Recibo <i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Contas à Pagar"></i></label>
+                                        {{ f_impressao.imp_recibo_cp|as_crispy_field }}
                                     </div>
                                 </div>
                             </div>

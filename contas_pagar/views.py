@@ -26,6 +26,7 @@ from PIL import Image
 from io import BytesIO
 import base64
 from util.filiais import aplicar_filtro_filial
+from util.vl_extenso import vl_extenso
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -146,26 +147,26 @@ def add_conta_pagar(request):
 
 @login_required
 def att_conta_pagar(request, codigo):
-    cp = get_object_or_404(ContaPagar, codigo=codigo, empresa=request.user.empresa)
-    it_old = ContaPagar.objects.get(codigo=cp.codigo, empresa=request.user.empresa)
-    form = ContaPagarForm(instance=cp, empresa=request.user.empresa)
+    cr = get_object_or_404(ContaPagar, codigo=codigo, empresa=request.user.empresa)
+    it_old = ContaPagar.objects.get(codigo=cr.codigo, empresa=request.user.empresa)
+    form = ContaPagarForm(instance=cr, empresa=request.user.empresa)
     if not request.user.has_perm('contas_pagar.change_contapagar'):
         messages.info(request, 'Você não tem permissão para editar contas à pagar.')
         return redirect('/contas_pagar/lista/')
     if request.method == 'POST':
-        dt_o = cp.data_emissao
-        form = ContaPagarForm(request.POST, instance=cp, empresa=request.user.empresa)
+        dt_o = cr.data_emissao
+        form = ContaPagarForm(request.POST, instance=cr, empresa=request.user.empresa)
         if form.is_valid():
-            cp.data_emissao = dt_o
-            cp.valor = parse_decimal(request.POST.get('valor'))
-            cp.save()
+            cr.data_emissao = dt_o
+            cr.valor = parse_decimal(request.POST.get('valor'))
+            cr.save()
             registrar_log(
-                request, "ALTERAR", "Conta à Pagar", cp.num_conta,
-                f"Alterou a conta à pagar: {cp.num_conta} - {cp.fornecedor.fantasia}",
-                cp.id, gerar_alteracoes(it_old, cp)
+                request, "ALTERAR", "Conta à Pagar", cr.num_conta,
+                f"Alterou a conta à pagar: {cr.num_conta} - {cr.fornecedor.fantasia}",
+                cr.id, gerar_alteracoes(it_old, cr)
             )
             next_url = request.POST.get('next') or request.GET.get('next')
-            cid = str(cp.codigo)
+            cid = str(cr.codigo)
             messages.success(request, 'Conta à Pagar atualizada com sucesso!')
             if next_url: return redirect(next_url)
             else: return redirect('/contas_pagar/lista/?tp=cod&s=' + cid)
@@ -173,10 +174,10 @@ def att_conta_pagar(request, codigo):
             error_messages = []
             for field in form:
                 if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'contas_pagar/att.html', {'form': form, 'cp': cp, 'error_messages': error_messages})
+            return render(request, 'contas_pagar/att.html', {'form': form, 'cr': cr, 'error_messages': error_messages})
     else:
-        form = ContaPagarForm(instance=cp, empresa=request.user.empresa)
-        return render(request, 'contas_pagar/att.html', {'form': form, 'cp': cp})
+        form = ContaPagarForm(instance=cr, empresa=request.user.empresa)
+        return render(request, 'contas_pagar/att.html', {'form': form, 'cr': cr})
 
 @login_required
 def del_conta_pagar(request, codigo):
@@ -206,13 +207,15 @@ def pagar_conta_pagar(request, codigo):
     def dec(v):
         try:
             v = str(v or '0').strip()
-            if ',' in v: v = v.replace('.', '').replace(',', '.')
+            if ',' in v:
+                v = v.replace('.', '').replace(',', '.')
             return Decimal(v)
-        except: return Decimal('0.00')
-    juros_final = dec(request.POST.get('juros'))
-    multa_final = dec(request.POST.get('multa'))
+        except:
+            return Decimal('0.00')
+    juros_final    = dec(request.POST.get('juros'))
+    multa_final    = dec(request.POST.get('multa'))
     desconto_final = dec(request.POST.get('desconto'))
-    total_pago = Decimal('0.00')
+    total_pago     = dec(request.POST.get('vl_pg_cp'))  # ← lê do POST
     total_titulo = cp.valor + juros_final + multa_final - desconto_final
     if total_pago <= 0:
         messages.warning(request, 'O valor pago deve ser maior que zero.')
@@ -221,8 +224,15 @@ def pagar_conta_pagar(request, codigo):
         messages.warning(request, 'O valor pago não pode ser maior que o total do título.')
         return redirect('/contas_pagar/lista/')
     restante = total_titulo - total_pago
-    cp.desconto = desconto_final
+    # Atualiza a conta
+    cp.juros     = juros_final
+    cp.multa     = multa_final
+    cp.desconto  = desconto_final
+    cp.valor_pago = total_pago
+    cp.data_pagamento = timezone.localdate()
+    cp.situacao  = 'Paga' if restante <= 0 else 'Parcial'
     cp.observacao = (cp.observacao or '') + f' Baixa de R$ {total_pago:.2f}.'
+    cp.save()
     origem = "Gerado Manualmente"
     if cp.fornecedor:
         origem = f"Entrada de NF/Pedido Nº {cp.fornecedor.codigo}"
@@ -232,22 +242,24 @@ def pagar_conta_pagar(request, codigo):
         objeto_id=cp.id,
         alteracoes={
             "Fornecedor": cp.fornecedor.fantasia, "Origem": origem, "Parcela": cp.num_conta,
-            "Valor Original": float(cp.valor), "Valor Recebido": float(cp.valor_pago),
-            "Data do Pagamento": timezone.localdate().strftime("%d/%m/%Y"),
+            "Valor Original": float(cp.valor), "Valor Pago": float(total_pago),
+            "Data do Pagamento": cp.data_pagamento.strftime("%d/%m/%Y"),
         }
     )
-    imp_recibo = (cp.filial.imp_recibo_cr or "Não").strip()
+    imp_recibo = (cp.filial.impressao.imp_recibo_cp or "Não").strip()  # ← campo correto
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return JsonResponse({
-            "success": True, "codigo": cp.codigo, "imp_recibo": imp_recibo,
-            "url_recibo": reverse("recibo_cr", args=[cp.codigo]), "redirect": f"/contas_pagar/lista/",
+            "success": True,
+            "codigo": cp.codigo,
+            "imp_recibo": imp_recibo,
+            "url_recibo": reverse("recibo_cp", args=[cp.codigo]),  # ← URL correta
+            "redirect": "/contas_pagar/lista/",
         })
     if restante > 0:
         messages.success(request, f"Baixa parcial realizada. Saldo restante: R$ {restante:.2f}.")
-        return redirect(f"/contas_pagar/lista/")
     else:
         messages.success(request, "Baixa realizada com sucesso.")
-        return redirect('/contas_pagar/lista/')
+    return redirect('/contas_pagar/lista/')
 
 @login_required
 @transaction.atomic
@@ -268,7 +280,7 @@ def estornar_conta_pagar(request, codigo):
 
 @login_required
 def recibo_cp(request, codigo):
-    cp = get_object_or_404(ContaPagar.objects.select_related("fornecedor", "empresa", "filial"), codigo=codigo, empresa=request.user.empresa)
+    cp = get_object_or_404(ContaPagar.objects.select_related("fornecedor", "empresa", "filial"), codigo=codigo, empresa=request.user.empresa, situacao="Paga")
     logo_base64 = None
     if cp.filial and cp.filial.logo:
         logo_path = os.path.join(settings.MEDIA_ROOT, str(cp.filial.logo))
@@ -282,8 +294,8 @@ def recibo_cp(request, codigo):
                 buffer = BytesIO()
                 img.save(buffer, format="JPEG")
                 logo_base64 = base64.b64encode(buffer.getvalue()).decode()
-    total = Decimal("0.00")
-    html = render_to_string("contas_pagar/recibo.html", {"cp": cp, "fornecedor": cp.fornecedor, "filial": cp.filial, "total": total, "logo_base64": logo_base64}, request=request)
+    valor_extenso = vl_extenso(cp.valor_pago) if cp.valor_pago else None
+    html = render_to_string("contas_pagar/recibo.html", {"cp": cp, "fornecedor": cp.fornecedor, "filial": cp.filial, "logo_base64": logo_base64, "valor_extenso": valor_extenso}, request=request)
     pdf = HTML(string=html, base_url=request.build_absolute_uri("/")).write_pdf()
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="recibo_{cp.codigo}.pdf"'

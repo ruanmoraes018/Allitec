@@ -27,6 +27,7 @@
                     <div class="card-body" style="margin-bottom: -5px;">
                         <div class="row" style="margin-left: -8px;">
                             <input type="file" id="input-xml-entrada" name="xml_nfe" style="display:none">
+                            <input type="hidden" id="cobranca_json" name="cobranca_json">
                             <div class="col-md-3">{{ form.fornecedor|as_crispy_field }}</div>
                             <div class="col-md-2">{{ form.vinc_fil|as_crispy_field }}</div>
                             <div class="col-md-1">{{ form.numeracao|as_crispy_field }}</div>
@@ -95,7 +96,7 @@
                                         <div class="col-md-12">{{ form.obs|as_crispy_field }}</div>
                                     </div>
                                 </div>
-                                <div class="card" style="margin: 0;">
+                                <div class="card mt-2" style="margin: 0;">
                                     <div class="card-body text-center" style="max-height: 10px;">
                                         <h6 class="fw-bold" style="margin-top: -10px;">TOTAIS DA NOTA/PEDIDO</h6>
                                     </div>
@@ -203,15 +204,8 @@
                         <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
                             <thead class="table-dark">
                                 <tr>
-                                    <th scope="col" style="width: 20px;">Opções</th>
-                                    <th scope="col">Código</th>
-                                    <th scope="col">Descrição</th>
-                                    <th scope="col">Tipo</th>
-                                    <th scope="col">Marca</th>
-                                    <th scope="col">Grupo</th>
-                                    <th scope="col">Unidade</th>
-                                    <th scope="col">Estoque</th>
-                                    <th scope="col">Valor</th>
+                                    <th scope="col" style="width: 20px;">Opções</th><th scope="col">Código</th><th scope="col">Descrição</th><th scope="col">Tipo</th>
+                                    <th scope="col">Marca</th><th scope="col">Grupo</th><th scope="col">Unidade</th><th scope="col">Estoque</th><th scope="col">Valor</th>
                                 </tr>
                             </thead>
                             <tbody id="produtos-lista">
@@ -294,10 +288,7 @@
                             <table class="table table-sm table-bordered table-striped table-hover table-responsive-md table-rounded" id="tab-prec">
                                 <thead class="table-dark">
                                     <tr>
-                                        <th>Tabela</th>
-                                        <th>Margem (%)</th>
-                                        <th>Valor</th>
-                                        <th style="width: 80px;">Ações</th>
+                                        <th>Tabela</th><th>Margem (%)</th><th>Valor</th><th style="width: 80px;">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -333,16 +324,8 @@
                             <thead class="table-dark">
                                 <tr>
                                     <th scope="col" style="text-align: center; cursor: pointer; width: 2%;" onclick="toggleSelectAll()"><input type="checkbox" class="form-check-input" id="select-all-xml" onclick="event.stopPropagation(); toggleSelectAll();"></th>
-                                    <th>#</th>
-                                    <th>Cód. Forn.</th>
-                                    <th>Descrição XML</th>
-                                    <th>UN</th>
-                                    <th>Qtd</th>
-                                    <th style="width: 6%;">Vl. Unit.</th>
-                                    <th>Desc.</th>
-                                    <th>Total</th>
-                                    <th>Produto Vinculado</th>
-                                    <th>Ações</th>
+                                    <th>#</th><th>Cód. Forn.</th><th>Descrição XML</th><th>UN</th><th>Qtd</th><th style="width: 6%;">Vl. Unit.</th><th>Desc.</th><th>Total</th>
+                                    <th>Produto Vinculado</th><th>Ações</th>
                                 </tr>
                             </thead>
                             <tbody id="xml-itens-body"></tbody>

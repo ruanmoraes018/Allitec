@@ -11,6 +11,7 @@ class Entrada(models.Model):
     numeracao = models.CharField(max_length=25)
     dt_emi = models.DateField(null=True, blank=True)
     dt_ent = models.DateField(null=True, blank=True)
+    dt_efet = models.DateField(null=True, blank=True)
     tp_frete = models.CharField(max_length=3, choices=[('CIF', 'CIF'), ('FOB', 'FOB')], default='CIF')
     tipo = models.CharField(max_length=12, choices=[('Pedido', 'Pedido'), ('Nota Fiscal', 'Nota Fiscal')])
     situacao = models.CharField(max_length=10, choices=[('Pendente', 'Pendente'), ('Efetivada', 'Efetivada'), ('Cancelada', 'Cancelada')], default='Pendente')
@@ -76,3 +77,16 @@ class EntradaProdutoTabela(models.Model):
     tabela_preco = models.ForeignKey('tabelas_preco.TabelaPreco', on_delete=models.PROTECT)
     margem = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     valor = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+class CobrancaEntrada(models.Model):
+    entrada = models.ForeignKey(Entrada, on_delete=models.CASCADE, related_name="cobrancas")
+    ordem = models.PositiveSmallIntegerField(default=1)
+    numero = models.CharField(max_length=30, blank=True)
+    vencimento = models.DateField()
+    valor = models.DecimalField(max_digits=12, decimal_places=2)
+    num_tp_conta = models.CharField(max_length=30, blank=True)
+    tp_conta = models.CharField(verbose_name="Tipo de Conta", max_length=30, blank=True)
+
+    class Meta:
+        ordering = ["ordem"]
+        unique_together = ("entrada", "ordem")

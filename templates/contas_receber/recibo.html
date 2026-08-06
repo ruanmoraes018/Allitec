@@ -46,7 +46,7 @@
 <body>
     <div class="header">
         <div class="header-empresa">
-            <div class="nome-empresa">{{ cr.fantasia_emp }}</div>
+            <div class="nome-empresa">{{ cr.filial.fantasia }}</div>
             {% if filial.cnpj %}
                 <div class="doc-empresa">CNPJ: {{ filial.cnpj }}</div>
                 <div class="doc-empresa">{{ filial.endereco }}, {{ filial.numero }}</div>

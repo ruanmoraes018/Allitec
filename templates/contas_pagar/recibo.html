@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+{% load static %}
+{% load custom_filters %}
+<html lang="pt-br">
+    <head>
+        <meta charset="UTF-8">
+        <title>Recibo de Pagamento - {{ cp.num_conta }}</title>
+        <style>
+            @page{size:A4; margin:10mm;}
+            *{margin:0; padding:0; box-sizing:border-box;}
+            body{font-family:Helvetica,Arial,sans-serif; font-size:12px; color:#222; line-height:1.45; position:relative;}
+            .watermark{position:fixed; top:42%; left:15%; width:70%; text-align:center; font-size:92px; color:#f2f2f2; font-weight:bold; transform:rotate(-28deg);
+                z-index:-1; letter-spacing:10px;}
+            .header{display:table; width:100%; border-bottom:3px solid #1a3b5d; padding-bottom:8px; margin-bottom:10px;}
+            .empresa{display:table-cell; width:38%; vertical-align:middle;}
+            .logo{display:table-cell; width:24%; text-align:center; vertical-align:middle;}
+            .logo img{max-width:120px; max-height:80px;}
+            .dados-recibo{display:table-cell; width:38%; text-align:right; vertical-align:middle;}
+            .empresa .fantasia{font-size:19px; font-weight:bold; color:#1a3b5d; margin-bottom:3px;}
+            .empresa .linha{font-size:10px; color:#666; margin-bottom:2px;}
+            .titulo{text-align:center; margin:10px 0 10px;}
+            .titulo h1{font-size:20px; color:#1a3b5d; letter-spacing:2px; margin-bottom:5px;}
+            .titulo span{font-size:12px; color:#666;}
+            .numero-recibo{font-size:26px; font-weight:bold; color:#1a3b5d;}
+            .rotulo{font-size:10px; text-transform:uppercase; color:#777; letter-spacing:1px;}
+            .box{border:1px solid #d7dce2; border-radius:5px; padding:10px; margin-bottom:10px; background:#fbfcfd;}
+            .box-title{font-size:12px; font-weight:bold; color:#1a3b5d; text-transform:uppercase; margin-bottom:10px; border-bottom:1px solid #d9dee5; padding-bottom:6px;
+                letter-spacing:.4px;}
+            table{width:100%; border-collapse:collapse;}
+            .dados td{padding:4px 2px; border-bottom:1px solid #ececec; vertical-align:top;}
+            .dados tr:last-child td{border:none;}
+            .campo{width:170px; font-weight:bold; color:#555; text-transform:uppercase; font-size:11px;}
+            .valor{color:#111;}
+            .valor-box{margin:10px 0; border:2px solid #1a3b5d; border-radius:8px; background:#eef5fd; text-align:center; padding:22px;}
+            .valor-box .titulo-valor{font-size:12px; text-transform:uppercase; letter-spacing:1px; color:#666;}
+            .valor-box .valor{font-size:28px; color:#1a3b5d; font-weight:bold; margin:8px 0;}
+            .valor-box .extenso{font-size:11px; color:#666; margin-top:6px; font-style:italic;}
+            .quitado{width:220px; margin:10px auto; text-align:center; border:2px solid #2e8b57; color:#2e8b57; border-radius:5px; padding:6px; font-weight:bold;
+                font-size:13px;}
+            .quitado small{display:block; font-size:10px; margin-top:4px; color:#555; font-weight:normal;}
+            .texto{text-align:justify; line-height:1.6; margin-top:10px; margin-bottom:18px; font-size:12px;}
+            .assinatura{margin-top:70px; text-align:center;}
+            .assinatura .linha{width:280px; border-top:1px solid #222; margin:0 auto 8px;}
+            .assinatura .empresa{display:block; width:100%; font-size:14px; font-weight:bold; color:#1a3b5d;}
+            .assinatura .cnpj{font-size:11px; color:#666; margin-top:2px;}
+            .assinatura .cargo{font-size:10px; color:#888; margin-top:3px;}
+            .rodape{display:table; width:100%; margin-top:45px; border-top:1px solid #ddd; padding-top:12px;}
+            .rodape-left{display:table-cell; width:70%; vertical-align:middle; font-size:10px; color:#777;}
+            .rodape-right{display:table-cell; width:30%; text-align:right; vertical-align:middle;}
+            .rodape-right img{width:70px; height:70px;}
+            .badge{display:inline-block; padding:4px 10px; background:#1a3b5d; color:#fff; font-size:10px; border-radius:20px; letter-spacing:.5px;text-transform:uppercase;}
+            .text-center{text-align:center;}
+            .text-right{text-align:right;}
+            .fw-bold{font-weight:bold;}
+            .mb-10{margin-bottom:10px;}
+            .mb-15{margin-bottom:15px;}
+            .mb-20{margin-bottom:20px;}
+            .mt-20{margin-top:20px;}
+        </style>
+    </head>
+    <body>
+        <div class="watermark">PAGO</div>
+        <div class="header">
+            <div class="empresa">
+                <div class="fantasia">{{ filial.fantasia }}</div>
+                {% if filial.cnpj %}
+                    <div class="linha">CNPJ: {{ filial.cnpj }}</div>
+                {% endif %}
+                <div class="linha">
+                    {{ filial.endereco }}, {{ filial.numero }}
+                </div>
+                <div class="linha">
+                    {{ filial.bairro_fil }} - {{ filial.cidade_fil }}/{{ filial.uf }}
+                </div>
+            </div>
+            <div class="logo">
+                {% if logo_base64 %}
+                    <img src="data:image/png;base64,{{ logo_base64 }}">
+                {% endif %}
+            </div>
+            <div class="dados-recibo">
+                <div class="rotulo">Recibo Nº</div>
+                <div class="numero-recibo">{{ cp.num_conta }}</div>
+                <div class="rotulo" style="margin-top:8px;">Emitido em {{ cp.data_emissao|date:"d/m/Y" }}</div>
+            </div>
+        </div>
+        <div class="titulo">
+            <h1>RECIBO DE PAGAMENTO</h1>
+            <span>Comprovante de Quitação Financeira</span>
+        </div>
+        <div class="box">
+            <div class="box-title">
+                Dados do Pagamento
+            </div>
+            <table class="dados">
+                <tr>
+                    <td class="campo">Fornecedor</td>
+                    <td class="valor">
+                        {{ fornecedor.razao_social }}
+                        {% if fornecedor.fantasia %} - {{ fornecedor.fantasia }}{% endif %}
+                    </td>
+                </tr>
+                {% if fornecedor.cnpj %}
+                <tr>
+                    <td class="campo">CNPJ</td>
+                    <td class="valor">{{ fornecedor.cnpj }}</td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <td class="campo">Conta</td>
+                    <td class="valor">{{ cp.num_conta }}</td>
+                </tr>
+                <tr>
+                    <td class="campo">Emissão</td>
+                    <td class="valor">{{ cp.data_emissao|date:"d/m/Y" }}</td>
+                </tr>
+                <tr>
+                    <td class="campo">Vencimento</td>
+                    <td class="valor">{{ cp.data_vencimento|date:"d/m/Y" }}</td>
+                </tr>
+                {% if cp.data_pagamento %}
+                    <tr>
+                        <td class="campo">Pagamento</td>
+                        <td class="valor">{{ cp.data_pagamento|date:"d/m/Y" }}</td>
+                    </tr>
+                {% endif %}
+                {% if cp.forma_pagamento %}
+                    <tr>
+                        <td class="campo">Forma Pagamento</td>
+                        <td class="valor">{{ cp.forma_pagamento }}</td>
+                    </tr>
+                {% endif %}
+                {% if cp.observacao %}
+                    <tr>
+                        <td class="campo">Observações</td>
+                        <td class="valor">{{ cp.observacao }}</td>
+                    </tr>
+                {% endif %}
+            </table>
+        </div>
+        <div class="valor-box">
+            <div class="titulo-valor">VALOR TOTAL PAGO</div>
+            <div class="valor">R$ {{ cp.valor_pago|moeda_br }}</div>
+            {% if valor_extenso %}
+                <div class="extenso">{{ valor_extenso }}</div>
+            {% endif %}
+        </div>
+        <div class="quitado">
+            ✓ CONTA QUITADA
+            <small>Pagamento confirmado</small>
+        </div>
+        <div class="texto">
+            Recebemos e damos plena, geral, irrevogável e irretratável quitação da importância de <strong>R$ {{ cp.valor_pago|moeda_br }}</strong>, referente ao
+            pagamento da conta nº <strong>{{ cp.num_conta }}</strong>, emitida em <strong>{{ cp.data_emissao|date:"d/m/Y" }}</strong>, cujo favorecido é
+            <strong>{{ fornecedor.razao_social }}</strong>.
+            Declaramos que o pagamento foi realizado integralmente, nada mais havendo a reclamar relativamente à presente obrigação, servindo este
+            documento como comprovante oficial de quitação financeira.
+        </div>
+        <div class="assinatura">
+            <div class="linha"></div>
+            <span class="empresa">{{ filial.fantasia }}</span>
+            {% if filial.cnpj %}
+                <div class="cnpj">CNPJ {{ filial.cnpj }}</div>
+            {% endif %}
+            <div class="cargo">Responsável Financeiro</div>
+        </div>
+        <div class="rodape">
+            <div class="rodape-left">
+                <div class="badge">Documento Eletrônico</div>
+                <div style="margin-top:8px;">Este recibo foi gerado automaticamente pelo sistema e possui validade administrativa, dispensando autenticação mecânica.</div>
+                <div style="margin-top:5px;">Emitido em {% now "d/m/Y H:i" %}</div>
+            </div>
+        </div>
+    </body>
+</html>

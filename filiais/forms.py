@@ -14,6 +14,7 @@ from estoques.models import Estoque
 from informacoes.models import Informacoes
 from tabelas_preco.models import TabelaPreco
 from vendedores.models import Vendedor
+from tipo_cobranca.models import TipoCobranca
 Usuario = get_user_model()
 from util.parse_decimal import parse_decimal
 
@@ -56,6 +57,7 @@ class FilialForm(forms.ModelForm):
     tel = forms.CharField(label="Fone", max_length=20, widget=forms.TextInput(attrs={'maxlength': '20', 'class': f'{c}'}))
     dt_criacao = forms.CharField(label='Dt. Criação', required=False, widget=forms.TextInput(attrs={'class': f'{c} text-lowercase bg-secondary', 'readonly': 'readonly'}))
     cli = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Cliente Padrão')
+    tp_conta = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Tipo de Cobrança Padrão')
     tec = forms.ChoiceField(required=False, widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Técnico Padrão')
     tb_preco = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Tabela de Preço Padrão')
     vendedor = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Vendedor Padrão')
@@ -82,7 +84,7 @@ class FilialForm(forms.ModelForm):
         model = Filial
         fields = (
             'situacao', 'cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro_fil', 'cidade_fil', 'uf', 'tel', 'logo',
-            'cli', 'tec', 'vendedor', 'tb_preco', 'vendedor', 'agrupa_itens'
+            'cli', 'tec', 'vendedor', 'tb_preco', 'vendedor', 'agrupa_itens', 'tp_conta'
         )
     def __init__(self, *args, **kwargs):
         # Captura e remove a empresa dos kwargs de forma segura
@@ -98,6 +100,7 @@ class FilialForm(forms.ModelForm):
             tecnicos = Tecnico.objects.filter(vinc_emp=self.empresa)
             tabelas = TabelaPreco.objects.filter(vinc_emp=self.empresa)
             vendedores = Vendedor.objects.filter(vinc_emp=self.empresa)
+            tipos_cobranca = TipoCobranca.objects.filter(vinc_emp=self.empresa)
             self.fields['bairro_fil'].choices = [('', 'Escolha uma opção')] + [(str(b.codigo), b.nome_bairro.upper()) for b in bairros]
             self.fields['cidade_fil'].choices = [('', 'Escolha uma opção')] + [(str(c.codigo), c.nome_cidade.upper()) for c in cidades]
             self.fields['uf'].choices = [('', 'Escolha uma opção')] + [(str(e.codigo), e.nome_estado.upper()) for e in estados]
@@ -105,6 +108,7 @@ class FilialForm(forms.ModelForm):
             self.fields['tec'].choices = [('', 'Escolha uma opção')] + [(str(t.codigo), t.nome.upper()) for t in tecnicos]
             self.fields['tb_preco'].choices = [('', 'Escolha uma opção')] + [(str(t.codigo), t.descricao.upper()) for t in tabelas]
             self.fields['vendedor'].choices = [('', 'Escolha uma opção')] + [(str(v.codigo), v.fantasia.upper()) for v in vendedores]
+            self.fields['tp_conta'].choices = [('', 'Escolha uma opção')] + [(str(tc.codigo), tc.descricao.upper()) for tc in tipos_cobranca]
             if self.instance and self.instance.pk:
                 if self.instance.bairro_fil: self.initial['bairro_fil'] = str(self.instance.bairro_fil.codigo)
                 if self.instance.cidade_fil: self.initial['cidade_fil'] = str(self.instance.cidade_fil.codigo)
@@ -113,6 +117,7 @@ class FilialForm(forms.ModelForm):
                 if self.instance.tec: self.initial['tec'] = str(self.instance.tec.codigo)
                 if self.instance.tb_preco: self.initial['tb_preco'] = str(self.instance.tb_preco.codigo)
                 if self.instance.vendedor: self.initial['vendedor'] = str(self.instance.vendedor.codigo)
+                if self.instance.tp_conta: self.initial['tp_conta'] = str(self.instance.tp_conta.codigo)
         else:
             self.fields['bairro_fil'].choices = [('', 'Escolha uma opção')]
             self.fields['cidade_fil'].choices = [('', 'Escolha uma opção')]
@@ -121,6 +126,7 @@ class FilialForm(forms.ModelForm):
             self.fields['tec'].choices = [('', 'Escolha uma opção')]
             self.fields['tb_preco'].choices = [('', 'Escolha uma opção')]
             self.fields['vendedor'].choices = [('', 'Escolha uma opção')]
+            self.fields['tp_conta'].choices = [('', 'Escolha uma opção')]
         if getattr(self.instance, 'pk', None):
             if getattr(self.instance, 'dt_criacao', None):
                 self.initial['dt_criacao'] = self.instance.dt_criacao.strftime('%d/%m/%Y')
@@ -139,7 +145,8 @@ class FilialForm(forms.ModelForm):
             'cli': (Cliente, 'Cliente Padrão'),
             'tec': (Tecnico, 'Técnico Padrão'),
             'tb_preco': (TabelaPreco, 'Tabela de Preço Padrão'),
-            'vendedor': (Vendedor, 'Vendedor Padrão')
+            'vendedor': (Vendedor, 'Vendedor Padrão'),
+            'tp_conta': (TipoCobranca, 'Tipo de Cobrança Padrão')
         }
         for nome_campo, (model_classe, nome_exibicao) in campos_select2.items():
             codigo = cleaned_data.get(nome_campo)
@@ -342,7 +349,7 @@ class FilialEstoqueForm(forms.ModelForm):
 class FilialImpressaoForm(forms.ModelForm):
     imprimir_logo = forms.ChoiceField(label="Imprimir Logo", choices=[(True, 'Sim'), (False, 'Não')], widget=forms.Select(attrs={'class': f'{s}'}))
     imp_recibo_cr = forms.ChoiceField(label="", choices=[('Sim', 'Sim'), ('Não', 'Não'), ('Auto', 'Auto')], widget=forms.Select(attrs={'class': f'{s}'}))
-
+    imp_recibo_cp = forms.ChoiceField(label="", choices=[('Sim', 'Sim'), ('Não', 'Não'), ('Auto', 'Auto')], widget=forms.Select(attrs={'class': f'{s}'}))
     class Meta:
         model = FilialImpressao
         exclude = ("filial",)

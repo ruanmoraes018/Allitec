@@ -16,7 +16,7 @@
             <div id="django-messages" data-messages='[
                 {% for message in messages %}
                     {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
-                    {% if not forlooe.last %},{% endif %}
+                    {% if not forloop.last %},{% endif %}
                 {% endfor %}
             ]'></div>
         {% endif %}
@@ -281,7 +281,7 @@
                                         </div>
                                         <div class="col-md-2">
                                             <label class="form-label" for="dt_efet_ent">Dt. Efetivação:</label>
-                                            <input class="form-control mb-3" id="dt_efet_ent" type="text">
+                                            <input class="form-control mb-3" id="dt_efet_ent" type="text" name="dt_efet_ent">
                                         </div>
                                     </div>
                                     <div class="card mt-2 mb-2" style="margin: 0;">
@@ -311,7 +311,7 @@
                                                     </select>
                                                 </div>
                                                 <div class="col-md-2 d-flex align-items-start">
-                                                    <button type="button" class="btn btn-dark btn-sm w-100" style="margin-top: 30px;"><i class="fa-solid fa-circle-down"></i> Gerar</button>
+                                                    <button type="button" class="btn btn-dark btn-sm w-100 btn-gerar-parcelas" style="margin-top: 30px;"><i class="fa-solid fa-circle-down"></i> Gerar</button>
                                                 </div>
                                             </div>
                                         </div>
@@ -323,21 +323,23 @@
                                                 <tr>
                                                     <th class="text-center" style="width:60px;">Parc.</th>
                                                     <th class="text-center">Nº Duplicata</th>
+                                                    <th class="text-center">Tipo de Cobrança</th>
                                                     <th class="text-center">Vencimento</th>
                                                     <th class="text-end">Valor</th>
+                                                    <th class="text-center" style="width:50px;"></th>
                                                 </tr>
                                             </thead>
                                             <tbody id="preview-parcelas-body-{{ e.codigo }}"></tbody>
                                             <tfoot>
                                                 <tr class="table-secondary fw-bold">
-                                                    <td colspan="3" class="text-end">Total:</td>
+                                                    <td colspan="4" class="text-end">Total:</td>
                                                     <td class="text-end" id="preview-parcelas-total-{{ e.codigo }}"></td>
                                                 </tr>
                                             </tfoot>
                                         </table>
                                         <div class="alert alert-info py-1 px-2 mt-2 mb-0" style="font-size:12px;">
-                                            <i class="fa-solid fa-circle-info me-1"></i>
-                                            Parcelas importadas do XML. Você pode ajustar antes de confirmar.
+                                            <i class="fa-regular fa-circle-question me-1"></i>
+                                            Parcelas importadas do XML. Você pode ajustar antes de confirmar (Gerando novamente, substitui as parcelas).
                                         </div>
                                     </div>
                                 </div>
@@ -355,6 +357,9 @@
                             </div>
                         </div>
                     </div>
+                    <script type="application/json" id="cobrancas-json-{{ e.codigo }}">
+                        {{ e.cobrancas_json|safe }}
+                    </script>
                     <div class="modal fade" id="infoEntModal{{ e.codigo }}" tabindex="-1" aria-labelledby="infoEntModalLabel{{ e.codigo }}" aria-hidden="true">
                         <div class="modal-dialog modal-lg">
                             <div class="modal-content">

@@ -12,6 +12,8 @@ class ContaPagar(models.Model):
     STATUS = [('Ativo', 'Ativo'), ('Inativo', 'Inativo')]
     # Origem
     fornecedor = models.ForeignKey('fornecedores.Fornecedor', on_delete=models.SET_NULL, null=True, blank=True, related_name='titulos_fornecedores')
+    entrada = models.ForeignKey('entradas.Entrada', on_delete=models.SET_NULL, null=True, blank=True, related_name='titulos_entrada')
+    tp_cobranca = models.ForeignKey('tipo_cobranca.TipoCobranca', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Tipo de Cobrança')
     # Identificação da parcela
     num_conta = models.CharField(max_length=50, verbose_name="Nº Conta", null=True, blank=True)
     # Valores

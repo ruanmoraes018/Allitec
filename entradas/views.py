@@ -8,7 +8,7 @@ from util.permissoes import verifica_permissao, verifica_alguma_permissao
 from decimal import Decimal, InvalidOperation
 from django.views.decorators.http import require_POST
 from filiais.models import Filial
-from .models import Entrada, EntradaProduto, EntradaProdutoTabela
+from .models import Entrada, EntradaProduto, EntradaProdutoTabela, CobrancaEntrada
 from .forms import EntradaForm
 from django.db import IntegrityError, DatabaseError, transaction
 from django.core.exceptions import ObjectDoesNotExist
@@ -23,6 +23,8 @@ from bairros.models import Bairro
 from cidades.models import Cidade
 from estados.models import Estado
 from tabelas_preco.models import TabelaPreco
+from contas_pagar.models import ContaPagar
+from tipo_cobranca.models import TipoCobranca
 import json
 from django.db.models import Q
 from util.logs import gerar_alteracoes, registrar_log
@@ -78,6 +80,17 @@ def lista_entradas(request):
     paginator = Paginator(entradas, num_pagina)
     page = request.GET.get('page')
     entradas = paginator.get_page(page)
+    for entrada in entradas:
+        entrada.cobrancas_json = json.dumps([
+            {
+                "numero": c.numero,
+                "num_tp_conta": c.num_tp_conta,
+                "tp_conta": c.tp_conta,
+                "vencimento": c.vencimento.isoformat(),
+                "valor": str(c.valor),
+            }
+            for c in entrada.cobrancas.all().order_by("ordem")
+        ])
     return render(request, 'entradas/lista.html', {'entradas': entradas, 's': s, 'forn': forn, 'fil': fil, 'fornecedores': fornecedores, 'filiais': filiais, 'dt_ini': dt_ini, 'dt_fim': dt_fim, 'p_dt': por_dt, 'tp_dt': tp_dt, 'reg': reg})
 
 @login_required
@@ -207,18 +220,18 @@ def ler_xml_entrada(request):
                 "valor_unitario": formatar_decimal_en(valor_unitario), "desconto": formatar_decimal_en(desconto), "subtotal": formatar_decimal_en(subtotal),
                 "produto_vinculado": {"id": produto_vinculado.codigo, "descricao": produto_vinculado.desc_prod} if produto_vinculado else None, "candidatos": candidatos,
             })
-            cobranca = None
-            cobr = root.find(".//nfe:cobr", ns)
-            if cobr is not None:
-                fat = cobr.find("nfe:fat", ns)
-                duplicatas = []
-                for dup in cobr.findall("nfe:dup", ns):
-                    duplicatas.append({"numero": get_text(dup, "nfe:nDup", ns), "vencimento": get_text(dup, "nfe:dVenc", ns), "valor": formatar_decimal_en(to_decimal(get_text(dup, "nfe:vDup", ns))),})
-                cobranca = {
-                    "fat_numero": get_text(fat, "nfe:nFat", ns) if fat is not None else "",
-                    "fat_valor": formatar_decimal_en(to_decimal(get_text(fat, "nfe:vLiq", ns))) if fat is not None else "0.00",
-                    "duplicatas": duplicatas, "cobranca": cobranca,
-                }
+        cobranca = None
+        cobr = root.find(".//nfe:cobr", ns)
+        if cobr is not None:
+            fat = cobr.find("nfe:fat", ns)
+            duplicatas = []
+            for dup in cobr.findall("nfe:dup", ns):
+                duplicatas.append({"numero": get_text(dup, "nfe:nDup", ns), "vencimento": get_text(dup, "nfe:dVenc", ns), 
+                    "valor": formatar_decimal_en(to_decimal(get_text(dup, "nfe:vDup", ns))),})
+            cobranca = {
+                "fat_numero": get_text(fat, "nfe:nFat", ns) if fat else "", "fat_valor": formatar_decimal_en(to_decimal(get_text(fat, "nfe:vLiq", ns))) if fat else "0.00",
+                "duplicatas": duplicatas,
+            }
         return JsonResponse({
             "ok": True,
             "nota": {"numero": get_text(ide, "nfe:nNF", ns), "serie": get_text(ide, "nfe:serie", ns), "data_emissao": formatar_data_br(dh_emi), "data_emissao_input": formatar_data_input(dh_emi),
@@ -228,7 +241,7 @@ def ler_xml_entrada(request):
             },
             "fornecedor": {"id": fornecedor.codigo if fornecedor else None, "existe": bool(fornecedor), "cpf_cnpj": fornecedor_doc, "razao_social": get_text(emit, "nfe:xNome", ns), "fantasia": get_text(emit, "nfe:xFant", ns),
                 "ie": get_text(emit, "nfe:IE", ns),
-            }, "itens": itens_payload
+            }, "itens": itens_payload, "cobranca": cobranca
         })
     except Exception as e: return JsonResponse({"ok": False, "erro": f"Erro ao ler XML: {str(e)}"}, status=400)
 
@@ -462,6 +475,19 @@ def add_entrada(request):
             xml_file = request.FILES.get('xml_nfe')
             if xml_file:
                 entrada.xml_nfe.save(f"Emp {entrada.vinc_emp.fantasia} - nfe_{entrada.chave_acesso or entrada.numeracao}.xml", xml_file, save=True)
+            cobranca = request.POST.get("cobranca_json")
+            tp_cob = entrada.vinc_fil.tp_conta.descricao
+            num_tp_cob = entrada.vinc_fil.tp_conta.codigo
+            if cobranca:
+                try:
+                    cobranca = json.loads(cobranca)
+                    for ordem, dup in enumerate(cobranca.get("duplicatas", []), start=1):
+                        CobrancaEntrada.objects.create(entrada=entrada, num_tp_conta=num_tp_cob, tp_conta=tp_cob, ordem=ordem, numero=dup.get("numero", ""),
+                            vencimento=datetime.strptime(dup["vencimento"], "%Y-%m-%d").date(),
+                            valor=parse_decimal(dup["valor"]),
+                        )
+                except Exception as e:
+                    messages.warning(request, f"Não foi possível importar as cobranças do XML: {e}")
             produtos_dict = montar_produtos_post(request.POST)
             for dados in produtos_dict.values():
                 try: produto = Produto.objects.get(codigo=dados.get("codigo"), vinc_emp=empresa)
@@ -607,42 +633,72 @@ def del_entrada(request, codigo):
     messages.success(request, f'Registro de {entrada.tipo} - {entrada.numeracao} deletado com sucesso!')
     return redirect('/entradas/lista/')
 
+from django.db import models
+
 @require_POST
-@login_required
+@login_required  
 def efetivar_entrada(request, codigo):
     entrada = get_object_or_404(Entrada, codigo=codigo, vinc_emp=request.user.empresa)
     if not request.user.has_perm('entradas.efetivar_entrada'):
         messages.info(request, 'Você não tem permissão para efetivar entradas de NF/Pedidos.')
         return redirect('/entradas/lista/')
-    if request.method == 'POST':  # segurança extra
-        if entrada.situacao == 'Pendente':
-            entrada.situacao = "Efetivada"
-            entrada.save()
-            tipo = "NF-e"
-            if entrada.tipo == "Pedido":
-                tipo = "Pedido"
-            registrar_log(
-                request=request,
-                tipo="FATURAR",
-                modulo="Entrada",
-                objeto=entrada.numeracao,
-                descricao=f"Realizou a efetivação da entrada de {tipo}: {entrada.numeracao}",
-                objeto_id=entrada.id,
-                alteracoes={
-                    "Fornecedor": entrada.fornecedor.fantasia,
-                    "Nº": entrada.numeracao,
-                    "Data de Emissão": timezone.localdate(entrada.dt_emi).strftime("%d/%m/%Y"),
-                    "Data de Efetivação": timezone.localdate().strftime("%d/%m/%Y"),
-                }
-            )
-            for item in entrada.itens.all():
-                produto = item.produto
-                produto.estoque_prod = (produto.estoque_prod or 0) + (item.quantidade or 0)
-                produto.vl_compra = parse_decimal(item.preco_unitario)  # já que vl_compra é CharField
-                produto.save(update_fields=["estoque_prod", "vl_compra"])
-            messages.success(request, f'Registro de {entrada.tipo} - {entrada.numeracao} efetivado com sucesso!')
-        else: messages.warning(request, f'Entrada {entrada.numeracao} já foi efetivada antes.')
+    if entrada.situacao != 'Pendente':
+        messages.warning(request, f'Entrada {entrada.numeracao} já foi efetivada antes.')
         return redirect(f'/entradas/lista/?tp=numeracao&s={entrada.numeracao}')
+    # ── Parcelas do frontend ─────────────────────────────────────────
+    parcelas_json = request.POST.get('parcelas_json', '')
+    print("DEBUG parcelas_json:", repr(parcelas_json))
+    print("DEBUG POST keys:", list(request.POST.keys()))
+    parcelas = []
+    if parcelas_json:
+        try:
+            parcelas = json.loads(parcelas_json)
+        except (json.JSONDecodeError, ValueError):
+            parcelas = []
+    # ── Efetiva a entrada ────────────────────────────────────────────
+    entrada.situacao = "Efetivada"
+    dt_efet = request.POST.get("dt_efet_ent")
+    entrada.dt_efet = datetime.strptime(dt_efet, "%d/%m/%Y").date() if dt_efet else timezone.localdate()
+    entrada.save()
+    tipo_log = "Pedido" if entrada.tipo == "Pedido" else "NF-e"
+    registrar_log(request=request, tipo="FATURAR", modulo="Entrada", objeto=entrada.numeracao, descricao=f"Realizou a efetivação da entrada de {tipo_log}: {entrada.numeracao}",
+        objeto_id=entrada.id,
+        alteracoes={"Fornecedor": entrada.fornecedor.fantasia, "Nº": entrada.numeracao, "Data de Emissão": entrada.dt_emi.strftime("%d/%m/%Y") if entrada.dt_emi else "",
+            "Data de Efetivação": entrada.dt_efet.strftime("%d/%m/%Y") if entrada.dt_efet else "",
+        }
+    )
+    # ── Atualiza estoque ─────────────────────────────────────────────
+    for item in entrada.itens.all():
+        produto = item.produto
+        produto.estoque_prod = (produto.estoque_prod or 0) + (item.quantidade or 0)
+        produto.vl_compra = parse_decimal(item.preco_unitario)
+        produto.save(update_fields=["estoque_prod", "vl_compra"])
+    # ── Gera contas a pagar ──────────────────────────────────────────
+    if parcelas:
+        # Próximo código sequencial por empresa
+        ultimo = (ContaPagar.objects.filter(empresa=request.user.empresa).aggregate(m=models.Max('codigo'))['m'] or 0)
+        for i, parc in enumerate(parcelas, start=1):
+            try:
+                valor = Decimal(str(parc.get('valor', '0'))).quantize(Decimal('0.01'))
+            except Exception:
+                valor = Decimal('0.00')
+            try:
+                dt_venc = datetime.strptime(parc['vencimento'], '%Y-%m-%d').date()
+            except (KeyError, ValueError):
+                dt_venc = timezone.localdate()
+            tp_cobranca = None
+            tp_id = parc.get('num_tp_conta')
+            if tp_id:
+                try:
+                    tp_cobranca = TipoCobranca.objects.get(codigo=tp_id, vinc_emp=request.user.empresa)
+                except TipoCobranca.DoesNotExist:
+                    pass
+            ultimo += 1
+            ContaPagar.objects.create(codigo=ultimo, empresa=entrada.vinc_emp, filial=entrada.vinc_fil, fornecedor=entrada.fornecedor, entrada=entrada,
+                num_conta=f"E-{entrada.numeracao}/{len(parcelas):02d}-{i}", tp_cobranca=tp_cobranca, valor=valor, data_emissao=entrada.dt_efet, data_vencimento=dt_venc, situacao='Aberta', status='Ativo',
+            )
+    messages.success(request, f'Registro de {entrada.tipo} - {entrada.numeracao} efetivado com sucesso!')
+    return redirect(f'/entradas/lista/?tp=numeracao&s={entrada.numeracao}')
 
 @require_POST
 @login_required
