@@ -146,9 +146,11 @@
     <!-- Header -->
     <div class="kb-header d-flex align-items-center justify-content-between">
         <div>
-            <h4><i class="bi bi-kanban me-2" style="color:var(--kb-accent)"></i>Kanban de Orçamentos</h4>
+            <h5><i class="bi bi-kanban me-2" style="color:var(--kb-accent)"></i>Kanban de Orçamentos</h5>
             <span class="badge-empresa">{{ request.user.empresa }}</span>
         </div><br>
+    </div>
+    <div class="kb-header d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-2">
             <button class="kb-toggle-btn {% if filtros.atrasados == '1' %}active{% endif %}" id="btnAtrasados" title="Somente atrasados">
                 <i class="bi bi-exclamation-triangle-fill"></i> Atrasados
@@ -159,8 +161,10 @@
             <button class="kb-btn-filtro kb-btn-limpar" id="btnRefresh" title="Atualizar agora">
                 <i class="bi bi-arrow-clockwise"></i>
             </button>
-            <a href="{% url 'add-orcamento' %}?next={% url 'kanban_orcamentos' %}" class="kb-btn-filtro kb-btn-aplicar text-decoration-none pt-2">
-                <i class="bi bi-plus-lg me-1"></i>Novo
+            <a href="{% url 'add-orcamento' %}?next={% url 'kanban_orcamentos' %}" class="text-decoration-none">
+                <button class="btn btn-sm kb-btn-filtro kb-btn-aplicar">
+                    <i class="bi bi-plus-lg"></i> Novo
+                </button>
             </a>
         </div>
     </div>
@@ -195,7 +199,7 @@
         <div class="d-flex gap-2 align-items-center">
             {% if resumo_faturado.urgente %}<span class="kb-resumo-badge urgente"><i class="bi bi-fire"></i> {{ resumo_faturado.urgente }} Urgente{% if resumo_faturado.urgente > 1 %}s{% endif %}</span>{% endif %}
             {% if resumo_faturado.alta %}<span class="kb-resumo-badge alta"><i class="bi bi-arrow-up-circle-fill"></i> {{ resumo_faturado.alta }} Alta{% if resumo_faturado.alta > 1 %}s{% endif %}</span>{% endif %}
-            {% if resumo_faturado.normal %}<span class="kb-resumo-badge normal"><i class="bi bi-circle-fill" style="font-size:.5rem"></i> {{ resumo_faturado.normal }} Normal{% if resumo_faturado.normal > 1 %}s{% endif %}</span>{% endif %}
+            {% if resumo_faturado.normal %}<span class="kb-resumo-badge normal"><i class="bi bi-circle-fill" style="font-size:.5rem"></i> {{ resumo_faturado.normal }} {% if resumo_faturado.normal == 1 %} Normal {% elif resumo_faturado.normal > 1 %} Normais {% endif %}</span>{% endif %}
         </div>
     </div>
     <!-- Filtros -->

@@ -251,18 +251,71 @@ def kanban_orcamentos(request):
         "instalacao_inicial": parse_date_input(request.GET.get("instalacao_inicial", "")), "instalacao_final": parse_date_input(request.GET.get("instalacao_final", "")),
         "valor_min": request.GET.get("valor_min", ""), "valor_max": request.GET.get("valor_max", ""), "ordenacao": request.GET.get("ordenacao", "prioridade"),
     }
+    # Verifica se o usuário informou algum período manualmente
+    nenhuma_data= not any([request.GET.get("dt_inicial"),request.GET.get("dt_final"),request.GET.get("entrega_inicial"),request.GET.get("entrega_final"),request.GET.get("instalacao_inicial"),request.GET.get("instalacao_final"),])
     # RESUMO — sempre mostra totais dos dois modos no topo
-    resumo_faturado = Orcamento.objects.filter(vinc_emp=empresa, situacao="Faturado").aggregate(quantidade=Count("codigo"), total=Sum("total"),
-        urgente=Count("codigo", filter=Q(prioridade="Urgente")), alta=Count("codigo", filter=Q(prioridade="Alta")), normal=Count("codigo", filter=Q(prioridade="Normal")),
+    qs_resumo_faturado = Orcamento.objects.filter(vinc_emp=empresa, situacao="Faturado",)
+    # Sem filtro de período:
+    # usa o mês atual pela data de emissão.
+    if nenhuma_data:
+        hoje = timezone.localdate()
+        inicio_mes = datetime.combine(hoje.replace(day=1), time.min)
+        fim_mes = datetime.combine(hoje.replace(day=calendar.monthrange(hoje.year, hoje.month)[1]), time.max)
+        qs_resumo_faturado = qs_resumo_faturado.filter(dt_emi__range=(inicio_mes, fim_mes))
+    # Se o usuário estiver usando filtro de emissão,
+    # respeita o intervalo informado.
+    else:
+        dt_ini = parse_date_filter(request.GET.get("dt_inicial"))
+        dt_fim = parse_date_filter(request.GET.get("dt_final"))
+        if dt_ini and dt_fim:
+            qs_resumo_faturado = qs_resumo_faturado.filter(dt_emi__range=(datetime.combine(dt_ini, time.min), datetime.combine(dt_fim, time.max),))
+        elif dt_ini:
+            qs_resumo_faturado = qs_resumo_faturado.filter(dt_emi__gte=datetime.combine(dt_ini, time.min))
+        elif dt_fim:
+            qs_resumo_faturado = qs_resumo_faturado.filter(dt_emi__lte=datetime.combine(dt_fim, time.max))
+    resumo_faturado = qs_resumo_faturado.aggregate(quantidade=Count("codigo"), total=Sum("total"),
+        urgente=Count("codigo", filter=Q(prioridade="Urgente")),alta=Count("codigo", filter=Q(prioridade="Alta")),normal=Count("codigo", filter=Q(prioridade="Normal")),
     )
-    if resumo_faturado["total"] is None: resumo_faturado["total"] = Decimal("0.00")
-    resumo_aberto = Orcamento.objects.filter(vinc_emp=empresa, situacao="Aberto").aggregate(quantidade=Count("codigo"), total=Sum("total"),)
-    if resumo_aberto["total"] is None: resumo_aberto["total"] = Decimal("0.00")
+    if resumo_faturado["total"] is None:
+        resumo_faturado["total"] = Decimal("0.00")
+    # RESUMO — ABERTOS
+    qs_resumo_aberto = Orcamento.objects.filter(vinc_emp=empresa, situacao="Aberto",)
+    if nenhuma_data:
+        qs_resumo_aberto = qs_resumo_aberto.filter(dt_emi__range=(inicio_mes, fim_mes))
+    else:
+        dt_ini = parse_date_filter(request.GET.get("dt_inicial"))
+        dt_fim = parse_date_filter(request.GET.get("dt_final"))
+        if dt_ini and dt_fim:
+            qs_resumo_aberto = qs_resumo_aberto.filter(dt_emi__range=(datetime.combine(dt_ini, time.min), datetime.combine(dt_fim, time.max),))
+        elif dt_ini:
+            qs_resumo_aberto = qs_resumo_aberto.filter(dt_emi__gte=datetime.combine(dt_ini, time.min))
+        elif dt_fim:
+            qs_resumo_aberto = qs_resumo_aberto.filter(dt_emi__lte=datetime.combine(dt_fim, time.max))
+    resumo_aberto = qs_resumo_aberto.aggregate(quantidade=Count("codigo"), total=Sum("total"),)
+    if resumo_aberto["total"] is None:
+        resumo_aberto["total"] = Decimal("0.00")
     # CONTADORES POR COLUNA do modo ativo (antes do AJAX)
     contadores = {}
     for col in modo["colunas"]:
-        filtro_col = {f"vinc_emp": empresa, "situacao": situacao_ativa, modo["campo"]: col}
-        dados = Orcamento.objects.filter(**filtro_col).aggregate(quantidade=Count("codigo"), total=Sum("total"))
+        filtro_col = {"vinc_emp": empresa, "situacao": situacao_ativa, modo["campo"]: col,}
+        qs_contador = Orcamento.objects.filter(**filtro_col)
+        # Período padrão: mês atual
+        if nenhuma_data:
+            hoje = timezone.localdate()
+            inicio_mes = datetime.combine(hoje.replace(day=1), time.min)
+            fim_mes = datetime.combine(hoje.replace(day=calendar.monthrange(hoje.year, hoje.month)[1]), time.max)
+            qs_contador = qs_contador.filter(dt_emi__range=(inicio_mes, fim_mes))
+        # Se houver período manual, respeita o filtro de emissão
+        else:
+            dt_ini = parse_date_filter(request.GET.get("dt_inicial"))
+            dt_fim = parse_date_filter(request.GET.get("dt_final"))
+            if dt_ini and dt_fim:
+                qs_contador = qs_contador.filter(dt_emi__range=(datetime.combine(dt_ini, time.min), datetime.combine(dt_fim, time.max),))
+            elif dt_ini:
+                qs_contador = qs_contador.filter(dt_emi__gte=datetime.combine(dt_ini, time.min))
+            elif dt_fim:
+                qs_contador = qs_contador.filter(dt_emi__lte=datetime.combine(dt_fim, time.max))
+        dados = qs_contador.aggregate(quantidade=Count("codigo"), total=Sum("total"))
         contadores[col] = {"quantidade": dados["quantidade"] or 0, "total": dados["total"] or Decimal("0.00"),}
     # DATA VISÍVEL
     if request.GET.get("dt_inicial") or request.GET.get("dt_final"): tipo_data_ativo = "emissao"
@@ -297,10 +350,8 @@ def kanban_dados(request):
         .annotate(qtd_portas=Count("portas",distinct=True),qtd_produtos=Count("portas__produtos",distinct=True),qtd_adicionais=Count("portas__adicionais",distinct=True),)
     )
     # FILTRO DE DATA PADRÃO — mês atual, só para modo Aberto
-    nenhuma_data = not any([request.GET.get("dt_inicial"), request.GET.get("dt_final"), request.GET.get("entrega_inicial"), request.GET.get("entrega_final"),
-        request.GET.get("instalacao_inicial"), request.GET.get("instalacao_final"),
-    ])
-    if nenhuma_data and situacao_ativa == "Aberto":
+    nenhuma_data= not any([request.GET.get("dt_inicial"),request.GET.get("dt_final"),request.GET.get("entrega_inicial"),request.GET.get("entrega_final"),request.GET.get("instalacao_inicial"),request.GET.get("instalacao_final"),])
+    if nenhuma_data:
         hoje = timezone.localdate()
         inicio_mes = datetime.combine(hoje.replace(day=1), time.min)
         fim_mes = datetime.combine(hoje.replace(day=calendar.monthrange(hoje.year, hoje.month)[1]), time.max)

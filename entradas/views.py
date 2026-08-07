@@ -30,6 +30,7 @@ from django.db.models import Q
 from util.logs import gerar_alteracoes, registrar_log
 from django.utils import timezone
 from util.filiais import aplicar_filtro_filial
+import base64
 
 def parse_decimal(value):
     if value is None or value == "": return Decimal("0")
@@ -226,7 +227,7 @@ def ler_xml_entrada(request):
             fat = cobr.find("nfe:fat", ns)
             duplicatas = []
             for dup in cobr.findall("nfe:dup", ns):
-                duplicatas.append({"numero": get_text(dup, "nfe:nDup", ns), "vencimento": get_text(dup, "nfe:dVenc", ns), 
+                duplicatas.append({"numero": get_text(dup, "nfe:nDup", ns), "vencimento": get_text(dup, "nfe:dVenc", ns),
                     "valor": formatar_decimal_en(to_decimal(get_text(dup, "nfe:vDup", ns))),})
             cobranca = {
                 "fat_numero": get_text(fat, "nfe:nFat", ns) if fat else "", "fat_valor": formatar_decimal_en(to_decimal(get_text(fat, "nfe:vLiq", ns))) if fat else "0.00",
@@ -434,15 +435,36 @@ def gerar_danfe(request, codigo):
     try:
         with entrada.xml_nfe.open('rb') as f:
             xml_bytes = f.read()
-        resp = requests.post(settings.MEU_DANFE_URL, headers={'accept': 'application/json', 'Api-Key': api, 'Content-Type': 'text/plain',}, data=xml_bytes, timeout=30,)
+        resp = requests.post(
+            settings.MEU_DANFE_URL,
+            headers={
+                'accept': 'application/json',
+                'Api-Key': api,
+                'Content-Type': 'text/plain',
+            },
+            data=xml_bytes,
+            timeout=30,
+        )
         if resp.status_code != 200:
             try:
                 detalhe = resp.json()
             except Exception:
                 detalhe = resp.text
             return JsonResponse({"ok": False, "erro": "Erro ao gerar DANFE.", "detalhe": detalhe}, status=502)
+
+        # ── Decodifica o PDF em base64 retornado pela API ────────────────
+        try:
+            payload = resp.json()
+            pdf_bytes = base64.b64decode(payload['data'])
+        except (ValueError, KeyError) as e:
+            return JsonResponse({"ok": False, "erro": f"Resposta inesperada da API: {str(e)}"}, status=502)
+
         nome_arquivo = f"danfe_{entrada.chave_acesso or entrada.numeracao}.pdf"
-        return HttpResponse(resp.content, content_type='application/pdf', headers={'Content-Disposition': f'inline; filename="{nome_arquivo}"'},)
+        return HttpResponse(
+            pdf_bytes,
+            content_type='application/pdf',
+            headers={'Content-Disposition': f'inline; filename="{nome_arquivo}"'},
+        )
     except requests.Timeout:
         return JsonResponse({"ok": False, "erro": "Timeout ao conectar com o Meu Danfe."}, status=504)
     except Exception as e:
@@ -636,7 +658,7 @@ def del_entrada(request, codigo):
 from django.db import models
 
 @require_POST
-@login_required  
+@login_required
 def efetivar_entrada(request, codigo):
     entrada = get_object_or_404(Entrada, codigo=codigo, vinc_emp=request.user.empresa)
     if not request.user.has_perm('entradas.efetivar_entrada'):

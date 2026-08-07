@@ -274,7 +274,7 @@
                                 </a>
                                 <div class="collapse" id="guiaFaturamentos">
                                     <div class="p-2">
-                                        {% if view_contrato %}
+                                        {% if perms.contratos.view_contrato %}
                                             <a href="{% url 'lista-contratos' %}" class="btn btn-dark w-100 lista-funcao">Contratos</a>
                                         {% endif %}
                                     </div>
@@ -306,7 +306,7 @@
                                         <a href="{% url 'lista-mensalidades' %}" class="btn btn-dark w-100 mb-1 lista-funcao">Mensalidades</a>
                                     </div>
                                 </div>
-                            {% elif perms.contas_receber.view_contareceber and perms.contas_pagar.view_contapagar %}
+                            {% elif perms.contas_receber.view_contareceber or perms.contas_pagar.view_contapagar %}
                                 <a class="btn btn-dark w-100 text-start" data-bs-toggle="collapse" href="#guiaFinanceiro" role="button" aria-expanded="false" aria-controls="guiaFinanceiro">
                                     <i class="fa-solid fa-building-columns"></i> Financeiro
                                 </a>

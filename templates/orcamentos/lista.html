@@ -10,7 +10,7 @@
                     <a href="{% url 'inicio' %}" class="text-decoration-none text-secondary" id="item-naveg"><i class="fas fa-home me-1"></i> Principal</a>
                 </li>
                 <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">Listagem de Orçamentos</li>
-                <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page"><a class="btn btn-sm btn-light border" href="{% url 'kanban_orcamentos' %}">Kanban</a></li>
+                <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page"><a class="btn btn-sm btn-light border kanban-pulse" title="Acesso ao Kanban de Orçamentos - Portas" href="{% url 'kanban_orcamentos' %}"><i class="fa-brands fa-trello"></i> Kanban</a></li>
             </ol>
         </nav>
         {% if messages %}
@@ -315,8 +315,8 @@
                                                 </li>
                                                 <li>
                                                     <a href="{% url 'recibo_orcamento' o.codigo %}" target="_blank" class="dropdown-item list-group-item list-group-item-action list-group-item-dark"><i class="fa-solid fa-file-pdf text-danger"></i> Recibo</a>
-                                                </li>   
-                                            {% endif %} 
+                                                </li>
+                                            {% endif %}
                                             <li>
                                                 {% if o.titulos_orc.exists %}
                                                     <li>

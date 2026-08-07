@@ -61,26 +61,36 @@ class Filial(models.Model):
         FilialObservacao.objects.get_or_create(filial=self)
 
     def save(self, *args, **kwargs):
+        # ── Remove logo antiga se foi trocada ───────────────────────────
         if self.pk:
-            antiga = Filial.objects.get(pk=self.pk)
-            if antiga.logo and self.logo != antiga.logo:
-                if default_storage.exists(antiga.logo.name):
-                    default_storage.delete(antiga.logo.name)
+            try:
+                antiga = Filial.objects.get(pk=self.pk)
+                if antiga.logo and self.logo != antiga.logo:
+                    if default_storage.exists(antiga.logo.name):
+                        default_storage.delete(antiga.logo.name)
+            except Filial.DoesNotExist:
+                pass
 
+        # ── Normaliza strings ────────────────────────────────────────────
+        self.razao_social = self.razao_social.strip().upper()
+        self.endereco     = self.endereco.strip().upper()
+        self.complem      = self.complem.strip().upper()
+
+        # ── 1º e único save — gera o PK ─────────────────────────────────
         super().save(*args, **kwargs)
+
+        # ── Atribui codigo sequencial por empresa (só na criação) ────────
         if self.vinc_emp and not self.codigo:
             with transaction.atomic():
-                ult = (Filial.objects.select_for_update().filter(vinc_emp=self.vinc_emp).aggregate(models.Max('codigo'))['codigo__max'] or 0)
-                self.codigo = ult + 1
-                self.razao_social = self.razao_social.strip().upper()
-                self.endereco = self.endereco.strip().upper()
-                self.complem = self.complem.strip().upper()
-                super().save(*args, **kwargs)
-        else:
-            self.razao_social = self.razao_social.strip().upper()
-            self.endereco = self.endereco.strip().upper()
-            self.complem = self.complem.strip().upper()
-            super().save(*args, **kwargs)
+                ult = (
+                    Filial.objects
+                    .select_for_update()
+                    .filter(vinc_emp=self.vinc_emp)
+                    .exclude(pk=self.pk)          # exclui a si mesmo
+                    .aggregate(models.Max('codigo'))['codigo__max'] or 0
+                )
+                Filial.objects.filter(pk=self.pk).update(codigo=ult + 1)
+                self.codigo = ult + 1             # atualiza a instância também
 
     def clean(self):
         if self.principal:

@@ -14,6 +14,11 @@ body, html {width: 100%; min-height: 100%; margin: 0; padding: 0;
     from{transform:scale(.9); opacity:0;}
     to{transform:scale(1); opacity:1;}
 }
+.kanban-pulse { animation: kanbanPiscar 1.5s ease-in-out infinite; }
+@keyframes kanbanPiscar {
+    0%, 100% {background-color: #f8f9fa; color: #212529; border-color: #dee2e6; box-shadow: none; transform: scale(1);}
+    50% {background-color: #4f7fff; color: #fff; border-color: #4f7fff; box-shadow: 0 0 12px rgba(79, 127, 255, 0.5); transform: scale(1.04);}
+}
 .upload-fotos .lista-fotos{display:flex; flex-wrap:wrap; gap:10px;}
 .upload-fotos .foto-add, .upload-fotos .foto-item{width:120px; height:120px; border-radius:12px; overflow:hidden; position:relative;}
 .upload-fotos .foto-add{border:2px dashed #bdbdbd; cursor:pointer; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#888; transition:.2s;}
@@ -84,8 +89,7 @@ body, html {width: 100%; min-height: 100%; margin: 0; padding: 0;
     50% {transform: scale(1.18); filter: drop-shadow(0 0 12px rgba(13, 110, 253, 0.35));}
 }
 .col-tabelas-wrap{display:flex; flex-direction:column; gap:6px; min-width:140px;}
-.linha-tabela-pill{background:#6f7b88; color:#fff; border-radius:12px; padding:3px 8px; display:flex; justify-content:space-between; align-items:center; font-size:12px;
-    font-weight:700; line-height:1.1;}
+.linha-tabela-pill{background:#6f7b88; color:#fff; border-radius:12px; padding:3px 8px; display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:700; line-height:1.1;}
 .linha-tabela-pill .tp-nome{margin-right:10px; text-transform:uppercase;}
 .linha-tabela-pill .tp-valor{white-space:nowrap;}
 .linha-tabela-pill.sem-tabela{background:#9aa3ad;}
@@ -100,7 +104,7 @@ body, html {width: 100%; min-height: 100%; margin: 0; padding: 0;
 .op-clonar   { color: #483D8B; }
 .op-deletar  { color: #db1e47; }
 .op-detalhe  { color: #ff8800; }
-.op-detalhe-cr  { color: #ff8800; }
+.op-detalhe-cr, .op-detalhe-cp  { color: #ff8800; }
 .op-faturar  { color: #3CB371; }
 .op-estornar { color: #5F9EA0; }
 .op-cancelar { color: #FF0000; }
@@ -202,7 +206,7 @@ body, html {width: 100%; min-height: 100%; margin: 0; padding: 0;
 /* Animação no hover */
 .lista-funcao:hover {color: #FFD700;}
 /*Overflow das tabelas de orçamento*/
-.container {width: 400px; height: 400px; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center; 
+.container {width: 400px; height: 400px; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center;
     background-color: #a694fb;}
 .center {width: 180px;height: 60px;position: absolute;}
 .btn-login {width: 180px;height: 60px;cursor: pointer;background: transparent;border: 1px solid #91C9FF;outline: none;transition: 0.25s ease-in-out 0.25s ease-in;}
