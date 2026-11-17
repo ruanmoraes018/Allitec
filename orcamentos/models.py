@@ -63,6 +63,7 @@ class Orcamento(models.Model):
     obs_cli = models.TextField(default="", blank=True)
     pintura = models.CharField(max_length=5, choices=[('Sim', 'Sim'), ('Não', 'Não')], default='Sim')
     portao_social = models.CharField(max_length=5, choices=[('Não', 'Não'), ('Sim', 'Sim')], default='Não')
+    tp_ps = models.CharField(max_length=10, choices=[('Chapa', 'Chapa'), ('Metalon', 'Metalon')], default='Chapa')
     lg_ps = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, default=0)
     at_ps = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, default=0)
     vl_p_s = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, default=0)
@@ -115,13 +116,11 @@ class Orcamento(models.Model):
         self.nome_cli = getattr(self.cli, "fantasia", "").strip().upper()
         self.nome_fornecedor = getattr(self.fornecedor, "fantasia", "").strip().upper()
         self.fantasia_emp = getattr(self.vinc_fil, "fantasia", "").strip().upper()
-        if self.vinc_emp and not self.codigo:
+        if self._state.adding and self.vinc_emp_id and not self.codigo:
             with transaction.atomic():
-                ult = (Orcamento.objects.select_for_update().filter(vinc_emp=self.vinc_emp).aggregate(models.Max("codigo"))["codigo__max"] or 0)
+                ult = (Orcamento.objects.select_for_update().filter(vinc_emp_id=self.vinc_emp_id).aggregate(max_codigo=models.Max('codigo'))['max_codigo'] or 0)
                 self.codigo = ult + 1
-                super().save(*args, **kwargs)
-        else:
-            super().save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name_plural = "Orçamentos"
@@ -130,12 +129,9 @@ class Orcamento(models.Model):
             ("atribuir_desconto", "Pode atribuir descontos em orçamento"), ("atribuir_acrescimo", "Pode atribuir acréscimo em orçamento"),
             ("alterar_dt_venc_orc", "Pode alterar a data de vencimento na fatura de orçamento"), ("alterar_dt_fat_orc", "Pode alterar a data de faturamento na fatura de orçamento"),
             ("vender_sem_estoque_orc", "Pode vender sem estoque em orçamentos"),
+            ("enviar_orcamento_whatsapp", "Pode enviar orçamentos pelo Whatsapp"),
         ]
         constraints = [models.UniqueConstraint(fields=['codigo', 'vinc_emp'], name='unique_codigo_orcamento_empresa')]
-# 🔥 NOVO MODELO — uma porta pertence a um orçamento
-def caminho_foto_vao_orcamento(instance, filename):
-    ext = filename.split('.')[-1]
-    return f"foto_vao_orcamento/foto_{instance.pk}.{ext}"
 
 class PortaOrcamento(models.Model):
     TIPO_LAMINA_CHOICES = [
@@ -159,14 +155,14 @@ class PortaOrcamento(models.Model):
     fator_peso = models.DecimalField(max_digits=10, decimal_places=0, default=0)
     eixo_motor = models.DecimalField(max_digits=10, decimal_places=0, default=0)
     tp_lamina = models.CharField(
-        max_length=30, 
-        choices=TIPO_LAMINA_CHOICES, 
+        max_length=30,
+        choices=TIPO_LAMINA_CHOICES,
         default='FECHADA_22'
     )
     tp_vao = models.CharField(max_length=50, choices=[('Dentro do Vão', 'Dentro do Vão'), ('Fora do Vão', 'Fora do Vão'), ('1 Lado Dentro do Vão', '1 Lado Dentro do Vão')], default='Fora do Vão')
     op_guia_e = models.CharField(verbose_name="Opção Guia Esquerdo", max_length=13, choices=[('Dentro do Vão', 'Dentro do Vão'), ('Fora do Vão', 'Fora do Vão')], default='Dentro do Vão')
     op_guia_d = models.CharField(verbose_name="Opção Guia Direito", max_length=13, choices=[('Dentro do Vão', 'Dentro do Vão'), ('Fora do Vão', 'Fora do Vão')], default='Dentro do Vão')
-    
+
     acabamento_guia = models.CharField(verbose_name="Acabamento Guia", max_length=25, choices=[('Sem Acabamento', 'Sem Acabamento'), ('Com Acabamento', 'Com Acabamento'), ('Acabamento Especial', 'Acabamento Especial')], default='Sem Acabamento')
     tp_acionamento = models.CharField(verbose_name="Tipo de Acionamento", max_length=25, choices=[('Manual', 'Manual'), ('Elétrico', 'Elétrico'), ('Elétrico c/ Botoeira', 'Elétrico c/ Botoeira'), ('Automático', 'Automático')], default='Manual')
     lado_motor = models.CharField(verbose_name="Lado do Motor", max_length=25, choices=[('Esquerdo', 'Esquerdo'), ('Direito', 'Direito'), ('Central', 'Central')], default='Esquerdo')
@@ -180,7 +176,7 @@ class PortaOrcamento(models.Model):
             ('', ''), ('Preto', 'Preto'), ('Branco', 'Branco'), ('Amarelo', 'Amarelo'), ('Vermelho', 'Vermelho'), ('Roxo Açaí', 'Roxo Açaí'), ('Azul Pepsi', 'Azul Pepsi'), ('Azul Claro', 'Azul Claro'),
             ('Cinza Claro', 'Cinza Claro'), ('Cinza Grafite', 'Cinza Grafite'), ('Cinza Chumbo', 'Cinza Chumbo'), ('Chumbo', 'Chumbo'), ('Verde', 'Verde'), ('Bege', 'Bege'), ('Bege Areia', 'Bege Areia'), ('Marrom', 'Marrom'), ('Marrom Café', 'Marrom Café'),
             ('Laranja', 'Laranja'), ('Azul Royal', 'Azul Royal'), ('Azul Marinho', 'Azul Marinho'), ('Verde Musgo', 'Verde Musgo'), ('Verde Bandeira', 'Verde Bandeira'), ('Vinho', 'Vinho'), ('Prata', 'Prata'),
-        ], default='Preto'
+        ], default=''
     )
     pintura_porta = models.CharField(verbose_name="Pintura da Porta", max_length=5, choices=[('Sim', 'Sim'), ('Não', 'Não')], default='Sim')
     nr_serie_motor = models.CharField(verbose_name="Nº Série Motor", max_length=255, blank=True)
@@ -193,7 +189,17 @@ class PortaOrcamento(models.Model):
 
     def __str__(self):
         return f"Porta {self.numero} do Orçamento {self.orcamento.id}"
-
+    @property
+    def cor_diferente(self):
+        return self.pintura_porta == 'Sim' and bool(self.cor_porta)
+    @property
+    def subtotalProdutos(self):
+        total_produtos = sum((p.valor_total or Decimal("0.00")) for p in self.produtos.all())
+        return total_produtos
+    @property
+    def subtotalAdicionais(self):
+        total_adicionais = sum((a.valor_total or Decimal("0.00")) for a in self.adicionais.all())
+        return total_adicionais
 
 class PortaOrcamentoFoto(models.Model):
     porta = models.ForeignKey(PortaOrcamento, on_delete=models.CASCADE, related_name="fotos")
@@ -243,6 +249,8 @@ class PortaAdicional(models.Model):
     regra_origem = models.CharField(max_length=50, null=True, blank=True)
     LADO_CHOICES = (('', '---------'), ('E', 'Esquerdo'), ('D', 'Direito'), ('C', 'Centro'),)
     lado = models.CharField(max_length=1, choices=LADO_CHOICES, blank=True, default='')
+    larg_pa = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, default=0)
+    alt_pa = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, default=0)
     @property
     def subtotalA(self):
         return self.valor_total or Decimal("0.00")
@@ -261,7 +269,7 @@ class PortaAdicional(models.Model):
         return self.custo_unitario * (self.quantidade or Decimal("0"))
     def __str__(self):
         return f"(Adicional) Porta {self.porta.numero} - {self.produto.desc_prod}"
-    
+
 class OrcamentoFormaPgto(models.Model):
     orcamento = models.ForeignKey("Orcamento", on_delete=models.CASCADE, related_name="formas_pgto")
     formas_pgto = models.ForeignKey("formas_pgto.FormaPgto", on_delete=models.PROTECT, related_name="usos")

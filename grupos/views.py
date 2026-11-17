@@ -7,10 +7,11 @@ from .forms import GrupoForm
 import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
-from filiais.models import Usuario
+from django.core.exceptions import ObjectDoesNotExist
 from django.views.decorators.http import require_POST
 from django.db.models import Q
 from util.logs import gerar_alteracoes, registrar_log
+from django.db import DatabaseError, IntegrityError, transaction
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -53,14 +54,23 @@ def lista_grupos_ajax(request):
 
 @login_required
 def add_grupo(request):
+    error_messages = []
+    empresa = request.user.empresa
     if not request.user.has_perm('grupos.add_grupo'):
         messages.info(request, 'Você não tem permissão para adicionar grupos.')
         return redirect('/grupos/lista/')
-    if request.method == 'POST':
-        form = GrupoForm(request.POST)
-        if form.is_valid():
+    if request.method != 'POST':
+        form = GrupoForm()
+        return render(request, 'grupos/add.html', {'form': form, 'error_messages': error_messages})
+    form = GrupoForm(request.POST)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'grupos/add.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             nome = form.cleaned_data['nome_grupo'].strip().upper()
-            empresa = request.user.empresa
             # Verifica duplicata antes de salvar
             if Grupo.objects.filter(nome_grupo=nome, vinc_emp=empresa).exists():
                 messages.warning(request, f'O grupo "{nome}" já está cadastrado.')
@@ -72,12 +82,18 @@ def add_grupo(request):
             registrar_log(request, "CRIAR", "Grupo", b.nome_grupo, f"Adicionou o grupo: {b.codigo} - {b.nome_grupo}", b.id, gerar_alteracoes(obj_novo=b))
             messages.success(request, 'Grupo adicionado com sucesso!')
             return redirect('/grupos/lista/?tp=cod&s=' + str(b.codigo))
-        else:
-            error_messages = [f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!" for field in form if field.errors]
-            return render(request, 'grupos/add.html', {'form': form, 'error_messages': error_messages})
-    else:
-        form = GrupoForm()
-    return render(request, 'grupos/add.html', {'form': form})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'grupos/add.html', {'form': form, 'error_messages': error_messages})
 
 @login_required
 @require_POST
@@ -85,55 +101,86 @@ def add_grupo_ajax(request):
     nome = request.POST.get('nome', '').strip().upper()
     if not nome:
         return JsonResponse({'erro': 'Nome vazio'}, status=400)
-    empresa = request.user.empresa
-    grupo, criado = Grupo.objects.get_or_create(nome_grupo=nome, vinc_emp=empresa)
-    if criado:
-        registrar_log(request, "CRIAR", "Grupo", grupo.nome_grupo, f"Adicionou o grupo: {grupo.codigo} - {grupo.nome_grupo}", grupo.id, gerar_alteracoes(obj_novo=grupo))
-    return JsonResponse({'id': grupo.codigo, 'nome': grupo.nome_grupo, 'criado': criado})
+    try:
+        with transaction.atomic():
+            empresa = request.user.empresa
+            grupo, criado = Grupo.objects.get_or_create(nome_grupo=nome, vinc_emp=empresa)
+            if criado:
+                registrar_log(request, "CRIAR", "Grupo", grupo.nome_grupo, f"Adicionou o grupo: {grupo.codigo} - {grupo.nome_grupo}", grupo.id, gerar_alteracoes(obj_novo=grupo))
+            return JsonResponse({'id': grupo.codigo, 'nome': grupo.nome_grupo, 'criado': criado})
+    except ValueError as e:
+        return JsonResponse({'erro': e}, status=400)
+    except Exception as e:
+        return JsonResponse({'erro': e}, status=400)
 
 @login_required
 def att_grupo(request, codigo):
+    error_messages = []
+    empresa = request.user.empresa
     g = get_object_or_404(Grupo, codigo=codigo, vinc_emp=request.user.empresa)
     if not request.user.has_perm('grupos.change_grupo'):
         messages.info(request, 'Você não tem permissão para editar grupos.')
         return redirect('/grupos/lista/')
     it_old = Grupo.objects.get(codigo=g.codigo, vinc_emp=request.user.empresa)
-    form = GrupoForm(instance=g)
-    if request.method == 'POST':
-        form = GrupoForm(request.POST, instance=g)
-        if form.is_valid():
+    if request.method != 'POST':
+        form = GrupoForm(instance=g)
+        return render(request, 'grupos/att.html', {'form': form, 'g': g, 'error_messages': error_messages})
+    form = GrupoForm(request.POST, instance=g)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'grupos/att.html', {'form': form, 'g': g, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             nome = form.cleaned_data['nome_grupo'].strip().upper()
             empresa = request.user.empresa
             # Verifica duplicata excluindo o próprio registro
             if Grupo.objects.filter(nome_grupo=nome, vinc_emp=empresa).exclude(codigo=codigo).exists():
                 messages.warning(request, f'O grupo "{nome}" já está cadastrado.')
                 return render(request, 'grupos/att.html', {'form': form, 'g': g})
-            g = form.save(commit=False)
-            g.nome_grupo = nome
-            g.vinc_emp = empresa
-            g.save()
+            form.nome_grupo = nome
+            g = form.save()
             registrar_log(request, "ALTERAR", "Grupo", g.nome_grupo, f"Alterou o grupo: {g.codigo} - {g.nome_grupo}",  g.id, gerar_alteracoes(it_old, g))
             messages.success(request, 'Grupo atualizado com sucesso!')
             next_url = request.POST.get('next') or request.GET.get('next')
             if next_url:
                 return redirect(next_url)
             return redirect('/grupos/lista/?tp=cod&s=' + str(g.codigo))
-        else:
-            error_messages = [f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!" for field in form if field.errors]
-            return render(request, 'grupos/att.html', {'form': form, 'g': g, 'error_messages': error_messages})
-    return render(request, 'grupos/att.html', {'form': form, 'g': g})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'grupos/att.html', {'form': form, 'g': g, 'error_messages': error_messages})
 
 @login_required
 def del_grupo(request, codigo):
     if not request.user.has_perm('grupos.delete_grupo'):
         messages.info(request, 'Você não tem permissão para deletar grupos.')
         return redirect('/grupos/lista/')
-    g = get_object_or_404(Grupo, codigo=codigo, vinc_emp=request.user.empresa)
-    registrar_log(
-        request, "EXCLUIR", "Grupo", g.nome_grupo,
-        f"Excluiu o grupo: {g.codigo} - {g.nome_grupo}",
-        g.id, gerar_alteracoes(obj_antigo=g)
-    )
-    g.delete()
-    messages.success(request, 'Grupo deletado com sucesso!')
+    try:
+        with transaction.atomic():
+            g = get_object_or_404(Grupo, codigo=codigo, vinc_emp=request.user.empresa)
+            registrar_log(request, "EXCLUIR", "Grupo", g.nome_grupo, f"Excluiu o grupo: {g.codigo} - {g.nome_grupo}", g.id, gerar_alteracoes(obj_antigo=g))
+            g.delete()
+            messages.success(request, 'Grupo deletado com sucesso!')
+            return redirect('/grupos/lista/')
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return redirect('/grupos/lista/')

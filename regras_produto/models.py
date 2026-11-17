@@ -19,16 +19,17 @@ class GrupoRegraProduto(models.Model):
 
     def __str__(self):
         return self.descricao.upper()
-    
-    def save(self,*args,**kwargs):
-        if self.vinc_emp and not self.cod_local:
-            with transaction.atomic():
-                ult = (GrupoRegraProduto.objects.select_for_update().filter(vinc_emp=self.vinc_emp).aggregate(models.Max('cod_local'))['cod_local__max'] or 0) 
-                self.cod_local = ult + 1
 
-                self.codigo = self.codigo.strip().upper()
-                self.descricao = self.descricao.strip().upper()
-        super().save(*args,**kwargs)
+    def save(self,*args,**kwargs):
+        self.codigo = self.codigo.strip().upper()
+        self.descricao = self.descricao.strip().upper()
+        if self._state.adding and self.vinc_emp_id and not self.cod_local:
+            with transaction.atomic():
+                ult = (GrupoRegraProduto.objects.select_for_update().filter(vinc_emp_id=self.vinc_emp_id).aggregate(cod_local__max=models.Max('cod_local'))['cod_local__max'] or 0)
+                self.cod_local = ult + 1
+                super().save(*args, **kwargs)
+            return
+        super().save(*args, **kwargs)
 
 class RegraProduto(models.Model):
     class Tipo(models.TextChoices):
@@ -63,11 +64,13 @@ class RegraProduto(models.Model):
     def save(self,*args,**kwargs):
         self.codigo=self.codigo.strip().upper()
         self.descricao=self.descricao.strip().upper()
-        if self.vinc_emp and not self.cod_local:
+        if self._state.adding and self.vinc_emp_id and not self.cod_local:
             with transaction.atomic():
-                ult = (RegraProduto.objects.select_for_update().filter(vinc_emp=self.vinc_emp).aggregate(models.Max('cod_local'))['cod_local__max'] or 0) 
+                ult = (RegraProduto.objects.select_for_update().filter(vinc_emp_id=self.vinc_emp_id).aggregate(models.Max('cod_local'))['cod_local__max'] or 0)
                 self.cod_local = ult + 1
-        super().save(*args,**kwargs)
+                super().save(*args, **kwargs)
+            return
+        super().save(*args, **kwargs)
 
 class RegraProdutoItem(models.Model):
     regra=models.ForeignKey(RegraProduto, related_name="itens", on_delete=models.CASCADE)
@@ -102,7 +105,7 @@ class CondicaoRegraProduto(models.Model):
 
     def __str__(self):
         return f"{self.campo} {self.operador} {self.valor}"
-    
+
 class BloqueioRegraProduto(models.Model):
     regra=models.ForeignKey(RegraProduto, related_name="bloqueios", on_delete=models.CASCADE)
     mensagem=models.TextField()

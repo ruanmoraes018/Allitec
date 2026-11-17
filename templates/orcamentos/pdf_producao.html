@@ -80,14 +80,36 @@
                     </tr>
                     <tr class="center">
                         <td><strong>{{ pt.largura }}</strong></td><td><strong>{{ pt.altura }}</strong></td><td><strong>{{ pt.larg_corte }}</strong></td>
-                        <td><strong>{{ pt.alt_corte }}</strong></td><td><strong>{{ pt.qtd_lam }}</strong></td><td><strong>{{ pt.m2 }}</strong></td>
+                        <td><strong>{{ pt.alt_corte }}</strong></td>
+                        <td>
+                            <strong>
+                                {{ pt.qtd_lam }}
+                            </strong>
+                        </td>
+                        <td><strong>{{ pt.m2 }}</strong></td>
                         <td><strong>{{ pt.peso }}</strong></td><td><strong>{{ pt.rolo }}</strong></td>
                     </tr>
                     <tr class="section-soft">
                         <td colspan="2">Tipo Lâmina</td><td colspan="2">Tipo do Vão</td><td colspan="2">Guia Esquerdo</td><td colspan="2">Guia Direito</td>
                     </tr>
                     <tr class="center">
-                        <td colspan="2"><strong>{{ pt.tp_lamina }}</strong></td><td colspan="2"><strong>{{ pt.tp_vao }}</strong></td>
+                        <td colspan="2">
+                            <strong>
+                                {% if pt.tp_lamina == "FECHADA_24" %}
+                                    Lisa Fechada - Chapa 24 (0.65mm)
+                                {% elif pt.tp_lamina == "FECHADA_22" %}
+                                    Lisa Fechada - Chapa 22 (0.80mm)
+                                {% elif pt.tp_lamina == "FECHADA_20" %}
+                                    Lisa Fechada - Chapa 20 (0.95mm)
+                                {% elif pt.tp_lamina == "TRANSVISION_24" %}
+                                    Transvision - Chapa 24 (0.65mm)
+                                {% elif pt.tp_lamina == "TRANSVISION_22" %}
+                                    Transvision - Chapa 22 (0.80mm)
+                                {% elif pt.tp_lamina == "TRANSVISION_20" %}
+                                    Transvision - Chapa 20 (0.95mm)
+                                {% endif %}
+                            </strong></td>
+                        <td colspan="2"><strong>{{ pt.tp_vao }}</strong></td>
                         <td colspan="2"><strong>{{ pt.op_guia_e }}</strong></td><td colspan="2"><strong>{{ pt.op_guia_d }}</strong></td>
                     </tr>
                 </table>

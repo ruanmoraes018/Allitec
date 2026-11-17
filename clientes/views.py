@@ -7,14 +7,12 @@ from .models import Cliente
 from .forms import ClienteForm
 import unicodedata
 from django.http import JsonResponse
-from filiais.models import Usuario
-from django.db.models.functions import Concat, Substr
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from util.permissoes import verifica_permissao, verifica_alguma_permissao
-from bairros.models import Bairro
-from cidades.models import Cidade
-from estados.models import Estado
 from util.logs import gerar_alteracoes, registrar_log
+from django.db import DatabaseError, IntegrityError, transaction
+import copy
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -36,7 +34,7 @@ def lista_clientes(request):
     clientes = Cliente.objects.filter(vinc_emp=empresa)
     if tp == 'desc' and s:
         norm_s = remove_accents(s).lower()
-        clientes = clientes.filter(fantasia_normalizado__icontains=norm_s).order_by('fantasia')
+        clientes = clientes.filter(fantasia__icontains=norm_s).order_by('fantasia')
     elif tp == 'cod' and s:
         try: clientes = clientes.filter(codigo__iexact=s).order_by('fantasia')
         except ValueError: clientes = Cliente.objects.none()
@@ -73,8 +71,20 @@ def lista_clientes_ajax(request):
     except Exception as e:
         return JsonResponse({'results': [], 'error': str(e)})
 
+def formatar_moeda_br(valor):
+    return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+def validar_limite_credito(limite_credito, vinc_fil, usuario):
+    limite_filial = vinc_fil.financeiro.limite_credito_padrao
+    if limite_credito > limite_filial:
+        return (f"Limite de crédito ultrapassou o limite da Filial. Máximo: {formatar_moeda_br(limite_filial)}")
+    if limite_credito > usuario.limite_credito:
+        return (f"Limite de crédito ultrapassou o limite do seu usuário. Máximo: {formatar_moeda_br(usuario.limite_credito)}")
+    return None
+
 @login_required
 def add_cliente(request):
+    error_messages = []
     if not request.user.has_perm('clientes.add_cliente'):
         messages.info(request, 'Você não tem permissão para adicionar clientes.')
         return redirect('/clientes/lista/')
@@ -82,69 +92,108 @@ def add_cliente(request):
     if not empresa:
         messages.error(request, 'Erro crítico: Seu usuário não está vinculado a nenhuma empresa cadastrada.')
         return redirect('/clientes/lista/')
-    if request.method == 'POST':
-        form = ClienteForm(data=request.POST, empresa=empresa, user=request.user)
-        if form.is_valid():
+    if request.method != 'POST':
+        form = ClienteForm(empresa=empresa, user=request.user)
+        return render(request, 'clientes/add.html', {'form': form, 'error_messages': error_messages})
+    form = ClienteForm(data=request.POST, empresa=empresa, user=request.user)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'clientes/add.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             c = form.save(commit=False)
-            c.vinc_emp = empresa  # Busca a filial do usuário logado
+            c.vinc_emp = empresa
+            erro_limite = validar_limite_credito(c.limite_credito, c.vinc_fil, request.user)
+            if erro_limite:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> {erro_limite}")
+                return render(request, 'clientes/add.html', {'form': form, 'error_messages': error_messages})
             c.save()
-            registrar_log(
-                request, "CRIAR", "Cliente", c.fantasia,
-                f"Adicionou o cliente: {c.codigo} - {c.fantasia}",
-                c.id, gerar_alteracoes(obj_novo=c)
-            )
+            registrar_log(request, "CRIAR", "Cliente", c.fantasia, f"Adicionou o cliente: {c.codigo} - {c.fantasia}", c.id, gerar_alteracoes(obj_novo=c))
             messages.success(request, 'Cliente adicionado com sucesso!')
-            clie = str(c.codigo)
-            return redirect('/clientes/lista/?tp=cod&s=' + clie)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'clientes/add_cliente.html', {'form': form, 'error_messages': error_messages})
-    else: form = ClienteForm(empresa=empresa, user=request.user)
-    return render(request, 'clientes/add_cliente.html', {'form': form})
+            return redirect('/clientes/lista/?tp=cod&s=' + str(c.codigo))
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'clientes/add.html', {'form': form, 'error_messages': error_messages})
+
 
 @verifica_alguma_permissao('clientes.add_cliente', 'clientes.change_cliente', 'clientes.delete_cliente')
 @login_required
 def att_cliente(request, codigo):
-    cli = get_object_or_404(Cliente, codigo=codigo, vinc_emp=request.user.empresa)
-    it_old = Cliente.objects.get(codigo=cli.codigo, vinc_emp=request.user.empresa)
-    form = ClienteForm(instance=cli, empresa=request.user.empresa, user=request.user)
+    error_messages = []
+    empresa = request.user.empresa
+    cli = get_object_or_404(Cliente, codigo=codigo, vinc_emp=empresa)
+    it_old = copy.deepcopy(cli)  # snapshot antes de qualquer alteração
     if not request.user.has_perm('clientes.change_cliente'):
         messages.info(request, 'Você não tem permissão para editar clientes.')
         return redirect('/clientes/lista/')
-    if request.method == 'POST':
-        form = ClienteForm(request.POST, instance=cli, empresa=request.user.empresa, user=request.user)
-        if form.is_valid():
-            form.save()
-            registrar_log(
-                request, "ALTERAR", "Cliente", cli.fantasia,
-                f"Alterou o cadastro do cliente: {cli.codigo} - {cli.fantasia}",
-                cli.id, gerar_alteracoes(it_old, cli)
-            )
-            next_url = request.POST.get('next') or request.GET.get('next')
-            clie = str(cli.codigo)
+    if request.method != 'POST':
+        form = ClienteForm(instance=cli, empresa=empresa, user=request.user)
+        return render(request, 'clientes/att.html', {'form': form, 'cli': cli, 'error_messages': error_messages})
+    form = ClienteForm(request.POST, instance=cli, empresa=empresa, user=request.user)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'clientes/att.html', {'form': form, 'cli': cli, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
+            c = form.save(commit=False)
+            erro_limite = validar_limite_credito(c.limite_credito, c.vinc_fil, request.user)
+            if erro_limite:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> {erro_limite}")
+                return render(request, 'clientes/att.html', {'form': form, 'cli': cli, 'error_messages': error_messages})
+            c.save()
+            registrar_log(request, "ALTERAR", "Cliente", c.fantasia, f"Alterou o cadastro do cliente: {c.codigo} - {c.fantasia}", c.id, gerar_alteracoes(it_old, c))
             messages.success(request, 'Cliente atualizado com sucesso!')
-            if next_url: return redirect(next_url)
-            else: return redirect('/clientes/lista/?tp=cod&s=' + clie)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'clientes/att_cliente.html', {'form': form, 'cli': cli, 'error_messages': error_messages})
-    else: return render(request, 'clientes/att_cliente.html', {'form': form, 'cli': cli})
+            next_url = request.POST.get('next') or request.GET.get('next')
+            if next_url:
+                return redirect(next_url)
+            return redirect('/clientes/lista/?tp=cod&s=' + str(c.codigo))
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'clientes/att.html', {'form': form, 'cli': cli, 'error_messages': error_messages})
 
 @login_required
 def del_cliente(request, codigo):
     if not request.user.has_perm('clientes.delete_cliente'):
         messages.info(request, 'Você não tem permissão para deletar clientes.')
         return redirect('/clientes/lista/')
-    cli = get_object_or_404(Cliente, codigo=codigo, vinc_emp=request.user.empresa)
-    registrar_log(
-        request, "EXCLUIR", "Cliente", cli.fantasia,
-        f"Excluiu o cadastro do cliente: {cli.codigo} - {cli.fantasia}",
-        cli.id, gerar_alteracoes(obj_antigo=cli)
-    )
-    cli.delete()
-    messages.success(request, 'Cliente deletado com sucesso!')
+    try:
+        with transaction.atomic():
+            cli = get_object_or_404(Cliente, codigo=codigo, vinc_emp=request.user.empresa)
+            registrar_log(request, "EXCLUIR", "Cliente", cli.fantasia, f"Excluiu o cadastro do cliente: {cli.codigo} - {cli.fantasia}", cli.id, gerar_alteracoes(obj_antigo=cli))
+            cli.delete()
+            messages.success(request, 'Cliente deletado com sucesso!')
+            return redirect('/clientes/lista/')
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return redirect('/clientes/lista/')

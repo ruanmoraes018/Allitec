@@ -4,6 +4,32 @@
 {% load crispy_forms_tags %}
 {% block title %}Gerar Orçamento{% endblock %}
 {% block content %}
+<style>
+    @media (max-width: 767.98px) {
+        /* Cada porta ocupa toda a largura */
+        .linha-porta {width: 100%; padding: 10px !important;}
+        /* A linha que contém as colunas */
+        .linha-lista {display: block !important; width: 100%;}
+        /* Todas as colunas ocupam 100% */
+        .linha-lista > [class*="col-"] {width: 100% !important; max-width: 100% !important; flex: 0 0 100% !important; margin-bottom: 0 !important; padding-left: 0 !important;
+            padding-right: 0 !important;}
+        /* Cada campo vira uma linha */
+        .codigo-col, .descricao-col {display: flex; align-items: center; width: 100%; min-height: 42px; padding: 4px 0;}
+        /* Nome do campo */
+        .codigo-col > small, .descricao-col > small {display: block !important; width: 42%; min-width: 42%; text-align: left; font-size: 0.82rem; font-weight: 600; padding-right: 8px;}
+        /* Input e select */
+        .codigo-col > input, .codigo-col > select, .descricao-col > input, .descricao-col > select {width: 58%; flex: 1;}
+        /* Remove o comportamento de texto quebrando */
+        .codigo-col, .descricao-col {overflow: visible; word-break: normal; overflow-wrap: normal;}
+        /* Cabeçalho da porta */
+        .indice-portas {width: 100%; margin-right: 0 !important; margin-bottom: 0 !important; min-height: 38px; display: flex; align-items: center; justify-content: space-between;}
+        /* Ações ficam no canto direito */
+        .acoes-col {float: none !important; width: auto !important; margin-left: auto;}
+        .acoes-col .btn-group {display: flex;}
+        /* Badge */
+        .num-porta {margin-left: 0 !important;}
+    }
+</style>
 <div class="container-fluid bg-white">
     <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
         <ol class="breadcrumb">
@@ -113,7 +139,7 @@
                                             <!-- Cabeçalho -->
                                             <div class="list-group-item bg-light fw-bold cabecalho-lista">
                                                 <div class="row align-items-center">
-                                                    <div class="col-md-1 text-center border-end"><div class="border-bottom">Altura</div>Largura</div>
+                                                    <div class="col-md-1 text-center border-end"><div class="border-bottom">Largura</div>Altura</div>
                                                     <div class="col-md-1 text-center border-end"><div class="border-bottom">Lg. Corte</div>At. Corte</div>
                                                     <div class="col-md-1 text-center border-end"><div class="border-bottom">Q. Lâm.</div>M²</div>
                                                     <div class="col-md-1 text-center border-end"><div class="border-bottom">Ft. Peso</div>Peso</div>
@@ -126,13 +152,15 @@
                                                     <div class="col-md-1 text-center"><div class="border-bottom">Testeira</div>Qtd. Pares Trava</div>
                                                 </div>
                                             </div>
+                                            <div class="corpo-lista"></div>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-1">{{ form.pintura|as_crispy_field }}</div>
                                 <div class="col-md-1" style="font-size: 0.99rem;">{{ form.tp_pintura|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.cor|as_crispy_field }}</div>
-                                <div class="col-md-2">{{ form.portao_social|as_crispy_field }}</div>
+                                <div class="col-md-1">{{ form.portao_social|as_crispy_field }}</div>
+                                <div class="col-md-1">{{ form.tp_ps|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.lg_ps|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.at_ps|as_crispy_field }}</div>
                                 <div class="col-md-2">{{ form.vl_p_s|as_crispy_field }}</div>
@@ -141,13 +169,13 @@
                         </div>
                         <!--Prod./Serviços-->
                         <div class="form-section" id="prod_serv">
-                            <div class="row" style="margin-left: -8px;">
+                            <div class="row" style="margin-left: -25px; margin-right: -25px;">
                                 <div class="accordion" id="accordionProdutos"></div>
                             </div>
                         </div>
                         <!--Adicionais-->
                         <div class="form-section" id="adicionais">
-                            <div class="row" style="margin-left: -8px;">
+                            <div class="row" style="margin-left: -25px; margin-right: -25px;">
                                 <div class="accordion" id="accordionAdicionais"></div>
                             </div>
                         </div>

@@ -14,6 +14,7 @@ urlpatterns = [
     path('caixa/movimentos/<int:caixa_id>/', views.movimentos_caixa, name='movimentos-caixa'),
     path('caixa/<int:caixa_id>/entrada/', views.realizar_entrada_caixa, name='realizar_entrada_caixa'),
     path('caixa/<int:caixa_id>/saida/', views.realizar_saida_caixa, name='realizar_saida_caixa'),
+    path('caixa/limite-cliente/<int:codigo>/', views.limite_cliente_caixa, name='limite-cliente-caixa'),
     path(
         "caixa/<int:caixa_codigo>/movimento/<int:movimento_codigo>/",
         views.dados_movimento_caixa,

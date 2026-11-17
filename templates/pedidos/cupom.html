@@ -1,66 +1,29 @@
 {% load custom_filters %}
 <style>
-    @page {
-        margin: 0;
-    }
-    body {
-        margin: 0;
-        padding: 0;
-    }
-    #cupom {
-        width: 100%;
-        max-width: 72mm;
-        font-family: monospace;
-        font-size: 10px;
-        margin: 0;
-        padding: 5px;
-        border: 1px dashed #000;
-    }
-
+    @page {margin: 0;}
+    body {margin: 0;padding: 0;}
+    #cupom {width: 100%;max-width: 72mm;font-family: monospace;font-size: 10px;margin: 0;padding: 5px;border: 1px dashed #000;}
     .center { text-align: center; }
     .bold { font-weight: bold; }
-
-    .linha {
-        border-top: 1px dashed #000;
-        margin: 3px 0;
-    }
-
-    .flex {
-        display: flex;
-        justify-content: space-between;
-    }
-
+    .linha {border-top: 1px dashed #000;margin: 3px 0;}
+    .flex {display: flex;justify-content: space-between;}
     .small { font-size: 11px; }
-
-    img {
-        max-width: 120px;
-        margin: 0 auto;
-        display: block;
-    }
+    img {max-width: 120px;margin: 0 auto;display: block;}
 </style>
-
 <div id="cupom" class="bold">
-
     <!-- LOGO -->
-    {% if request.user.filial_user.logo %}
-        <img src="{{ request.user.filial_user.logo.url }}">
+    {% if request.user.filial_user.impressao.imprimir_logo %}
+        {% if request.user.filial_user.logo %}<img src="{{ request.user.filial_user.logo.url }}">{% endif %}
     {% endif %}
-
     <!-- EMPRESA -->
     <div class="center small">
         <div>{{ request.user.filial_user.fantasia }}</div>
         <div>CNPJ: {{ request.user.filial_user.cnpj }}</div>
-        <div>
-            {{ request.user.filial_user.endereco }}, {{ request.user.filial_user.numero }}
-        </div>
-        <div>
-            {{ request.user.filial_user.bairro_fil }} - {{ request.user.filial_user.cidade_fil }}/{{ request.user.filial_user.uf }}
-        </div>
+        <div>{{ request.user.filial_user.endereco }}, {{ request.user.filial_user.numero }}</div>
+        <div>{{ request.user.filial_user.bairro_fil }} - {{ request.user.filial_user.cidade_fil }}/{{ request.user.filial_user.uf }}</div>
         <div>FONE: {{ request.user.filial_user.tel }}</div>
     </div>
-
     <div class="linha"></div>
-
     <!-- PEDIDO -->
     <div class="small">
         <div><span class="bold">PEDIDO:</span> {{ pedido.codigo }} <span style="float: right;">{% if pedido.usuario != None %}Usuário: {{ pedido.usuario.first_name }} {% else %}Usuário: {{ request.user.first_name }} {% endif %}</span></div>
@@ -68,14 +31,12 @@
         <div><span class="bold">VENDEDOR:</span> {{ pedido.nome_vend }}</div>
         <div><span class="bold">SITUAÇÃO:</span> {{ pedido.situacao }} <span style="float: right;">{% if pedido.caixa != None %}Caixa: {{ pedido.caixa.terminal.nome }}{% endif %}</span></div>
     </div>
-
     <div class="linha"></div>
     <div class="small bold center">CLIENTE</div>
     <div class="linha"></div>
-
     <!-- CLIENTE -->
     <div class="small">
-        {% if pedido.cli.avulso == "Sim" %}
+        {% if pedido.cli.avulso %}
             <div><span class="bold">CÓDIGO: </span>{{ pedido.cli.codigo }}</div>
             <div><span class="bold">CLIENTE: </span>{{ pedido.nome_cli }}</div>
         {% else %}
@@ -90,84 +51,111 @@
             <div><span class="bold">UF:</span>{{ pedido.cli.uf }} <span style="float: right;">TEL.: {{ pedido.cli.tel }}</span></div>
         {% endif %}
     </div>
-
     <div class="linha"></div>
-
     <!-- ITENS -->
     <div class="small bold center">ITENS</div>
     <div class="linha"></div>
-
     {% for item in pedido.itens.all %}
-        {# 🔥 Se a quantidade for negativa, exibe a linha centralizada de Devolução #}
         {% if item.quantidade < 0 %}
-            <div style="text-align: center; margin: 8px 0; font-weight: bold; font-size: 0.85rem;">
-                ************ DEVOLVIDO ************
+            <div style="text-align: center; margin: 8px 0; font-weight: bold;">************ DEVOLVIDO ************</div>
+        {% endif %}
+        <div class="small">
+            <!-- PRODUTO -->
+            <div class="flex">
+                <div>{{ item.codigo_usado|default_if_none:item.produto.codigo }}</div>
+                <div>{{ item.produto.desc_prod }}</div>
             </div>
-            <div class="small">
-                <div class="flex">
-                    <div style="float: left;">
-                        {{ item.codigo_usado|default_if_none:item.produto.codigo }}
-                    </div>
-                    <div style="float: right;">{{ item.produto.desc_prod }}</div>
-                </div>
-                <div class="flex">
-                    {# Usamos o filtro 'abs' (ou removemos o sinal se preferir) para a impressão do cupom não ficar com quantidade negativa feia #}
-                    <span>{{ item.quantidade }} {{ item.produto.unidProd }} x {{ item.vl_unit|moeda_br }}</span>
-                    <span>{{ item.subtotal|moeda_br }}</span>
-                </div>
+            <!-- QUANTIDADE E VALOR UNITÁRIO -->
+            <div class="flex">
+                <span>{{ item.quantidade }} {{ item.produto.unidProd }} x R$ {{ item.vl_unit|moeda_br }}</span>
+                <span>R$ {{ item.subtotal|moeda_br }}</span>
             </div>
-            <div style="text-align: center; margin: 8px 0; font-weight: bold; font-size: 0.85rem;">
-                ************************************
-            </div>
-        {% else %}
-            <div class="small">
-                <div class="flex">
-                    <div style="float: left;">
-                        {{ item.codigo_usado|default_if_none:item.produto.codigo }}
-                    </div>
-                    <div style="float: right;">{{ item.produto.desc_prod }}</div>
+            <!-- DESCONTO OU ACRÉSCIMO INDIVIDUAL -->
+            {% if item.desc_acres > 0 %}
+                <div class="flex" style="padding-left: 8px;">
+                    <span>
+                        {% if item.tp_desc_acres == 'Desconto' %}Desconto{% else %}Acréscimo{% endif %}
+                        {% if item.tipo_desc == 'percentual' %}({{ item.desc_acres }}%){% endif %}
+                    </span>
+                    <span>{% if item.tp_desc_acres == 'Desconto' %}- R$ {{ item.valor_desc_real|moeda_br }}{% else %}+ R$ {{ item.valor_desc_real|moeda_br }}{% endif %}</span>
                 </div>
-                <div class="flex">
-                    {# Usamos o filtro 'abs' (ou removemos o sinal se preferir) para a impressão do cupom não ficar com quantidade negativa feia #}
-                    <span>{{ item.quantidade }} {{ item.produto.unidProd }} x {{ item.vl_unit|moeda_br }}</span>
-                    <span>{{ item.subtotal|moeda_br }}</span>
-                </div>
-            </div>
+            {% endif %}
+        </div>
+        {% if item.quantidade < 0 %}
+            <div style="text-align: center; margin: 8px 0; font-weight: bold;">************************************</div>
         {% endif %}
     {% endfor %}
     <div class="linha"></div>
-
+    <!-- DESCONTOS E ACRÉSCIMOS -->
+    {% if pedido.total_descontos > 0 %}
+        <div class="flex small">
+            <span>DESCONTO:</span>
+            <span>- R$ {{ pedido.total_descontos|moeda_br }}</span>
+        </div>
+        <div class="linha"></div>
+    {% endif %}
+    {% if pedido.total_acrescimos > 0 %}
+        <div class="flex small">
+            <span>ACRÉSCIMO:</span>
+            <span>+ R$ {{ pedido.total_acrescimos|moeda_br }}</span>
+        </div>
+        <div class="linha"></div>
+    {% endif %}
     <!-- TOTAL -->
     <div class="flex bold">
         <span>TOTAL</span>
         <span>R$ {{ pedido.total|moeda_br }}</span>
     </div>
-
     <div class="linha"></div>
-
     <!-- PAGAMENTOS -->
     <div class="small bold center">FORMAS DE PAGAMENTO</div>
-
     {% for fp in pedido.formas_pgto.all %}
         <div class="flex small">
             <span>{{ fp.forma_pgto.descricao }}</span>
-            <span>{{ fp.valor|moeda_br }}</span>
+            <span>R$ {{ fp.valor|moeda_br }}</span>
         </div>
     {% empty %}
         <div class="small">Não informado</div>
     {% endfor %}
-
+    {% if valor_troco > 0 %}
+        <div class="linha"></div>
+        <div class="flex small bold">
+            <span>TROCO:</span>
+            <span>R$ {{ valor_troco|moeda_br }}</span>
+        </div>
+    {% endif %}
     <div class="linha"></div>
-
+    <!-- CONTAS A RECEBER -->
+    {% if contas_receber %}
+        <div class="small bold center">CONTAS À RECEBER</div>
+        <div class="linha"></div>
+        {% for conta in contas_receber %}
+            <div class="small">
+                <div class="flex">
+                    <span class="bold">Parcela {{ conta.num_conta }}</span>
+                    <span>R$ {{ conta.valor|moeda_br }}</span>
+                </div>
+                <div class="flex">
+                    <span>Vencimento:</span>
+                    <span>{{ conta.data_vencimento|date:"d/m/Y" }}</span>
+                </div>
+            </div>
+            {% if not forloop.last %}
+                <div style="border-top: 1px dotted #999; margin: 3px 0;"></div>
+            {% endif %}
+        {% endfor %}
+        <div class="linha"></div>
+        <div class="flex small">
+            <span>TOTAL À RECEBER:</span>
+            <span>R$ {{ total_contas_receber|moeda_br }}</span>
+        </div>
+        <div class="linha"></div>
+    {% endif %}
     <!-- RODAPÉ -->
-    <div class="center small">
-        {{ pedido.vinc_fil.info_comp }}
-    </div>
+    <div class="center small">{{ pedido.vinc_fil.orcamento_porta.info_comp }}</div>
     <br><br>
     .
-
 </div>
-
 <script>
 window.onload = function () {
     window.print();

@@ -60,15 +60,14 @@ class ContaPagar(models.Model):
             models.UniqueConstraint(fields=['codigo', 'empresa'], name='unique_codigo_contas_pagar_empresa')
         ]
     def save(self, *args, **kwargs):
-        if self.empresa and not self.codigo:
+        self.num_conta = self.num_conta.strip().upper()
+        if self._state.adding and self.vinc_emp_id and not self.codigo:
             with transaction.atomic():
-                ult = (ContaPagar.objects.select_for_update().filter(empresa=self.empresa).aggregate(models.Max('codigo'))['codigo__max'] or 0)
+                ult = (ContaPagar.objects.select_for_update().filter(vinc_emp_id=self.vinc_emp_id).aggregate(max_codigo=models.Max('codigo'))['max_codigo'] or 0)
                 self.codigo = ult + 1
-                self.num_conta = self.num_conta.strip().upper()
                 super().save(*args, **kwargs)
-        else:
-            self.num_conta = self.num_conta.strip().upper()
-            super().save(*args, **kwargs)
+            return
+        super().save(*args, **kwargs)
     @property
     def saldo(self):
         """Quanto ainda falta pagar"""
@@ -108,7 +107,7 @@ class ContaPagar(models.Model):
     @transaction.atomic
     def estornar(self):
         if self.situacao == "Aberta":
-            raise ValueError("Contas à receber abertas não podem ser estornadas.")
+            raise ValueError("Contas à pagar abertas não podem ser estornadas.")
         # Exclui todos os remanescentes (recursivamente)
         self._excluir_remanescentes()
         # Restaura o título

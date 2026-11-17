@@ -58,15 +58,14 @@ class ContaReceber(models.Model):
         ]
         constraints = [models.UniqueConstraint(fields=['codigo', 'vinc_emp'], name='unique_codigo_conta_receber_empresa')]
     def save(self, *args, **kwargs):
-        if self.vinc_emp and not self.codigo:
+        self.num_conta = self.num_conta.strip().upper()
+        if self._state.adding and self.vinc_emp_id and not self.codigo:
             with transaction.atomic():
-                ult = (ContaReceber.objects.select_for_update().filter(vinc_emp=self.vinc_emp).aggregate(models.Max('codigo'))['codigo__max'] or 0)
+                ult = (ContaReceber.objects.select_for_update().filter(vinc_emp_id=self.vinc_emp_id).aggregate(max_codigo=models.Max('codigo'))['max_codigo'] or 0)
                 self.codigo = ult + 1
-                self.num_conta = self.num_conta.strip().upper()
                 super().save(*args, **kwargs)
-        else:
-            self.num_conta = self.num_conta.strip().upper()
-            super().save(*args, **kwargs)
+            return
+        super().save(*args, **kwargs)
     @property
     def saldo(self):
         """Quanto ainda falta pagar"""
@@ -151,7 +150,7 @@ class ContaReceber(models.Model):
         self.desconto = Decimal("0.00")
         self.save()
         return self
-    
+
 class ContaReceberBaixaForma(models.Model):
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
     conta_receber = models.ForeignKey(ContaReceber, on_delete=models.CASCADE, related_name='formas_baixa')

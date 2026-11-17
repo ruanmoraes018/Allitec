@@ -224,7 +224,7 @@
                                             <i class="fa-solid fa-money-bill"></i> Faturar
                                         </button>
                                     {% endif %}
-                                    <button class="btn btn-light w-100 text-start menu-opcao op-detalhe op-detalhe-pedido border border-secondary" data-id="{{ p.codigo }}" data-bs-toggle="modal" data-bs-target="#infoEntModalP{{ p.codigo }}">
+                                    <button class="btn btn-light w-100 text-start menu-opcao op-detalhe-pedido border border-secondary" data-id="{{ p.codigo }}" data-bs-toggle="modal" data-bs-target="#infoEntModalP{{ p.codigo }}">
                                         <i class="fa-solid fa-circle-info"></i> Detalhes
                                     </button>
                                     <div class="dropdown w-100">
@@ -286,102 +286,182 @@
                             </div>
                         </div>
                     </div>
-                    <div class="modal fade modal-pagamento modal-faturar-pedido modal-lg" data-tipo="pedido" id="faturarModalP-{{ p.codigo }}" tabindex="-1" aria-hidden="true" data-pedido-id="{{ p.codigo }}" data-total="{{ p.total }}" data-num-pedido="{{ p.codigo }}">
-                        <div class="modal-dialog modal-dialog-centered">
-                            <div class="modal-content">
-                                <div class="modal-header bg-success text-white" style="max-height: 30px;">
-                                    <h5 class="modal-title"><i class="fa-solid fa-money-bill"></i> Faturar Pedido {{ p.codigo }}</h5>
+                    <div class="modal fade modal-pagamento modal-faturar-pedido modal-lg" data-tipo="pedido" id="faturarModalP-{{ p.codigo }}" tabindex="-1" aria-hidden="true" data-pedido-id="{{ p.codigo }}"
+                         data-total="{{ p.total }}" data-num-pedido="{{ p.codigo }}" data-limite-disponivel="{{ p.cli.limite_disponivel }}" data-filial="{{ p.vinc_fil.codigo }}">
+                        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                            <div class="modal-content border-0 shadow-lg">
+                                <!-- CABEÇALHO -->
+                                <div class="modal-header bg-success text-white border-0 py-2 px-3">
+                                    <div><h5 class="modal-title fw-bold mb-0"><i class="fa-solid fa-cash-register me-2"></i> Faturar Pedido Nº {{ p.codigo }}</h5></div>
                                 </div>
-                                <div class="modal-body">
-                                    <!-- CLIENTE -->
-                                    <div class="row">
-                                        <div style="flex: 1;">
-                                            <label class="form-label fw-bold">Cliente:</label>
-                                            <input class="form-control fw-bold" value="{{ p.cli }}" disabled>
+                                <div class="modal-body p-2">
+                                    <!-- RESUMO DO PEDIDO / CLIENTE -->
+                                    <div class="row g-1 mb-1">
+                                        <!-- CLIENTE -->
+                                        <div class="col-md-5">
+                                            <div class="border rounded-3 p-2 h-100 bg-light-subtle">
+                                                <div class="text-muted small fw-semibold mb-1"><i class="fa-solid fa-user me-1"></i> Cliente</div>
+                                                <div class="fw-bold text-dark">{{ p.cli.codigo }} - {{ p.cli }}</div>
+                                            </div>
                                         </div>
-                                        <div style="flex: 1;">
-                                            <label class="form-label fw-bold">Valor Total:</label>
-                                            <input class="form-control fw-bold totalModal" value="{{ p.total|floatformat:2 }}" disabled>
+                                        <!-- TOTAL PEDIDO -->
+                                        <div class="col-md-3">
+                                            <div class="border rounded-3 p-2 h-100">
+                                                <div class="text-muted small fw-semibold mb-1"><i class="fa-solid fa-receipt me-1"></i> Total do Pedido</div>
+                                                <div class="fs-5 fw-bold text-success">R$ {{ p.total|moeda_br }}</div>
+                                            </div>
                                         </div>
-                                        <div style="width:150px;">
-                                            <label class="form-label fw-bold">Data Emissão:</label>
-                                            <input class="form-control fw-bold dt-emi-pedido" value="{{ p.dt_emi|date:'d/m/Y' }}" disabled>
-                                        </div>
-                                        <div style="width:160px;">
-                                            <label class="form-label fw-bold">Data Faturamento:</label>
-                                            <input class="form-control fw-bold dt-fat-pedido" value="{{ p.dt_fat|date:'d/m/Y' }}" readonly>
-                                        </div>
-                                        <div style="width:45px;">
-                                            <label class="form-label">&nbsp;</label>
-                                            <button type="button" class="btn btn-outline-secondary btn-sm btn-lib-dt-fat-ped" data-permissao="pedidos.alterar_data_faturamento" data-msg-negado="Sem permissão para alterar data de faturamento." data-editando="0">
-                                                <i class="fa fa-pen"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <hr>
-                                    <!-- INSERÇÃO DE FORMA -->
-                                    <div class="row align-items-end g-2">
+                                        <!-- LIMITE DISPONÍVEL -->
                                         <div class="col-md-4">
-                                            <label class="form-label fw-bold">Forma Pgto</label>
-                                            <select class="form-select forma-pgto">
-                                                <option value="">Selecione</option>
-                                                {% for f in formas_pgto %}
-                                                    <option value="{{ f.codigo }}" data-gera="{{ f.gera_parcelas|yesno:'1,0' }}">
-                                                        {{ f.descricao }}
-                                                    </option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <label class="form-label fw-bold">Valor</label>
-                                            <input type="text" class="form-control inp-valor-pgto">
-                                        </div>
-                                        <div class="col-md-2 campos-parcela d-none">
-                                            <label class="form-label fw-bold">Parcelas</label>
-                                            <input type="number" class="form-control form-control-sm parcelasPgto">
-                                        </div>
-                                        <div class="col-md-2 campos-parcela d-none">
-                                            <label class="form-label fw-bold">Dias</label>
-                                            <input type="number" class="form-control form-control-sm diasPgto">
-                                        </div>
-                                        <div class="col-md-2">
-                                            <button class="btn btn-success btn-sm w-100 btn-add-forma"><i class="fas fa-plus"></i> Adicionar</button>
+                                            <div class="border rounded-3 p-2 h-100 limite-cliente-card {% if p.cli.limite_credito > 0 %} border-success-subtle bg-success-subtle {% else %} border-danger-subtle bg-danger-subtle {% endif %}">
+                                                <div class="text-muted small fw-semibold mb-1">
+                                                    <i class="fa-solid fa-credit-card me-1"></i> Limite Disponível
+                                                </div>
+                                                <div class="fs-5 fw-bold {% if p.cli.limite_disponivel > 0 %} text-success {% else %} text-danger {% endif %}">R$ {{ p.cli.limite_disponivel|moeda_br }}</div>
+                                                <input type="hidden" class="limite-disponivel-cliente" value="{{ p.cli.limite_disponivel }}">
+                                            </div>
                                         </div>
                                     </div>
-                                    <hr>
-                                    <!-- TABELA FORMAS -->
-                                    <h6 class="fw-bold">Formas de Pagamento</h6>
-                                    <table class="table table-bordered table-striped table-formas">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th>#</th><th>Forma</th><th>Valor</th><th>Parcelas</th><th>Dias</th><th style="width:50px;">Ações</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody></tbody>
-                                    </table>
-                                    <!-- PREVIEW -->
-                                    <h6 class="fw-bold mt-3 d-none preview-title">Parcelas</h6>
-                                    <table class="table table-bordered d-none preview-table" id="previewPedido-{{ p.codigo }}">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th>Nº</th><th>Valor</th><th>Vencimento</th><th style="width:50px;">Ações</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody></tbody>
-                                    </table>
-                                    <div class="row">
-                                        <div class="mt-2">
-                                            <h5 class="fw-bold saldo-restante">Saldo Restante: R$ 0.00</h5>
+                                    <!-- DATAS -->
+                                    <div class="card border-0 bg-light mb-1">
+                                        <div class="card-body p-1">
+                                            <div class="row g-1 align-items-end">
+                                                <div class="col-md-3">
+                                                    <label class="form-label small fw-bold mb-1">Data de Emissão</label>
+                                                    <div class="input-group input-group-sm">
+                                                        <span class="input-group-text bg-white"><i class="fa-regular fa-calendar"></i></span>
+                                                        <input type="text" class="form-control fw-semibold dt-emi-pedido" value="{{ p.dt_emi|date:'d/m/Y' }}" disabled>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label small fw-bold mb-1">Data de Faturamento</label>
+                                                    <div class="input-group input-group-sm">
+                                                        <span class="input-group-text bg-white"><i class="fa-solid fa-calendar-check"></i></span>
+                                                        <input type="text" class="form-control fw-semibold dt-fat-pedido" value="{{ p.dt_fat|date:'d/m/Y' }}" readonly>
+                                                        <button type="button" class="btn btn-outline-secondary btn-lib-dt-fat-ped" data-permissao="pedidos.alterar_data_faturamento"
+                                                                data-msg-negado="Sem permissão para alterar data de faturamento." data-editando="0" title="Alterar data">
+                                                            <i class="fa-solid fa-pen"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- FORMAS DE PAGAMENTO -->
+                                    <div class="card border shadow-sm mb-2">
+                                        <div class="card-header bg-white border-bottom py-2">
+                                            <div class="d-flex align-items-center">
+                                                <div class="rounded-circle bg-success-subtle text-success p-2 me-2"><i class="fa-solid fa-wallet"></i></div>
+                                                <div>
+                                                    <div class="fw-bold text-dark">Informe como o pedido será pago</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="card-body p-2">
+                                            <!-- INSERÇÃO -->
+                                            <div class="row g-1 align-items-end">
+                                                <div class="col-md-4">
+                                                    <label class="form-label small fw-bold">Forma de Pagamento</label>
+                                                    <select class="form-select form-select-sm forma-pgto">
+                                                        <option value="">Selecione...</option>
+                                                        {% for f in formas_pgto %}
+                                                            <option value="{{ f.codigo }}" data-gera="{{ f.gera_parcelas|yesno:'1,0' }}">{{ f.descricao }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label small fw-bold">Valor</label>
+                                                    <div class="input-group input-group-sm">
+                                                        <span class="input-group-text">R$</span>
+                                                        <input type="text" class="form-control inp-valor-pgto" placeholder="0,00">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2 campos-parcela d-none">
+                                                    <label class="form-label small fw-bold">Parcelas</label>
+                                                    <input type="number" class="form-control form-control-sm parcelasPgto" min="1" value="1">
+                                                </div>
+                                                <div class="col-md-2 campos-parcela d-none">
+                                                    <label class="form-label small fw-bold">Dias</label>
+                                                    <input type="number" class="form-control form-control-sm diasPgto" min="0" value="0">
+                                                </div>
+                                                <div class="col-md-1">
+                                                    <button type="button" class="btn btn-success btn-sm w-100 btn-add-forma" title="Adicionar forma de pagamento">
+                                                        <i class="fa-solid fa-plus"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- PAGAMENTOS ADICIONADOS -->
+                                    <div class="mb-1">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="fw-bold mb-0"><i class="fa-solid fa-list-check me-1"></i> Pagamentos adicionados</h6>
+                                            <span class="badge text-bg-light border">
+                                                <span class="qtd-formas-pgto">0</span>
+                                                <span class="qtd-formas-texto">formas</span>
+                                            </span>
+                                        </div>
+                                        <div class="table-responsive border rounded-3">
+                                            <table class="table table-sm table-hover align-middle mb-0 table-formas">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th class="text-center" style="width:45px;">#</th><th>Forma</th><th>Valor</th><th>Parcelas</th>
+                                                        <th>Dias</th><th class="text-center" style="width:55px;">Ações</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <!-- PREVISÃO DAS PARCELAS -->
+                                    <div class="mb-1">
+                                        <div class="d-flex align-items-center mb-2 d-none preview-title">
+                                            <i class="fa-solid fa-calendar-days me-2 text-success"></i>
+                                            <h6 class="fw-bold mb-0">Parcelas</h6>
+                                        </div>
+                                        <div class="table-responsive border rounded-3 d-none preview-table-wrapper">
+                                            <table class="table table-sm table-hover align-middle mb-0 preview-table" id="previewPedido-{{ p.codigo }}">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Nº</th><th class="text-end">Valor</th><th>Vencimento</th><th class="text-center" style="width:50px;">Ações</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <!-- RESUMO -->
+                                    <div class="border rounded-3 p-2 bg-light">
+                                        <div class="row g-0">
+                                            <div class="col-md-4">
+                                                <div class="small text-muted">Total do Pedido</div>
+                                                <div class="fw-bold fs-5">R$ {{ p.total|moeda_br }}</div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="small text-muted">Total Informado</div>
+                                                <div class="fw-bold fs-5 text-primary total-pago">R$ 0,00</div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="small text-muted">Saldo Restante</div>
+                                                <div class="fw-bold fs-5 saldo-restante">R$ {{ p.total|moeda_br }}</div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="modal-footer">
-                                    <form method="post" action="{% url 'faturar-pedido' p.codigo %}">
+                                <!-- RODAPÉ -->
+                                <div class="modal-footer border-top bg-light px-2 py-2">
+                                    <form method="post" action="{% url 'faturar-pedido' p.codigo %}" class="d-flex gap-2">
                                         {% csrf_token %}
                                         <input type="hidden" name="dados_pagamento" id="dadosPagamento-{{ p.codigo }}">
                                         <input type="hidden" name="parcelas_json" id="parcelasJson-{{ p.codigo }}">
-                                        <button type="submit" class="btn btn-success btn-sm btn-confirmar-pedido">Faturar</button>
-                                        <button type="button" class="btn btn-secondary btn-sm btn-canc-fat-pedido" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-success btn-sm px-4 btn-confirmar-pedido">
+                                            <i class="fa-solid fa-check me-1"></i> Faturar Pedido
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm px-4 btn-canc-fat-pedido" data-bs-dismiss="modal">
+                                            <i class="fa-solid fa-xmark me-1"></i> Cancelar
+                                        </button>
                                     </form>
                                 </div>
                             </div>

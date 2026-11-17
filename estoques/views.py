@@ -7,9 +7,10 @@ from .forms import EstoqueForm
 import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
-from filiais.models import Usuario
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from util.logs import gerar_alteracoes, registrar_log
+from django.db import DatabaseError, IntegrityError, transaction
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -53,71 +54,104 @@ def lista_estoques_ajax(request):
 
 @login_required
 def add_estoque(request):
+    error_messages = []
     if not request.user.has_perm('estoques.add_estoque'):
         messages.info(request, 'Você não tem permissão para adicionar estoques.')
         return redirect('/estoques/lista/')
-    if request.method == 'POST':
-        form = EstoqueForm(request.POST)
-        if form.is_valid():
+    empresa = request.user.empresa
+    if request.method != 'POST':
+        form = EstoqueForm(empresa=empresa, user=request.user)
+        return render(request, 'estoques/add.html', {'form': form, 'error_messages': error_messages})
+    form = EstoqueForm(request.POST, empresa=empresa, user=request.user)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'estoques/add.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             c = form.save(commit=False)
-            c.empresa = request.user.empresa
+            c.empresa = empresa
             c.save()
-            registrar_log(
-                request, "CRIAR", "Estoque", c.descricao,
-                f"Adicionou o estoque: {c.codigo} - {c.descricao}",
-                c.id, gerar_alteracoes(obj_novo=c)
-            )
+            registrar_log(request, "CRIAR", "Estoque", c.descricao, f"Adicionou o estoque: {c.codigo} - {c.descricao}", c.id, gerar_alteracoes(obj_novo=c))
             messages.success(request, 'Estoque adicionado com sucesso!')
             cid = str(c.codigo)
             return redirect('/estoques/lista/?tp=cod&s=' + cid)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'estoques/add.html', {'form': form, 'error_messages': error_messages})
-    else: form = EstoqueForm()
-    return render(request, 'estoques/add.html', {'form': form})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'estoques/add.html', {'form': form, 'error_messages': error_messages})
 
 @login_required
 def att_estoque(request, codigo):
-    c = get_object_or_404(Estoque, codigo=codigo, empresa=request.user.empresa)
-    it_old = Estoque.objects.get(codigo=c.codigo, empresa=request.user.empresa)
-    form = EstoqueForm(instance=c)
+    error_messages = []
+    empresa = request.user.empresa
     if not request.user.has_perm('estoques.change_estoque'):
         messages.info(request, 'Você não tem permissão para editar estoques.')
         return redirect('/estoques/lista/')
-    if request.method == 'POST':
-        form = EstoqueForm(request.POST, instance=c)
-        if form.is_valid():
-            c.save()
-            registrar_log(
-                request, "ALTERAR", "Estoque", c.descricao,
-                f"Alterou o estoque: {c.codigo} - {c.descricao}",
-                c.id, gerar_alteracoes(it_old, c)
-            )
-            next_url = request.POST.get('next') or request.GET.get('next')
+    c = get_object_or_404(Estoque, codigo=codigo, empresa=empresa)
+    # Guarda o estado antigo para o log
+    it_old = Estoque.objects.get(pk=c.pk, empresa=empresa)
+    if request.method != 'POST':
+        form = EstoqueForm(instance=c, empresa=empresa, user=request.user)
+        return render(request, 'estoques/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
+    form = EstoqueForm(request.POST, instance=c, empresa=empresa, user=request.user)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'estoques/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
+            c = form.save()
+            registrar_log(request, "ALTERAR", "Estoque", c.descricao, f"Alterou o estoque: {c.codigo} - {c.descricao}", c.id, gerar_alteracoes(it_old, c))
+            next_url = (request.POST.get('next') or request.GET.get('next'))
             cid = str(c.codigo)
             messages.success(request, 'Estoque atualizado com sucesso!')
-            if next_url: return redirect(next_url)
-            else: return redirect('/estoques/lista/?tp=cod&s=' + cid)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'estoques/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
-    else: return render(request, 'estoques/att.html', {'form': form, 'c': c})
+            if next_url:
+                return redirect(next_url)
+            return redirect('/estoques/lista/?tp=cod&s=' + cid)
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'estoques/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
 
 @login_required
 def del_estoque(request, codigo):
     if not request.user.has_perm('estoques.delete_estoque'):
         messages.info(request, 'Você não tem permissão para deletar estoques.')
         return redirect('/estoques/lista/')
-    c = get_object_or_404(Estoque, codigo=codigo, empresa=request.user.empresa)
-    registrar_log(
-        request, "EXCLUIR", "Estoque", c.descricao,
-        f"Excluiu o estoque: {c.codigo} - {c.descricao}",
-        c.id, gerar_alteracoes(obj_antigo=c)
-    )
-    c.delete()
-    messages.success(request, 'Estoque deletado com sucesso!')
+    try:
+        with transaction.atomic():
+            c = get_object_or_404(Estoque, codigo=codigo, empresa=request.user.empresa)
+            registrar_log(request, "EXCLUIR", "Estoque", c.descricao, f"Excluiu o estoque: {c.codigo} - {c.descricao}", c.id, gerar_alteracoes(obj_antigo=c))
+            c.delete()
+            messages.success(request, 'Estoque deletado com sucesso!')
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return redirect('/estoques/lista/')

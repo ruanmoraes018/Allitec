@@ -1,50 +1,28 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load custom_filters %}
 {% block title %}PDV - Caixa{% endblock %}
 {% block content %}
 <div class="container-fluid mt-2">
-    <!-- HEADER -->
-    <div class="card shadow-sm mb-2 text-center" style="margin-top: 60px;">
-        <div class="card-body">
-            <div class="d-flex justify-content-center gap-4 flex-wrap fw-bold fs-5">
-                <span class="badge bg-primary px-3 py-2" id="infoCaixa">PDV: {{ caixa.terminal.nome|upper }}</span>
-                <span class="badge bg-success px-3 py-2" id="infoOperador">Operador: {{ caixa.usuario.first_name }}</span>
-                <span class="badge bg-info px-3 py-2 text-dark" id="infoVendedor">Vendedor: </span>
-                <span class="px-3" style="background-color: #2F4F4F; color: white; border-radius: 5px;" id="infoCliente">Cliente: </span>
-                <span class="badge bg-dark px-3 py-2" id="infoTabelaPreco">Tb. Preço: </span>
-                <span class="badge bg-warning text-dark px-3 py-2"><i class="fa-regular fa-clock"></i> <span id="horaAtual"></span></span>
-            </div>
-        </div>
-    </div>
     <!-- BUSCA RÁPIDA -->
-    <div class="card mb-2 shadow-sm">
+    <div class="card mb-2 shadow-sm" style="margin-top: 60px;">
         <div class="card-body row g-2">
-
-            <div class="col-md-4">
-                <input id="id_cod_produtoCaixa" class="form-control form-control-sm" placeholder="Código" autofocus>
-            </div>
-            <div class="col-md-4">
-                <input id="id_desc_prodCaixa" class="form-control form-control-sm" disabled placeholder="Descrição">
-            </div>
-            <div class="col-md-1">
-                <input id="id_preco_unitCaixa" class="form-control form-control-sm text-end" disabled placeholder="Preço">
-            </div>
-            <div class="col-md-1">
-                <input id="id_quantidadeCaixa" class="form-control form-control-sm text-end" disabled value="1">
-            </div>
+            <div class="col-md-4"><input id="id_cod_produtoCaixa" class="form-control form-control-sm" placeholder="Código" autofocus></div>
+            <div class="col-md-4"><input id="id_desc_prodCaixa" class="form-control form-control-sm" disabled placeholder="Descrição"></div>
+            <div class="col-md-1"><input id="id_preco_unitCaixa" class="form-control form-control-sm text-end" disabled placeholder="Preço"></div>
+            <div class="col-md-1"><input id="id_quantidadeCaixa" class="form-control form-control-sm text-end" disabled value="1"></div>
             <div class="col-md-2">
                 <button class="btn btn-dark btn-sm w-100" type="button" id="add-prodP"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Pesquisar</button>
                 <button class="btn btn-primary btn-lg w-100" hidden id="btnAddProduto"><i class="fa-solid fa-plus"></i> Adicionar</button>
             </div>
         </div>
     </div>
-    <!-- GRID -->
-    <div class="row">
+    <!-- GRID PRINCIPAL -->
+    <div class="row g-2 align-items-start">
         <!-- ITENS -->
         <div class="col-md-8">
-            <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+            <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-2">
                 <div class="list-group" style="height: 500px; overflow:auto;">
-                    <!-- Cabeçalho -->
                     <div class="list-group-item bg-light fw-bold cabecalho-lista">
                         <div class="row align-items-center">
                             <div class="col-md-1 text-center border-end">#</div>
@@ -60,28 +38,33 @@
                 </div>
             </div>
         </div>
-        <!-- TOTAL FIXO -->
+        <!-- COLUNA DIREITA -->
         <div class="col-md-4">
-            <div class="card shadow-sm text-center">
+            <!-- TOTAL E OPERAÇÕES -->
+            <div class="card shadow-sm text-center mb-2">
                 <div class="card-body">
-                    <div class="header-logo">
-                        {% if logo_base64 %}<img src="data:image/jpeg;base64,{{ logo_base64 }}"
-                        class="img-fluid mx-auto d-block"
-                        style="max-height: 120px;">{% endif %}
+                    <div class="header-logo">{% if logo_base64 %}<img src="data:image/jpeg;base64,{{ logo_base64 }}" class="img-fluid mx-auto d-block" style="max-height: 120px;">{% endif %}</div>
+                    <h2 class="fw-bold text-success mt-2">Total: R$ <span id="totalVendaBox">0,00</span></h2>
+                    <div class="d-flex flex-wrap justify-content-center gap-2">
+                        <button class="btn btn-success" id="finalizarVendaBtn" data-bs-target=".modal-pagamento"><i class="fa-solid fa-sack-dollar"></i> Finalizar</button>
+                        <button class="btn btn-danger" id="cancelarVendaBtn"><i class="fa-regular fa-circle-xmark"></i> Cancelar</button>
+                        <button class="btn btn-info" id="reimprimirVendaBtn" data-bs-toggle="modal" data-bs-target="#mdReimprimir"><i class="fa-solid fa-print"></i> Impressão</button>
+                        <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#modalOpções"><i class="fa-solid fa-bars-staggered"></i> Opções</button>
                     </div>
-                    <h2 class="fw-bold text-success">Total: R$ <span id="totalVendaBox">0,00</span></h2>
-                    <button class="btn btn-success mt-1" id="finalizarVendaBtn" data-bs-target=".modal-pagamento">
-                        <i class="fa-solid fa-sack-dollar"></i> Finalizar
-                    </button>
-                    <button class="btn btn-danger mt-1" id="cancelarVendaBtn">
-                        <i class="fa-regular fa-circle-xmark"></i> Cancelar
-                    </button>
-                    <button class="btn btn-info mt-1" id="reimprimirVendaBtn" data-bs-toggle="modal" data-bs-target="#mdReimprimir">
-                        <i class="fa-solid fa-print" style="font-size: 16px;"></i> Impressão
-                    </button>
-                    <button class="btn btn-secondary mt-1" data-bs-toggle="modal" data-bs-target="#modalOpções">
-                        <i class="fa-solid fa-bars-staggered"></i> Opções
-                    </button>
+                </div>
+            </div>
+            <!-- INFORMAÇÕES DA VENDA -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-dark text-white fw-bold py-2"><i class="fa-solid fa-bag-shopping me-1"></i> Dados da Venda</div>
+                <div class="card-body p-2">
+                    <div class="d-flex flex-column gap-2">
+                        <span class="badge bg-primary text-start p-2" id="infoCaixa"><i class="fa-solid fa-cash-register me-1"></i> PDV: {{ caixa.terminal.nome|upper }}</span>
+                        <span class="badge bg-success text-start p-2" id="infoOperador"> <i class="fa-solid fa-user me-1"></i> Operador: {{ caixa.usuario.first_name }}</span>
+                        <span class="badge bg-info text-dark text-start p-2" id="infoVendedor"> <i class="fa-solid fa-user-tag me-1"></i> Vendedor:</span>
+                        <span class="p-2 text-white rounded text-start" style="background-color: #2F4F4F;" id="infoCliente"><i class="fa-regular fa-face-smile me-1"></i> Cliente:</span>
+                        <span class="badge bg-dark text-start p-2" id="infoTabelaPreco"><i class="fa-solid fa-tags me-1"></i> Tb. Preço:</span>
+                        <span class="badge bg-warning text-dark text-start p-2"><i class="fa-regular fa-clock me-1"></i> <span id="horaAtual"></span></span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -89,9 +72,7 @@
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header" style="background-color: #708090;">
-                        <div class="d-flex justify-content-center w-100">
-                            <h5 class="modal-title text-center text-white" id="modalOpçõesLabel"><strong>Opções do Caixa</strong></h5>
-                        </div>
+                        <div class="d-flex justify-content-center w-100"><h5 class="modal-title text-center text-white" id="modalOpçõesLabel"><strong>Opções do Caixa</strong></h5></div>
                     </div>
                     <div class="modal-body d-grid gap-2">
                         <button class="btn btn-light w-100 text-start menu-opcao op-editar border border-secondary" data-bs-target="#mdDadosVenda" data-bs-toggle="modal">
@@ -132,22 +113,33 @@
                 </div>
             </div>
         </div>
+        <div class="modal fade" id="modalConfirmarCancelamento" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header titulo-modal">
+                        <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2"></i> Cancelar lançamento</h5>
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        <i class="bi bi-exclamation-circle text-danger" style="font-size: 42px;"></i>
+                        <p class="mt-3 mb-1 fw-semibold">Deseja realmente cancelar este lançamento?</p>
+                        <small class="text-muted">Essa ação seguirá o procedimento normal de cancelamento.</small>
+                    </div>
+                    <div class="modal-footer justify-content-center">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Não</button>
+                        <button type="button" class="btn btn-danger" id="confirmarCancelamento"><i class="bi bi-x-circle me-1"></i>Sim</button>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="modal fade" id="modalTrocaDevolucao" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalTrocaDevolucaoLabel" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content">
-                    
                     <div class="modal-header titulo-modal">
-                        <h5 class="modal-title" id="modalTrocaDevolucaoLabel">
-                            <i class="fa-solid fa-up-down"></i> Iniciar Troca ou Devolução
-                        </h5>
+                        <h5 class="modal-title" id="modalTrocaDevolucaoLabel"><i class="fa-solid fa-up-down"></i> Iniciar Troca ou Devolução</h5>
                     </div>
-                    
                     <div class="modal-body">
-                        
                         <div class="row g-3 align-items-center mb-4 border-bottom pb-3">
-                            <div class="col-md-3">
-                                <label for="inputCodigoPedido" class="form-label fw-bold">Nº Pedido:</label>
-                            </div>
+                            <div class="col-md-3"><label for="inputCodigoPedido" class="form-label fw-bold">Nº Pedido:</label></div>
                             <div class="col-md-6">
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="fa-solid fa-file-circle-question"></i></span>
@@ -155,9 +147,7 @@
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <button type="button" id="btnBuscarPedidoTroca" class="btn btn-primary btn-sm w-100">
-                                    <i class="fa-solid fa-magnifying-glass"></i> Consultar
-                                </button>
+                                <button type="button" id="btnBuscarPedidoTroca" class="btn btn-primary btn-sm w-100"><i class="fa-solid fa-magnifying-glass"></i> Consultar</button>
                             </div>
                         </div>
                         <div id="dadosPedidoOriginal" class="card mb-3 bg-light d-none">
@@ -169,7 +159,6 @@
                                 </div>
                             </div>
                         </div>
-
                         <div id="containerItensTroca" class="d-none">
                             <p class="text-muted small mb-2"><i class="fa-regular fa-flag"></i> Selecione os itens e informe a quantidade que o cliente está devolvendo:</p>
                             <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
@@ -184,18 +173,13 @@
                                             <th class="text-end">Vl. Unit.</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="tbodyItensPedidoOriginal">
-                                        </tbody>
+                                    <tbody id="tbodyItensPedidoOriginal"></tbody>
                                 </table>
                             </div>
                         </div>
-
                     </div>
-                    
                     <div class="modal-footer bg-light">
-                        <button type="button" id="btnConfirmarItensModal" class="btn btn-success d-none">
-                            <i class="fa-regular fa-circle-check"></i> Confirmar
-                        </button>
+                        <button type="button" id="btnConfirmarItensModal" class="btn btn-success d-none"><i class="fa-regular fa-circle-check"></i> Confirmar</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     </div>
                 </div>
@@ -342,94 +326,154 @@
                 </div>
             </div>
         </div>
-        <div class="modal fade modal-pagamento" tabindex="-1" aria-hidden="true" data-tipo="caixa" data-id="0" data-total="0" data-forma-padrao-id="{{ forma_padrao.codigo }}" data-forma-padrao-text="{{ forma_padrao.descricao }}">
-            <div class="modal-dialog modal-lg modal-dialog-centered">
-                <div class="modal-content">
-
-                    <div class="modal-header bg-success text-white" style="max-height: 30px;">
-                        <h5><i class="fa-solid fa-money-bill" style="font-size: 16px;"></i> Finalizar Venda</h5>
+        <div class="modal fade modal-pagamento modal-lg" tabindex="-1" aria-hidden="true" data-tipo="caixa" data-id="0" data-total="0" data-forma-padrao-id="{{ forma_padrao.codigo }}" data-forma-padrao-text="{{ forma_padrao.descricao }}">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content border-0 shadow-lg">
+                    <!-- CABEÇALHO -->
+                    <div class="modal-header bg-success text-white border-0 py-2 px-3">
+                        <h5 class="modal-title fw-bold mb-0"><i class="fa-solid fa-cash-register me-2"></i> Finalizar Venda</h5>
                     </div>
-
-                    <div class="modal-body">
-                        <div class="row">
-                            <div style="flex: 1;">
-                                <label class="form-label fw-bold">Cliente:</label>
-                                <input class="form-control fw-bold vendaCliente" disabled>
+                    <div class="modal-body p-2">
+                        <!-- RESUMO DA VENDA / CLIENTE -->
+                        <div class="row g-1 mb-1">
+                            <!-- CLIENTE -->
+                            <div class="col-md-5">
+                                <div class="border rounded-3 p-2 h-100 bg-light-subtle">
+                                    <div class="text-muted small fw-semibold mb-1"><i class="fa-solid fa-user me-1"></i> Cliente</div>
+                                    <input type="text" class="form-control form-control-sm fw-bold vendaCliente" disabled>
+                                </div>
                             </div>
-                            <!-- TOTAL -->
-                            <div class="col-md-2">
-                                <label class="form-label fw-bold">Total Venda:</label>
-                                <input class="form-control fw-bold totalModal" disabled>
+                            <!-- TOTAL VENDA -->
+                            <div class="col-md-3">
+                                <div class="border rounded-3 p-2 h-100">
+                                    <div class="text-muted small fw-semibold mb-1"><i class="fa-solid fa-receipt me-1"></i> Total da Venda</div>
+                                    <div class="fs-5 fw-bold text-success totalModal">R$ 0,00</div>
+                                </div>
                             </div>
-                            <!-- ADD FORMA -->
-                            <div class="row g-2 align-items-end">
+                            <!-- LIMITE DISPONÍVEL -->
+                            <div class="col-md-4">
+                                <div class="border rounded-3 p-2 h-100 limite-cliente-card {% if cliente.limite_credito > 0 %}border-success-subtle bg-success-subtle{% else %}border-danger-subtle bg-danger-subtle{% endif %}">
+                                    <div class="text-muted small fw-semibold mb-1"><i class="fa-solid fa-credit-card me-1"></i> Limite Disponível</div>
+                                    <div class="fs-5 fw-bold {% if cliente.limite_disponivel > 0 %}text-success{% else %}text-danger{% endif %} limite-disponivel-valor">
+                                        R$ {{ cliente.limite_disponivel|moeda_br }}
+                                    </div>
+                                    <input type="hidden" class="limite-disponivel-cliente" value="{{ cliente.limite_disponivel }}">
+                                </div>
+                            </div>
+                        </div>
+                        <!-- FORMAS DE PAGAMENTO -->
+                        <div class="card border shadow-sm mb-2">
+                            <div class="card-header bg-white border-bottom py-2">
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-success-subtle text-success p-2 me-2"><i class="fa-solid fa-wallet"></i></div>
+                                    <div>
+                                        <div class="fw-bold text-dark">Informe como a venda será paga</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body p-2">
+                                <!-- INSERÇÃO -->
+                                <div class="row g-1 align-items-end">
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold">Forma de Pagamento</label>
+                                        <select class="form-select form-select-sm forma-pgto">
+                                            <option value="">Selecione...</option>
+                                            {% for f in formas_pgto %}
+                                                <option value="{{ f.codigo }}" data-gera="{{ f.gera_parcelas|yesno:'1,0' }}" {% if f.codigo == forma_padrao.codigo %}selected{% endif %}>{{ f.descricao }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small fw-bold">Valor</label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text">R$</span>
+                                            <input type="text" class="form-control inp-valor-pgto" placeholder="0,00">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2 campos-parcela d-none">
+                                        <label class="form-label small fw-bold">Parcelas</label>
+                                        <input type="number" class="form-control form-control-sm parcelasPgto" min="1" value="1">
+                                    </div>
+                                    <div class="col-md-2 campos-parcela d-none">
+                                        <label class="form-label small fw-bold">Dias</label>
+                                        <input type="number" class="form-control form-control-sm diasPgto" min="0" value="30">
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button type="button" class="btn btn-success btn-sm w-100 btn-add-forma" title="Adicionar forma de pagamento"> <i class="fa-solid fa-plus"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- PAGAMENTOS ADICIONADOS -->
+                        <div class="mb-1">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold mb-0"><i class="fa-solid fa-list-check me-1"></i> Pagamentos adicionados</h6>
+                                <span class="badge text-bg-light border">
+                                    <span class="qtd-formas-pgto">0</span>
+                                    <span class="qtd-formas-texto">formas</span>
+                                </span>
+                            </div>
+                            <div class="table-responsive border rounded-3">
+                                <table class="table table-sm table-hover align-middle mb-0 table-formas">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="text-center" style="width:45px;">#</th>
+                                            <th>Forma</th>
+                                            <th>Valor</th>
+                                            <th>Parcelas</th>
+                                            <th>Dias</th>
+                                            <th class="text-center" style="width:55px;">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- PREVISÃO DAS PARCELAS -->
+                        <div class="mb-1">
+                            <div class="d-flex align-items-center mb-2 d-none preview-title"><i class="fa-solid fa-calendar-days me-2 text-success"></i> <h6 class="fw-bold mb-0">Parcelas</h6></div>
+                            <div class="table-responsive border rounded-3 d-none preview-table-wrapper">
+                                <table class="table table-sm table-hover align-middle mb-0 preview-table">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Nº</th>
+                                            <th class="text-end">Valor</th>
+                                            <th>Vencimento</th>
+                                            <th class="text-center" style="width:50px;">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- RESUMO -->
+                        <div class="border rounded-3 p-2 bg-light">
+                            <div class="row g-2 align-items-center">
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold">Forma de Pagamento:</label>
-                                    <select class="form-select forma-pgto">
-                                        {% for f in formas_pgto %}
-                                            <option value="{{ f.codigo }}" data-padrao="{{ fp.forma_padrao }}">{{ f.descricao }}</option>
-                                        {% endfor %}
-                                    </select>
+                                    <div class="small text-muted">Total da Venda</div>
+                                    <div class="fw-bold fs-5 text-dark totalModal">R$ 0,00</div>
                                 </div>
-                                <div class="col-md-2">
-                                    <label class="form-label fw-bold">Valor da Forma:</label>
-                                    <input class="form-control text-end inp-valor-pgto">
+                                <div class="col-md-4">
+                                    <div class="small text-muted">Total Informado</div>
+                                    <div class="fw-bold fs-5 text-primary total-pago">R$ 0,00</div>
                                 </div>
-                                <div class="col-md-2 campos-parcela d-none">
-                                    <label class="form-label fw-bold">Parcelas</label>
-                                    <input type="number" min="1" value="1" class="form-control form-control-sm parcelasPgto">
+                                <div class="col-md-4">
+                                    <div class="small text-muted">Saldo Restante</div>
+                                    <div class="fw-bold fs-5 saldo-restante">R$ 0,00</div>
                                 </div>
-                                <div class="col-md-2 campos-parcela d-none">
-                                    <label class="form-label fw-bold">Dias</label>
-                                    <input type="number" min="0" value="30" class="form-control form-control-sm diasPgto">
-                                </div>
-                                <div class="col-md-2">
-                                    <button class="btn btn-success btn-sm w-100 btn-add-forma">
-                                        <i class="fas fa-plus"></i> Adicionar
-                                    </button>
-                                </div>
-                            </div>
-                            <!-- TABELA FORMAS -->
-                            <div class="card text-center mt-2 mb-2" style="margin-left: 0;">
-                                <div class="card-body fw-bold" style="margin: -10px;">
-                                    Formas de Pagamento
-                                </div>
-                            </div>
-                            <table class="table table-bordered table-striped table-formas">
-                                <thead class="table-dark">
-                                    <tr>
-                                        <th>#</th><th>Forma</th><th>Valor</th><th>Parcelas</th><th>Dias</th><th style="width:50px;">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                            <!-- PREVIEW -->
-                            <h6 class="fw-bold mt-3 d-none preview-title">Parcelas</h6>
-                            <table class="table table-bordered d-none preview-table">
-                                <thead class="table-dark">
-                                    <tr>
-                                        <th>Nº</th><th>Valor</th><th>Vencimento</th><th style="width:50px;">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                            <div class="row">
-                                <div class="mt-2">
-                                    <h5 class="fw-bold saldo-restante">Saldo Restante: R$ 0.00</h5>
-                                </div>
-                                <div class="col-md-2 d-none troco-container">
-                                    <label class="form-label fw-bold">Troco</label>
-                                    <input type="text" class="form-control form-control-sm troco" readonly>
+                                <!-- TROCO -->
+                                <div class="col-md-4 d-none troco-container">
+                                    <div class="small text-muted">Troco</div>
+                                    <input type="text" class="form-control form-control-sm fw-bold text-success troco" readonly>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="modal-footer">
-                        <button class="btn btn-success btn-confirmar-pedido">Finalizar Venda</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <!-- RODAPÉ -->
+                    <div class="modal-footer border-top bg-light px-2 py-2">
+                        <button type="button" class="btn btn-success btn-sm px-4 btn-confirmar-pedido"><i class="fa-solid fa-check me-1"></i> Finalizar Venda</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm px-4" data-bs-dismiss="modal"><i class="fa-solid fa-xmark me-1"></i> Fechar</button>
                     </div>
-
                 </div>
             </div>
         </div>
@@ -461,55 +505,30 @@
     <div class="modal fade" id="modalEntrada" tabindex="-1" aria-labelledby="modalEntradaLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-
                 <div class="modal-header titulo-modal">
-                    <h5 class="modal-title" id="modalEntradaLabel">
-                        <i class="fa-solid fa-circle-plus"></i>
-                        Realizar Entrada
-                    </h5>
+                    <h5 class="modal-title" id="modalEntradaLabel"><i class="fa-solid fa-circle-plus"></i> Realizar Entrada</h5>
                 </div>
-
                 <form id="formEntrada" action="{% url 'realizar_entrada_caixa' caixa.codigo %}">
                     {% csrf_token %}
-
                     <div class="modal-body">
                         <div class="row">
                             <div class="col-md-8 mb-2">
-                                <label class="form-label fw-bold">
-                                    Forma de Pagamento
-                                </label>
-                                <select class="form-select" id="forma_entrada" name="forma_pagamento_entrada" required>
-                                </select>
+                                <label class="form-label fw-bold">Forma de Pagamento</label>
+                                <select class="form-select" id="forma_entrada" name="forma_pagamento_entrada" required></select>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label class="form-label fw-bold">
-                                    Valor
-                                </label>
-                                <input type="text"
-                                    class="form-control text-end text-success fw-bold"
-                                    name="valor"
-                                    id="vl_entrada"
-                                    required>
+                                <label class="form-label fw-bold">Valor</label>
+                                <input type="text" class="form-control text-end text-success fw-bold" name="valor" id="vl_entrada" required>
                             </div>
-
                             <div class="col-md-12 mb-3">
-                                <label class="form-label fw-bold">
-                                    Descrição
-                                </label>
-                                <textarea class="form-control" id="desc_entrada"
-                                        rows="3"
-                                        name="descricao"
-                                        placeholder="Informe a descrição da entrada"></textarea>
+                                <label class="form-label fw-bold">Descrição</label>
+                                <textarea class="form-control" id="desc_entrada" rows="3" name="descricao" placeholder="Informe a descrição da entrada"></textarea>
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-success">
-                            <i class="fa-solid fa-check"></i> Confirmar
-                        </button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            Cancelar
-                        </button>
+                        <button class="btn btn-success"><i class="fa-solid fa-check"></i> Confirmar</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     </div>
                 </form>
             </div>
@@ -520,56 +539,30 @@
     <div class="modal fade" id="modalSaida" tabindex="-1" aria-labelledby="modalSaidaLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-
                 <div class="modal-header titulo-modal">
-                    <h5 class="modal-title" id="modalSaidaLabel">
-                        <i class="fa-solid fa-circle-minus"></i>
-                        Realizar Saída
-                    </h5>
+                    <h5 class="modal-title" id="modalSaidaLabel"><i class="fa-solid fa-circle-minus"></i> Realizar Saída</h5>
                 </div>
-
                 <form id="formSaida" action="{% url 'realizar_saida_caixa' caixa.codigo %}">
                     {% csrf_token %}
-
                     <div class="modal-body">
                         <div class="row">
                             <div class="col-md-8 mb-2">
-                                <label class="form-label fw-bold">
-                                    Forma de Pagamento
-                                </label>
-                                <select class="form-select" id="forma_saida" name="forma_pagamento_saida" required>
-                                </select>
+                                <label class="form-label fw-bold">Forma de Pagamento</label>
+                                <select class="form-select" id="forma_saida" name="forma_pagamento_saida" required></select>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label class="form-label fw-bold">
-                                    Valor
-                                </label>
-                                <input type="text"
-                                    class="form-control text-end text-danger fw-bold"
-                                    name="valor"
-                                    id="vl_saida"
-                                    required>
+                                <label class="form-label fw-bold">Valor</label>
+                                <input type="text" class="form-control text-end text-danger fw-bold" name="valor" id="vl_saida" required>
                             </div>
-
                             <div class="col-md-12 mb-3">
-                                <label class="form-label fw-bold">
-                                    Descrição da Saída
-                                </label>
-                                <textarea class="form-control" id="desc_saida"
-                                        rows="3"
-                                        name="descricao"
-                                        placeholder="Informe a descrição da saída"
-                                        required></textarea>
+                                <label class="form-label fw-bold">Descrição da Saída</label>
+                                <textarea class="form-control" id="desc_saida" rows="3" name="descricao" placeholder="Informe a descrição da saída" required></textarea>
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-danger">
-                            <i class="fa-solid fa-check"></i> Confirmar
-                        </button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            Cancelar
-                        </button>
+                        <button class="btn btn-danger"><i class="fa-solid fa-check"></i> Confirmar</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     </div>
                 </form>
             </div>
@@ -643,15 +636,10 @@
     <div class="modal fade" id="modalFechamentoCaixa" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
-
                 <div class="modal-header" style="background-color: #2F4F4F;">
-                    <h5 class="modal-title text-white fw-bold">
-                        <i class="fa-solid fa-cash-register me-2"></i> Fechamento de Caixa
-                    </h5>
+                    <h5 class="modal-title text-white fw-bold"><i class="fa-solid fa-cash-register me-2"></i> Fechamento de Caixa</h5>
                 </div>
-
                 <div class="modal-body p-0">
-
                     <!-- Cabeçalho das colunas -->
                     <div class="row g-0 fw-bold text-center py-2 border-bottom"
                         style="background: #f8f9fa; font-size: 0.85rem; letter-spacing: 0.04em;">
@@ -659,40 +647,26 @@
                         <div class="col-4 border-end text-secondary">SISTEMA (R$)</div>
                         <div class="col-4 text-secondary">INFORMADO (R$)</div>
                     </div>
-
                     <!-- Linhas preenchidas dinamicamente -->
                     <div id="listaFechamento">
                         <!-- JS preenche aqui -->
                     </div>
-
                     <!-- Totais -->
                     <div class="row g-0 fw-bold border-top mt-1 py-3" style="background: #f8f9fa;">
                         <div class="col-4 ps-4 text-secondary" style="font-size: 0.85rem;">TOTAL</div>
-                        <div class="col-4 text-center">
-                            <span class="badge bg-dark px-3 py-2" id="totalSistemaFechamento">R$ 0,00</span>
-                        </div>
-                        <div class="col-4 text-center">
-                            <span class="badge px-3 py-2" id="totalInformadoFechamento"
-                                style="background-color:#2F4F4F;">R$ 0,00</span>
-                        </div>
+                        <div class="col-4 text-center"><span class="badge bg-dark px-3 py-2" id="totalSistemaFechamento">R$ 0,00</span></div>
+                        <div class="col-4 text-center"><span class="badge px-3 py-2" id="totalInformadoFechamento" style="background-color:#2F4F4F;">R$ 0,00</span></div>
                     </div>
-
                     <!-- Diferença -->
                     <div class="text-center pb-3">
                         <small class="text-muted">Diferença: </small>
                         <span class="fw-bold" id="diferencaFechamento">R$ 0,00</span>
                     </div>
-
                 </div>
-
                 <div class="modal-footer">
+                    <button type="button" class="btn fw-bold text-white" id="btnConfirmarFechamento" style="background-color:#2F4F4F;"><i class="fa-solid fa-lock me-1"></i> Confirmar Fechamento</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn fw-bold text-white" id="btnConfirmarFechamento"
-                            style="background-color:#2F4F4F;">
-                        <i class="fa-solid fa-lock me-1"></i> Confirmar Fechamento
-                    </button>
                 </div>
-
             </div>
         </div>
     </div>
@@ -742,7 +716,6 @@
                             <button class="btn btn-dark btn-sm w-100" id="pesq-produtos" style="margin-top: 30px;"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button>
                         </div>
                     </div>
-
                     <div class="table-container mt-3">
                         <table class="table table-bordered table-responsive-md table-rounded table-striped" id="tabelas-lista">
                             <thead class="table-dark">

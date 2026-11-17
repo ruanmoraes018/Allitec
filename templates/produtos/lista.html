@@ -178,18 +178,18 @@
                             <div class="col-md-1 fw-bold codigo-col" data-label="Estoque:">
                                 {% if p.estoque_prod == "" %}0,00{% endif %}
                                 {% if p.estoque_prod < 0 %}
-                                    <span class="text-danger" title="Saldo Negativo">{{ p.estoque_prod }}</span>
+                                    <span class="text-danger" title="Saldo Negativo">{{ p.estoque_prod|moeda_br }}</span>
                                 {% elif p.estoque_prod > 0 %}
-                                    <span class="text-success" title="Saldo Positivo">{{ p.estoque_prod }}</span>
+                                    <span class="text-success" title="Saldo Positivo">{{ p.estoque_prod|moeda_br }}</span>
                                 {% else %}
-                                    <span class="text-secondary" title="Saldo Zerado">{{ p.estoque_prod }}</span>
+                                    <span class="text-secondary" title="Saldo Zerado">{{ p.estoque_prod|moeda_br }}</span>
                                 {% endif %}
                             </div>
                             <!-- Tabelas de Preços -->
                             <div class="col-md-1 fw-bold codigo-col" data-label="Tabelas:">
-                                <div style="max-height: 5em; overflow-y: auto; white-space: normal; line-height: 0.8em;">
+                                <div style="max-height: 5em; overflow-y: auto; white-space: normal; line-height: 0.7em;">
                                     {% for t in p.tab_conv %}
-                                        <div class="p-1 mb-1 bg-secondary text-light rounded-3" style="font-size: 0.6rem;">
+                                        <div class="p-1 mb-1 bg-secondary text-light rounded-3" style="font-size: 0.5rem;">
                                             {{ t.descricao }} <span style="float: right;">{{ t.vl_prod|moeda_br }}</span>
                                         </div>
                                     {% endfor %}
@@ -214,8 +214,13 @@
                                     <a href="{% url 'clonar-produto' p.codigo %}?next={{ request.get_full_path|urlencode }}" class="btn btn-light w-100 text-start menu-opcao op-clonar border border-secondary" >
                                         <i class="fa-solid fa-clone op-clonar"></i> Clonar
                                     </a>
-                                    <button class="btn btn-light w-100 text-start menu-opcao op-detalhe border border-secondary ver-entradas" data-produto-id="{{ p.codigo }}" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#infoEntModal{{ p.codigo }}">
-                                        <i class="fa-solid fa-people-carry-box op-detalhe"></i> Fornecedores
+                                    <button class="btn btn-light w-100 text-start menu-opcao op-fornecedor border border-secondary ver-entradas" data-produto-id="{{ p.codigo }}" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#infoEntModal{{ p.codigo }}">
+                                        <i class="fa-solid fa-people-carry-box op-fornecedor"></i> Fornecedores
+                                    </button>
+                                    <!-- SALDOS DE ESTOQUE -->
+                                    <button type="button" class="btn btn-light w-100 text-start menu-opcao border border-secondary btn-saldos-estoque" data-codigo="{{ p.codigo }}"
+                                        data-descricao="{{ p.desc_prod }}" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#modalSaldosEstoque">
+                                        <i class="fa-solid fa-warehouse"></i> Saldos de Estoque
                                     </button>
                                 </div>
                                 <div class="modal-footer">
@@ -246,6 +251,49 @@
                                             <u>N</u>ão
                                         </button>
                                     </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal fade" id="modalSaldosEstoque" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-fullscreen-md-down modal-dialog-centered">
+                            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                                <!-- CABEÇALHO -->
+                                <div class="modal-header titulo-modal border-0 px-4 py-3">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="d-flex align-items-center justify-content-center rounded-3 bg-white bg-opacity-25" style="width: 44px; height: 44px;">
+                                            <i class="fa-solid fa-warehouse fs-5"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="modal-title fw-bold mb-1">Saldos dos Estoques</h5>
+                                            <div class="small opacity-75"><i class="fa-solid fa-box me-1"></i> Produto: <strong id="modal-estoque-produto"></strong></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- CORPO -->
+                                <div class="modal-body p-0">
+                                    <!-- CABEÇALHO DA TABELA -->
+                                    <div class="px-4 py-3 border-bottom bg-light d-flex justify-content-between align-items-center">
+                                        <div class="fw-semibold text-secondary small text-uppercase"><i class="fa-solid fa-location-dot me-1"></i> Filiais e Estoques</div>
+                                        <div class="fw-semibold text-secondary small text-uppercase">Saldo Atual</div>
+                                    </div>
+                                    <!-- LISTA -->
+                                    <div class="table-responsive">
+                                        <table class="table table-hover mb-0 align-middle">
+                                            <tbody id="tbody-saldos-estoque">
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <!-- SEM SALDOS -->
+                                    <div id="sem-saldos-estoque" class="text-center text-muted py-5 d-none">
+                                        <div class="mb-3"><i class="fa-solid fa-box-open fs-1 opacity-50"></i></div>
+                                        <div class="fw-semibold">Nenhum saldo de estoque encontrado</div>
+                                        <div class="small mt-1">Este produto ainda não possui estoque cadastrado.</div>
+                                    </div>
+                                </div>
+                                <!-- RODAPÉ -->
+                                <div class="modal-footer bg-light border-0 py-2">
+                                    <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal"><i class="fa-solid fa-xmark me-1"></i>Fechar</button>
                                 </div>
                             </div>
                         </div>
@@ -312,7 +360,7 @@
                                     {% if produtos.number > 4 %}
                                         <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
                                     {% endif %}
-                                    
+
                                     {% for num in produtos.paginator.page_range %}
                                         {% if num >= produtos.number|add:'-2' and num <= produtos.number|add:'2' %}
                                             {% if produtos.number == num %}

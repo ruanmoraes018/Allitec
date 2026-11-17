@@ -20,10 +20,12 @@ class ProdutoForm(forms.ModelForm):
     diametro_eixo = forms.CharField(label='Diâmetro Eixo (cm)', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'placeholder': '0,00'}))
     espessura_lam = forms.CharField(label='Espessura Lâmina (cm)', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'placeholder': '0,00'}))
     peso_m2 = forms.CharField(label='Peso por M² (Kg)', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'placeholder': '0,00'}))
+    larg_port = forms.CharField(label='Largura (mm)', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'placeholder': '0,00'}))
+    alt_port = forms.CharField(label='Altura (mm)', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle', 'placeholder': '0,00'}))
 
     class Meta:
         model = Produto
-        fields = ('peso_m2', 'espessura_lam', 'diametro_eixo', 'situacao', 'tp_prod', 'desc_prod', 'grupo', 'marca', 'unidProd', 'vl_compra', 'estoque_prod', 'lista_orc', 'especifico', 'estoque_minimo', 'estoque_maximo')
+        fields = ('larg_port', 'alt_port', 'peso_m2', 'espessura_lam', 'diametro_eixo', 'situacao', 'tp_prod', 'desc_prod', 'grupo', 'marca', 'unidProd', 'vl_compra', 'estoque_prod', 'lista_orc', 'especifico', 'estoque_minimo', 'estoque_maximo')
 
     def __init__(self, *args, **kwargs):
         # Captura e remove a empresa dos kwargs de forma segura
@@ -50,25 +52,11 @@ class ProdutoForm(forms.ModelForm):
             self.fields['marca'].choices = [('', 'Escolha uma opção')]
     def clean(self):
         cleaned_data = super().clean()
-        try: cleaned_data['vl_compra'] = parse_decimal(cleaned_data.get('vl_compra'))
-        except: self.add_error('vl_compra', 'Valor inválido.')
-        try: cleaned_data['estoque_prod'] = parse_decimal(cleaned_data.get('estoque_prod'))
-        except: self.add_error('estoque_prod', 'Valor inválido.')
-        try: cleaned_data['estoque_minimo'] = parse_decimal(cleaned_data.get('estoque_minimo'))
-        except: self.add_error('estoque_minimo', 'Valor inválido.')
-        try: cleaned_data['estoque_maximo'] = parse_decimal(cleaned_data.get('estoque_maximo'))
-        except: self.add_error('estoque_maximo', 'Valor inválido.')
-        try: cleaned_data['diametro_eixo'] = parse_decimal(cleaned_data.get('diametro_eixo'))
-        except: self.add_error('diametro_eixo', 'Valor inválido.')
-        try: cleaned_data['espessura_lam'] = parse_decimal(cleaned_data.get('espessura_lam'))
-        except: self.add_error('espessura_lam', 'Valor inválido.')
-        try: cleaned_data['peso_m2'] = parse_decimal(cleaned_data.get('peso_m2'))
-        except: self.add_error('peso_m2', 'Valor inválido.')
-        campos_select2 = {
-            'unidProd': (Unidade, 'Unidade'),
-            'grupo': (Grupo, 'Grupo'),
-            'marca': (Marca, 'Marca'),
-        }
+        c_dec = ['vl_compra', 'estoque_prod', 'estoque_minimo', 'estoque_maximo', 'diametro_eixo', 'espessura_lam', 'peso_m2', 'larg_port', 'alt_port']
+        for c in c_dec:
+            try: cleaned_data[c] = parse_decimal(cleaned_data.get(c))
+            except: self.add_error(c, 'Valor inválido.')
+        campos_select2 = {'unidProd': (Unidade, 'Unidade'),'grupo': (Grupo, 'Grupo'),'marca': (Marca, 'Marca'),}
         for nome_campo, (model_classe, nome_exibicao) in campos_select2.items():
             codigo = cleaned_data.get(nome_campo)
             # Se o usuário preencheu o campo (não é None e nem string vazia)

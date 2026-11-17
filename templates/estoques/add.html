@@ -28,7 +28,10 @@
                         </div>
                         <div class="card-body">
                             <div class="row g-3" style="margin-left: -8px;">
-                                <div class="col-md-12">
+                                <div class="col-md-2">
+                                    {{ form.filial|as_crispy_field }}
+                                </div>
+                                <div class="col-md-10">
                                     {{ form.descricao|as_crispy_field }}
                                 </div>
                             </div>

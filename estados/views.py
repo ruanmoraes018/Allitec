@@ -7,9 +7,10 @@ from .forms import EstadoForm
 import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
-from filiais.models import Usuario
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from util.logs import gerar_alteracoes, registrar_log
+from django.db import DatabaseError, IntegrityError, transaction
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -53,43 +54,62 @@ def lista_estados_ajax(request):
 
 @login_required
 def add_estado(request):
+    error_messages = []
     if not request.user.has_perm('estados.add_estado'):
         messages.info(request, 'Você não tem permissão para adicionar estados.')
         return redirect('/estados/lista/')
-    if request.method == 'POST':
-        form = EstadoForm(request.POST)
-        if form.is_valid():
+    empresa = request.user.empresa
+    if request.method != 'POST':
+        form = EstadoForm()
+        return render(request, 'estados/add.html', {'form': form, 'error_messages': error_messages})
+    form = EstadoForm(request.POST)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'estados/add.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             e = form.save(commit=False)
-            e.vinc_emp = request.user.empresa
+            e.vinc_emp = empresa
             e.save()
-            registrar_log(
-                request, "CRIAR", "Estado", e.nome_estado,
-                f"Adicionou o estado: {e.codigo} - {e.nome_estado}",
-                e.id, gerar_alteracoes(obj_novo=e)
-            )
+            registrar_log(request, "CRIAR", "Estado", e.nome_estado, f"Adicionou o estado: {e.codigo} - {e.nome_estado}", e.id, gerar_alteracoes(obj_novo=e))
             messages.success(request, 'Estado adicionado com sucesso!')
             est = str(e.codigo)
             return redirect('/estados/lista/?tp=cod&s=' + est)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'estados/add.html', {'form': form, 'error_messages': error_messages})
-    else: form = EstadoForm()
-    return render(request, 'estados/add.html', {'form': form})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'estados/add.html', {'form': form, 'error_messages': error_messages})
 
 @login_required
 def att_estado(request, codigo):
+    error_messages = []
     e = get_object_or_404(Estado, codigo=codigo, vinc_emp=request.user.empresa)
     it_old = Estado.objects.get(codigo=e.codigo, vinc_emp=request.user.empresa)
-    form = EstadoForm(instance=e)
     if not request.user.has_perm('estados.change_estado'):
         messages.info(request, 'Você não tem permissão para editar estados.')
         return redirect('/estados/lista/')
-    if request.method == 'POST':
-        form = EstadoForm(request.POST, instance=e)
-        if form.is_valid():
-            e.save()
+    if request.method != 'POST':
+        form = EstadoForm(instance=e)
+        return render(request, 'estados/att.html', {'form': form, 'e': e, 'error_messages': error_messages})
+    form = EstadoForm(request.POST, instance=e)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'estados/att.html', {'form': form, 'e': e, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
+            e = form.save()
             registrar_log(
                 request, "ALTERAR", "Estado", e.nome_estado,
                 f"Alterou o estado: {e.codigo} - {e.nome_estado}",
@@ -100,24 +120,43 @@ def att_estado(request, codigo):
             messages.success(request, 'Estado atualizado com sucesso!')
             if next_url: return redirect(next_url)
             else: return redirect('/estados/lista/?tp=cod&s=' + est)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'estados/att.html', {'form': form, 'e': e, 'error_messages': error_messages})
-    else: return render(request, 'estados/att.html', {'form': form, 'e': e})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'estados/att.html', {'form': form, 'e': e, 'error_messages': error_messages})
 
 @login_required
 def del_estado(request, codigo):
     if not request.user.has_perm('estados.delete_estado'):
         messages.info(request, 'Você não tem permissão para deletar estados.')
         return redirect('/estados/lista/')
-    e = get_object_or_404(Estado, codigo=codigo, vinc_emp=request.user.empresa)
-    registrar_log(
-        request, "EXCLUIR", "Estado", e.nome_estado,
-        f"Excluiu o estado: {e.codigo} - {e.nome_estado}",
-        e.id, gerar_alteracoes(obj_antigo=e)
-    )
-    e.delete()
-    messages.success(request, 'Estado deletado com sucesso!')
+    try:
+        with transaction.atomic():
+            e = get_object_or_404(Estado, codigo=codigo, vinc_emp=request.user.empresa)
+            registrar_log(
+                request, "EXCLUIR", "Estado", e.nome_estado,
+                f"Excluiu o estado: {e.codigo} - {e.nome_estado}",
+                e.id, gerar_alteracoes(obj_antigo=e)
+            )
+            e.delete()
+            messages.success(request, 'Estado deletado com sucesso!')
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return redirect('/estados/lista/')

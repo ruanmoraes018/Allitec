@@ -25,21 +25,19 @@ class Entrada(models.Model):
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     motivo = models.CharField(max_length=100, blank=True, null=True)
     def atualizar_total(self):
-        total = sum(item.subtotal for item in self.itens.all())
-        self.total = total + self.frete
-        return total
+        subtotal = sum(item.subtotal for item in self.itens.all())
+        self.total = subtotal + self.frete
+        return self.total
     def save(self, *args, **kwargs):
-        if self.vinc_emp and not self.codigo:
+        if self._state.adding and self.vinc_emp_id and not self.codigo:
             with transaction.atomic():
-                ult = (Entrada.objects.select_for_update().filter(vinc_emp=self.vinc_emp).aggregate(models.Max('codigo'))['codigo__max'] or 0)
+                ult = (Entrada.objects.select_for_update().filter(vinc_emp_id=self.vinc_emp_id).aggregate(max_codigo=models.Max('codigo'))['max_codigo'] or 0)
                 self.codigo = ult + 1
                 super().save(*args, **kwargs)
                 self.atualizar_total()
                 super().save(update_fields=["total"])
-        else:
-            super().save(*args, **kwargs)
-            self.atualizar_total()
-            super().save(update_fields=["total"])
+            return
+        super().save(*args, **kwargs)
     def __str__(self):
         return f"{self.vinc_fil.fantasia} - {self.id}"
 
@@ -56,8 +54,10 @@ class Entrada(models.Model):
 class EntradaProduto(models.Model):
     entrada = models.ForeignKey(Entrada, on_delete=models.CASCADE, related_name="itens")
     produto = models.ForeignKey(Produto, on_delete=models.CASCADE, related_name="produtos_vinculados")
+    estoque = models.ForeignKey('estoques.Estoque', on_delete=models.PROTECT, related_name='itens_entrada', verbose_name='Estoque')
     quantidade = models.DecimalField(max_digits=10, decimal_places=2)
     desconto = models.DecimalField(max_digits=10, decimal_places=2)
+    pr_compra_ant = models.DecimalField(max_digits=10, decimal_places=2)
     preco_unitario = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:

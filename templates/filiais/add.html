@@ -97,8 +97,9 @@
                                     <div class="col-md-2">{{ form.cli|as_crispy_field }}</div>
                                     <div class="col-md-2">{{ form.tec|as_crispy_field }}</div>
                                     <div class="col-md-3">{{ form.tp_conta|as_crispy_field }}</div>
-                                    <div class="col-md-3">{{ form.agrupa_itens|as_crispy_field }}</div>
-                                    <div class="col-md-3">{{ f_estoque.estoque_padrao|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.forma_padrao|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.agrupa_itens|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_estoque.estoque_padrao|as_crispy_field }}</div>
                                     <div class="col-md-2">{{ f_estoque.controla_lote|as_crispy_field }}</div>
                                     <div class="col-md-2">{{ f_estoque.controla_validade|as_crispy_field }}</div>
                                     <div class="col-md-2">{{ f_estoque.ativar_alerta_estoque|as_crispy_field }}</div>
@@ -128,14 +129,14 @@
                                     <div class="col-md-2">{{ f_financeiro.banco_fil|as_crispy_field }}</div>
                                     <div class="col-md-4">{{ f_financeiro.beneficiario|as_crispy_field }}</div>
                                     <div class="col-md-2">{{ f_financeiro.tp_calc_juros|as_crispy_field }}</div>
-                                    <div class="col-md-1">{{ f_financeiro.ft_juros|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_financeiro.ft_juros|as_crispy_field }}</div>
                                     <div class="col-md-2">{{ f_financeiro.tp_calc_multa|as_crispy_field }}</div>
-                                    <div class="col-md-1">{{ f_financeiro.ft_multa|as_crispy_field }}</div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-2">{{ f_financeiro.ft_multa|as_crispy_field }}</div>
+                                    <div class="col-md-2">
                                         <label class="form-label">Máx. Parcelas<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Contas à Receber"></i></label>
                                         {{ f_financeiro.max_parcelas|as_crispy_field }}
                                     </div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-2">
                                         <label class="form-label">Máx. (Dias Intervalo)<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Contas à Receber"></i></label>
                                         {{ f_financeiro.max_dias_intervalo|as_crispy_field }}
                                     </div>
@@ -168,14 +169,16 @@
                                 <div class="row" style="margin-bottom: 10px;">
                                     <div class="col-md-2">{{ f_orcamento.layout_contrato|as_crispy_field }}</div>
                                     <div class="col-md-2">{{ f_orcamento.layout_prod|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ f_orcamento.layout_orc|as_crispy_field }}</div>
                                     <div class="col-md-2">
                                         <label class="form-label">Quest. Imp. Recibo <i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Orçamentos - Portas"></i></label>
                                         {{ f_orcamento.imp_recibo_orc|as_crispy_field }}
                                     </div>
-                                    <div class="col-md-6">{{ f_orcamento.info_comp|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ f_orcamento.info_comp|as_crispy_field }}</div>
                                     <div class="col-md-6">{{ f_orcamento.info_orcamento|as_crispy_field }}</div>
                                     <div class="col-md-6">{{ f_orcamento.info_local|as_crispy_field }}</div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-2">{{ f_orcamento.forn_p|as_crispy_field }}</div>
+                                    <div class="col-md-2">
                                         <label class="form-label">Fator M²*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de M² Utilizado em Orçamentos - Portas"></i></label>
                                         {{ f_orcamento.multi_m2|as_crispy_field }}
                                     </div>
@@ -191,7 +194,7 @@
                                         <label class="form-label">Fator Larg. Corte (Op. 3)*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de Largura de Corte Para opção (1 Lado Dentro do Vão) Utilizado em Orçamentos - Portas"></i></label>
                                         {{ f_orcamento.multi_lg_corte3|as_crispy_field }}
                                     </div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-2">
                                         <label class="form-label">Fator Qtde. Lâm.*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de Qtde. de Lâminas Utilizado em Orçamentos - Portas"></i></label>
                                         {{ f_orcamento.mt_qt_lam|as_crispy_field }}
                                     </div>

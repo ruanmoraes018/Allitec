@@ -33,6 +33,7 @@ class Filial(models.Model):
     cep = models.CharField(max_length=10, verbose_name='CEP')
     numero = models.CharField(max_length=10, verbose_name='Nº')
     tb_preco = models.ForeignKey('tabelas_preco.TabelaPreco', on_delete=models.SET_NULL, null=True)
+    forma_padrao = models.ForeignKey('formas_pgto.FormaPgto', on_delete=models.SET_NULL, null=True)
     vendedor = models.ForeignKey('vendedores.Vendedor', on_delete=models.SET_NULL, null=True, blank=True)
     cli = models.ForeignKey('clientes.Cliente', on_delete=models.SET_NULL, null=True)
     tec = models.ForeignKey('tecnicos.Tecnico', on_delete=models.SET_NULL, null=True, blank=True)
@@ -59,6 +60,7 @@ class Filial(models.Model):
         FilialEstoque.objects.get_or_create(filial=self)
         FilialImpressao.objects.get_or_create(filial=self)
         FilialObservacao.objects.get_or_create(filial=self)
+        FilialWhatsApp.objects.get_or_create(filial=self, defaults={'instancia': f'allitec_e{self.vinc_emp_id}_f{self.codigo}'})
 
     def save(self, *args, **kwargs):
         # ── Remove logo antiga se foi trocada ───────────────────────────
@@ -78,19 +80,11 @@ class Filial(models.Model):
 
         # ── 1º e único save — gera o PK ─────────────────────────────────
         super().save(*args, **kwargs)
-
-        # ── Atribui codigo sequencial por empresa (só na criação) ────────
-        if self.vinc_emp and not self.codigo:
+        if self._state.adding and self.vinc_emp_id and not self.codigo:
             with transaction.atomic():
-                ult = (
-                    Filial.objects
-                    .select_for_update()
-                    .filter(vinc_emp=self.vinc_emp)
-                    .exclude(pk=self.pk)          # exclui a si mesmo
-                    .aggregate(models.Max('codigo'))['codigo__max'] or 0
-                )
-                Filial.objects.filter(pk=self.pk).update(codigo=ult + 1)
-                self.codigo = ult + 1             # atualiza a instância também
+                ult = (Filial.objects.select_for_update().filter(vinc_emp_id=self.vinc_emp_id).aggregate(max_codigo=models.Max('codigo'))['max_codigo'] or 0)
+                self.codigo = ult + 1
+            return
 
     def clean(self):
         if self.principal:
@@ -106,7 +100,7 @@ class Filial(models.Model):
 
 class FilialFinanceiro(models.Model):
     filial = models.OneToOneField('filiais.Filial', on_delete=models.CASCADE, related_name='financeiro')
-    tp_chave = models.CharField(max_length=20, verbose_name="Tipo de Chave Pix", choices=[('CPF', 'CPF'), ('CNPJ', 'CNPJ'), ('E-mail', 'E-mail'), ('Telefone', 'Telefone'), ('Chave Aleatória', 'Chave Aleatória')])
+    tp_chave = models.CharField(max_length=20,verbose_name="Tipo de Chave Pix",choices=[('CPF','CPF'),('CNPJ','CNPJ'),('E-mail','E-mail'),('Telefone','Telefone'),('Chave Aleatória','Chave Aleatória')])
     chave_pix = models.CharField(max_length=100, verbose_name="Chave Pix", null=True, blank=True)
     banco_fil = models.ForeignKey('bancos.Banco', on_delete=models.SET_NULL, null=True, blank=True)
     beneficiario = models.CharField(max_length=255, verbose_name='Nome Beneficiário', null=True, blank=True)
@@ -143,8 +137,10 @@ class FilialFiscal(models.Model):
 
 class FilialOrcamento(models.Model):
     filial = models.OneToOneField('filiais.Filial', on_delete=models.CASCADE, related_name='orcamento_porta')
+    forn_p = models.ForeignKey('fornecedores.Fornecedor', on_delete=models.SET_NULL, null=True)
     layout_contrato = models.CharField(max_length=10, verbose_name="Layout Contrato", choices=[('Layout 1', 'Layout 1'), ('Layout 2', 'Layout 2')], default="Layout 1")
     layout_prod = models.CharField(max_length=10, verbose_name="L. PDF Produção", choices=[('1', 'Layout 1'), ('2', 'Layout 2')], default="1")
+    layout_orc = models.CharField(max_length=10, verbose_name="L. PDF Orçamento", choices=[('1', 'Layout 1'), ('2', 'Layout 2')], default="1")
     imp_recibo_orc = models.CharField(max_length=20, verbose_name="Questionar Imp. de Recibo", choices=[('Sim','Sim'), ('Não', 'Não'), ('Auto', 'Auto')], default='Sim')
     info_comp = models.TextField(default="Obrigado pela preferência!", blank=True, null=True)
     info_local = models.TextField(default="Atendemos em todo estado do Pará!", blank=True, null=True)
@@ -184,6 +180,19 @@ class FilialObservacao(models.Model):
     obs_pedido = models.TextField(blank=True, null=True)
     observacao_nfe = models.ForeignKey('informacoes.Informacoes', null=True, blank=True, on_delete=models.SET_NULL)
     observacao_boleto = models.TextField(blank=True, null=True)
+
+class FilialWhatsApp(models.Model):
+    filial = models.OneToOneField(Filial,on_delete=models.CASCADE,related_name='whatsapp')
+    instancia = models.CharField(max_length=100,unique=True,verbose_name='Instância Evolution')
+    ativo = models.BooleanField(default=True,verbose_name='Ativo')
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.filial.fantasia} - {self.instancia}"
+
+    def gerar_instancia_whatsapp(filial):
+        return f'allitec_e{filial.vinc_emp_id}_f{filial.codigo}'
 
 def caminho_foto_usuario(instance, filename):
     ext = filename.split('.')[-1]

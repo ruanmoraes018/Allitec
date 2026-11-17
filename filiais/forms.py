@@ -15,8 +15,10 @@ from informacoes.models import Informacoes
 from tabelas_preco.models import TabelaPreco
 from vendedores.models import Vendedor
 from tipo_cobranca.models import TipoCobranca
+from fornecedores.models import Fornecedor
 Usuario = get_user_model()
 from util.parse_decimal import parse_decimal
+from formas_pgto.models import FormaPgto
 
 class EmpresaLoginForm(forms.Form):
     empresa_login = forms.IntegerField(label="ID da Empresa", widget=forms.NumberInput(attrs={'class': 'form-control'}))
@@ -61,6 +63,7 @@ class FilialForm(forms.ModelForm):
     tec = forms.ChoiceField(required=False, widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Técnico Padrão')
     tb_preco = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Tabela de Preço Padrão')
     vendedor = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Vendedor Padrão')
+    forma_padrao = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Forma de Pgto. Padrão')
     agrupa_itens = forms.ChoiceField(label="Agrupar Itens", choices=[(True, 'Sim'), (False, 'Não')], widget=forms.Select(attrs={'class': f'{s}'}))
 
     def _parse_decimal(self, valor):
@@ -84,7 +87,7 @@ class FilialForm(forms.ModelForm):
         model = Filial
         fields = (
             'situacao', 'cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro_fil', 'cidade_fil', 'uf', 'tel', 'logo',
-            'cli', 'tec', 'vendedor', 'tb_preco', 'vendedor', 'agrupa_itens', 'tp_conta'
+            'cli', 'tec', 'vendedor', 'tb_preco', 'vendedor', 'agrupa_itens', 'tp_conta', 'forma_padrao'
         )
     def __init__(self, *args, **kwargs):
         # Captura e remove a empresa dos kwargs de forma segura
@@ -100,6 +103,7 @@ class FilialForm(forms.ModelForm):
             tecnicos = Tecnico.objects.filter(vinc_emp=self.empresa)
             tabelas = TabelaPreco.objects.filter(vinc_emp=self.empresa)
             vendedores = Vendedor.objects.filter(vinc_emp=self.empresa)
+            formas = FormaPgto.objects.filter(vinc_emp=self.empresa)
             tipos_cobranca = TipoCobranca.objects.filter(vinc_emp=self.empresa)
             self.fields['bairro_fil'].choices = [('', 'Escolha uma opção')] + [(str(b.codigo), b.nome_bairro.upper()) for b in bairros]
             self.fields['cidade_fil'].choices = [('', 'Escolha uma opção')] + [(str(c.codigo), c.nome_cidade.upper()) for c in cidades]
@@ -109,6 +113,7 @@ class FilialForm(forms.ModelForm):
             self.fields['tb_preco'].choices = [('', 'Escolha uma opção')] + [(str(t.codigo), t.descricao.upper()) for t in tabelas]
             self.fields['vendedor'].choices = [('', 'Escolha uma opção')] + [(str(v.codigo), v.fantasia.upper()) for v in vendedores]
             self.fields['tp_conta'].choices = [('', 'Escolha uma opção')] + [(str(tc.codigo), tc.descricao.upper()) for tc in tipos_cobranca]
+            self.fields['forma_padrao'].choices = [('', 'Escolha uma opção')] + [(str(fp.codigo), fp.descricao.upper()) for fp in formas]
             if self.instance and self.instance.pk:
                 if self.instance.bairro_fil: self.initial['bairro_fil'] = str(self.instance.bairro_fil.codigo)
                 if self.instance.cidade_fil: self.initial['cidade_fil'] = str(self.instance.cidade_fil.codigo)
@@ -118,6 +123,7 @@ class FilialForm(forms.ModelForm):
                 if self.instance.tb_preco: self.initial['tb_preco'] = str(self.instance.tb_preco.codigo)
                 if self.instance.vendedor: self.initial['vendedor'] = str(self.instance.vendedor.codigo)
                 if self.instance.tp_conta: self.initial['tp_conta'] = str(self.instance.tp_conta.codigo)
+                if self.instance.forma_padrao: self.initial['forma_padrao'] = str(self.instance.forma_padrao.codigo)
         else:
             self.fields['bairro_fil'].choices = [('', 'Escolha uma opção')]
             self.fields['cidade_fil'].choices = [('', 'Escolha uma opção')]
@@ -127,6 +133,7 @@ class FilialForm(forms.ModelForm):
             self.fields['tb_preco'].choices = [('', 'Escolha uma opção')]
             self.fields['vendedor'].choices = [('', 'Escolha uma opção')]
             self.fields['tp_conta'].choices = [('', 'Escolha uma opção')]
+            self.fields['forma_padrao'].choices = [('', 'Escolha uma opção')]
         if getattr(self.instance, 'pk', None):
             if getattr(self.instance, 'dt_criacao', None):
                 self.initial['dt_criacao'] = self.instance.dt_criacao.strftime('%d/%m/%Y')
@@ -146,7 +153,8 @@ class FilialForm(forms.ModelForm):
             'tec': (Tecnico, 'Técnico Padrão'),
             'tb_preco': (TabelaPreco, 'Tabela de Preço Padrão'),
             'vendedor': (Vendedor, 'Vendedor Padrão'),
-            'tp_conta': (TipoCobranca, 'Tipo de Cobrança Padrão')
+            'tp_conta': (TipoCobranca, 'Tipo de Cobrança Padrão'),
+            'forma_padrao': (FormaPgto, 'Forma de Pagamento Padrão'),
         }
         for nome_campo, (model_classe, nome_exibicao) in campos_select2.items():
             codigo = cleaned_data.get(nome_campo)
@@ -247,12 +255,14 @@ class FilialFiscalForm(forms.ModelForm):
         self.empresa = kwargs.pop('empresa', None)
         super().__init__(*args, **kwargs)
         self.fields['certificado'].widget.attrs.update({
-            'accept': '.pfx,.p12'
+            'accept': '.pfx,.p12',
+            'class': 'border-dark-subtle focus-ring focus-ring-dark'
         })
 
 class FilialOrcamentoForm(forms.ModelForm):
     layout_contrato = forms.ChoiceField(label="Layout Contrato", choices=[('Layout 1', 'Layout 1'), ('Layout 2', 'Layout 2')], widget=forms.Select(attrs={'class': f'{s}'}))
     layout_prod = forms.ChoiceField(label="L. PDF Produção", choices=[('1', 'Layout 1'), ('2', 'Layout 2')], widget=forms.Select(attrs={'class': f'{s}'}))
+    layout_orc = forms.ChoiceField(label="L. PDF Orçamento", choices=[('1', 'Layout 1'), ('2', 'Layout 2')], widget=forms.Select(attrs={'class': s}))
     imp_recibo_orc = forms.ChoiceField(label="", choices=[('Sim', 'Sim'), ('Não', 'Não'), ('Auto', 'Auto')], widget=forms.Select(attrs={'class': f'{s}'}))
     info_comp = forms.CharField(label='Informações Rodapé - Comprovantes', required=False, widget=forms.Textarea(attrs={'class': f'{c}', 'rows': 2}))
     info_local = forms.CharField(label='Info. Local Atendimento - Propostas', required=False, widget=forms.Textarea(attrs={'class': f'{c}', 'rows': 2}))
@@ -262,6 +272,7 @@ class FilialOrcamentoForm(forms.ModelForm):
     multi_lg_corte1 = forms.CharField(label='', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
     multi_lg_corte2 = forms.CharField(label='', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
     multi_lg_corte3 = forms.CharField(label='', widget=forms.TextInput(attrs={'class': f'{c} text-end fw-bold'}))
+    forn_p = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Fornecedor Padrão')
 
     class Meta:
         model = FilialOrcamento
@@ -271,17 +282,43 @@ class FilialOrcamentoForm(forms.ModelForm):
         # Captura e remove a empresa dos kwargs de forma segura
         self.empresa = kwargs.pop('empresa', None)
         super().__init__(*args, **kwargs)
+        if not self.empresa and self.instance and self.instance.pk and self.instance.vinc_emp:
+            self.empresa = self.instance.vinc_emp
+        if self.empresa:
+            fornecedores = Fornecedor.objects.filter(vinc_emp=self.empresa)
+            self.fields['forn_p'].choices = [('', 'Escolha uma opção')] + [(str(f.codigo), f.fantasia.upper()) for f in fornecedores]
+            if self.instance and self.instance.pk:
+                if self.instance.forn_p: self.initial['forn_p'] = str(self.instance.forn_p.codigo)
+        else:
+            self.fields['forn_p'].choices = [('', 'Escolha uma opção')]
+        campos_decimais = ['multi_m2', 'multi_lg_corte1', 'multi_lg_corte2', 'multi_lg_corte3', 'ft_juros', 'ft_multa']
+        for campo in campos_decimais:
+            valor = getattr(self.instance, campo, None)
+            if valor is not None:
+                self.fields[campo].initial = f"{valor:.2f}".replace('.', ',')
 
     def clean(self):
         cleaned_data = super().clean()
-        try: cleaned_data['multi_m2'] = parse_decimal(cleaned_data.get('multi_m2'))
-        except: self.add_error('multi_m2', 'Valor inválido.')
-        try: cleaned_data['multi_lg_corte1'] = parse_decimal(cleaned_data.get('multi_lg_corte1'))
-        except: self.add_error('multi_lg_corte1', 'Valor inválido.')
-        try: cleaned_data['multi_lg_corte2'] = parse_decimal(cleaned_data.get('multi_lg_corte2'))
-        except: self.add_error('multi_lg_corte2', 'Valor inválido.')
-        try: cleaned_data['multi_lg_corte3'] = parse_decimal(cleaned_data.get('multi_lg_corte3'))
-        except: self.add_error('multi_lg_corte3', 'Valor inválido.')
+        campos_decimal = ['multi_m2', 'multi_lg_corte1', 'multi_lg_corte2', 'multi_lg_corte3']
+        for c in campos_decimal:
+            try: cleaned_data[c] = parse_decimal(cleaned_data.get(c))
+            except: self.add_error(c, 'Valor inválido.')
+        # Mapeamento genérico: 'nome_no_form': (ClasseDoModel, 'Nome Amigável para o Erro')
+        campos_select2 = {
+            'forn_p': (Fornecedor, 'Fornecedor Padrão'),
+        }
+        for nome_campo, (model_classe, nome_exibicao) in campos_select2.items():
+            codigo = cleaned_data.get(nome_campo)
+            # Se o usuário preencheu o campo (não é None e nem string vazia)
+            if codigo and codigo != '':
+                try:
+                    objeto_real = model_classe.objects.get(codigo=codigo, vinc_emp=self.empresa)
+                    cleaned_data[nome_campo] = objeto_real  # Substitui pelo objeto do banco
+                except model_classe.DoesNotExist:
+                    self.add_error(nome_campo, f"{nome_exibicao} inválido(a) para esta empresa.")
+            else:
+                # ✅ CORREÇÃO: Se veio vazio ou '', força a ser None para o Django salvar como NULL
+                cleaned_data[nome_campo] = None
         return cleaned_data
 
 class FilialContatoForm(forms.ModelForm):

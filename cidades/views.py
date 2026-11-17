@@ -7,9 +7,10 @@ from .forms import CidadeForm
 import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
-from filiais.models import Usuario
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from util.logs import gerar_alteracoes, registrar_log
+from django.db import DatabaseError, IntegrityError, transaction
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -53,71 +54,102 @@ def lista_cidades_ajax(request):
 
 @login_required
 def add_cidade(request):
+    error_messages = []
     if not request.user.has_perm('cidades.add_cidade'):
         messages.info(request, 'Você não tem permissão para adicionar cidades.')
         return redirect('/cidades/lista/')
-    if request.method == 'POST':
-        form = CidadeForm(request.POST)
-        if form.is_valid():
+    empresa = request.user.empresa
+    if request.method != 'POST':
+        form = CidadeForm()
+        return render(request, 'cidades/add.html', {'form': form, 'error_messages': error_messages})
+    form = CidadeForm(request.POST)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'cidades/add.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             c = form.save(commit=False)
-            c.vinc_emp = request.user.empresa
+            c.vinc_emp = empresa
             c.save()
-            registrar_log(
-                request, "CRIAR", "Cidade", c.nome_cidade,
-                f"Adicionou a cidade: {c.codigo} - {c.nome_cidade}",
-                c.id, gerar_alteracoes(obj_novo=c)
-            )
+            registrar_log(request, "CRIAR", "Cidade", c.nome_cidade, f"Adicionou a cidade: {c.codigo} - {c.nome_cidade}", c.id, gerar_alteracoes(obj_novo=c))
             messages.success(request, 'Cidade adicionada com sucesso!')
             cid = str(c.codigo)
             return redirect('/cidades/lista/?tp=cod&s=' + cid)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'cidades/add.html', {'form': form, 'error_messages': error_messages})
-    else: form = CidadeForm()
-    return render(request, 'cidades/add.html', {'form': form})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'cidades/add.html', {'form': form, 'error_messages': error_messages})
 
 @login_required
 def att_cidade(request, codigo):
+    error_messages = []
     c = get_object_or_404(Cidade, codigo=codigo, vinc_emp=request.user.empresa)
     it_old = Cidade.objects.get(codigo=c.codigo, vinc_emp=request.user.empresa)
-    form = CidadeForm(instance=c)
     if not request.user.has_perm('cidades.change_cidade'):
         messages.info(request, 'Você não tem permissão para editar cidades.')
         return redirect('/cidades/lista/')
-    if request.method == 'POST':
-        form = CidadeForm(request.POST, instance=c)
-        if form.is_valid():
-            c.save()
-            registrar_log(
-                request, "ALTERAR", "Cidade", c.nome_cidade,
-                f"Alterou a cidade: {c.codigo} - {c.nome_cidade}",
-                c.id, gerar_alteracoes(it_old, c)
-            )
+    if request.method != 'POST':
+        form = CidadeForm(instance=c)
+        return render(request, 'cidades/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
+    form = CidadeForm(request.POST, instance=c)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'cidades/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
+            c = form.save()
+            registrar_log(request, "ALTERAR", "Cidade", c.nome_cidade,f"Alterou a cidade: {c.codigo} - {c.nome_cidade}", c.id, gerar_alteracoes(it_old, c))
             next_url = request.POST.get('next') or request.GET.get('next')
             cid = str(c.codigo)
             messages.success(request, 'Cidade atualizada com sucesso!')
             if next_url: return redirect(next_url)
             else: return redirect('/cidades/lista/?tp=cod&s=' + cid)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'cidades/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
-    else: return render(request, 'cidades/att.html', {'form': form, 'c': c})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'cidades/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
 
 @login_required
 def del_cidade(request, codigo):
     if not request.user.has_perm('cidades.delete_cidade'):
         messages.info(request, 'Você não tem permissão para deletar cidades.')
         return redirect('/cidades/lista/')
-    c = get_object_or_404(Cidade, codigo=codigo, vinc_emp=request.user.empresa)
-    registrar_log(
-        request, "EXCLUIR", "Cidade", c.nome_cidade,
-        f"Excluiu a cidade: {c.codigo} - {c.nome_cidade}",
-        c.id, gerar_alteracoes(obj_antigo=c)
-    )
-    c.delete()
-    messages.success(request, 'Cidade deletada com sucesso!')
+    try:
+        with transaction.atomic():
+            c = get_object_or_404(Cidade, codigo=codigo, vinc_emp=request.user.empresa)
+            registrar_log(request, "EXCLUIR", "Cidade", c.nome_cidade, f"Excluiu a cidade: {c.codigo} - {c.nome_cidade}", c.id, gerar_alteracoes(obj_antigo=c))
+            c.delete()
+            messages.success(request, 'Cidade deletada com sucesso!')
+            return redirect('/cidades/lista/')
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return redirect('/cidades/lista/')

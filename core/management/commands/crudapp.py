@@ -12,7 +12,7 @@ class Command(BaseCommand):
     def substituir(self, texto, nome, plural):
         return (
             texto
-            .replace("__APP__", nome.lower()).replace("__APP_MAIUSCULO__", nome.upper()).replace("__MODELO__", nome.capitalize()).replace("__MODELO_MINUSCULO__", nome.lower())
+            .replace("__APP__", nome.lower()).replace("__APP_MAIUSCULO__", nome.upper()).replace("__MODELO__", nome.capitalize()).replace("__MODELO_MINUSCULO__", nome.lower()).replace("__MODELO_MAIUSCULO__", nome.upper())
             .replace("__MODELO_PLURAL__", plural).replace("__MODELO_PLURAL_MINUSCULO__", plural.lower()).replace("__MODELO_PLURAL_MAIUSCULO__", plural.upper())
         )
 

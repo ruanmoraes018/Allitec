@@ -105,7 +105,23 @@
                 <tr class="center">
                     <td><strong>{{ pt.larg_corte }}</strong></td>
                     <td><strong>{{ pt.qtd_lam }}</strong></td>
-                    <td colspan="2"><strong>{{ pt.tp_lamina }}</strong></td>
+                    <td colspan="2">
+                        <strong>
+                            {% if pt.tp_lamina == "FECHADA_24" %}
+                                Lisa Fechada - Chapa 24 (0.65mm)
+                            {% elif pt.tp_lamina == "FECHADA_22" %}
+                                Lisa Fechada - Chapa 22 (0.80mm)
+                            {% elif pt.tp_lamina == "FECHADA_20" %}
+                                Lisa Fechada - Chapa 20 (0.95mm)
+                            {% elif pt.tp_lamina == "TRANSVISION_24" %}
+                                Transvision - Chapa 24 (0.65mm)
+                            {% elif pt.tp_lamina == "TRANSVISION_22" %}
+                                Transvision - Chapa 22 (0.80mm)
+                            {% elif pt.tp_lamina == "TRANSVISION_20" %}
+                                Transvision - Chapa 20 (0.95mm)
+                            {% endif %}
+                        </strong>
+                    </td>
                     <td colspan="2"><strong>{{ pt.tp_vao }}</strong></td>
                     <td><strong>{{ pt.op_guia_e }}</strong></td>
                     <td><strong>{{ pt.op_guia_d }}</strong></td>
@@ -134,7 +150,7 @@
                 {% for a in pt.adicionais.all %}
                 <tr>
                     <td class="center">{{ a.produto.codigo }}</td>
-                    <td colspan="2">{{ a.produto.desc_prod }} {% if a.lado == 'E' %}<strong>(Lado Esquerdo)</strong>{% elif a.lado == 'D' %}<strong>(Lado Direito)</strong>{% elif a.lado == 'C' %}<strong>(Centro)</strong>{% endif %}</td>
+                    <td colspan="2">{{ a.produto.desc_prod }} {% if a.lado == 'E' %}<strong>(Lado Esquerdo)</strong>{% elif a.lado == 'D' %}<strong>(Lado Direito)</strong>{% elif a.lado == 'C' %}<strong>(Centro)</strong>{% endif %} {% if a.larg_pa or a.alt_pa %} [<strong>{{ a.larg_pa|moeda_br }}mm X {{ a.alt_pa|moeda_br }}mm</strong>]{% endif %}</td>
                     <td class="center">{{ a.quantidade }} {{ a.produto.unidProd }}</td>
                     <td class="center">Adicional</td>
                     <td></td>

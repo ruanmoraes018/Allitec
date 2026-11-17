@@ -10,6 +10,8 @@ from django.http import JsonResponse
 from util.permissoes import verifica_permissao
 from django.db.models import Q
 from util.logs import gerar_alteracoes, registrar_log
+from django.db import DatabaseError, IntegrityError, transaction
+from django.core.exceptions import ObjectDoesNotExist
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -63,75 +65,103 @@ def lista_tecnicos_ajax(request):
 
 @login_required
 def add_tecnico(request):
+    error_messages = []
+    empresa = request.user.empresa
     if not request.user.has_perm('tecnicos.add_tecnico'):
         messages.info(request, 'Você não tem permissão para adicionar técnicos.')
         return redirect('/tecnicos/lista/')
-    empresa = request.user.empresa
-    if request.method == 'POST':
-        form = TecnicoForm(data=request.POST, empresa=empresa)
-        if form.is_valid():
+    if request.method != 'POST':
+        form = TecnicoForm(empresa=empresa)
+        return render(request, 'tecnicos/add-tecnico.html', {'form': form, 'error_messages': error_messages})
+    form = TecnicoForm(data=request.POST, empresa=empresa)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'tecnicos/add-tecnico.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             t = form.save(commit=False)
             t.vinc_emp = empresa
             t.save()
-            registrar_log(
-                request, "CRIAR", "Técnico", t.nome,
-                f"Adicionou o técnico: {t.codigo} - {t.nome}",
-                t.id, gerar_alteracoes(obj_novo=t)
-            )
+            registrar_log(request, "CRIAR", "Técnico", t.nome, f"Adicionou o técnico: {t.codigo} - {t.nome}", t.id, gerar_alteracoes(obj_novo=t))
             messages.success(request, 'Técnico adicionado com sucesso!')
             tec = str(t.codigo)
             return redirect('/tecnicos/lista/?tp=cod&s=' + tec)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'tecnicos/add-tecnico.html', {'form': form, 'error_messages': error_messages})
-    else: form = TecnicoForm(empresa=request.user.empresa)
-    return render(request, 'tecnicos/add-tecnico.html', {'form': form})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'tecnicos/add-tecnico.html', {'form': form, 'error_messages': error_messages})
 
 @login_required
 def att_tecnico(request, codigo):
-    tec = get_object_or_404(Tecnico, codigo=codigo, vinc_emp=request.user.empresa)
-    it_old = Tecnico.objects.get(codigo=tec.codigo, vinc_emp=request.user.empresa)
-    form = TecnicoForm(data=request.POST, instance=tec, empresa=request.user.empresa)
+    error_messages = []
+    empresa = request.user.empresa
+    tec = get_object_or_404(Tecnico, codigo=codigo, vinc_emp=empresa)
+    it_old = Tecnico.objects.get(codigo=tec.codigo, vinc_emp=empresa)
     if not request.user.has_perm('tecnicos.change_tecnico'):
         messages.info(request, 'Você não tem permissão para editar técnicos.')
         return redirect('/tecnicos/lista/')
-    if request.method == 'POST':
-        form = TecnicoForm(request.POST, instance=tec, empresa=request.user.empresa)
-        if form.is_valid():
-            tec = form.save(commit=False)
-            tec.save()
-            registrar_log(
-                request, "ALTERAR", "Técnico", tec.nome,
-                f"Alterou o técnico: {tec.codigo} - {tec.nome}",
-                tec.id, gerar_alteracoes(it_old, tec)
-            )
+    if request.method != 'POST':
+        form = TecnicoForm(instance=tec, empresa=empresa)
+        return render(request, 'tecnicos/att-tecnico.html', {'form': form, 'tec': tec, 'error_messages': error_messages})
+    form = TecnicoForm(data=request.POST, instance=tec, empresa=empresa)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'tecnicos/att-tecnico.html', {'form': form, 'tec': tec, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
+            tec = form.save()
+            registrar_log(request, "ALTERAR", "Técnico", tec.nome, f"Alterou o técnico: {tec.codigo} - {tec.nome}", tec.id, gerar_alteracoes(it_old, tec))
             t = str(tec.codigo)
             messages.success(request, 'Técnico atualizado com sucesso!')
             next_url = request.POST.get('next') or request.GET.get('next')
             if next_url: return redirect(next_url)
             else: return redirect('/tecnicos/lista/?tp=cod&s=' + t)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'tecnicos/att-tecnico.html', {'form': form, 'tec': tec, 'error_messages': error_messages})
-    else:
-        form = TecnicoForm(instance=tec, empresa=request.user.empresa)
-        return render(request, 'tecnicos/att-tecnico.html', {'form': form, 'tec': tec})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'tecnicos/att-tecnico.html', {'form': form, 'tec': tec, 'error_messages': error_messages})
 
 @login_required
 def del_tecnico(request, codigo):
     if not request.user.has_perm('tecnicos.delete_tecnico'):
         messages.info(request, 'Você não tem permissão para deletar técnicos.')
         return redirect('/tecnicos/lista/')
-    tec = get_object_or_404(Tecnico, codigo=codigo, vinc_emp=request.user.empresa)
-    registrar_log(
-        request, "EXCLUIR", "Técnico", tec.nome,
-        f"Excluiu o técnico: {tec.codigo} - {tec.nome}",
-        tec.id, gerar_alteracoes(obj_antigo=tec)
-    )
-    tec.delete()
-    messages.success(request, 'Técnico deletado com sucesso!')
+    try:
+        with transaction.atomic():
+            tec = get_object_or_404(Tecnico, codigo=codigo, vinc_emp=request.user.empresa)
+            registrar_log(request, "EXCLUIR", "Técnico", tec.nome,f"Excluiu o técnico: {tec.codigo} - {tec.nome}",tec.id, gerar_alteracoes(obj_antigo=tec))
+            tec.delete()
+            messages.success(request, 'Técnico deletado com sucesso!')
+            return redirect('/tecnicos/lista/')
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return redirect('/tecnicos/lista/')

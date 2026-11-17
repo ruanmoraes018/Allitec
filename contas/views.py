@@ -15,10 +15,9 @@ from empresas.models import Empresa
 from django.db.models import Q
 from django.contrib.auth.models import Permission
 from django.utils.text import slugify
-from django.contrib.auth.hashers import make_password
 from util.logs import gerar_alteracoes, registrar_log
-from formas_pgto.models import FormaPgto
-from tabelas_preco.models import TabelaPreco
+from django.db import DatabaseError, IntegrityError, transaction
+from django.core.exceptions import ObjectDoesNotExist
 
 @login_required
 def checar_permissao(request):
@@ -102,6 +101,7 @@ def lista_usuarios_ajax(request):
 
 @login_required
 def add_usuario(request):
+    error_messages = []
     # 1. Validação de Permissão de Acesso
     if not request.user.has_perm('filiais.add_usuario'):
         messages.info(request, 'Você não tem permissão para adicionar usuários.')
@@ -123,56 +123,59 @@ def add_usuario(request):
         messages.warning(request, f'Limite de {qtd_permitida} usuário(s) ativos atingido para sua empresa.')
         return redirect('/usuarios/lista/')
     # 4. Preparação das Permissões para renderização na Tela
-    todas_permissoes = Permission.objects.filter(
-        content_type__app_label__in=APPS_PERMISSOES
-    )
+    todas_permissoes = Permission.objects.filter(content_type__app_label__in=APPS_PERMISSOES)
     permissoes_por_grupo = agrupar_permissoes_por_grupo(todas_permissoes)
     grupos_marcados = []
-    # 5. Processamento do Formulário (Submissão POST)
-    if request.method == 'POST':
-        # ✅ CORREÇÃO CHAVE: 'data=' nomeado de forma explícita e 'empresa=' isolada
-        form = UsuarioCadastroForm(request.POST, files=request.FILES, empresa=empresa_alvo, opfilial=request.POST.get("opfilial"), opformas=request.POST.get("opformas"), optabelas=request.POST.get("optabelas"))
-        if form.is_valid():
-            try:
-                novo_user = form.save()
-                form.save_m2m()
-                registrar_log(
-                    request, "CRIAR", "Usuário", novo_user.first_name,
-                    f"Adicionou o usuário: {novo_user.codigo_local} - {novo_user.first_name}",
-                    novo_user.id, gerar_alteracoes(obj_novo=novo_user)
-                )
-                # Vincula as permissões selecionadas no Checkbox
-                messages.success(request, 'Usuário cadastrado com sucesso.')
-                return redirect('/usuarios/lista/')
-            except Exception as e:
-                # Caso ocorra algum erro inesperado de banco de dados
-                messages.error(request, f'Erro interno ao salvar no banco de dados: {str(e)}')
-        else:
-            # ✅ Captura todos os erros ocultos de validação e joga na tela do usuário
-            for field, errors in form.errors.items():
-                for error in errors:
-                    label_campo = form.fields[field].label if field in form.fields else field
-                    messages.error(request, f"❌ Erro no campo '{label_campo}': {error}")
-            # Reconstrói o estado dos checkboxes marcados para não perder a seleção visual na tela
-            permissoes_selecionadas = form.cleaned_data.get('permissoes', []) if form.cleaned_data else []
-            for grupo, permissoes_lista in permissoes_por_grupo.items():
-                if all(perm in permissoes_selecionadas for perm in permissoes_lista):
-                    grupos_marcados.append(slugify(grupo))
-    # 6. Renderização Inicial da Página (Acesso GET)
-    else:
+    if request.method != 'POST':
         form = UsuarioCadastroForm(empresa=empresa_alvo)
-    context = {
-        'form': form,
-        'filial': filial,
-        'permissoes_por_grupo': permissoes_por_grupo,
-        'grupos_marcados': grupos_marcados
-    }
-    return render(request, 'usuarios/add_usuario.html', context)
+        return render(request, 'usuarios/add.html', {'form': form, 'error_messages': error_messages})
+    form = UsuarioCadastroForm(request.POST,files=request.FILES,empresa=empresa_alvo,opfilial=request.POST.get("opfilial"),opformas=request.POST.get("opformas"),
+        optabelas=request.POST.get("optabelas")
+    )
+    if not form.is_valid():
+        permissoes_selecionadas = form.cleaned_data.get('permissoes', []) if form.cleaned_data else []
+        for grupo, permissoes_lista in permissoes_por_grupo.items():
+            if all(perm in permissoes_selecionadas for perm in permissoes_lista):
+                grupos_marcados.append(slugify(grupo))
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        context = {'form':form,'filial':filial,'permissoes_por_grupo':permissoes_por_grupo,'grupos_marcados':grupos_marcados,'error_messages':error_messages}
+        return render(request, 'usuarios/add.html', context)
+    try:
+        with transaction.atomic():
+            novo_user = form.save()
+            form.save_m2m()
+            registrar_log(request, "CRIAR", "Usuário", novo_user.first_name,f"Adicionou o usuário: {novo_user.codigo_local} - {novo_user.first_name}",
+                novo_user.id, gerar_alteracoes(obj_novo=novo_user)
+            )
+            # Vincula as permissões selecionadas no Checkbox
+            messages.success(request, 'Usuário cadastrado com sucesso.')
+            return redirect('/usuarios/lista/')
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    permissoes_selecionadas = form.cleaned_data.get('permissoes', []) if form.cleaned_data else []
+    for grupo, permissoes_lista in permissoes_por_grupo.items():
+        if all(perm in permissoes_selecionadas for perm in permissoes_lista):
+            grupos_marcados.append(slugify(grupo))
+    context = {'form':form,'filial':filial,'permissoes_por_grupo':permissoes_por_grupo,'grupos_marcados':grupos_marcados,'error_messages':error_messages}
+    return render(request, 'usuarios/add.html', context)
 
 @login_required
 def att_usuario(request, codigo_local):
-    usuario = get_object_or_404(Usuario, codigo_local=codigo_local, empresa=request.user.empresa)
-    it_old = Usuario.objects.get(codigo_local=usuario.codigo_local, empresa=request.user.empresa)
+    error_messages = []
+    empresa = request.user.empresa
+    usuario = get_object_or_404(Usuario, codigo_local=codigo_local, empresa=empresa)
+    it_old = Usuario.objects.get(codigo_local=usuario.codigo_local, empresa=empresa)
     if not request.user.has_perm('filiais.change_usuario'):
         messages.info(request, 'Você não tem permissão para editar usuários.')
         return redirect('/usuarios/lista/')
@@ -180,40 +183,53 @@ def att_usuario(request, codigo_local):
     todas_permissoes = Permission.objects.filter(content_type__app_label__in=APPS_PERMISSOES)
     permissoes_por_grupo = agrupar_permissoes_por_grupo(todas_permissoes)
     grupos_marcados = []
-    if request.method == 'POST':
-        form = UsuarioCadastroForm(
-            request.POST, request.FILES, instance=usuario,      # ou sem instance no cadastro
-            empresa=request.user.empresa, opfilial=request.POST.get("opfilial"), opformas=request.POST.get("opformas"), optabelas=request.POST.get("optabelas"))
-        if form.is_valid():
+    if request.method != 'POST':
+        permissao_ids = list(usuario.user_permissions.values_list('id', flat=True))
+        form = UsuarioCadastroForm(instance=usuario, empresa=empresa, initial={
+            'permissoes':permissao_ids,'formas_pagamento':list(usuario.formas_pagamento.values_list('codigo',flat=True)),
+            'tabelas_preco':list(usuario.tabelas_preco.values_list('codigo', flat=True)),'filiais_permitidas':list(usuario.filiais_permitidas.values_list('codigo',flat=True)),
+        })
+        for grupo, permissoes in permissoes_por_grupo.items():
+            if all(perm.id in permissao_ids for perm in permissoes): grupos_marcados.append(slugify(grupo))
+        context = {'form': form, 'usuario': usuario, 'filial': filial, 'permissoes_por_grupo': permissoes_por_grupo, 'grupos_marcados': grupos_marcados,'error_messages':error_messages}
+        return render(request, 'usuarios/att.html', context)
+    form = UsuarioCadastroForm(
+        request.POST, request.FILES, instance=usuario,      # ou sem instance no cadastro
+        empresa=empresa, opfilial=request.POST.get("opfilial"), opformas=request.POST.get("opformas"), optabelas=request.POST.get("optabelas"))
+    if not form.is_valid():
+        permissoes_selecionadas = form.cleaned_data.get('permissoes', [])
+        for grupo, permissoes in permissoes_por_grupo.items():
+            if all(perm in permissoes_selecionadas for perm in permissoes):
+                grupos_marcados.append(slugify(grupo))
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'usuarios/att.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             user = form.save()
             form.save_m2m()
-            registrar_log(
-                request, "ALTERAR", "Usuário", user.first_name,
-                f"Alterou o usuário: {user.codigo_local} - {user.first_name}",
-                user.id, gerar_alteracoes(it_old, user)
-            )
+            registrar_log(request, "ALTERAR", "Usuário", user.first_name, f"Alterou o usuário: {user.codigo_local} - {user.first_name}",user.id, gerar_alteracoes(it_old, user))
             next_url = request.POST.get('next') or request.GET.get('next')
             messages.success(request, 'Usuário atualizado com sucesso.')
             if next_url: return redirect(next_url)
             else: return redirect(f'/usuarios/lista/?tp=cod&s={usuario.codigo_local}')
-        else:
-            messages.error(request, 'Erro ao atualizar usuário.')
-            permissoes_selecionadas = form.cleaned_data.get('permissoes', [])
-            for grupo, permissoes in permissoes_por_grupo.items():
-                if all(perm in permissoes_selecionadas for perm in permissoes): grupos_marcados.append(slugify(grupo))
-    else:
-        permissao_ids = list(usuario.user_permissions.values_list('id', flat=True))
-        form = UsuarioCadastroForm(
-            instance=usuario,
-            initial={
-                'permissoes': permissao_ids, 'formas_pagamento': list(usuario.formas_pagamento.values_list('codigo', flat=True)),
-                'tabelas_preco': list(usuario.tabelas_preco.values_list('codigo', flat=True)), 'filiais_permitidas': list(usuario.filiais_permitidas.values_list('codigo', flat=True)),
-            }, empresa=request.user.empresa
-        )
-        for grupo, permissoes in permissoes_por_grupo.items():
-            if all(perm.id in permissao_ids for perm in permissoes): grupos_marcados.append(slugify(grupo))
-    context = {'form': form, 'usuario': usuario, 'filial': filial, 'permissoes_por_grupo': permissoes_por_grupo, 'grupos_marcados': grupos_marcados}
-    return render(request, 'usuarios/att_usuario.html', context)
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    permissao_ids = list(usuario.user_permissions.values_list('id', flat=True))
+    for grupo, permissoes in permissoes_por_grupo.items():
+        if all(perm.id in permissao_ids for perm in permissoes): grupos_marcados.append(slugify(grupo))
+    context = {'form': form, 'usuario': usuario, 'filial': filial, 'permissoes_por_grupo': permissoes_por_grupo, 'grupos_marcados': grupos_marcados,'error_messages':error_messages}
+    return render(request, 'usuarios/att.html', context)
 
 @login_required
 def del_usuario(request, codigo_local):
@@ -225,11 +241,23 @@ def del_usuario(request, codigo_local):
         messages.error(request, 'Você não tem permissão para deletar este usuário.')
         return redirect('/usuarios/lista/')
     else:
-        registrar_log(
-            request, "EXCLUIR", "Usuário", usuario.first_name,
-            f"Excluiu o Usuário: {usuario.codigo_local} - {usuario.first_name}",
-            usuario.id, gerar_alteracoes(obj_antigo=usuario)
-        )
-        usuario.delete()
-        messages.success(request, 'Usuário excluído com sucesso.')
+        try:
+            with transaction.atomic():
+                registrar_log(request,"EXCLUIR","Usuário",usuario.first_name,f"Excluiu o Usuário: {usuario.codigo_local} - {usuario.first_name}",usuario.id,
+                    gerar_alteracoes(obj_antigo=usuario)
+                )
+                usuario.delete()
+                messages.success(request, 'Usuário excluído com sucesso.')
+                return redirect('/usuarios/lista/')
+        except ObjectDoesNotExist:
+            messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+        except IntegrityError as e:
+            detalhe = str(e.__cause__ if e.__cause__ else e)
+            messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+        except DatabaseError as e:
+            messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+        except ValueError as e:
+            messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+        except Exception as e:
+            messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
         return redirect('/usuarios/lista/')

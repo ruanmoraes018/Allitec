@@ -55,6 +55,7 @@
                                         <button type="button" class="btn btn-dark menu-btn" data-section="complementos" id="complBtn">Fiscal</button>
                                         <button type="button" class="btn btn-dark menu-btn" data-section="financeiros" id="financBtn">Financeiro</button>
                                         <button type="button" class="btn btn-dark menu-btn" data-section="impressoes" id="impBtn">Impressão</button>
+                                        <button type="button" class="btn btn-dark menu-btn" data-section="whatsapp" id="wppBtn">Conexão Whatsapp</button>
                                         <button type="button" class="btn btn-dark menu-btn" data-section="dados_observacoes" id="dadosObsBtn">Observações</button>
                                         <button type="button" class="btn btn-dark menu-btn" data-section="dados_orcamentos" id="orcamentoBtn">Orçamento (Portas)</button>
                                     </div>
@@ -96,8 +97,9 @@
                                         <div class="col-md-2">{{ form.cli|as_crispy_field }}</div>
                                         <div class="col-md-2">{{ form.tec|as_crispy_field }}</div>
                                         <div class="col-md-3">{{ form.tp_conta|as_crispy_field }}</div>
-                                        <div class="col-md-3">{{ form.agrupa_itens|as_crispy_field }}</div>
-                                        <div class="col-md-3">{{ f_estoque.estoque_padrao|as_crispy_field }}</div>
+                                        <div class="col-md-2">{{ form.forma_padrao|as_crispy_field }}</div>
+                                        <div class="col-md-2">{{ form.agrupa_itens|as_crispy_field }}</div>
+                                        <div class="col-md-2">{{ f_estoque.estoque_padrao|as_crispy_field }}</div>
                                         <div class="col-md-2">{{ f_estoque.controla_lote|as_crispy_field }}</div>
                                         <div class="col-md-2">{{ f_estoque.controla_validade|as_crispy_field }}</div>
                                         <div class="col-md-2">{{ f_estoque.ativar_alerta_estoque|as_crispy_field }}</div>
@@ -130,14 +132,14 @@
                                         <div class="col-md-2">{{ f_financeiro.banco_fil|as_crispy_field }}</div>
                                         <div class="col-md-4">{{ f_financeiro.beneficiario|as_crispy_field }}</div>
                                         <div class="col-md-2">{{ f_financeiro.tp_calc_juros|as_crispy_field }}</div>
-                                        <div class="col-md-1">{{ f_financeiro.ft_juros|as_crispy_field }}</div>
+                                        <div class="col-md-2">{{ f_financeiro.ft_juros|as_crispy_field }}</div>
                                         <div class="col-md-2">{{ f_financeiro.tp_calc_multa|as_crispy_field }}</div>
-                                        <div class="col-md-1">{{ f_financeiro.ft_multa|as_crispy_field }}</div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-2">{{ f_financeiro.ft_multa|as_crispy_field }}</div>
+                                        <div class="col-md-2">
                                             <label class="form-label">Máx. Parcelas<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Contas à Receber"></i></label>
                                             {{ f_financeiro.max_parcelas|as_crispy_field }}
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-2">
                                             <label class="form-label">Máx. (Dias Intervalo)<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Contas à Receber"></i></label>
                                             {{ f_financeiro.max_dias_intervalo|as_crispy_field }}
                                         </div>
@@ -159,6 +161,123 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div class="form-section" id="whatsapp">
+                                    <div class="row g-3">
+                                        <div class="col-12">
+                                            <div class="card border rounded-3 shadow-sm">
+                                                <div class="card-body">
+                                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                                                        <div>
+                                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                                <i class="fab fa-whatsapp text-success fs-4"></i> <h5 class="mb-0">WhatsApp</h5>
+                                                            </div>
+                                                            <div class="text-muted small">
+                                                                Conecte o WhatsApp desta filial para enviar orçamentos e outras comunicações aos clientes.
+                                                            </div>
+                                                        </div>
+                                                        <div class="text-end">
+                                                            <div class="small text-muted mb-1">Instância</div>
+                                                            <div class="fw-semibold" id="whatsapp-instancia">{{ whatsapp.instancia }}</div>
+                                                        </div>
+                                                    </div>
+                                                    <hr>
+                                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                                                        <div>
+                                                            <div class="small text-muted mb-1">Status da conexão</div>
+                                                            <div id="whatsapp-status">
+                                                                <span class="badge bg-secondary">Verificando...</span>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <button type="button" class="btn btn-success" id="btn-conectar-whatsapp" data-codigo-filial="{{ filial.codigo }}" disabled>
+                                                                <i class="fab fa-whatsapp me-1"></i> Conectar WhatsApp
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal fade" id="modalWhatsapp" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content border-0 shadow">
+                                                    <div class="modal-header titulo-modal">
+                                                        <div>
+                                                            <h5 class="modal-title mb-0"><i class="fab fa-whatsapp text-success me-1"></i> Conectar WhatsApp</h5>
+                                                            <small class="text-muted badge text-bg-secondary">{{ filial.fantasia }}</small>
+                                                        </div>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <!-- AVISO -->
+                                                        <div id="whatsapp-aviso">
+                                                            <div class="alert alert-warning border-0">
+                                                                <div class="d-flex gap-2">
+                                                                    <div><i class="fas fa-triangle-exclamation"></i></div>
+                                                                    <div>
+                                                                        <div class="fw-semibold mb-1">Atenção sobre o uso do WhatsApp</div>
+                                                                        <div class="small">
+                                                                            Esta conexão utiliza um método <strong>não oficial do WhatsApp</strong>, baseado na conexão do WhatsApp Web.
+                                                                        </div>
+                                                                        <div class="small mt-2">
+                                                                            Para reduzir o risco de bloqueios ou limitações da conta, recomendamos utilizar o WhatsApp de forma moderada
+                                                                            e evitar envios em massa, mensagens repetitivas ou comportamentos semelhantes a spam.
+                                                                        </div>
+                                                                        <div class="small mt-2">
+                                                                            Utilize esta ferramenta somente para comunicações legítimas com seus clientes.
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="text-center mt-4">
+                                                                <div class="text-muted small mb-3">Instância</div>
+                                                                <div class="fw-semibold mb-4">{{ whatsapp.instancia }}</div>
+                                                                <button type="button" class="btn btn-success px-4" id="btn-iniciar-conexao-whatsapp">
+                                                                    <i class="fab fa-whatsapp me-1"></i> Iniciar conexão
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <!-- CARREGANDO -->
+                                                        <div id="whatsapp-carregando" class="text-center py-4" style="display: none;">
+                                                            <div class="spinner-border text-success mb-3"></div>
+                                                            <div class="fw-semibold">Preparando conexão...</div>
+                                                            <div class="small text-muted mt-1">Aguarde enquanto verificamos o WhatsApp.</div>
+                                                        </div>
+                                                        <!-- QR CODE -->
+                                                        <div id="whatsapp-qrcode" class="text-center" style="display: none;">
+                                                            <div class="fw-semibold mb-2">Escaneie o QR Code</div>
+                                                            <div class="small text-muted mb-3">
+                                                                Abra o WhatsApp no celular e acesse <strong>Dispositivos conectados</strong> para escanear o código.
+                                                            </div>
+                                                            <div class="d-flex justify-content-center mb-3" id="whatsapp-qrcode-imagem"></div>
+                                                            <div class="small text-muted" id="whatsapp-qrcode-status">Aguardando conexão...</div>
+                                                            <button type="button" class="btn btn-outline-secondary btn-sm mt-3" id="btn-atualizar-whatsapp">
+                                                                <i class="fas fa-rotate me-1"></i> Atualizar
+                                                            </button>
+                                                        </div>
+                                                        <!-- CONECTADO -->
+                                                        <div id="whatsapp-conectado" class="text-center py-4" style="display: none;">
+                                                            <div class="mb-3">
+                                                                <i class="fas fa-circle-check text-success" style="font-size: 52px;"></i>
+                                                            </div>
+                                                            <h5 class="mb-1">WhatsApp conectado</h5>
+                                                            <div class="small text-muted">
+                                                                Esta filial está conectada e pronta para enviar mensagens.
+                                                            </div>
+                                                            <button type="button" class="btn btn-outline-danger" id="btn-desconectar-whatsapp">
+                                                                <i class="fas fa-link-slash me-1"></i> Desconectar WhatsApp
+                                                            </button>
+                                                        </div>
+                                                        <!-- ERRO -->
+                                                        <div id="whatsapp-erro" class="alert alert-danger" style="display: none;"></div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary mx-auto btn-sm" data-bs-dismiss="modal">Fechar</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="form-section" id="dados_observacoes">
                                     <div class="row" style="margin-bottom: 10px;">
                                         <div class="col-md-4">{{ f_observacao.obs_pedido|as_crispy_field }}</div>
@@ -170,19 +289,21 @@
                                     <div class="row" style="margin-bottom: 10px;">
                                         <div class="col-md-2">{{ f_orcamento.layout_contrato|as_crispy_field }}</div>
                                         <div class="col-md-2">{{ f_orcamento.layout_prod|as_crispy_field }}</div>
+                                        <div class="col-md-2">{{ f_orcamento.layout_orc|as_crispy_field }}</div>
                                         <div class="col-md-2">
                                             <label class="form-label">Quest. Imp. Recibo <i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Orçamentos - Portas"></i></label>
                                             {{ f_orcamento.imp_recibo_orc|as_crispy_field }}
                                         </div>
-                                        <div class="col-md-6">{{ f_orcamento.info_comp|as_crispy_field }}</div>
+                                        <div class="col-md-4">{{ f_orcamento.info_comp|as_crispy_field }}</div>
                                         <div class="col-md-6">{{ f_orcamento.info_orcamento|as_crispy_field }}</div>
                                         <div class="col-md-6">{{ f_orcamento.info_local|as_crispy_field }}</div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-2">{{ f_orcamento.forn_p|as_crispy_field }}</div>
+                                        <div class="col-md-2">
                                             <label class="form-label">Fator M²*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de M² Utilizado em Orçamentos - Portas"></i></label>
                                             {{ f_orcamento.multi_m2|as_crispy_field }}
                                         </div>
                                         <div class="col-md-2">
-                                        <label class="form-label">Fator Larg. Corte (Op. 1)*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de Largura de Corte Para opção (Fora do Vão) Utilizado em Orçamentos - Portas"></i></label>
+                                            <label class="form-label">Fator Larg. Corte (Op. 1)*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de Largura de Corte Para opção (Fora do Vão) Utilizado em Orçamentos - Portas"></i></label>
                                             {{ f_orcamento.multi_lg_corte1|as_crispy_field }}
                                         </div>
                                         <div class="col-md-2">
@@ -193,7 +314,7 @@
                                             <label class="form-label">Fator Larg. Corte (Op. 3)*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de Largura de Corte Para opção (1 Lado Dentro do Vão) Utilizado em Orçamentos - Portas"></i></label>
                                             {{ f_orcamento.multi_lg_corte3|as_crispy_field }}
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-2">
                                             <label class="form-label">Fator Qtde. Lâm.*<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Cálculo de Qtde. de Lâminas Utilizado em Orçamentos - Portas"></i></label>
                                             {{ f_orcamento.mt_qt_lam|as_crispy_field }}
                                         </div>

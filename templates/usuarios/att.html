@@ -2,33 +2,37 @@
 {% load static %}
 {% load extras %}
 {% load crispy_forms_tags %}
-{% block title %}Cadastrar Usuário{% endblock %}
+{% block title %}Alterar Usuário{% endblock %}
 {% block content %}
 <div class="container-fluid bg-white">
     <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'inicio' %}" id="item-naveg">Principal</a></li>
             <li class="breadcrumb-item"><a href="{% url 'lista-usuarios' %}" id="item-naveg">Usuários</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Adicionar</li>
+            <li class="breadcrumb-item active" aria-current="page">Alterar</li>
         </ol>
     </nav>
     <div class="formularios">
         <form method="POST" id="createForm" enctype="multipart/form-data">
             {% csrf_token %}
-            {% if form %}
-                {% if error_messages %}
-                    <div id="toast-messages" data-messages='[
-                        {"text": "{% for message in error_messages %}{{ message }}<br>{% endfor %}", "tag": "error"}
+            {% if usuario %}
+                {% if messages %}
+                    <div id="django-messages" data-messages='[
+                        {% for message in messages %}
+                            {"text": "{{ message|escapejs }}", "tag": "{{ message.tags }}"}
+                            {% if not forloop.last %},{% endif %}
+                        {% endfor %}
                     ]'></div>
                 {% endif %}
                 <div class="card">
                     <div class="card-header">
                         <span>
-                            INCLUSÃO DE USUÁRIOS
+                            ALTERAÇÃO DE USUÁRIOS
                         </span>
                     </div>
                     <div class="card-body">
                         <div class="row g-3" style="margin-left: -8px;">
+                            <input type="hidden" name="next" value="{{ request.GET.next }}">
                             <div class="col-md-1">
                                 {{ form.is_active|as_crispy_field }}
                             </div>
@@ -53,17 +57,20 @@
                                     alt="Foto do usuário" title="Clique para alterar a imagem" style="cursor: pointer; width: 90px; height: 90px; border: 1px solid #ddd; border-radius: 5px;">
                             </div>
                             <div class="col-md-2">
-                              {{ form.password|as_crispy_field }}
+                                {{ form.password|as_crispy_field }}
                             </div>
                             <div class="col-md-2">
                                 <label for="id_senha_liberacao" class="form-label d-flex text-start align-items-center">
                                     <div class="form-check form-switch m-0">
                                         <input class="form-check-input" type="checkbox" id="id_gerar_senha_lib" name="gerar_senha_lib" {% if usuario.gerar_senha_lib %}checked{% endif %}>
                                     </div>
-                                    <span>Senha de Autorização</span> <i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Senha de liberação de ações para usuários sem permissão!"></i>
+                                    <span>Senha de Autorização</span> <i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Senha de liberação de ações para usuários sem permissão!"></i></label>
                                 </label>
-                                <input type="password" class="form-control form-control-sm border-dark-subtle" id="id_senha_liberacao" name="senha_liberacao" value="{{ usuario.senha_liberacao }}">
+                                <input type="password" class="form-control form-control-sm border-dark-subtle" id="id_senha_liberacao" name="senha_liberacao">
                                 <div id="id_senha_liberacao_helptext" class="form-text">Para nova senha, preencha esse campo!</div>
+                            </div>
+                            <div class="col-md-2">
+                                {{ form.vendedor|as_crispy_field }}
                             </div>
                             <div class="card tab-container" style="margin: 0; margin-left: 5px;">
                                 <div class="form-buttons" style="margin-left: 10px; margin-top: 10px; margin-bottom: 10px;">
@@ -98,8 +105,13 @@
                                                                     <div class="card-body">
                                                                         {% for perm in form.grupo_permissoes|get_item:grupo %}
                                                                             <div class="form-check mb-2">
-                                                                                <input class="form-check-input check-permissao" name="permissoes" type="checkbox" value="{{ perm.id }}"
-                                                                                       id="check_{{ perm.id }}" data-grupo="{{ grupo|slugify }}" {% if perm.id in form.initial.permissoes %} checked {% endif %}>
+                                                                                <input class="form-check-input check-permissao"
+                                                                                       name="permissoes"
+                                                                                       type="checkbox"
+                                                                                       value="{{ perm.id }}"
+                                                                                       id="check_{{ perm.id }}"
+                                                                                       data-grupo="{{ grupo|slugify }}"
+                                                                                       {% if perm.id in form.initial.permissoes %} checked {% endif %}>
                                                                                 <label class="form-check-label" for="check_{{ perm.id }}">
                                                                                     {% with perm.codename as code %}
                                                                                         {% if 'add_' in code %}
@@ -142,6 +154,8 @@
                                                                                             <span class="badge-permissao fs-6">Acessar Relatórios de Vendas de Produtos</span>
                                                                                         {% elif 'caixa_outro_user' in code %}
                                                                                             <span class="badge-permissao fs-6">Acessar Caixa de Outro Usuário</span>
+                                                                                        {% elif 'enviar_orcamento_whatsapp' in code %}
+                                                                                            <span class="badge-permissao fs-6">Enviar Orçamento por Whatsapp</span>
                                                                                         {% else %}
                                                                                             {{ perm.name }}
                                                                                         {% endif %}
@@ -408,7 +422,7 @@
                     </div>
                     <div class="card-footer">
                         <div class="base_botao">
-                            <button type="button" class="btn btn-success botoes" data-bs-target="#staticBackdrop" id="openModalBtn">Criar</button>
+                                <button type="button" class="btn btn-success botoes" data-bs-target="#staticBackdrop" id="openModalBtn">Alterar</button>
                             <a href="#" class="btn btn-secondary botoes" id="voltarBtn" style="margin-right: 10px;">Voltar</a>
                         </div>
                     </div>
@@ -424,7 +438,7 @@
                     <h1 class="modal-title fs-5" id="staticBackdropLabel"><i class="fa-regular fa-circle-question"></i> Confirmação!</h1>
                 </div>
                 <div class="modal-body">
-                    <p>Você confirma a INCLUSÃO DO USUÁRIO?</p>
+                    <p>Você confirma a ALTERAÇÃO DO USUÁRIO?</p>
                 </div>
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loadingModal" id="confirmBtn"><u>S</u>im</button>
@@ -434,4 +448,16 @@
         </div>
     </div>
 </div>
+{% comment %} <div class="accordion-item">
+    <h2 class="accordion-header">
+    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+        Accordion Item #3
+    </button>
+    </h2>
+    <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+    <div class="accordion-body">
+        <strong>This is the third item’s accordion body.</strong> It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can modify any of this with custom CSS or overriding our default variables. It’s also worth noting that just about any HTML can go within the <code>.accordion-body</code>, though the transition does limit overflow.
+    </div>
+    </div>
+</div> {% endcomment %}
 {% endblock %}

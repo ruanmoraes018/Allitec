@@ -11,8 +11,8 @@
     <table class="sem-borda mb cabecalho">
         <tr>
             <td class="td-logo">
-                {% if lg_emp %}
-                    <img class="logo" src="{{ lg_emp }}">
+                {% if pedido.usuario.filial_user.impressao.imprimir_logo %}
+                    {% if lg_emp %}<img class="logo" src="{{ lg_emp }}">{% endif %}
                 {% endif %}
             </td>
             <td class="td-info">
@@ -33,7 +33,7 @@
                 <div style="margin-top: 8px; font-size: 10px; color: #666;">
                     <strong>EMISSÃO:</strong> {{ pedido.dt_emi|date:"d/m/Y H:i" }}<br>
                     <strong>SITUAÇÃO:</strong> {{ pedido.situacao }}<br>
-                    <strong>OPERADOR:</strong> {% if pedido.usuario != None %} {{ pedido.usuario }} {% else %} {{ usuario }} {% endif %}
+                    <strong>OPERADOR:</strong> {% if pedido.usuario != None %} {{ pedido.usuario.first_name }} {% else %} {{ usuario.first_name }} {% endif %}
                 </div>
             </td>
         </tr>
@@ -47,7 +47,7 @@
             </tr>
         </thead>
         <tbody>
-            {% if pedido.cli.avulso == "Sim" %}
+            {% if pedido.cli.avulso %}
                 <tr>
                     <td width="40%">
                         <span class="label">Cliente</span>
@@ -59,7 +59,7 @@
                     </td>
                     <td width="15%">
                         <span class="label">Caixa</span>
-                        <span class="valor">{{ pedido.caixa|default:"-" }}</span>
+                        <span class="valor">{{ pedido.caixa.terminal.nome }}</span>
                     </td>
                     <td width="20%">
                         <span class="label">Tabela de Preço</span>
@@ -122,7 +122,7 @@
                     </td>
                     <td width="25%">
                         <span class="label">Caixa</span>
-                        <span class="valor">{{ pedido.caixa|default:"-" }}</span>
+                        <span class="valor">{{ pedido.caixa.terminal.nome }}</span>
                     </td>
                     <td width="25%">
                         <span class="label">Tabela de Preço</span>
@@ -141,8 +141,8 @@
                 <th width="12%">Código</th>
                 <th width="25%">Produto</th>
                 <th width="10%">Marca</th>
-                <th width="10%">Unidade</th>
-                <th class="text-right" width="12%">Unitário</th>
+                <th width="8%">Unid</th>
+                <th class="text-right" width="14%">Vl. Unit.</th>
                 <th class="text-center" width="8%">Qtd</th>
                 <th class="text-right" width="10%">Desc/Acrés</th>
                 <th class="text-right" width="10%">Subtotal</th>
@@ -160,9 +160,9 @@
                 <td class="text-center">{{ item.quantidade }}</td>
                 <td class="text-right color-muted">
                     {% if item.desc_acres != 0 %}
-                        {{ item.tp_desc_acres }} {{ item.desc_acres }}
+                        {{ item.tp_desc_acres }} R$ {{ item.desc_acres }}
                     {% else %}
-                        -
+                        R$ 0,00
                     {% endif %}
                 </td>
                 <td class="text-right font-bold">R$ {{ item.subtotal|moeda_br }}</td>
@@ -238,9 +238,9 @@
     {% endif %}
 
     <!-- RODAPÉ COMPLEMENTAR -->
-    {% if pedido.vinc_fil.info_comp %}
+    {% if pedido.vinc_fil.orcamento_porta.info_comp %}
     <div class="rodape-info">
-        {{ pedido.vinc_fil.info_comp }}
+        {{ pedido.vinc_fil.orcamento_porta.info_comp }}
     </div>
     {% endif %}
 

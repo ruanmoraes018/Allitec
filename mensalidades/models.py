@@ -1,7 +1,9 @@
 from django.db import models
-from datetime import date
+from datetime import date, timedelta
 from django.core.exceptions import ValidationError
 from decimal import Decimal
+import uuid
+from django.utils import timezone
 
 class Mensalidade(models.Model):
     SITUACAO_CHOICES = [('Aberta', 'Aberta'), ('Baixada', 'Baixada')]
@@ -66,3 +68,12 @@ class CobrancaPix(models.Model):
     pago = models.BooleanField(default=False)
     criado_em = models.DateTimeField(auto_now_add=True)
     mensalidades = models.ManyToManyField(Mensalidade)
+
+class AcessoPortal(models.Model):
+    token = models.UUIDField(default=uuid.uuid4,unique=True,editable=False)
+    empresa = models.ForeignKey("empresas.Empresa",on_delete=models.CASCADE,related_name="acessos_portal")
+    criado_em = models.DateTimeField(auto_now_add=True)
+    expira_em = models.DateTimeField()
+    usado = models.BooleanField(default=False)
+    def esta_valido(self):
+        return (not self.usado and timezone.now() < self.expira_em)

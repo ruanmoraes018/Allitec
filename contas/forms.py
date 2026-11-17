@@ -91,13 +91,20 @@ class UsuarioCadastroForm(forms.ModelForm):
             filiais_ativas = Filial.objects.filter(vinc_emp=self.empresa, situacao="Ativa")
             self.fields["filial_user"].choices = [("", "Escolha uma opção"), *[(str(f.codigo), f.fantasia.upper()) for f in filiais_ativas]]
             vendedores = Vendedor.objects.filter(vinc_emp=self.empresa)
+            self.fields['vendedor'].choices = [('', 'Escolha uma opção')] + [(str(v.codigo), v.fantasia.upper()) for v in vendedores]
             self.fields["formas_pagamento"].queryset = FormaPgto.objects.filter(vinc_emp=self.empresa, situacao="Ativo")
             self.fields["tabelas_preco"].queryset = TabelaPreco.objects.filter(vinc_emp=self.empresa)
             self.fields["filiais_permitidas"].queryset = Filial.objects.filter(vinc_emp=self.empresa, situacao="Ativa")
-            self.fields["vendedor"].choices = [("", "---------")] + [(str(v.codigo), v.fantasia) for v in vendedores]
-            if self.instance and self.instance.pk and self.instance.filial_user: self.initial["filial_user"] = str(self.instance.filial_user.codigo)
+            if self.instance and self.instance.pk and self.instance.filial_user:
+                self.initial["filial_user"] = str(self.instance.filial_user.codigo)
+                if self.instance.vendedor: self.initial['vendedor'] = str(self.instance.vendedor.codigo)
+            else:
+                # ✅ Se for CRIAÇÃO (Novo Registro): Pré-seleciona a filial do usuário logado
+                if self.user and self.user.filial_user:
+                    self.initial['filial_user'] = str(self.user.filial_user.codigo)
         else:
             self.fields["filial_user"].choices = [("", "Escolha uma filial")]
+            self.fields['vendedor'].choices = [('', 'Escolha uma opção')]
         permissoes = Permission.objects.filter(content_type__app_label__in=APPS_PERMISSOES )
         permissoes_ordenadas = sorted(permissoes, key=lambda p: ORDEM_MAP.get(p.codename, 9999))
         self.fields["permissoes"].queryset = Permission.objects.filter(id__in=[p.id for p in permissoes_ordenadas])
@@ -157,22 +164,51 @@ class UsuarioCadastroForm(forms.ModelForm):
         cleaned_data = super().clean()
         formas = []
         for codigo in cleaned_data["formas_pagamento"]:
-            try: formas.append(FormaPgto.objects.get(codigo=codigo, vinc_emp=self.empresa))
-            except FormaPgto.DoesNotExist: self.add_error("formas_pagamento", "Forma de pagamento inválida.")
+            try:
+                formas.append(FormaPgto.objects.get(codigo=codigo,vinc_emp=self.empresa))
+            except FormaPgto.DoesNotExist:
+                self.add_error("formas_pagamento","Forma de pagamento inválida.")
         cleaned_data["formas_pagamento"] = formas
         tabelas = []
         for codigo in cleaned_data["tabelas_preco"]:
-            try: tabelas.append(TabelaPreco.objects.get(codigo=codigo, vinc_emp=self.empresa))
-            except TabelaPreco.DoesNotExist: self.add_error("tabelas_preco", "Forma de pagamento inválida.")
+            try:
+                tabelas.append(TabelaPreco.objects.get(codigo=codigo,vinc_emp=self.empresa))
+            except TabelaPreco.DoesNotExist:
+                self.add_error("tabelas_preco","Tabela de preço inválida.")
         cleaned_data["tabelas_preco"] = tabelas
-        codigo = cleaned_data.get("vendedor")
-        if codigo:
-            try: cleaned_data["vendedor"] = Vendedor.objects.get(codigo=codigo, vinc_emp=self.empresa)
-            except Vendedor.DoesNotExist: self.add_error("vendedor", "Vendedor inválido.")
-        try: cleaned_data['desconto_maximo'] = parse_decimal(cleaned_data.get('desconto_maximo'))
-        except: self.add_error('desconto_maximo', 'Valor inválido.')
-        try: cleaned_data['limite_credito'] = parse_decimal(cleaned_data.get('limite_credito'))
-        except: self.add_error('limite_credito', 'Valor inválido.')
+        # Proteção do vendedor
+        vendedor = cleaned_data.get("vendedor")
+
+        if vendedor:
+            if isinstance(vendedor, Vendedor):
+                if vendedor.vinc_emp_id != self.empresa.codigo:
+                    self.add_error(
+                        "vendedor",
+                        "Vendedor inválido para esta empresa."
+                    )
+            else:
+                try:
+                    cleaned_data["vendedor"] = Vendedor.objects.get(
+                        codigo=vendedor,
+                        vinc_emp=self.empresa
+                    )
+                except Vendedor.DoesNotExist:
+                    self.add_error(
+                        "vendedor",
+                        "Vendedor inválido para esta empresa."
+                    )
+        # Proteção da filial
+        filial = cleaned_data.get("filial_user")
+        if filial and filial.vinc_emp_id != self.empresa.id:
+            self.add_error("filial_user","Filial inválida para esta empresa.")
+        try:
+            cleaned_data["desconto_maximo"] = parse_decimal(cleaned_data.get("desconto_maximo"))
+        except:
+            self.add_error("desconto_maximo","Valor inválido.")
+        try:
+            cleaned_data["limite_credito"] = parse_decimal(cleaned_data.get("limite_credito"))
+        except:
+            self.add_error("limite_credito","Valor inválido.")
         return cleaned_data
 
 class UsuarioReadOnlyForm(forms.ModelForm):

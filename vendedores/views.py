@@ -9,10 +9,9 @@ import unicodedata
 from django.http import JsonResponse
 from django.db.models import Q
 from util.permissoes import verifica_permissao, verifica_alguma_permissao
-from bairros.models import Bairro
-from cidades.models import Cidade
-from estados.models import Estado
+from django.core.exceptions import ObjectDoesNotExist
 from util.logs import gerar_alteracoes, registrar_log
+from django.db import DatabaseError, IntegrityError, transaction
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -72,79 +71,107 @@ def lista_vendedores_ajax(request):
 
 @login_required
 def add_vendedor(request):
+    error_messages = []
+    empresa = request.user.empresa
     if not request.user.has_perm('vendedores.add_vendedor'):
         messages.info(request, 'Você não tem permissão para adicionar vendedores.')
         return redirect('/vendedores/lista/')
-    empresa = request.user.empresa
     if not empresa:
         messages.error(request, 'Erro crítico: Seu usuário não está vinculado a nenhuma empresa cadastrada.')
         return redirect('/vendedores/lista/')
-    if request.method == 'POST':
-        form = VendedorForm(data=request.POST, empresa=empresa)
-        if form.is_valid():
-            vendedor = form.save(commit=False)
-            vendedor.vinc_emp = empresa
-            vendedor.save()
-            registrar_log(
-                request, "CRIAR", "Vendedor", vendedor.fantasia,
-                f"Adicionou o vendedor: {vendedor.codigo} - {vendedor.fantasia}",
-                vendedor.id, gerar_alteracoes(obj_novo=vendedor)
-            )
+    if request.method != 'POST':
+        form = VendedorForm(empresa=empresa)
+        return render(request, 'vendedores/add.html', {'form': form, 'error_messages': error_messages})
+    form = VendedorForm(data=request.POST, empresa=empresa)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'vendedores/add.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
+            v = form.save(commit=False)
+            v.vinc_emp = empresa
+            v.save()
+            registrar_log(request, "CRIAR", "Vendedor", v.fantasia,f"Adicionou o vendedor: {v.codigo} - {v.fantasia}",v.id, gerar_alteracoes(obj_novo=v))
             messages.success(request, 'Vendedor adicionado com sucesso!')
-            return redirect(f'/vendedores/lista/?tp=cod&s={vendedor.codigo}')
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors:
-                    for error in field.errors:
-                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {error}")
-            return render(request, 'vendedores/add.html', {'form': form, 'error_messages': error_messages})
-    else: form = VendedorForm(empresa=empresa)
-    return render(request, 'vendedores/add.html', {'form': form})
+            return redirect(f'/vendedores/lista/?tp=cod&s={v.codigo}')
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'vendedores/add.html', {'form': form, 'error_messages': error_messages})
 
 @verifica_alguma_permissao('vendedores.add_vendedor', 'vendedores.change_vendedor', 'vendedores.delete_vendedor')
 @login_required
 def att_vendedor(request, codigo):
-    cli = get_object_or_404(Vendedor, codigo=codigo, vinc_emp=request.user.empresa)
-    it_old = Vendedor.objects.get(codigo=cli.codigo, vinc_emp=request.user.empresa)
+    error_messages = []
+    empresa = request.user.empresa
+    cli = get_object_or_404(Vendedor, codigo=codigo, vinc_emp=empresa)
+    it_old = Vendedor.objects.get(codigo=cli.codigo, vinc_emp=empresa)
     form = VendedorForm(instance=cli, empresa=request.user.empresa)
     if not request.user.has_perm('vendedores.change_vendedor'):
         messages.info(request, 'Você não tem permissão para editar vendedores.')
         return redirect('/vendedores/lista/')
-    if request.method == 'POST':
-        form = VendedorForm(request.POST, instance=cli, empresa=request.user.empresa)
-        if form.is_valid():
-            cli.save()
-            registrar_log(
-                request, "ALTERAR", "Vendedor", cli.fantasia,
-                f"Alterou o vendedor: {cli.codigo} - {cli.fantasia}",
-                cli.id, gerar_alteracoes(it_old, cli)
-            )
+    if request.method != 'POST':
+        form = VendedorForm(instance=cli, empresa=empresa)
+        return render(request, 'vendedores/att.html', {'form': form, 'cli': cli, 'error_messages': error_messages})
+    form = VendedorForm(request.POST, instance=cli, empresa=empresa)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'vendedores/att.html', {'form': form, 'cli': cli, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
+            cli = form.save()
+            registrar_log(request, "ALTERAR", "Vendedor", cli.fantasia, f"Alterou o vendedor: {cli.codigo} - {cli.fantasia}", cli.id, gerar_alteracoes(it_old, cli))
             next_url = request.POST.get('next') or request.GET.get('next')
             clie = str(cli.codigo)
             messages.success(request, 'Vendedor atualizado com sucesso!')
             if next_url: return redirect(next_url)
             else: return redirect('/vendedores/lista/?tp=cod&s=' + clie)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'vendedores/att.html', {'form': form, 'cli': cli, 'error_messages': error_messages})
-    else:
-        form = VendedorForm(instance=cli, empresa=request.user.empresa)
-        return render(request, 'vendedores/att.html', {'form': form, 'cli': cli})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'vendedores/att.html', {'form': form, 'cli': cli, 'error_messages': error_messages})
 
 @login_required
 def del_vendedor(request, codigo):
     if not request.user.has_perm('vendedores.delete_vendedor'):
         messages.info(request, 'Você não tem permissão para deletar vendedores.')
         return redirect('/vendedores/lista/')
-    cli = get_object_or_404(Vendedor, codigo=codigo, vinc_emp=request.user.empresa)
-    registrar_log(
-        request, "EXCLUIR", "Vendedor", cli.fantasia,
-        f"Excluiu o vendedor: {cli.codigo} - {cli.fantasia}",
-        cli.id, gerar_alteracoes(obj_antigo=cli)
-    )
-    cli.delete()
-    messages.success(request, 'Vendedor deletado com sucesso!')
+    try:
+        with transaction.atomic():
+            cli = get_object_or_404(Vendedor, codigo=codigo, vinc_emp=request.user.empresa)
+            registrar_log(request, "EXCLUIR", "Vendedor", cli.fantasia,f"Excluiu o vendedor: {cli.codigo} - {cli.fantasia}",cli.id, gerar_alteracoes(obj_antigo=cli))
+            cli.delete()
+            messages.success(request, 'Vendedor deletado com sucesso!')
+            return redirect('/vendedores/lista/')
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return redirect('/vendedores/lista/')

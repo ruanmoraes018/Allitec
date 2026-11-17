@@ -7,10 +7,10 @@ from .forms import GrupoRegraProdutoForm
 import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
-from filiais.models import Usuario
-from django.views.decorators.http import require_POST
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from util.logs import gerar_alteracoes, registrar_log
+from django.db import DatabaseError, IntegrityError, transaction
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -53,71 +53,103 @@ def lista_grupos_regras_ajax(request):
 
 @login_required
 def add_grupo_regras(request):
+    error_messages = []
+    empresa = request.user.empresa
     if not request.user.has_perm('regras_produto.add_gruporegraproduto'):
         messages.info(request, 'Você não tem permissão para adicionar grupos de regras.')
         return redirect('/grupos_regras/lista/')
-    if request.method == 'POST':
-        form = GrupoRegraProdutoForm(request.POST)
-        if form.is_valid():
+    if request.method != 'POST':
+        form = GrupoRegraProdutoForm()
+        return render(request, 'grupos_regras/add.html', {'form': form, 'error_messages': error_messages})
+    form = GrupoRegraProdutoForm(request.POST)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'grupos_regras/add.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             g = form.save(commit=False)
-            g.vinc_emp = request.user.empresa
+            g.vinc_emp = empresa
             g.save()
-            registrar_log(
-                request, "CRIAR", "Grupo de Regras", g.descricao,
-                f"Adicionou o grupo de regras: {g.cod_local} - {g.descricao}",
-                g.id, gerar_alteracoes(obj_novo=g)
-            )
+            registrar_log(request, "CRIAR", "Grupo de Regras", g.descricao,f"Adicionou o grupo de regras: {g.cod_local} - {g.descricao}",g.id, gerar_alteracoes(obj_novo=g))
             messages.success(request, 'Grupo de Regras adicionado com sucesso!')
             gp = str(g.cod_local)
             return redirect('/grupo_regras/lista/?tp=cod&s=' + gp)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'grupo_regras/add.html', {'form': form, 'error_messages': error_messages})
-    else: form = GrupoRegraProdutoForm()
-    return render(request, 'grupo_regras/add.html', {'form': form})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'grupo_regras/add.html', {'form': form, 'error_messages': error_messages})
 
 @login_required
 def att_grupo_regras(request, cod_local):
-    g = get_object_or_404(GrupoRegraProduto, cod_local=cod_local, vinc_emp=request.user.empresa)
-    it_old = GrupoRegraProduto.objects.get(cod_local=g.cod_local, vinc_emp=request.user.empresa)
-    form = GrupoRegraProdutoForm(instance=g)
+    error_messages = []
+    empresa = request.user.empresa
+    g = get_object_or_404(GrupoRegraProduto, cod_local=cod_local, vinc_emp=empresa)
+    it_old = GrupoRegraProduto.objects.get(cod_local=g.cod_local, vinc_emp=empresa)
     if not request.user.has_perm('regras_produto.change_gruporegraproduto'):
         messages.info(request, 'Você não tem permissão para editar grupos de regras.')
         return redirect('/grupo_regras/lista/')
-    if request.method == 'POST':
-        form = GrupoRegraProdutoForm(request.POST, instance=g)
-        if form.is_valid():
-            g.save()
-            registrar_log(
-                request, "ALTERAR", "Grupo de Regras", g.descricao,
-                f"Alterou o grupo de regras: {g.cod_local} - {g.descricao}",
-                g.id, gerar_alteracoes(it_old, g)
-            )
+    if request.method != 'POST':
+        form = GrupoRegraProdutoForm(instance=g)
+        return render(request, 'grupo_regras/att.html', {'form': form, 'g': g, 'error_messages': error_messages})
+    form = GrupoRegraProdutoForm(request.POST, instance=g)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'grupo_regras/att.html', {'form': form, 'g': g, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
+            g = form.save()
+            registrar_log(request, "ALTERAR", "Grupo de Regras", g.descricao,f"Alterou o grupo de regras: {g.cod_local} - {g.descricao}",g.id, gerar_alteracoes(it_old, g))
             next_url = request.POST.get('next') or request.GET.get('next')
             gp = str(g.cod_local)
             messages.success(request, 'Grupo de Regras atualizado com sucesso!')
             if next_url: return redirect(next_url)
             else: return redirect('/grupo_regras/lista/?tp=cod&s=' + gp)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'grupo_regras/att.html', {'form': form, 'g': g, 'error_messages': error_messages})
-    else: return render(request, 'grupo_regras/att.html', {'form': form, 'g': g})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'grupo_regras/att.html', {'form': form, 'g': g, 'error_messages': error_messages})
 
 @login_required
 def del_grupo_regras(request, cod_local):
     if not request.user.has_perm('regras_produto.delete_gruporegraproduto'):
         messages.info(request, 'Você não tem permissão para deletar grupos de regras.')
         return redirect('/grupo_regras/lista/')
-    g = get_object_or_404(GrupoRegraProduto, cod_local=cod_local, vinc_emp=request.user.empresa)
-    registrar_log(
-        request, "EXCLUIR", "Grupo de Regras", g.descricao,
-        f"Excluiu o grupo de regras: {g.cod_local} - {g.descricao}",
-        g.id, gerar_alteracoes(obj_antigo=g)
-    )
-    g.delete()
-    messages.success(request, 'Grupo de Regras deletado com sucesso!')
+    try:
+        with transaction.atomic():
+            g = get_object_or_404(GrupoRegraProduto, cod_local=cod_local, vinc_emp=request.user.empresa)
+            registrar_log(request, "EXCLUIR", "Grupo de Regras", g.descricao,f"Excluiu o grupo de regras: {g.cod_local} - {g.descricao}",g.id, gerar_alteracoes(obj_antigo=g))
+            g.delete()
+            messages.success(request, 'Grupo de Regras deletado com sucesso!')
+            return redirect('/grupo_regras/lista/')
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return redirect('/grupo_regras/lista/')

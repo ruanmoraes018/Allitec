@@ -4,14 +4,7 @@ $(document).ready(function() {
     let fotosRemover = [];
     // Kanban
     function alterarStatus(codigo,status){
-        $.ajax({
-            url:"/orcamentos/ajax/alterar_status_k/",
-            type:"POST",
-            data:{
-                codigo:codigo,
-                status:status,
-                csrfmiddlewaretoken:$("[name=csrfmiddlewaretoken]").val()
-            },
+        $.ajax({url:"/orcamentos/ajax/alterar_status_k/", type:"POST", data:{codigo:codigo, status:status, csrfmiddlewaretoken:$("[name=csrfmiddlewaretoken]").val()},
             success:function(){
                 atualizarTotais();
             }
@@ -24,11 +17,7 @@ $(document).ready(function() {
         location.href="/orcamentos/att/"+codigo+"/";
     });
     $(".kanban-coluna").each(function(){
-        new Sortable(this,{
-            group:'orcamentos',
-            animation:150,
-            ghostClass:'bg-warning',
-            onEnd:function(evt){
+        new Sortable(this,{group:'orcamentos',animation:150,ghostClass:'bg-warning',onEnd:function(evt){
                 let codigo=$(evt.item).data("codigo");
                 let status=$(evt.to).data("status");
                 alterarStatus(codigo,status);
@@ -79,6 +68,60 @@ $(document).ready(function() {
             fotosRemover.push(foto.id);
         portaFotos[porta].splice(indice,1);
         renderFotosPorta(porta);
+    });
+    // Saldos estoques dos produtos
+    $(document).on('click', '.btn-saldos-estoque', function () {
+        const codigo = $(this).data('codigo');
+        const descricao = $(this).data('descricao');
+        const $tbody = $('#tbody-saldos-estoque');
+        const $semSaldos = $('#sem-saldos-estoque');
+        $('#modal-estoque-produto').text(`${codigo} - ${descricao}`);
+        $tbody.empty();
+        $semSaldos.addClass('d-none');
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalSaldosEstoque'));
+        iniciarLoading();
+        modal.show();
+        $.ajax({url: `/produtos/saldos-estoque//${codigo}/`,type: 'GET',
+            success: function (resp) {
+                $tbody.empty();
+                if (!resp.filiais || !resp.filiais.length) {
+                    $semSaldos.removeClass('d-none');
+                    return;
+                }
+                resp.filiais.forEach(function (filial) {
+                    // Cabeçalho da filial
+                    $tbody.append(`
+                        <tr class="table-light">
+                            <td colspan="2" class="fw-bold"><i class="fa-solid fa-store me-2"></i> Filial ${filial.codigo} <span class="text-muted fw-normal ms-1"> - ${filial.nome}</span></td>
+                        </tr>
+                    `);
+                    filial.estoques.forEach(function (estoque) {
+                        const quantidade = Number(estoque.quantidade || 0);
+                        let classe = 'text-secondary';
+                        if (quantidade > 0) {
+                            classe = 'text-success';
+                        } else if (quantidade < 0) {
+                            classe = 'text-danger';
+                        }
+                        $tbody.append(`
+                            <tr>
+                                <td class="ps-5"><i class="fa-solid fa-turn-down-right me-2 text-muted"></i> ${estoque.nome}</td>
+                                <td class="text-end fw-bold ${classe}">${quantidade.toLocaleString('pt-BR', {minimumFractionDigits: 2,maximumFractionDigits: 3})}</td>
+                            </tr>
+                        `);
+                    });
+                });
+                fecharLoading();
+            },
+            error: function (xhr) {
+                $tbody.html(`
+                    <tr>
+                        <td colspan="2" class="text-center text-danger py-4"><i class="fa-solid fa-circle-exclamation me-2"></i> Não foi possível carregar os saldos dos estoques.</td>
+                    </tr>
+                `);
+                fecharLoading();
+            }
+        });
     });
     // Método de leitura de Certificado Digital
     $(function () {
@@ -211,7 +254,10 @@ $(document).ready(function() {
                         </div>
                     `);
                 },
-                error: function () {toast("Erro ao validar o certificado!", "error");}
+                error: function () {
+                    erroInternet();
+                    console.error("Erro ao validar o certificado!");
+                }
             });
         }
         $('#id_certificado').on('change', validarCertificado);
@@ -277,7 +323,9 @@ $(document).ready(function() {
                 Multi Lg. Corte: ${f.multi_lg_corte ?? '-'}
                 Tabela Preço: ${f.tb_preco ?? '-'}
                 Ag. Itens: ${f.agrupa_itens}
+                Est. Padrão: ${f.nome_est_padrao}
                 Multi Qtde. Lâm: ${f.mt_qt_lam}
+                Forma de Pgto. P.: ${f.forma_padrao}
                 `).join('\n\n');
             console.log(texto);
             console.log("DADOS_FILIAL:", DADOS_FILIAL);
@@ -324,8 +372,13 @@ $(document).ready(function() {
                 const novaQtd  = parseBR(cells[4]);
                 const mudou = item.cod !== novoCod || item.desc !== novaDesc || item.unid !== novaUnid || item.vl_unit !== novoVl || (!isNaN(novaQtd) && Number(item.qtd_final ?? 0) !== novaQtd);
                 if (!mudou) return;
+                // NOVO: só marca se o preço realmente mudou
+                if (Math.abs((item.vl_unit || 0) - novoVl) > 0.005) {
+                    item.vl_manual = true;
+                    item.vl_unit = novoVl;
+                }
                 item.cod = novoCod; item.desc = novaDesc;
-                item.unid = novaUnid; item.vl_unit = novoVl;
+                item.unid = novaUnid;
                 if (!isNaN(novaQtd)) {
                     item.qtd_final  = novaQtd;
                     item.qtd_manual = true;
@@ -358,23 +411,14 @@ $(document).ready(function() {
         return `
             <div class="list-group-item py-1 item-lista" data-porta="${porta}" data-item-id="${item.id}" ${regraAttr}>
                 <div class="row align-items-center linha-lista">
-                    <!-- Código -->
-                    <div class="col-md-1 fw-bold codigo-col cod-div text-secondary" data-label="Código:">#${item.cod}</div>
-                    <!-- Descrição -->
+                    <div class="col-md-1 fw-bold descricao-col cod-div text-secondary" data-label="Código:">#${item.cod}</div>
                     <div class="col-md-4 fw-semibold descricao-col desc-div" data-label="Descrição:">${item.desc}</div>
-                    <!-- Unidade -->
-                    <div class="col-md-1 fw-semibold codigo-col unid-div" data-label="Unidade:">${item.unid}</div>
-                    <!-- Valor Compra -->
-                    <div class="col-md-1 fw-semibold codigo-col vl-c-div text-danger" data-label="Vl. Custo:">${fmt(item.vl_compra)}</div>
-                    <!-- Valor Unitário -->
-                    <div class="col-md-1 fw-semibold codigo-col vl-u-div text-success" data-label="Vl. Unit.:">${fmt(item.vl_unit)}</div>
-                    <!-- Quantidade -->
-                    <div class="col-md-1 fw-semibold codigo-col qtd-div" data-label="Qtde.:">${fmt(item.qtd_final)}</div>
-                    <!-- Total Compra -->
-                    <div class="col-md-1 fw-semibold codigo-col tot-c-div text-danger" data-label="Tot. Custo:">${fmt(totCompra)}</div>
-                    <!-- Total Venda -->
-                    <div class="col-md-1 fw-semibold codigo-col tot-v-div text-success" data-label="Tot. Venda:">${fmt(vlTotal)}</div>
-                    <!-- Ações -->
+                    <div class="col-md-1 fw-semibold descricao-col unid-div" data-label="Unidade:">${item.unid}</div>
+                    <div class="col-md-1 fw-semibold descricao-col vl-c-div text-danger" data-label="Vl. Custo:">${fmt(item.vl_compra)}</div>
+                    <div class="col-md-1 fw-semibold descricao-col vl-u-div text-success" data-label="Vl. Unit.:">${fmt(item.vl_unit)}</div>
+                    <div class="col-md-1 fw-semibold descricao-col qtd-div" data-label="Qtde.:">${fmt(item.qtd_final)}</div>
+                    <div class="col-md-1 fw-semibold descricao-col tot-c-div text-danger" data-label="Tot. Custo:">${fmt(totCompra)}</div>
+                    <div class="col-md-1 fw-semibold descricao-col tot-v-div text-success" data-label="Tot. Venda:">${fmt(vlTotal)}</div>
                     <div class="col-md-1 mb-1 mb-md-0 acoes-col">
                         <div class="btn-group btn-group-sm">
                             <button type="button" class="btn btn-light btn-sm border editBtn" data-bs-target="#${modalEditar}"><i class="fa-regular fa-pen-to-square text-success"></i></button>
@@ -475,21 +519,41 @@ $(document).ready(function() {
     let descontoGeral = {tipo: null, valor: 0, operacao: null};
     function initDadosVenda(filialId) {
         console.log("Recebi:", filialId);
+
         const filialAtual = DADOS_FILIAL[String(filialId)];
+
         console.log("filialAtual:", filialAtual);
+
         if (!filialAtual) {
             console.error("Não achei a filial");
             return;
         }
+
         AGRUPA_ITENS = !!filialAtual.agrupa_itens;
-        cliente = filialAtual.cli ? {id: filialAtual.cli, nome: filialAtual.cli_nome} : null;
-        vendedor = filialAtual.vend ? {id: filialAtual.vend, nome: filialAtual.vend_nome} : null;
-        tabelaPreco = filialAtual.tb_preco ? {id: filialAtual.tb_preco, nome: filialAtual.tb_preco_nome} : null;
-        console.log(cliente);
-        console.log(vendedor);
-        console.log(tabelaPreco);
+
+        cliente = filialAtual.cli ? {
+            id: filialAtual.cli,
+            nome: filialAtual.cli_nome,
+            limite_credito: filialAtual.cli_limite_credito ?? 0,
+            limite_disponivel: filialAtual.cli_limite_disponivel ?? 0
+        } : null;
+
+        vendedor = filialAtual.vend
+            ? {id: filialAtual.vend, nome: filialAtual.vend_nome}
+            : null;
+
+        tabelaPreco = filialAtual.tb_preco
+            ? {id: filialAtual.tb_preco, nome: filialAtual.tb_preco_nome}
+            : null;
+
         atualizarResumoVenda();
+        atualizarLimiteClienteCaixa();
+
+        console.log("Cliente:", cliente);
+        console.log("Vendedor:", vendedor);
+        console.log("Tabela de preço:", tabelaPreco);
     }
+
     carregarDadosFilial().then(() => {
         console.log("FILIAL_ID:", FILIAL_ID);
         console.log("FILIAL:", DADOS_FILIAL[String(FILIAL_ID)]);
@@ -717,10 +781,40 @@ $(document).ready(function() {
         atualizarResumoVenda();
         fecharLoading();
     });
+    function atualizarLimiteClienteCaixa() {
+        const $modal = $('.modal-pagamento[data-tipo="caixa"]');
+        const $card  = $modal.find('.limite-cliente-card');
+        const $valor = $modal.find('.limite-disponivel-valor');
+        const $input = $modal.find('.limite-disponivel-cliente');
+
+        const disponivel = cliente ? (Number(cliente.limite_disponivel) || 0) : 0;
+        const totalCompra = parseBR($modal.find('.totalModal').val()) || 0;
+
+        const temLimite = totalCompra > 0 && disponivel >= totalCompra;
+
+        $valor.text(disponivel.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        }));
+
+        $input.val(disponivel);
+
+        $card.removeClass(
+            'border-success-subtle bg-success-subtle border-danger-subtle bg-danger-subtle'
+        ).addClass(
+            temLimite
+                ? 'border-success-subtle bg-success-subtle'
+                : 'border-danger-subtle bg-danger-subtle'
+        );
+
+        $valor.removeClass('text-success text-danger')
+              .addClass(temLimite ? 'text-success' : 'text-danger');
+    }
     function atualizarResumoVenda() {
-        $('#infoCliente').text(`Cliente: ${cliente?.nome || '-'}`);
-        $('#infoVendedor').text(`Vendedor: ${vendedor?.nome || '-'}`);
-        $('#infoTabelaPreco').text(`Tb. Preço: ${tabelaPreco?.nome || '-'}`);
+        $('#infoCliente').html(`<i class="fa-regular fa-face-smile me-1"></i> Cliente: ${cliente?.nome || '-'}`);
+        $('#infoVendedor').html(`<i class="fa-solid fa-user-tag me-1"> Vendedor: ${vendedor?.nome || '-'}`);
+        $('#infoTabelaPreco').html(`<i class="fa-solid fa-tags me-1"></i> Tb. Preço: ${tabelaPreco?.nome || '-'}`);
+        atualizarLimiteClienteCaixa();
     }
     function atualizarPrecosItens() {
         if (!tabelaPreco || itens.length === 0) return;
@@ -862,32 +956,42 @@ $(document).ready(function() {
         restaurarPadraoFilial();
         fecharLoading();
     }
-    $("#finalizarVendaBtn").click(function () {
+    $("#finalizarVendaBtn").click(async function () {
         if (itens.length === 0) {
             toast(`Adicione ao menos um item para finalizar a venda!`, "warning");
             return;
         }
         iniciarLoading();
-        const $modal = $('.modal-pagamento');
-        // 🔥 TOTAL DA VENDA
+        const $modal = $('.modal-pagamento[data-tipo="caixa"]');
         const total = itens.reduce((s, i) => s + i.total, 0);
-        // 🔥 CLIENTE
-        $modal.find('.vendaCliente').val(cliente?.nome);
-        // 🔥 TOTAL NO CAMPO
-        $modal.find('.totalModal').val(formatBR(total));
-        // 🔥 JOGA NO INPUT DA FORMA (FORMATO INPUT)
-        $modal.find('.inp-valor-pgto').val(formatInputBR(total));
-        // 🔥 (OPCIONAL) LIMPA E SETA SELECT2
-        const $select = $modal.find('.forma-pgto');
-        // limpa seleção
-        $select.val(null).trigger('change');
-        // se quiser já deixar DINHEIRO (exemplo id = 1)
-        const defaultFormaId = $select.find('option:first').val();
-        if (defaultFormaId) {
-            $select.val(defaultFormaId).trigger('change');
+
+        // 🔥 Consulta o limite ATUAL do cliente selecionado
+        if (cliente?.id) {
+            try {
+                const r = await fetch(`/lancpdvs/caixa/limite-cliente/${cliente.id}/`, {credentials: 'same-origin'});
+                const d = await r.json();
+                if (d.sucesso) {
+                    cliente.limite_credito    = d.limite_credito;
+                    cliente.limite_disponivel = d.limite_disponivel;
+                    cliente.somente_avista    = d.somente_avista;
+                    cliente.bloqueado         = d.bloqueado;
+                    cliente.motivo_bloqueio   = d.motivo_bloqueio;
+                } else {
+                    cliente.limite_disponivel = 0;
+                }
+            } catch (e) {
+                cliente.limite_disponivel = 0;
+                toast(`Não foi possível consultar o limite do cliente. Vendas a prazo serão bloqueadas.`, "warning");
+            }
         }
-        // 🔥 abre modal
-        $modal.modal('show');
+        atualizarLimiteClienteCaixa();
+
+        $modal.find('.vendaCliente').val(cliente?.nome || '');
+        // .totalModal é uma <div>: .val() guarda o valor (usado por getTotalPedido) e .text() mostra na tela
+        $modal.find('.totalModal').val(formatBR(total)).text('R$ ' + formatBR(total));
+        $modal.find('.inp-valor-pgto').val(formatInputBR(total));
+
+        $modal.modal('show');   // a forma padrão é selecionada no shown.bs.modal
         fecharLoading();
     });
     $("#cancelarVendaBtn").click(function(){
@@ -932,7 +1036,10 @@ $(document).ready(function() {
                     toast(`Entrada registrada com sucesso!`, "success");
                 }
             },
-            error: function(xhr){toast(xhr.responseJSON.erro, 'error');}
+            error: function(xhr){
+                console.error("Erro: ", xhr.responseJSON.erro);
+                erroInternet();
+            }
         });
     });
     function imprimirComprovanteEntrada(dados){
@@ -1018,7 +1125,10 @@ $(document).ready(function() {
                     toast(`Saída registrada com sucesso!`, "success");
                 }
             },
-            error: function(xhr){toast(xhr.responseJSON.erro, 'error');}
+            error: function(xhr){
+                erroInternet();
+                toast("Erro: ", xhr.responseJSON.erro);
+            }
         });
     });
     function imprimirComprovanteSaida(dados){
@@ -1083,6 +1193,7 @@ $(document).ready(function() {
                 toast(`${resp.erro}`, "error");
                 return;
             }
+            console.log('[MOV] caixa:', resp.caixa, '| vendas:', resp.vendas.map(v => v.pedido_id));
             $('#tblAbertura, #tblVendas, #tblResumoVendas, #tblEntradas, #tblResumoEntradas, #tblSaidas, #tblResumoSaidas, #tblTotalGeral, #totVendasCaixa').html('');
             // 🔹 ABERTURA
             resp.abertura.forEach(a => {
@@ -1234,8 +1345,10 @@ $(document).ready(function() {
                     </tr>
                 `);
             });
-        });
-        fecharLoading();
+        }).catch(err => {
+            console.error('[MOV] erro ao renderizar:', err);
+            toast('Erro ao montar os movimentos do caixa.', 'error');
+        }).finally(() => fecharLoading());
     }
     $(document).on("click", ".btnReimprimirEntrada", function () {
         const caixa = $(this).data("caixa");
@@ -1253,26 +1366,43 @@ $(document).ready(function() {
             else {toast(data.erro, "error");}
         });
     });
+    let dadosCancelamento = null;
     $(document).on("click", ".btnCancelarEntrada, .btnCancelarSaida", function () {
         const botao = $(this);
-        const caixa = botao.data("caixa");
-        const movimento = botao.data("movimento");
-        if (!confirm("Deseja realmente cancelar este lançamento?")) {return;}
-        $.ajax({
-            url: `/lancpdvs/caixa/${caixa}/movimento/${movimento}/cancelar/`, type: "POST", headers: {"X-CSRFToken": $("[name=csrfmiddlewaretoken]").val()},
+        // Guarda os dados do lançamento selecionado
+        dadosCancelamento = {botao: botao,caixa: botao.data("caixa"),movimento: botao.data("movimento")};
+        // Abre o modal
+        $("#modalConfirmarCancelamento").modal("show");
+    });
+    // Confirmação do cancelamento
+    $("#confirmarCancelamento").on("click", function () {
+        if (!dadosCancelamento) return;
+        const { botao, caixa, movimento } = dadosCancelamento;
+        const btnConfirmar = $(this);
+        btnConfirmar.prop("disabled", true).html('<span class="spinner-border spinner-border-sm me-1"></span> Cancelando...');
+        $.ajax({url: `/lancpdvs/caixa/${caixa}/movimento/${movimento}/cancelar/`,type: "POST",headers: {"X-CSRFToken": $("[name=csrfmiddlewaretoken]").val()},
             success: function (resp) {
                 toast(resp.mensagem, "success");
                 // Remove os botões de cancelar
                 botao.closest("td").find(".btnCancelarEntrada, .btnCancelarSaida").remove();
-                // Opcional: marca a linha como cancelada
+                // Marca a linha como cancelada
                 botao.closest("tr").addClass("table-danger");
+                // Fecha o modal
+                $("#modalConfirmarCancelamento").modal("hide");
                 // Atualiza os totais do caixa
                 abrirMovCaixa(caixa);
             },
             error: function (xhr) {
                 let erro = "Erro ao cancelar lançamento.";
-                if (xhr.responseJSON && xhr.responseJSON.erro) {erro = xhr.responseJSON.erro;}
-                toast(erro, "error");
+                if (xhr.responseJSON && xhr.responseJSON.erro) {
+                    erro = xhr.responseJSON.erro;
+                }
+                toast(erro, "danger");
+                console.error("Erro:", erro);
+            },
+            complete: function () {
+                btnConfirmar.prop("disabled", false).html('<i class="bi bi-x-circle me-1"></i> Sim, cancelar');
+                dadosCancelamento = null;
             }
         });
     });
@@ -1330,8 +1460,9 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr, status, error) {
-                toast(`Erro de comunicação com o servidor: ${error}`, "error");
+                console.error(`Erro de comunicação com o servidor: ${error}`);
                 resetarCamposModal();
+                erroInternet();
             },
             complete: function() {$btn.prop('disabled', false).text('Consultar');}
         });
@@ -1382,7 +1513,10 @@ $(document).ready(function() {
                 }
                 else {toast(`Erro na validação: ${response.erro}`, "error");}
             },
-            error: function(xhr, status, error) {toast(`Erro ao validar itens: ${error}`, "error");},
+            error: function(xhr, status, error) {
+                console.error(`Erro ao validar itens: ${error}`);
+                erroInternet();
+            },
             complete: function() {$btn.prop('disabled', false).html('<i class="fa-regular fa-circle-check"></i> Confirmar');}
         });
     });
@@ -1533,17 +1667,21 @@ $(document).ready(function() {
             $("#id_vl_p_s").prop("readonly", true).addClass("d-none");
             $("#id_lg_ps").prop("readonly", true).addClass("d-none");
             $("#id_at_ps").prop("readonly", true).addClass("d-none");
+            $("#id_tp_ps").prop("readonly", true).addClass("d-none");
             $("#div_id_vl_p_s").addClass("d-none");
             $("#div_id_lg_ps").addClass("d-none");
             $("#div_id_at_ps").addClass("d-none");
+            $("#div_id_tp_ps").addClass("d-none");
             atualizarSubtotal();
         } else if (p_social === 'Sim') {
             $("#id_vl_p_s").prop("readonly", false).removeClass("d-none");
             $("#id_lg_ps").prop("readonly", false).removeClass("d-none");
             $("#id_at_ps").prop("readonly", false).removeClass("d-none");
+            $("#id_tp_ps").prop("readonly", false).removeClass("d-none");
             $("#div_id_vl_p_s").removeClass("d-none");
             $("#div_id_lg_ps").removeClass("d-none");
             $("#div_id_at_ps").removeClass("d-none");
+            $("#div_id_tp_ps").removeClass("d-none");
         }
         fecharLoading();
     }
@@ -1562,6 +1700,21 @@ $(document).ready(function() {
         else {$("#div_id_espessura_lam, #div_id_peso_m2").addClass("d-none");}
     }
     verificarOpLam();
+    function verificarOpPort() {
+        const p_e = $('#id_especifico').val();
+        if (p_e === 'Portinhola') {$("#div_id_larg_port, #div_id_alt_port").removeClass("d-none");}
+        else {$("#div_id_larg_port, #div_id_alt_port").addClass("d-none");}
+    }
+    verificarOpPort();
+    function verificarOpBloq() {
+        const p_e = $('#id_bloqueado').val();
+        if (p_e === "True") {$("#id_motivo_bloqueio").prop("readonly", false);}
+        else {$("#id_motivo_bloqueio").prop("readonly", true);}
+    }
+    verificarOpBloq();
+    $('#id_bloqueado').on('change', function () {
+        verificarOpBloq();
+    });
     $("#id_vl_p_s").on("blur", function() {
         iniciarLoading();
         atualizarSubtotal();
@@ -1571,6 +1724,7 @@ $(document).ready(function() {
     $('#id_especifico').on('change', function () {
         verificarOpEixo();
         verificarOpLam();
+        verificarOpPort();
     });
     function verificarGateway() {
         const p_e = $('#id_gateway').val();
@@ -1626,7 +1780,10 @@ $(document).ready(function() {
                     window.location.href = `/orcamentos/lista/?s=${id}&sit=Faturado`;
                 }, 1500);
             },
-            error: function () {toast(`Erro ao atualizar o status!`, "error");}
+            error: function () {
+                console.error(`Erro ao atualizar o status!`);
+                erroInternet();
+            }
         });
     });
     $(function () {$('[data-bs-toggle="tooltip"]').each(function () {new bootstrap.Tooltip(this);});});
@@ -1801,6 +1958,9 @@ $(document).ready(function() {
                 linha.hide();
             }
         );
+        $(document).on('click', '.remover-l-c', function () {
+            $(this).closest('tr').remove();
+        });
         // Adicionar Condição
         $("#add-condicao").click(function(){adicionarLinha("condicoes");});
         // Controle Tipo Regra
@@ -1841,7 +2001,10 @@ $(document).ready(function() {
             $.ajax({url:"/regras-produto/simular/", method:"POST", headers:{"X-CSRFToken": $("input[name=csrfmiddlewaretoken]").val()},
                 data:{regra_id: $("#id_regra").val(), contexto: JSON.stringify(contexto)},
                 success:function(resp){$("#sim-resultado").html(resp.html).show();},
-                error:function(){$("#sim-resultado").html("<span class='text-danger'>Erro ao simular regra.</span>");}
+                error:function(){
+                    $("#sim-resultado").html("<span class='text-danger'>Erro ao simular regra.</span>");
+                    erroInternet();
+                }
             });
         });
         // Inicialização
@@ -1936,6 +2099,7 @@ $(document).ready(function() {
         $.ajax({
             url: `/entradas/entradas-produto/${produtoId}/`, method: 'GET', dataType: 'json',
             success: function(response) {
+                iniciarLoading();
                 tableBody.empty(); // limpa o corpo da tabela
                 if (response.entradas.length > 0) {
                     $.each(response.entradas, function(i, e) {
@@ -1948,7 +2112,9 @@ $(document).ready(function() {
                     });
                 } else {tableBody.append('<tr><td colspan="6" class="text-center">Nenhuma entrada encontrada.</td></tr>');}
                 modal.show();
+                fecharLoading();
             }, error: function() {
+                erroInternet();
                 tableBody.html('<tr><td colspan="6" class="text-center text-danger">Erro ao carregar dados.</td></tr>');
                 modal.show();
             }
@@ -1956,7 +2122,7 @@ $(document).ready(function() {
     });
     // NOVO TESTE
     $(function () {
-        const seletorDatasGerais = '[id^="dt_pag_cr-"], [id^="cel-dt-"], [id^="dt_pag_cp-"], #data_inicio1, #data_emi_ini1, #data_emi_fim1, #data_ent_ini1, #data_ent_fim1, #data_inst_ini1, #data_inst_fim1, #data_inicio2, #data_fim2, .inp-vencimento, #data_fim1, #id_data_vencimento, #dt_efet_ent, #inpDtPriParc, #id_dt_inicio, #data, #id_dt_emi, #id_dt_prev_instalacao, #id_dt_ent, #id_dt_venc, #id_data_certificado, #id_data_emissao, #id_data_emissao1, #id_data_entrega, #id_data_nascimento_administrador, #id_data_nascimento, #id_data_doc, #id_data_prop, #id_data_aniversario, #id_dt_visita, #id_px_visita, #dtVisita, #pxVisita';
+        const seletorDatasGerais = '[id^="dt_pag_cr-"], [id^="cel-dt-"], [id^="dt_pag_cp-"], #id_dt_nascimento, #id_dt_fundacao, #data_inicio1, #data_emi_ini1, #data_emi_fim1, #data_ent_ini1, #data_ent_fim1, #data_inst_ini1, #data_inst_fim1, #data_inicio2, #data_fim2, .inp-vencimento, #data_fim1, #id_data_vencimento, #dt_efet_ent, #inpDtPriParc, #id_dt_inicio, #data, #id_dt_emi, #id_dt_prev_instalacao, #id_dt_ent, #id_dt_venc, #id_data_certificado, #id_data_emissao, #id_data_emissao1, #id_data_entrega, #id_data_nascimento_administrador, #id_data_nascimento, #id_data_doc, #id_data_prop, #id_data_aniversario, #id_dt_visita, #id_px_visita, #dtVisita, #pxVisita';
         $(seletorDatasGerais).datepicker({
             changeMonth: true, changeYear: true, dateFormat: "dd/mm/yy",  monthNamesShort: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"], dayNamesMin: ["Do", "2ª", "3ª", "4ª", "5ª", "6ª", "Sá"]
         });
@@ -2049,7 +2215,7 @@ $(document).ready(function() {
                 $inpDtPriParc.val(addDtInterv(dtEfetiv, interv));
             }
         });
-        
+
         // ── Carrega duplicatas do JSON embutido ──────────────────────────
         const script = document.getElementById(`cobrancas-json-${entradaId}`);
         let duplicatas = [];
@@ -2326,23 +2492,49 @@ $(document).ready(function() {
             const formaTxt = select.find('option:selected').text();
             const valor = parseBR(valorInput.val());
             const restante = atualizarRestante(modal);
-            if (!formaId) return toast('Selecione uma forma!', "warning");
-            if (valor <= 0) return toast('Valor inválido!', "warning");
-            if (valor > restante) return toast('Valor maior que restante!', "warning");
-            const gateway = select.data('gateway') || 'nenhum';
-            const credencial = JSON.stringify(select.data('credencial') || {});
-            tbody.append(`
-                <tr data-gateway="${gateway}" data-credencial='${credencial}'>
-                    <td>${formaTxt}<input type="hidden" name="forma_id[]" value="${formaId}"></td>
-                    <td class="text-end">${formatBR(valor)}<input type="hidden" class="vl-item-pgto" name="forma_valor[]" value="${valor}"></td>
-                    <td class="text-center">
-                        <button type="button" class="btn btn-danger btn-sm remover-forma"><i class="fa-solid fa-trash"></i></button>
-                    </td>
-                </tr>
-            `);
-            const novoRestante = atualizarRestante(modal);
-            valorInput.val(formatBR(novoRestante > 0 ? novoRestante : 0));
-            select.val(null).trigger('change');
+            if (!formaId) {
+                return toast('Selecione uma forma!', 'warning');
+            }
+            if (valor <= 0) {
+                return toast('Valor inválido!', 'warning');
+            }
+            if (valor > restante) {
+                return toast('Valor maior que restante!', 'warning');
+            }
+            // Evita adicionar duas vezes enquanto consulta a forma
+            const $botao = $(this);
+            $botao.prop('disabled', true);
+            $.get('/formas_pgto/forma-pgto-info/' + formaId + '/',function (data) {
+                    const gateway = (data.gateway || 'nenhum').toString();
+                    const credencial = JSON.stringify(data.credenciais || {});
+                    tbody.append(`
+                        <tr data-gateway="${gateway}" data-credencial='${credencial}'>
+                            <td>
+                                ${formaTxt}
+                                <input type="hidden" name="forma_id[]" value="${formaId}">
+                            </td>
+                            <td class="text-end">
+                                ${formatBR(valor)}
+                                <input type="hidden" class="vl-item-pgto" name="forma_valor[]" value="${valor}">
+                            </td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-danger btn-sm remover-forma">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `);
+                    const novoRestante = atualizarRestante(modal);
+                    valorInput.val(formatBR(novoRestante > 0 ? novoRestante : 0));
+                    select.val(null).trigger('change');
+                }
+            )
+            .fail(function () {
+                toast('Não foi possível consultar a forma de pagamento.','error');
+            })
+            .always(function () {
+                $botao.prop('disabled', false);
+            });
         });
         modal.off('click.removerForma').on('click.removerForma', '.remover-forma', function () {
             $(this).closest('tr').remove();
@@ -2396,22 +2588,37 @@ $(document).ready(function() {
             form.append(`<input type="hidden" name="multa" value="${formatBR(calc.multaFinal)}">`);
             form.append(`<input type="hidden" name="desconto" value="${formatBR(calc.descontoFinal)}">`);
             modal.find('input[name="forma_id[]"], input[name="forma_valor[]"]').each(function () {form.append($(this).clone());});
-            $.ajax({
-                url: form.attr("action"), method: "POST", data: form.serialize(), headers: {"X-Requested-With": "XMLHttpRequest"}, success: function(resp){
+            $.ajax({url: form.attr("action"),method: "POST",data: form.serialize(),headers: {"X-Requested-With": "XMLHttpRequest"},
+                success: function(resp) {
+                    if (resp.erro) {
+                        toast(Array.isArray(resp.erro) ? resp.erro.join("<br>") : resp.erro,"error");
+                        return;
+                    }
+                    if (!resp.success) {
+                        toast(resp.msg || "Não foi possível realizar a baixa.", "error");
+                        return;
+                    }
                     $(".modal-baixa").modal("hide");
-                    if(resp.tem_avista){
-                        if(resp.imp_recibo === "Auto"){
+                    if (resp.tem_avista) {
+                        if (resp.imp_recibo === "Auto") {
                             window.open(resp.url_recibo, "_blank");
-                            window.location = resp.redirect;
+                            window.location.href = resp.redirect;
                             return;
                         }
-                        if(resp.imp_recibo === "Sim"){
+                        if (resp.imp_recibo === "Sim") {
                             $('[id^="mdInfoBaixa-"]').modal("hide");
                             $("#modalRecibo").data("url", resp.url_recibo).data("redirect", resp.redirect).modal("show");
                             return;
                         }
                     }
-                    window.location = resp.redirect;
+                    window.location.href = resp.redirect || "/contas_receber/lista/";
+                },
+                error: function(xhr) {
+                    let mensagem = "Erro ao realizar a baixa.";
+                    if (xhr.responseJSON?.erro) {
+                        mensagem = Array.isArray(xhr.responseJSON.erro) ? xhr.responseJSON.erro.join("<br>") : xhr.responseJSON.erro;
+                    }
+                    toast(mensagem, "error");
                 }
             });
         });
@@ -2423,7 +2630,10 @@ $(document).ready(function() {
                 <div class="mb-3">
                     <img src="data:image/png;base64,${resp.qr_base64}" width="220" class="mb-2">
                     <div class="input-group">
-                        <input type="text" class="form-control text-center" value="${resp.qr_code}" readonly> data-code="${resp.qr_code}"><i class="fa-regular fa-copy"></i></button>
+                        <input type="text" class="form-control text-center" value="${resp.qr_code}" readonly>
+                        <button type="button" class="btn btn-outline-secondary btn-copiar" data-code="${resp.qr_code}">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
                     </div>
                     <strong class="d-block mt-2">R$ ${formatBR(resp.valor)}</strong>
                 </div>
@@ -2557,7 +2767,8 @@ $(document).ready(function() {
                     window.location = resp.redirect;
                 },
                 error: function () {
-                    toast('Erro ao registrar pagamento. Tente novamente.', 'error');
+                    console.error('Erro ao registrar pagamento. Tente novamente.');
+                    erroInternet();
                 }
             });
         });
@@ -2648,11 +2859,11 @@ $(document).ready(function() {
         desconto = 0;
         frete = 0;
         total = 0;
-        $('#tabela-produtos tbody').each(function() {
-            let vlProdTxt = $(this).find('td:nth-child(7)').text().trim();
+        $('.tb-ent-lista .item-lista').each(function() {
+            let vlProdTxt = $(this).find('.div-te-vl').text().trim();
             let vlProdNb = parseBR(vlProdTxt);
             if (!isNaN(vlProdNb)) {produtos += vlProdNb;}
-            let vlDsctTxt = $(this).find('td:nth-child(6)').text().trim();
+            let vlDsctTxt = $(this).find('.div-te-dsct').text().trim();
             let vlDsctNb = parseBR(vlDsctTxt);
             if (!isNaN(vlDsctNb)) {desconto += vlDsctNb;}
         });
@@ -2768,7 +2979,6 @@ $(document).ready(function() {
         }
     });
     let trEdit = null;          // variável global para edição
-    let identificador = $(".tb-prod-lista").length; // contador inicial
     let editing = false;        // flag para evitar sobrescrever margem ao editar
     let bloqueio = false;       // evita loop de eventos
     $('#id_vl_tab').on('blur', function () {
@@ -2822,7 +3032,10 @@ $(document).ready(function() {
                     let calc = precoCompra * (1 + response.margem / 100);
                     $('#id_vl_tab').val(formatInputBR(calc));
                 }
-            }, error: function() {toast(`Erro ao buscar a tabela de preço!`, "error");}
+            }, error: function() {
+                console.error(`Erro ao buscar a tabela de preço!`);
+                erroInternet();
+            }
         });
     });
     $('#tb-prec').on('change', function () {
@@ -2839,7 +3052,10 @@ $(document).ready(function() {
                     let calc = precoCompra * (1 + response.margem / 100);
                     $('#id_vl_tab').val(formatInputBR(calc));
                 }
-            }, error: function() {toast(`Erro ao buscar a tabela de preço!`, "error");}
+            }, error: function() {
+                console.error(`Erro ao buscar a tabela de preço!`);
+                erroInternet();
+            }
         });
     });
     let bloqueioEnt = false;
@@ -2894,7 +3110,10 @@ $(document).ready(function() {
                     $('#id_vl_tabEnt').val(formatInputBR(valorVenda));
                 }
             },
-            error: function () {toast(`Erro ao buscar a tabela de preço!`, "error");}
+            error: function () {
+                console.error(`Erro ao buscar a tabela de preço!`);
+                erroInternet();
+            }
         });
     });
     // ======= ADD / EDIT / REMOVE =======
@@ -2927,7 +3146,6 @@ $(document).ready(function() {
             $("#id_tabela").prop("disabled", false);
             $('#add-tab').css('background-color', '').html('<i class="fa-solid fa-plus"></i> Incluir');
         } else {
-            let idx = identificador++;
             $(".tb-prod-lista .vazio").remove();
             let tabelaJaExiste = false;
             $(".tb-prod-lista input[name*='[tabela]']").each(function() {
@@ -2936,8 +3154,17 @@ $(document).ready(function() {
                     return false;
                 }
             });
-            if (tabelaJaExiste) {toast(`Tabela "${tabNome}" já está inclusa na listagem!`, "warning");}
-            else {
+            if (tabelaJaExiste) {
+                toast(`Tabela "${tabNome}" já está inclusa na listagem!`, "warning");
+            } else {
+                // Pega o maior identificador existente e soma 1
+                let idx = 0;
+                $(".tb-prod-lista .item-lista").each(function() {
+                    let id = parseInt($(this).attr("data-id"), 10);
+                    if (!isNaN(id) && id >= idx) {
+                        idx = id + 1;
+                    }
+                });
                 $(".tb-prod-lista").append(`
                     <div class="list-group-item py-1 item-lista" data-id="${idx}">
                         <div class="row align-items-center linha-lista">
@@ -2996,24 +3223,34 @@ $(document).ready(function() {
     let tabelasEntTmp = [];
     let trEditTabEnt = null;
     function renderTabelasEntModal() {
-        const $tbody = $("#tab-prec tbody");
-        $tbody.empty();
+        const $lista = $(".tab-prec-ent-lista");
+        // Limpa tudo antes de renderizar novamente
+        $lista.find(".item-lista").remove();
         if (tabelasEntTmp.length === 0) {
-            $tbody.append(`<tr class="vazio"><td colspan="4" class="text-center">Nenhuma tabela inserida.</td></tr>`);
+            $lista.append(`
+                <div class="row align-items-center linha-lista">
+                    <div class="col-md-12 text-center fw-semibold descricao-col vazio">Nenhuma tabela inserida.</div>
+                </div>
+            `);
             return;
         }
         tabelasEntTmp.forEach((item, i) => {
             let valorFmt = parseBR(item.valor);
             let margemFmt = parseBR(item.margem);
-            $tbody.append(`
-                <tr data-idx="${i}">
-                    <td>${item.tabela_nome}</td><td>${formatBR(margemFmt)}<input type="hidden" value="${item.margem}"></td>
-                    <td>${formatBR(valorFmt)}<input type="hidden" value="${item.valor}"></td>
-                    <td>
-                        <button type="button" class="editar-tab-ent btn btn-success btn-sm mt-1 mb-1"><i class="fa-solid fa-pen-to-square"></i></button>
-                        <button type="button" class="remover-tab-ent btn btn-danger btn-sm mt-1 mb-1"><i class="fa-solid fa-trash"></i></button>
-                    </td>
-                </tr>
+            $lista.append(`
+                <div class="list-group-item py-1 item-lista" data-id="${i}">
+                    <div class="row align-items-center linha-lista">
+                        <div class="col-md-3 text-start fw-bold descricao-col tb-div" data-label="Tabela:">${item.tabela_nome}</div>
+                        <div class="col-md-3 text-start fw-semibold descricao-col mg-div" data-label="Margem:">${formatBR(margemFmt)}<input type="hidden" value="${item.margem}"></div>
+                        <div class="col-md-3 text-start fw-semibold descricao-col vl-div" data-label="Valor:">${formatBR(valorFmt)}<input type="hidden" value="${item.valor}"></div>
+                        <div class="col-md-3 text-center mb-1 mb-md-0 acoes-col">
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="editar-tab-ent btn btn-light btn-sm border"><i class="fas fa-edit text-success"></i></button>
+                                <button type="button" class="remover-tab-ent btn btn-light btn-sm border"><i class="fas fa-trash text-danger"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             `);
         });
     }
@@ -3045,6 +3282,7 @@ $(document).ready(function() {
                 toast(`Tabela "${tabNome}" já está inclusa na listagem!`, "warning");
                 return;
             }
+            $(".tab-prec-ent-lista .vazio").remove();
             tabelasEntTmp.push({tabela_id: tabId, tabela_nome: tabNome, margem: parseBR(mrg || 0), valor: parseBR(vl_p || 0)});
         }
         renderTabelasEntModal();
@@ -3055,7 +3293,7 @@ $(document).ready(function() {
         $('#edProdModal').modal('show');
     });
     $(document).on("click", ".editar-tab-ent", function () {
-        let idx = $(this).closest("tr").data("idx");
+        let idx = $(this).closest(".item-lista").data("idx");
         let item = tabelasEntTmp[idx];
         trEditTabEnt = idx;
         const select = $("#id_tabelaEnt");
@@ -3067,7 +3305,7 @@ $(document).ready(function() {
         $('#add-tabEnt').css('background-color', 'gray').html('<i class="fa-solid fa-floppy-disk"></i> Salvar');
     });
     $(document).on("click", ".remover-tab-ent", function () {
-        let idx = $(this).closest("tr").data("idx");
+        let idx = $(this).closest(".item-lista").data("idx");
         tabelasEntTmp.splice(idx, 1);
         if (trEditTabEnt === idx) trEditTabEnt = null;
         renderTabelasEntModal();
@@ -3109,11 +3347,57 @@ $(document).ready(function() {
         });
         return tabelas.filter(Boolean);
     }
+
+    function selEstPadrao() {
+        const filialId = String($('#id_vinc_fil').val());
+        const filial = DADOS_FILIAL?.[filialId];
+
+        if (!filial?.estoque_padrao) {
+            $("#id_estoque, #xml-estoque")
+                .val(null)
+                .trigger("change");
+            return;
+        }
+
+        const estPadrao = String(filial.estoque_padrao);
+        const nomeEstPadrao = filial.nome_est_padrao;
+
+        // Select2 do formulário de produto
+        const $estoque = $("#id_estoque");
+
+        if ($estoque.find(`option[value="${estPadrao}"]`).length === 0) {
+            $estoque.append(
+                new Option(nomeEstPadrao, estPadrao, true, true)
+            );
+        }
+
+        $estoque
+            .val(estPadrao)
+            .trigger("change");
+
+
+        // Select2 da importação XML
+        const $xmlEstoque = $("#xml-estoque");
+
+        if ($xmlEstoque.find(`option[value="${estPadrao}"]`).length === 0) {
+            $xmlEstoque.append(
+                new Option(nomeEstPadrao, estPadrao, true, true)
+            );
+        }
+
+        $xmlEstoque
+            .val(estPadrao)
+            .trigger("change");
+    }
+
+    selEstPadrao();
     // Adicionando um produto na lista de Entrada.
     $("#add-produto-lista").click(async function () {
         let cod = $('#id_cod_produto').val();
         let prod = $("#id_desc_prod").val();
         let qtd = $("#id_quantidade").val();
+        let est = $("#id_estoque").val();
+        let est_label = $('#id_estoque option:selected').text();
         let preco = $("#id_preco_unit").val();
         let dsct = $("#id_desconto").val();
         let qtdNum = parseBR(qtd);
@@ -3122,6 +3406,10 @@ $(document).ready(function() {
         let total = ((precoNum * qtdNum) - dsctNum);
         if (!cod) {
             toast(`Informe o código do produto!`, "warning");
+            return;
+        }
+        if (!est) {
+            toast("Estoque deve informado!", "warning");
             return;
         }
         if (precoNum <= 0) {
@@ -3141,21 +3429,21 @@ $(document).ready(function() {
         let resumoTabelas = montarResumoTabelasEnt(tabelasEntTmp);
         if (trEditando) {
             let idx = trEditando.data("id");
-            trEditando.find("td:eq(1)").html(`${cod}<input type="hidden" name="produtos[${idx}][codigo]" value="${cod}">`);
-            trEditando.find("td:eq(2)").html(`${prod}<input type="hidden" name="produtos[${idx}][produto]" value="${prod}">`);
-            trEditando.find("td:eq(3)").html(`${qtd}<input type="hidden" name="produtos[${idx}][quantidade]" value="${qtd}">`);
-            trEditando.find("td:eq(4)").html(`${preco}<input type="hidden" name="produtos[${idx}][preco_unitario]" value="${preco}">`);
-            trEditando.find("td:eq(5)").html(`${dsct}<input type="hidden" name="produtos[${idx}][desconto]" value="${dsct}">`);
-            trEditando.find("td:eq(6)").text(formatBR(total));
-            trEditando.find("td:eq(7)").html(`${resumoTabelas}${montarInputsTabelasEnt(idx, tabelasEntTmp)}`);
+            trEditando.find(".div-te-cod").html(`${cod}<input type="hidden" name="produtos[${idx}][codigo]" value="${cod}">`);
+            trEditando.find(".div-te-desc").html(`${prod}<input type="hidden" name="produtos[${idx}][produto]" value="${prod}">`);
+            trEditando.find(".div-te-qtd").html(`${qtd}<input type="hidden" name="produtos[${idx}][quantidade]" value="${qtd}">`);
+            trEditando.find(".div-te-est").html(`${est_label}<input type="hidden" name="produtos[${idx}][estoque]" value="${est}">`);
+            trEditando.find(".div-te-vl").html(`${formatBR(preco)}<input type="hidden" name="produtos[${idx}][preco_unitario]" value="${preco}">`);
+            trEditando.find(".div-te-dsct").html(`${dsct}<input type="hidden" name="produtos[${idx}][desconto]" value="${dsct}">`);
+            trEditando.find(".div-te-tot").text(formatBR(total));
+            trEditando.find(".div-te-tb-p").html(`${resumoTabelas}${montarInputsTabelasEnt(idx, tabelasEntTmp)}`);
             trEditando.find(".task-checkbox").prop('checked', false);
             $("#select-all").prop('checked', false);
             trEditando = null;
         } else {
             let idx = contador++;
-            $("#tabela-produtos tbody tr.vazio").remove();
             let codigoJaExiste = false;
-            $("#tabela-produtos tbody input[name*='[codigo]']").each(function() {
+            $(".tb-ent-lista .list-group-item .item-lista .linha-lista input[name*='[codigo]']").each(function() {
                 if ($(this).val() === cod) {
                     codigoJaExiste = true;
                     return false;
@@ -3165,25 +3453,33 @@ $(document).ready(function() {
                 toast(`O código "${cod}" já está incluso na listagem!`, "warning");
                 return;
             }
-            $("#tabela-produtos tbody").append(`
-                <tr data-id="${idx}">
-                    <td style="text-align: center; padding-top: 8px; cursor: pointer;" onclick="toggleTaskCheckbox(this)">
-                        <input type="checkbox" class="form-check-input task-checkbox" name="multi" value="${cod}" onclick="event.stopPropagation(); checkIfAllSelected(); updateMassChangesButton();">
-                    </td>
-                    <td>${cod}<input type="hidden" name="produtos[${idx}][codigo]" value="${cod}"></td>
-                    <td>${prod}<input type="hidden" name="produtos[${idx}][produto]" value="${prod}"></td>
-                    <td>${qtd}<input type="hidden" name="produtos[${idx}][quantidade]" value="${qtd}"></td>
-                    <td style="font-weight: bold; color: #2E8B57;">${preco}<input type="hidden" name="produtos[${idx}][preco_unitario]" value="${preco}"></td>
-                    <td>${dsct}<input type="hidden" name="produtos[${idx}][desconto]" value="${dsct}"></td>
-                    <td style="font-weight: bold; color: #2E8B57;">${formatBR(total)}</td>
-                    <td>${resumoTabelas}${montarInputsTabelasEnt(idx, tabelasEntTmp)}</td>
-                    <td>
-                        <button type="button" class="editar btn btn-success btn-sm mt-1 mb-1"><i class="fa-solid fa-pen-to-square"></i></button>
-                        <button type="button" class="remover btn btn-danger btn-sm mt-1 mb-1"><i class="fa-solid fa-trash"></i></button>
-                    </td>
-                </tr>
+            $(".tb-ent-lista .vazio").remove();
+            $(".tb-ent-lista").append(`
+                <div class="list-group-item text-start list-group-item-action list-group-item-light py-1 item-lista" data-id="${idx}">
+                    <div class="row align-items-center linha-lista">
+                        <div class="col-md-1 text-center mb-1 mb-md-0 acoes-col">
+                            <input type="checkbox" class="form-check-input task-checkbox" name="multi" value="${cod}" onclick="event.stopPropagation(); checkIfAllSelected(); updateMassChangesButton();">
+                        </div>
+                        <div class="col-md-1 div-te-cod text-center fw-bold text-secondary descricao-col" data-label="Código:">#${cod}<input type="hidden" name="produtos[${idx}][codigo]" value="${cod}"></div>
+                        <div class="col-md-2 div-te-desc fw-bold descricao-col" data-label="Descrição:">${prod}<input type="hidden" name="produtos[${idx}][produto]" value="${prod}"></div>
+                        <div class="col-md-1 div-te-qtd fw-bold descricao-col" data-label="Quantidade:">${qtd}<input type="hidden" name="produtos[${idx}][quantidade]" value="${qtd}"></div>
+                        <div class="col-md-1 div-te-est fw-bold descricao-col" data-label="Estoque:">${est_label}<input type="hidden" name="produtos[${idx}][estoque]" value="${est}"></div>
+                        <div class="col-md-1 div-te-vl fw-bold descricao-col text-success" data-label="Vl. Unit.:">${preco}<input type="hidden" name="produtos[${idx}][preco_unitario]" value="${preco}"></div>
+                        <div class="col-md-1 div-te-dsct fw-bold descricao-col" data-label="Desconto:">${dsct}<input type="hidden" name="produtos[${idx}][desconto]" value="${dsct}"></div>
+                        <div class="col-md-1 div-te-tot fw-bold descricao-col text-success" data-label="Total:">${formatBR(total)}</div>
+                        <div class="col-md-2 div-te-tb-p fw-bold descricao-col" data-label="Tabelas:">
+                            ${resumoTabelas}${montarInputsTabelasEnt(idx, tabelasEntTmp)}
+                        </div>
+                        <div class="col-md-1 text-center mb-1 mb-md-0 acoes-col">
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="editar btn btn-light btn-sm border"><i class="fas fa-edit text-success"></i></button>
+                                <button type="button" class="remover btn btn-light btn-sm border"><i class="fas fa-trash text-danger"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             `);
-            const $novaLinha = $(`#tabela-produtos tbody tr[data-id="${idx}"]`);
+            const $novaLinha = $(`.tb-ent-lista .item-lista[data-id="${idx}"]`);
             $novaLinha.find('.task-checkbox').prop('checked', false);
             $("#select-all").prop('checked', false);
         }
@@ -3221,17 +3517,18 @@ $(document).ready(function() {
     });
     // excluir linha
     $(document).on("click", ".remover", function () {
-        $(this).closest("tr").remove();
+        $(this).closest(".tb-ent-lista .item-lista").remove();
         calcTotalEntrada();
         calcTotalPedido();
     });
     // editar linha
     $(document).on("click", ".editar", async function () {
-        trEditando = $(this).closest("tr");
+        trEditando = $(this).closest(".tb-ent-lista .item-lista");
         let idx = trEditando.data("id");
         let cod = trEditando.find(`input[name="produtos[${idx}][codigo]"]`).val();
         let prod = trEditando.find(`input[name="produtos[${idx}][produto]"]`).val();
         let qtd = trEditando.find(`input[name="produtos[${idx}][quantidade]"]`).val();
+        let est = trEditando.find(`input[name="produtos[${idx}][estoque]"]`).val();
         let preco = trEditando.find(`input[name="produtos[${idx}][preco_unitario]"]`).val();
         let dsct = trEditando.find(`input[name="produtos[${idx}][desconto]"]`).val();
         tabelasEntTmp = carregarTabelasEntDaLinha(idx, trEditando) || [];
@@ -3240,8 +3537,8 @@ $(document).ready(function() {
         $("#add-prod").prop("readonly", true);
         $("#id_desc_prod").val(prod);
         $("#id_quantidade").val(formatBR(qtd));
-        $("#id_preco_unit").val(aplicarMascaraMoney(preco));
-        $("#id_desconto").val(aplicarMascaraMoney(dsct));
+        $("#id_preco_unit").val(formatBR(preco));
+        $("#id_desconto").val(formatBR(dsct));
         try {
             const dados = await buscarDadosProduto(cod);
             $("#id_unidProduto").val(dados.unidProd || "");
@@ -3259,8 +3556,238 @@ $(document).ready(function() {
             toast(`${e.message}`, "error");
         }
         renderTabelasEntModal();
+        const $listaTabelas = $(".tab-prec-ent-lista");
+        if ($listaTabelas.find(".item-lista[data-id]").length > 0) {
+            $listaTabelas.find(".vazio").remove();
+        }
         resetBtnTabEnt();
         setTimeout(() => $('#edProdModal').modal('show'), 200);
+    });
+    // Add / Att / Del. Estoque
+    let estoqueEditando = null;
+    $(document).on('change', '#estoque-filial', function () {
+        const codigoFilial = $(this).val();
+        const selectEstoque = $('#estoque-estoque');
+        selectEstoque.val(null).empty().prop('disabled', true).trigger('change');
+        if (!codigoFilial) {
+            return;
+        }
+        $.ajax({url: `/estoques/filial/${codigoFilial}/`, type: 'GET', dataType: 'json',
+            success: function (estoques) {
+                if (!estoques.length) {
+                    toast("A filial selecionada não possui estoques cadastrados.", "warning");
+                    return;
+                }
+                estoques.forEach(function (estoque) {
+                    const option = new Option(`${estoque.descricao}`, estoque.codigo, false, false);
+                    selectEstoque.append(option);
+                });
+                selectEstoque.prop('disabled', false);
+            },
+            error: function () {
+                selectEstoque.val(null).empty().prop('disabled', true).trigger('change');
+                toast("Erro ao exibir estoques da filial selecionada", "error");
+            }
+        });
+    });
+    $('#estoque-filial').select2({placeholder:opSel,allowClear:true,templateResult:rendOpt,templateSelection:d=>d.text,language:lingSel,ajax:ajSel2('/filiais/lista_ajax/')
+    }).on('select2:open',focSel2);
+    $('#estoque-estoque').select2({placeholder: opSel,allowClear: true,templateResult: rendOpt,templateSelection: d => d.text,language: lingSel,
+        ajax: {url: '/estoques/lista_ajax/',dataType: 'json',delay: 250,
+            data: function (params) {
+                return {q: params.term || '', page: params.page || 1, filial: $('#estoque-filial').val()};
+            },
+            processResults: function (data) {
+                return {results: data.results || data};
+            },
+            cache: true
+        }
+    }).on('select2:open', focSel2);
+    $(document).on('click', '#add-estoque', function () {
+        const filialSelect = $('#estoque-filial');
+        const estoqueSelect = $('#estoque-estoque');
+        const filialCodigo = filialSelect.val();
+        const filialTexto = filialSelect.find('option:selected').text().trim();
+        const estoqueCodigo = estoqueSelect.val();
+        const estoqueTexto = estoqueSelect.find('option:selected').text().trim();
+        const quantidade = $('#estoque-quantidade').val().trim();
+        const estoqueMinimo = $('#estoque-minimo').val().trim();
+        const estoqueMaximo = $('#estoque-maximo').val().trim();
+        if (!filialCodigo) {
+            toast('Filial deve ser informada!', 'warning');
+            filialSelect.focus();
+            return;
+        }
+        if (!estoqueCodigo) {
+            toast('Estoque deve ser informado!', 'warning');
+            estoqueSelect.focus();
+            return;
+        }
+        if (estoqueMinimo === '') {
+            $('#estoque-minimo').val('0,000');
+        }
+        if (estoqueMaximo === '') {
+            $('#estoque-maximo').val('0,000');
+        }
+        const qtd = quantidade || '0,000';
+        const minimo = $('#estoque-minimo').val().trim();
+        const maximo = $('#estoque-maximo').val().trim();
+        const normalizar = valor => {
+            return parseFloat(valor.replace(/\./g, '').replace(',', '.')) || 0;
+        };
+        const qtdNumero = normalizar(qtd);
+        const minimoNumero = normalizar(minimo);
+        const maximoNumero = normalizar(maximo);
+        if (qtdNumero < 0) {
+            toast('A quantidade não pode ser negativa!', 'warning');
+            return;
+        }
+        if (minimoNumero < 0) {
+            toast('O estoque mínimo não pode ser negativo!', 'warning');
+            return;
+        }
+        if (maximoNumero < 0) {
+            toast('O estoque máximo não pode ser negativo!', 'warning');
+            return;
+        }
+        if (maximoNumero > 0 && minimoNumero > maximoNumero) {
+            toast('O estoque mínimo não pode ser maior que o estoque máximo!', 'warning');
+            return;
+        }
+        /* Impede adicionar o mesmo estoque duas vezes. Durante uma edição, ignora a própria linha que está sendo editada. */
+        let estoqueJaExiste = false;
+        $('#tb-estoque tbody tr').each(function () {
+            if (estoqueEditando !== null && this === estoqueEditando[0]) {
+                return;
+            }
+            const codigoExistente = $(this).find('input[name*="[estoque]"]').val();
+            if (codigoExistente == estoqueCodigo) {
+                estoqueJaExiste = true;
+                return false;
+            }
+        });
+        if (estoqueJaExiste) {
+            toast('Este estoque já foi adicionado ao produto!', 'warning');
+            return;
+        }
+        /* EDITANDO UMA LINHA */
+        if (estoqueEditando !== null) {
+            const tr = estoqueEditando;
+            const indentif = tr.attr('data-id');
+            tr.find('td').eq(0).html(`
+                ${filialTexto}
+                <input type="hidden" name="estoque[${indentif}][filial]" value="${filialCodigo}">
+            `);
+            tr.find('td').eq(1).html(`
+                ${estoqueTexto}
+                <input type="hidden" name="estoque[${indentif}][estoque]" value="${estoqueCodigo}">
+            `);
+            tr.find('td').eq(2).html(`
+                ${qtd}
+                <input type="hidden" name="estoque[${indentif}][quantidade]" value="${qtd}">
+            `);
+            tr.find('td').eq(3).html(`
+                ${minimo}
+                <input type="hidden" name="estoque[${indentif}][estoque_minimo]" value="${minimo}">
+            `);
+            tr.find('td').eq(4).html(`
+                ${maximo}
+                <input type="hidden" name="estoque[${indentif}][estoque_maximo]" value="${maximo}">
+            `);
+            /* Sai do modo edição. */
+            estoqueEditando = null;
+            tr.removeClass('table-warning');
+            /* Volta o botão para "Incluir". */
+            $('#add-estoque').removeClass('btn-primary').addClass('btn-success').html('<i class="fa-solid fa-plus me-1"></i> Incluir');
+            /* Limpa os campos. */
+            $('#estoque-filial').val('').trigger('change');
+            $('#estoque-estoque').val('').empty().prop('disabled', true).trigger('change');
+            $('#estoque-quantidade').val('');
+            $('#estoque-minimo').val('');
+            $('#estoque-maximo').val('');
+            return;
+        }
+        /* NOVO ESTOQUE */
+        let indentif = 0;
+        $('#tb-estoque tbody tr').each(function () {
+            const id = parseInt($(this).attr('data-id'));
+            if (!isNaN(id) && id >= indentif) {
+                indentif = id + 1;
+            }
+        });
+        const linha = `
+            <tr data-id="${indentif}">
+                <td>
+                    ${filialTexto}
+                    <input type="hidden" name="estoque[${indentif}][filial]" value="${filialCodigo}">
+                </td>
+                <td>
+                    ${estoqueTexto}
+                    <input type="hidden" name="estoque[${indentif}][estoque]" value="${estoqueCodigo}">
+                </td>
+                <td class="text-end">
+                    ${qtd}
+                    <input type="hidden" name="estoque[${indentif}][quantidade]" value="${qtd}">
+                </td>
+                <td class="text-end">
+                    ${minimo}
+                    <input type="hidden" name="estoque[${indentif}][estoque_minimo]" value="${minimo}">
+                </td>
+                <td class="text-end">
+                    ${maximo}
+                    <input type="hidden" name="estoque[${indentif}][estoque_maximo]" value="${maximo}">
+                </td>
+                <td class="text-center text-nowrap">
+                    <button type="button" class="editar-estoque btn btn-success btn-sm" title="Editar">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button type="button" class="remover-estoque btn btn-danger btn-sm" title="Excluir">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        $('#tb-estoque tbody').append(linha);
+        /* Limpa os campos para o próximo estoque. */
+        $('#estoque-filial').val('').trigger('change');
+        $('#estoque-estoque').val('').empty().prop('disabled', true).trigger('change');
+        $('#estoque-quantidade').val('');
+        $('#estoque-minimo').val('');
+        $('#estoque-maximo').val('');
+    });
+    $(document).on('click', '.editar-estoque', function () {
+        const tr = $(this).closest('tr');
+        estoqueEditando = tr;
+        const filialCodigo = tr.find('input[name*="[filial]"]').val();
+        const estoqueCodigo = tr.find('input[name*="[estoque]"]').val();
+        const quantidade = tr.find('input[name*="[quantidade]"]').val();
+        const minimo = tr.find('input[name*="[estoque_minimo]"]').val();
+        const maximo = tr.find('input[name*="[estoque_maximo]"]').val();
+        const filialTexto = tr.children('td').eq(0).clone().children().remove().end().text().trim();
+        const estoqueTexto = tr.children('td').eq(1).clone().children().remove().end().text().trim();
+        /* Recoloca a filial no Select2. */
+        const filialOption = new Option(filialTexto,filialCodigo,true,true);
+        $('#estoque-filial').empty().append(filialOption).trigger('change');
+        /* Recoloca o estoque no Select2. */
+        const estoqueOption = new Option(estoqueTexto,estoqueCodigo,true,true);
+        $('#estoque-estoque').empty().append(estoqueOption).prop('disabled', false).trigger('change');
+        /* Preenche os valores. */
+        $('#estoque-quantidade').val(quantidade);
+        $('#estoque-minimo').val(minimo);
+        $('#estoque-maximo').val(maximo);
+        /* Muda o botão para modo edição. */
+        $('#add-estoque').removeClass('btn-success').addClass('btn-primary').html('<i class="fa-solid fa-check me-1"></i> Atualizar');
+        /* Destaca a linha em edição. */
+        $('#tb-estoque tbody tr').removeClass('table-warning');
+        tr.addClass('table-warning');
+    });
+    $(document).on('click', '.remover-estoque', function () {
+        const tr = $(this).closest('tr');
+        if (estoqueEditando !== null && tr[0] === estoqueEditando[0]) {
+            estoqueEditando = null;
+            $('#add-estoque').removeClass('btn-primary').addClass('btn-success').html('<i class="fa-solid fa-plus me-1"></i> Incluir');
+        }
+        tr.remove();
     });
     // Pedidos
     $("#add-produto-listaP").click(async function () {
@@ -3379,7 +3906,7 @@ $(document).ready(function() {
                     <td style="font-weight:bold; color:#2E8B57;">${total}</td>
                     <td>
                         <button type="button" class="editarP btn btn-success btn-sm mt-1 mb-1"><i class="fa-solid fa-pen-to-square"></i></button>
-                        <button type="button" class="remover btn btn-danger btn-sm mt-1 mb-1"><i class="fa-solid fa-trash"></i></button>
+                        <button type="button" class="removerP btn btn-danger btn-sm mt-1 mb-1"><i class="fa-solid fa-trash"></i></button>
                     </td>
                 </tr>
             `);
@@ -3444,6 +3971,19 @@ $(document).ready(function() {
             toast(`${e.message}`, "error");
         }
         setTimeout(() => $('#edProdModalP').modal('show'), 200);
+    });
+    $(document).on("click", "#tabela-produtos .removerP", function () {
+        const $tr = $(this).closest("tr");
+        $tr.remove();
+        if ($("#tabela-produtos tbody tr").length === 0) {
+            $("#tabela-produtos tbody").html(`
+                <tr class="vazio">
+                    <td colspan="7" class="text-center text-muted py-3">Nenhum produto adicionado.</td>
+                </tr>
+            `);
+        }
+        // Recalcula os totais do pedido
+        calcTotalPedido();
     });
     // Função para calcular desconto/acréscimo em Pedido
     function calcularPreviewDesconto() {
@@ -3615,9 +4155,9 @@ $(document).ready(function() {
                     }
                 },
                 error: function () {
-                    toast(`Erro ao buscar o produto. Tente novamente!`, "error");
+                    console.error(`Erro ao buscar o produto. Tente novamente!`);
                     $(desc + ',' + marca + ',' + unid + ',' + grupo + ',' + preco).val('');
-                    fecharLoading();
+                    erroInternet();
                 }
             });
         }
@@ -3671,8 +4211,9 @@ $(document).ready(function() {
                     }
                 },
                 error: function () {
-                    toast(`Erro ao buscar o produto. Tente novamente!`, "error");
+                    console.error(`Erro ao buscar o produto. Tente novamente!`);
                     $(desc + ',' + marca + ',' + unid + ',' + grupo + ',' + preco).val('');
+                    erroInternet();
                 }
             });
         });
@@ -3809,14 +4350,15 @@ $(document).ready(function() {
                     return;
                 }
                 montarModalXml(resp);
+                selEstPadrao();
                 new bootstrap.Modal(document.getElementById('xmlPreviewModal')).show();
                 $('#input-xml').val('');
                 fecharLoading();
             },
             error: function (xhr) {
-                toast(`${xhr.responseJSON?.erro ? xhr.responseJSON?.erro : 'Erro ao ler XML.'}`, "error");
+                console.error(`${xhr.responseJSON?.erro ? xhr.responseJSON?.erro : 'Erro ao ler XML.'}`);
                 $('#input-xml').val('');
-                fecharLoading();
+                erroInternet();
             }
         });
     });
@@ -3865,17 +4407,23 @@ $(document).ready(function() {
         `);
         $('#xml-dados-fornecedor').html(`
             <div class="row g-2 align-items-end">
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <label class="form-label mb-1">Fornecedor</label>
                     <input type="text" class="form-control form-control-sm readonly-disabled fw-bold" readonly value="${nomeFornecedor}">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label mb-1">CPF/CNPJ</label>
                     <input type="text" id="xml-doc-fornecedor" class="form-control form-control-sm readonly-disabled fw-bold" readonly value="${docFornecedorFormatado}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label mb-1">IE</label>
                     <input type="text" class="form-control form-control-sm readonly-disabled fw-bold" readonly value="${resp.fornecedor.ie || ''}">
+                </div>
+                <div class="col-md-2">
+                    <label for="xml-estoque" class="form-label mb-1">Estoque</label>
+                    <select id="xml-estoque" class="form-select form-select-sm" name="xml-estoque">
+                        <option value="">Escolha uma opção</option>
+                    </select>
                 </div>
                 <div class="col-md-2 text-end">
                     ${
@@ -3885,6 +4433,16 @@ $(document).ready(function() {
                 </div>
             </div>
         `);
+        $('#xml-estoque').select2({
+            dropdownParent: $('#xmlPreviewModal'),
+            placeholder: opSel,
+            allowClear: true,
+            templateResult: rendOpt,
+            templateSelection: d => d.text,
+            language: lingSel,
+            ajax: ajSel2('/estoques/lista_ajax/')
+        }).on('select2:open', focSel2);
+
         const linhas = resp.itens.map((item, i) => {
             const produtoVinculadoId = item.produto_vinculado?.id || '';
             const produtoVinculadoDesc = item.produto_vinculado?.descricao || '';
@@ -3892,7 +4450,7 @@ $(document).ready(function() {
                 ? `<div class="small text-success fw-semibold produto-vinculado-box">
                         <i class="fa-solid fa-link me-1" title="Produto Vinculado"></i> <span class="produto-vinculado-texto">${produtoVinculadoId} - ${produtoVinculadoDesc}</span>
                     </div>`
-                : `<div class="small text-secondary produto-vinculado-box">
+                : `<div class="small text-secondary text-center produto-vinculado-box">
                 <i class="fa-solid fa-circle-info me-1"></i> <span class="produto-vinculado-texto">Sem vínculo</span>
                     </div>`;
             return `
@@ -3945,7 +4503,7 @@ $(document).ready(function() {
     }
     function getProdutosSelecionadosEnt() {
         const selecionados = [];
-        $('#tabela-produtos tbody tr').each(function () {
+        $('.tb-ent-lista .item-lista').each(function () {
             const $tr = $(this);
             const checkbox = $tr.find('.task-checkbox');
             if (checkbox.is(':checked')) {selecionados.push({codigo: $tr.find('input[name*="[codigo]"]').val(), tr: $tr, base_calculo: getVlCompraLinhaEnt($tr)});}
@@ -4251,7 +4809,10 @@ $(document).ready(function() {
                 $('#btn-criar-fornecedor-xml').closest('.col-md-2').html(badgeHtml);
                 toast(resp.fornecedor.ja_existia ? 'Fornecedor já existia e foi vinculado.' : 'Fornecedor criado com sucesso.', "success");
             },
-            error: function (xhr) {toast(xhr.responseJSON?.erro || 'Erro ao criar fornecedor.', "error");},
+            error: function (xhr) {
+                console.error(xhr.responseJSON?.erro || 'Erro ao criar fornecedor.');
+                erroInternet();
+            },
             complete: function () {$btn.prop('disabled', false).text('Criar fornecedor');}
         });
     });
@@ -4290,7 +4851,10 @@ $(document).ready(function() {
                 bootstrap.Modal.getInstance(document.getElementById('modalCriarProdutoXml')).hide();
                 toast(`Produto cadastrado e vinculado!`, "success");
             },
-            error: function () {toast('Erro ao cadastrar produto.', "error");}
+            error: function () {
+                console.error('Erro ao cadastrar produto.');
+                erroInternet();
+            }
         });
     });
     $('#btn-confirmar-vinculo-produto').on('click', function () {
@@ -4326,20 +4890,22 @@ $(document).ready(function() {
         if (produtoId && descricao) {
             $cell.html(`
                 <div class="small text-success fw-semibold produto-vinculado-box">
-                    <i class="fa-solid fa-link me-1"></i> <span class="produto-vinculado-texto">#${produtoId} - ${descricao}</span>
+                    <i class="fa-solid fa-link me-1"></i> <span class="produto-vinculado-texto">${descricao}</span>
                 </div>
             `);
         } else {
             $cell.html(`
-                <div class="small text-secondary produto-vinculado-box"><i class="fa-solid fa-circle-info me-1"></i> <span class="produto-vinculado-texto">Sem vínculo</span></div>
+                <div class="small text-secondary text-center produto-vinculado-box"><i class="fa-solid fa-circle-info me-1"></i> <span class="produto-vinculado-texto">Sem vínculo</span></div>
             `);
         }
     }
     async function adicionarProdutoEntradaXml(item, index) {
-        const $tbody = $('#tabela-produtos tbody');
+        const $tbody = $('.tb-ent-lista');
         const codigo = item.codigo;
         const produto = item.produto || '';
         const qtd = parseBR(item.quantidade);
+        const estoque = item.estoque;
+        const estoque_l = $('#xml-estoque option:selected').text();
         const vlUnit = parseBR(item.preco_unitario);
         const desconto = parseBR(item.desconto);
         const total = (qtd * vlUnit) - desconto;
@@ -4348,22 +4914,29 @@ $(document).ready(function() {
         let resumoTabelas = montarResumoTabelasEnt(tabelas);
         let inputsTabelas = montarInputsTabelasEnt(index, tabelas);
         const linha = `
-            <tr data-id="${index}">
-                <td style="text-align: center; padding-top: 8px; cursor: pointer;" onclick="toggleTaskCheckbox(this)">
-                    <input type="checkbox" class="form-check-input task-checkbox" name="multi" value="${codigo}" onclick="event.stopPropagation(); checkIfAllSelected(); updateMassChangesButton();">
-                </td>
-                <td>${codigo}<input type="hidden" name="produtos[${index}][codigo]" value="${codigo}"></td>
-                <td>${produto}<input type="hidden" name="produtos[${index}][produto]" value="${produto}"></td>
-                <td>${formatBR(qtd)}<input type="hidden" name="produtos[${index}][quantidade]" value="${qtd}"></td>
-                <td style="font-weight: bold; color: #2E8B57;">${formatBR(vlUnit)}<input type="hidden" name="produtos[${index}][preco_unitario]" value="${vlUnit}"></td>
-                <td>${formatBR(desconto)}<input type="hidden" name="produtos[${index}][desconto]" value="${desconto}"></td>
-                <td style="font-weight: bold; color: #2E8B57;">${formatBR(total)}</td>
-                <td>${resumoTabelas} ${inputsTabelas}</td>
-                <td>
-                    <button type="button" class="editar btn btn-success btn-sm mt-1 mb-1"><i class="fa-solid fa-pen-to-square"></i></button>
-                    <button type="button" class="remover btn btn-danger btn-sm mt-1 mb-1"><i class="fa-solid fa-trash"></i></button>
-                </td>
-            </tr>
+            <div class="list-group-item text-start list-group-item-action list-group-item-light py-1 item-lista" data-id="${index}">
+                <div class="row align-items-center linha-lista">
+                    <div class="col-md-1 text-center mb-1 mb-md-0 acoes-col">
+                        <input type="checkbox" class="form-check-input task-checkbox" name="multi" value="${codigo}" onclick="event.stopPropagation(); checkIfAllSelected(); updateMassChangesButton();">
+                    </div>
+                    <div class="col-md-1 div-te-cod text-center fw-bold text-secondary descricao-col" data-label="Código:">#${codigo}<input type="hidden" name="produtos[${index}][codigo]" value="${codigo}"></div>
+                    <div class="col-md-2 div-te-desc fw-bold descricao-col" data-label="Descrição:">${produto}<input type="hidden" name="produtos[${index}][produto]" value="${produto}"></div>
+                    <div class="col-md-1 div-te-qtd fw-bold descricao-col" data-label="Quantidade:">${formatBR(qtd)}<input type="hidden" name="produtos[${index}][quantidade]" value="${qtd}"></div>
+                    <div class="col-md-1 div-te-est fw-bold descricao-col" data-label="Estoque:">${estoque_l}<input type="hidden" name="produtos[${index}][estoque]" value="${estoque}"></div>
+                    <div class="col-md-1 div-te-vl fw-bold descricao-col text-success" data-label="Vl. Unit.:">${formatBR(vlUnit)}<input type="hidden" name="produtos[${index}][preco_unitario]" value="${vlUnit}"></div>
+                    <div class="col-md-1 div-te-dsct fw-bold descricao-col" data-label="Desconto:">${formatBR(desconto)}<input type="hidden" name="produtos[${index}][desconto]" value="${desconto}"></div>
+                    <div class="col-md-1 div-te-tot fw-bold descricao-col text-success" data-label="Total:">${formatBR(total)}</div>
+                    <div class="col-md-2 div-te-tb-p fw-bold descricao-col" data-label="Tabelas:">
+                        ${resumoTabelas} ${inputsTabelas}
+                    </div>
+                    <div class="col-md-1 text-center mb-1 mb-md-0 acoes-col">
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="editar btn btn-light btn-sm border"><i class="fas fa-edit text-success"></i></button>
+                            <button type="button" class="remover btn btn-light btn-sm border"><i class="fas fa-trash text-danger"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
         $tbody.append(linha);
         setTimeout(() => {calcTotalEntrada();}, 50);
@@ -4390,6 +4963,7 @@ $(document).ready(function() {
         $('#id_nat_op').val(xmlImportado.nota.nat_op || '');
         $('#id_modelo').val(xmlImportado.nota.modelo || '');
         $('#id_dt_emi').val(isoParaBr(xmlImportado.nota.data_emissao_input));
+        let estoque = $("#xml-estoque").val();
         if (xmlImportado.fornecedor.id) {
             const $forn = $('#id_fornecedor');
             const textoFornecedor = xmlImportado.fornecedor.razao_social || xmlImportado.fornecedor.nome || xmlImportado.fornecedor.documento || 'Fornecedor selecionado';
@@ -4399,7 +4973,8 @@ $(document).ready(function() {
             }
             $forn.val(String(xmlImportado.fornecedor.id)).trigger('change');
         }
-        $('#tabela-produtos tbody').html('');
+        $(".tb-ent-lista > .item-lista").remove();
+        $(".tb-ent-lista .vazio").remove();
         let itensOrdenados = xmlImportado.itens.filter(item => item.produto_vinculado && Number(item.produto_vinculado.id)).sort((a, b) => Number(a.produto_vinculado.id) - Number(b.produto_vinculado.id));
         if (!itensOrdenados.length) {
             toast(`Vincule ou cadastre os produtos antes de confirmar`, "warning");
@@ -4408,7 +4983,7 @@ $(document).ready(function() {
         }
         iniciarLoading();
         for (const [index, item] of itensOrdenados.entries()) {
-            await adicionarProdutoEntradaXml({codigo: item.produto_vinculado.id, produto: item.produto_vinculado.descricao || item.descricao, quantidade: parseBR(item.quantidade || 0), preco_unitario: parseBR(item.valor_unitario || 0), desconto: parseBR(item.desconto || 0)}, index);
+            await adicionarProdutoEntradaXml({codigo: item.produto_vinculado.id, produto: item.produto_vinculado.descricao || item.descricao, quantidade: parseBR(item.quantidade || 0), preco_unitario: parseBR(item.valor_unitario || 0), desconto: parseBR(item.desconto || 0), estoque: estoque}, index);
         }
         calcTotalEntrada();
         const previewEl = document.getElementById('xmlPreviewModal');
@@ -4425,36 +5000,35 @@ $(document).ready(function() {
         }
     });
     function inicializarSelect2VinculoProdutoXml() {
-        $('#vincular-produto-select').select2({
-            dropdownParent: $('#modalVincularProdutoXml'), width: '100%', placeholder: 'Digite código ou descrição do produto', allowClear: true, language:lingSel,
-            minimumInputLength: 1,
-            ajax: {url: '/produtos/lista_ajax1/', dataType: 'json', delay: 250, data: function (params) {return {s: params.term || '', xml: 1};},
-                processResults: function (data) {
-                    return {results: (data.produtos || []).map(function (p) {return {id: p.id, text: `${p.id} - ${p.desc_prod}`};})};
-                }
-            }
-        });
+        // $('#vincular-produto-select').select2({
+        //     dropdownParent: $('#modalVincularProdutoXml'), width: '100%', placeholder: 'Digite código ou descrição do produto', allowClear: true, language:lingSel,
+        //     minimumInputLength: 1,
+        //     ajax: {url: '/produtos/lista_ajax1/', dataType: 'json', delay: 250, data: function (params) {return {s: params.term || '', xml: 1};},
+        //         processResults: function (data) {
+        //             return {results: (data.produtos || []).map(function (p) {return {id: p.id, text: `${p.id} - ${p.desc_prod}`};})};
+        //         }
+        //     }
+        // });
+        $('#vincular-produto-select').select2({dropdownParent: $('#modalVincularProdutoXml'), placeholder:"Digite código ou descrição do produto",allowClear:true,minimumInputLength:1,
+            templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/produtos/lista_ajax1/')}).on('select2:open', focSel2);
     }
     $(document).ready(function () {inicializarSelect2VinculoProdutoXml();});
-    // Notificações do Django
     function carregarNotificacoes() {
         $.get('/ajax/notificacoes/', function(response) {
             const notificacoes = Array.isArray(response?.notificacoes) ? response.notificacoes : [];
-            const badge = $('.badge-pulse');
-            const lista = $('#notificationsDropdown').next('ul.dropdown-menu');
+            const badge = $('#notificationBadge');
+            const lista = $('#notificationsList');
             lista.empty();
             if (notificacoes.length > 0) {
-                if (badge.length === 0) {
-                    $('#notificationsDropdown').append(`
-                        <span class="position-absolute top-0 start-100 translate-middle badge border border-light rounded-circle bg-danger p-2 badge-pulse">
-                            <span class="visually-hidden">Notificações não lidas</span>
-                        </span>
-                    `);
-                }
+                // BADGE
+                badge.removeClass('d-none');
+                // NOTIFICAÇÕES
                 notificacoes.forEach(n => {
                     const tipoNot = n.tipo;
                     const tipoAlerta = n.alerta_tipo;
                     let icone = '';
+                    let titulo = 'Notificação';
+                    // ALERTAS
                     if (tipoNot === 'ALERTA') {
                         switch (tipoAlerta) {
                             case 'ESTOQUE':
@@ -4481,34 +5055,51 @@ $(document).ready(function() {
                             default:
                                 icone = '<i class="fa-solid fa-bell text-warning me-2"></i>';
                         }
+                        titulo = n.titulo || 'Alerta';
                     }
-                    else {icone = '<i class="fa-solid fa-walkie-talkie text-primary me-2"></i>';}
-                    const titulo = tipoNot === 'ALERTA' ? (n.titulo || 'Alerta') : (n.verb || 'Notificação');
+                    // MENSALIDADE
+                    else if (tipoNot === 'MENSALIDADE') {
+                        icone = `<i class="fa-solid fa-file-invoice-dollar text-danger me-2"></i>`;
+                        titulo = n.titulo || 'Mensalidade em aberto';
+                    }
+                    // NOTIFICAÇÃO PESSOAL
+                    else {
+                        icone = `<i class="fa-solid fa-walkie-talkie text-primary me-2"></i>`;
+                        titulo = n.verb || 'Notificação';
+                    }
+                    // ITEM
                     lista.append(`
                         <li>
-                            <a href="#" class="abrir-notificacao dropdown-item text-wrap" data-tipo='${n.tipo}' data-id='${n.id}' data-alerta='${n.alerta_tipo || ''}'
-                            data-solicitacao='${n.solicitacao_id || ''}' data-referencia='${n.referencia || ''}' data-titulo='${n.titulo || ''}' data-verb='${n.verb || ''}'
-                            data-description='${n.description || ''}' data-url='${n.url || ''}'>
-                                ${icone} ${titulo}<br>
+                            <a href="#" class="abrir-notificacao dropdown-item text-wrap" data-tipo="${n.tipo || ''}" data-id="${n.id || ''}" data-alerta="${n.alerta_tipo || ''}"
+                               data-solicitacao="${n.solicitacao_id || ''}" data-referencia="${n.referencia || ''}" data-titulo="${n.titulo || ''}" data-verb="${n.verb || ''}"
+                               data-description="${n.description || ''}" data-url="${n.url || ''}">
+                                ${icone}
+                                ${titulo}
+                                <br>
                                 <small class="text-muted">Mais informações, clique aqui!</small>
                             </a>
                         </li>
                     `);
                 });
             } else {
-                badge.remove();
+                // NENHUMA NOTIFICAÇÃO
+                badge.addClass('d-none');
                 lista.append(`<li><a href="#" class="dropdown-item disabled text-center">Nenhuma notificação</a></li>`);
             }
-        }).fail(function(xhr, status, error) {console.error('Erro ao carregar notificações:', error);});
+        }).fail(function(xhr, status, error) {
+            console.error('Erro ao carregar notificações:',error);
+        });
     }
     setInterval(carregarNotificacoes, 15000);
     carregarNotificacoes();
     $(document).on('click', '.abrir-notificacao', function(e){
         e.preventDefault();
         const tipo = $(this).data('tipo');
-            let icone = '';
+        const url = $(this).data('url');
+        let icone = '';
         switch ($(this).data('alerta')) {
-            case 'ESTOQUE_MINIMO' || 'ESTOQUE_MAXIMO':
+            case 'ESTOQUE_MINIMO':
+            case 'ESTOQUE_MAXIMO':
                 icone = '<i class="fa-solid fa-triangle-exclamation text-dark me-2"></i>';
                 break;
             case 'CONTA_RECEBER':
@@ -4525,6 +5116,12 @@ $(document).ready(function() {
                 break;
             default:
                 icone = '<i class="fa-solid fa-bell me-2"></i>';
+        }
+        if (tipo === 'MENSALIDADE') {
+            if (url) {
+                window.open(url, '_blank');
+            }
+            return;
         }
         if (tipo === 'ALERTA') {
             $('#modalAlertaLabel').html(`${icone} ${$(this).data('titulo')}`);
@@ -4638,6 +5235,38 @@ $(document).ready(function() {
                     $.post(url, function () {location.reload();}).fail(function () {toast(`Erro ao tentar executar a ação!`, "error");});
                 }
                 else if (href) {window.location.href = href;}
+                else if ($btn.hasClass('op-whatsapp')) {// Envio de PDF por whatsapp
+                    const codigo = $btn.data('orcamento-id');
+                    const textoOriginal = $btn.html();
+                    if (!codigo) {
+                        toast("Orçamento não informado!", "error");
+                        return;
+                    }
+                    $btn.prop('disabled', true);
+                    $btn.html(`<i class="fas fa-spinner fa-spin"></i> Enviando...`);
+                    iniciarLoading();
+                    $.ajax({url: `/orcamentos/pdf.orcamento-zap/${codigo}/`,type: 'POST',headers: {"X-CSRFToken": $('input[name="csrfmiddlewaretoken"]').first().val()},
+                        success: function (resp) {
+                            if (resp.success) {
+                                toast("PDF enviado para o Whatsapp do Cliente!","success");
+                            } else {
+                                toast(`Erro ao enviar o orçamento: ${resp.message}`,"error");
+                            }
+                        },
+                        error: function (xhr) {
+                            let mensagem ="Não foi possível enviar o orçamento pelo WhatsApp.";
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                mensagem = xhr.responseJSON.message;
+                            }
+                            toast(`Erro ao enviar o orçamento: ${mensagem}`,"error");
+                        },
+                        complete: function () {
+                            $btn.prop('disabled', false);
+                            $btn.html(textoOriginal);
+                            fecharLoading();
+                        }
+                    });
+                }
                 else if (acaoSelecionada === "atribuir_desconto") {$('#modalDesconto').modal('show');}
                 else if (acaoSelecionada === "atribuir_acrescimo") {$('#modalAcrescimo').modal('show');}
                 else if (acaoSelecionada === "atribuir_desconto_ped") {
@@ -4680,6 +5309,259 @@ $(document).ready(function() {
             }
         );
     });
+    // Configuração Whatsapp
+    let whatsappInterval = null;
+    let whatsappConsultando = false;
+    const $status = $('#whatsapp-status');
+    const $btnConectar = $('#btn-conectar-whatsapp');
+    const codigoFilial = $btnConectar.data('codigo-filial');
+    const $modal = $('#modalWhatsapp');
+    const $aviso = $('#whatsapp-aviso');
+    const $carregando = $('#whatsapp-carregando');
+    const $qrcode = $('#whatsapp-qrcode');
+    const $conectado = $('#whatsapp-conectado');
+    const $erro = $('#whatsapp-erro');
+    const $btnIniciar = $('#btn-iniciar-conexao-whatsapp');
+    const $btnAtualizar = $('#btn-atualizar-whatsapp');
+    const $qrcodeImagem = $('#whatsapp-qrcode-imagem');
+    const $qrcodeStatus = $('#whatsapp-qrcode-status');
+    const $btnDesconectar = $('#btn-desconectar-whatsapp');
+    // UTILITÁRIOS
+    function limparIntervaloWhatsApp() {
+        if (whatsappInterval) {
+            clearInterval(whatsappInterval);
+            whatsappInterval = null;
+        }
+    }
+    function esconderEstadosModal() {
+        $aviso.hide();
+        $carregando.hide();
+        $qrcode.hide();
+        $conectado.hide();
+        $erro.hide();
+    }
+    function mostrarErroModal(mensagem) {
+        esconderEstadosModal();
+        $erro.html(`<div class="d-flex gap-2 align-items-start"><i class="fas fa-circle-exclamation mt-1"></i><div>${mensagem}</div></div>`).show();
+    }
+    function mostrarStatusVerificando() {
+        $status.html(`<span class="badge bg-secondary"><i class="fas fa-spinner fa-spin me-1"></i> Verificando...</span>`);
+    }
+    function mostrarStatusConectado() {
+        $status.html(`<span class="badge bg-success"><i class="fas fa-circle-check me-1"></i>Conectado</span>`);
+        $btnConectar.prop('disabled', false).html(`<i class="fas fa-circle-check me-1"></i>WhatsApp conectado`);
+    }
+    function mostrarStatusDesconectado() {
+        $status.html(`<span class="badge bg-warning text-dark"><i class="fas fa-link-slash me-1"></i>Desconectado</span>`);
+        $btnConectar.prop('disabled', false).html(`<i class="fab fa-whatsapp me-1"></i>Conectar WhatsApp`);
+    }
+    // CONSULTAR STATUS
+    function consultarStatusWhatsApp(opcoes = {}) {
+        if (!codigoFilial) {
+            return;
+        }
+        const silencioso = opcoes.silencioso === true;
+        if (!silencioso) {
+            mostrarStatusVerificando();
+            $btnConectar.prop('disabled', true);
+        }
+        if (whatsappConsultando) {
+            return;
+        }
+        whatsappConsultando = true;
+        $.ajax({url: `/filiais/${codigoFilial}/whatsapp/status/`,type: 'GET',dataType: 'json',cache: false,
+            success: function (resp) {
+                if (!resp.success) {
+                    if (resp.status === 'disabled') {
+                        $status.html(`<span class="badge bg-secondary"><i class="fas fa-ban me-1"></i>Desativado</span>`);
+                        $btnConectar.prop('disabled', true);
+                        return;
+                    }
+                    $status.html(`<span class="badge bg-danger"><i class="fas fa-circle-exclamation me-1"></i>Erro</span>`);
+                    $btnConectar.prop('disabled', false);
+                    return;
+                }
+                if (resp.conectado || resp.status === 'open') {
+                    mostrarStatusConectado();
+                } else {
+                    mostrarStatusDesconectado();
+                }
+            },
+            error: function (xhr) {
+                $status.html(`<span class="badge bg-danger"><i class="fas fa-triangle-exclamation me-1"></i>Indisponível</span>`);
+                $btnConectar.prop('disabled', false).html(`<i class="fab fa-whatsapp me-1"></i>Conectar WhatsApp`);
+                if (!silencioso) {
+                    let mensagem = "Não foi possível consultar o WhatsApp.";
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        mensagem = xhr.responseJSON.message;
+                    }
+                    toast(mensagem, "error");
+                }
+            },
+            complete: function () {
+                whatsappConsultando = false;
+            }
+        });
+    }
+    // ABRIR MODAL
+    $btnConectar.on('click', function () {
+        limparIntervaloWhatsApp();
+        esconderEstadosModal();
+        $aviso.show();
+        $modal.modal('show');
+    });
+    // INICIAR CONEXÃO
+    $btnIniciar.on('click', function () {
+        const textoOriginal = $btnIniciar.html();
+        $btnIniciar.prop('disabled', true).html(`<i class="fas fa-spinner fa-spin me-1"></i>Preparando...`);
+        $aviso.hide();
+        $erro.hide();
+        $carregando.show();
+        $.ajax({url: `/filiais/${codigoFilial}/whatsapp/conectar/`,type: 'GET',dataType: 'json',cache: false,
+            success: function (resp) {
+                $carregando.hide();
+                if (!resp.success) {
+                    mostrarErroModal(resp.message || "Não foi possível iniciar a conexão.");
+                    return;
+                }
+                // Já está conectado
+                if (resp.conectado || resp.status === 'open') {
+                    $conectado.show();
+                    mostrarStatusConectado();
+                    return;
+                }
+                // Não conectado: mostrar QR
+                if (resp.qrcode) {
+                    $qrcodeImagem.html(`<img src="${resp.qrcode}" alt="QR Code WhatsApp" class="img-fluid border rounded-3 p-2" style="width: 280px; max-width: 100%;">`);
+                    $qrcodeStatus.text('Aguardando leitura do QR Code...');
+                    $qrcode.show();
+                    iniciarMonitoramentoConexao();
+                } else {
+                    mostrarErroModal("A Evolution API não retornou o QR Code.");
+                }
+            },
+            error: function (xhr) {
+                $carregando.hide();
+                let mensagem = "Não foi possível conectar ao WhatsApp.";
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    mensagem = xhr.responseJSON.message;
+                }
+                mostrarErroModal(mensagem);
+                toast(mensagem, "error");
+            },
+            complete: function () {
+                $btnIniciar.prop('disabled', false).html(textoOriginal);
+            }
+        });
+    });
+    // MONITORAR CONEXÃO
+    function iniciarMonitoramentoConexao() {
+        limparIntervaloWhatsApp();
+        whatsappInterval = setInterval(function () {
+            $.ajax({url: `/filiais/${codigoFilial}/whatsapp/status/`,type: 'GET',dataType: 'json',cache: false,
+                success: function (resp) {
+                    if (!resp.success) {
+                        return;
+                    }
+                    if (resp.conectado || resp.status === 'open') {
+                        limparIntervaloWhatsApp();
+                        $qrcode.hide();
+                        $conectado.show();
+                        $qrcodeStatus.text('WhatsApp conectado com sucesso.');
+                        mostrarStatusConectado();
+                        toast("WhatsApp conectado com sucesso!","success");
+                        // Fecha o modal após 5 segundos
+                        setTimeout(function () {
+                            $modal.modal('hide');
+                        }, 5000);
+                    }
+                }
+            });
+        }, 3000);
+    }
+    // ATUALIZAR QR CODE
+    $btnAtualizar.on('click', function () {
+        limparIntervaloWhatsApp();
+        const textoOriginal = $btnAtualizar.html();
+        $btnAtualizar.prop('disabled', true).html(`<i class="fas fa-spinner fa-spin me-1"></i>Atualizando...`);
+        $qrcodeImagem.empty();
+        $qrcodeStatus.text('Gerando um novo QR Code...');
+        $.ajax({url: `/filiais/${codigoFilial}/whatsapp/conectar/`,type: 'GET',dataType: 'json',cache: false,
+            success: function (resp) {
+                if (!resp.success) {
+                    $qrcodeStatus.text(resp.message || 'Não foi possível atualizar o QR Code.');
+                    return;
+                }
+                if (resp.conectado || resp.status === 'open') {
+                    $qrcode.hide();
+                    $conectado.show();
+                    mostrarStatusConectado();
+                    return;
+                }
+                if (resp.qrcode) {
+                    $qrcodeImagem.html(`<img src="${resp.qrcode}" alt="QR Code WhatsApp" class="img-fluid border rounded-3 p-2" style="width: 280px; max-width: 100%;">`);
+                    $qrcodeStatus.text('Aguardando leitura do QR Code...');
+                    iniciarMonitoramentoConexao();
+                } else {
+                    $qrcodeStatus.text('A Evolution API não retornou um novo QR Code.');
+                }
+            },
+            error: function (xhr) {
+                let mensagem = "Não foi possível atualizar o QR Code.";
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    mensagem = xhr.responseJSON.message;
+                }
+                $qrcodeStatus.text(mensagem);
+                toast(mensagem, "error");
+            },
+            complete: function () {
+                $btnAtualizar.prop('disabled', false).html(textoOriginal);
+            }
+        });
+    });
+    // DESCONETAR WHATSAPP
+    $btnDesconectar.on('click', function () {
+        if (!confirm('Deseja realmente desconectar o WhatsApp desta filial?')) {
+            return;
+        }
+        const textoOriginal = $btnDesconectar.html();
+        $btnDesconectar.prop('disabled', true).html(`<i class="fas fa-spinner fa-spin me-1"></i> Desconectando...`);
+        $.ajax({url: `/filiais/${codigoFilial}/whatsapp/desconectar/`,type: 'POST',dataType: 'json',headers: {'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').first().val()},
+            success: function (resp) {
+                if (!resp.success) {
+                    toast(resp.message || 'Não foi possível desconectar o WhatsApp.','error');
+                    return;
+                }
+                limparIntervaloWhatsApp();
+                $conectado.hide();
+                mostrarStatusDesconectado();
+                toast('WhatsApp desconectado com sucesso!','success');
+                setTimeout(function () {
+                    $modal.modal('hide');
+                }, 1500);
+            },
+            error: function (xhr) {
+                let mensagem = 'Não foi possível desconectar o WhatsApp.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    mensagem = xhr.responseJSON.message;
+                }
+                toast(mensagem, 'error');
+            },
+            complete: function () {
+                $btnDesconectar.prop('disabled', false).html(textoOriginal);
+            }
+        });
+    });
+    // FECHAR MODAL
+    $modal.on('hidden.bs.modal', function () {
+        limparIntervaloWhatsApp();
+        $qrcodeImagem.empty();
+        esconderEstadosModal();
+        $aviso.show();
+    });
+    // STATUS INICIAL
+    consultarStatusWhatsApp();
+    //
     $('#confirmSend').on('click', function() {
         $('#confirmModal').modal('hide');
         $('#userSelectModal').modal('show');
@@ -5102,27 +5984,28 @@ $(document).ready(function() {
                 const gateway = ($row.attr('data-gateway') || '').toString().toLowerCase().trim();
                 // 🔥 corrige valor BR
                 let valorRaw = $row.data('valor');
-                if (typeof valorRaw === 'string') {valorRaw = valorRaw.replace(/\./g, '');}
+                if (typeof valorRaw === 'string') {
+                    valorRaw = valorRaw.replace(/\./g, '');
+                }
                 const valor = parseBR(valorRaw) || 0;
-                console.log("DEBUG FORMA:", {gateway, valor, forma_id: $row.data('forma-id')});
+                console.log("DEBUG FORMA:", {gateway,valor,forma_id: $row.data('forma-id')});
                 if (gateway && gateway !== 'nenhum' && gateway !== 'none') {
                     temGateway = true;
-                    formasGateway.push({forma_id: $row.data('forma-id'), valor: valor});
+                    formasGateway.push({forma_id: $row.data('forma-id'),valor: valor});
                 }
             });
             // 🚨 NÃO tem gateway → fluxo normal
             if (!temGateway) {
-                $.ajax({
-                    url: $btn.closest("form").attr("action"), method: "POST", data: $btn.closest("form").serialize(), headers: {"X-Requested-With": "XMLHttpRequest"},
-                    success: function(resp){
+                $.ajax({url: $btn.closest("form").attr("action"),method: "POST",data: $btn.closest("form").serialize(),headers: {"X-Requested-With": "XMLHttpRequest"},
+                    success: function (resp) {
                         $(".modal-faturar-orcamento").modal("hide");
-                        if(resp.tem_avista){
-                            if(resp.imp_recibo === "Auto"){
+                        if (resp.tem_avista) {
+                            if (resp.imp_recibo === "Auto") {
                                 window.open(resp.url_recibo, "_blank");
                                 window.location = resp.redirect;
                                 return;
                             }
-                            if(resp.imp_recibo === "Sim"){
+                            if (resp.imp_recibo === "Sim") {
                                 $("#modalRecibo").data("url", resp.url_recibo);
                                 $("#modalRecibo").data("redirect", resp.redirect);
                                 $("#modalRecibo").modal("show");
@@ -5130,24 +6013,31 @@ $(document).ready(function() {
                             }
                         }
                         window.location = resp.redirect;
-                        toast('Orçamento faturado com sucesso!', 'success');
+                        toast('Orçamento faturado com sucesso!','success');
+                    },
+                    error: function (xhr) {
+                        console.error('Erro ao faturar orçamento:', xhr);
+                        tratarErroFaturamento(xhr);
                     }
                 });
                 return;
             }
             // ⚡ TEM gateway → gerar pagamento
             iniciarLoading();
-            $.ajax({
-                url: `/orcamentos/${orcamentoId}/gerar-pagamento/`, method: 'GET', success: function (resp) {
+            $.ajax({url: `/orcamentos/${orcamentoId}/gerar-pagamento/`,method: 'GET',
+                success: function (resp) {
                     fecharLoading();
                     if (!resp.pagamentos || !resp.pagamentos.length) {
-                        toast(`Nenhum pagamento foi gerado!`, "error");
+                        toast('Nenhum pagamento foi gerado!', 'error');
                         return;
                     }
                     // 👉 abre modal PIX
-                    abrirModalPixOrcamento(resp.pagamentos, orcamentoId);
+                    abrirModalPixOrcamento(resp.pagamentos,orcamentoId);
                 },
-                error: function () {toast(`Erro ao gerar pagamento!`, "error");}
+                error: function (xhr) {
+                    console.error('Erro ao gerar pagamento:', xhr);
+                    tratarErroFaturamento(xhr);
+                }
             });
         });
         function abrirModalPixOrcamento(pagamentos, orcamentoId) {
@@ -5219,6 +6109,22 @@ $(document).ready(function() {
             }).fail(function () {toast(`Erro ao faturar orçamento!`, "error");});
         }
     });
+    function tratarErroFaturamento(xhr) {
+        fecharLoading();
+        const erros = xhr.responseJSON?.erro;
+        if (Array.isArray(erros) && erros.length) {
+            erros.forEach(function (erro) {
+                toast(erro, 'error');
+            });
+            return;
+        }
+        // Caso o servidor tenha respondido algo diferente do esperado
+        if (xhr.status === 0) {
+            erroInternet();
+            return;
+        }
+        toast('Não foi possível faturar o orçamento.', 'error');
+    }
     $("#simRecibo").click(function(){
         const modal = $("#modalRecibo");
         window.open(modal.data("url"), "_blank");
@@ -5294,11 +6200,29 @@ $(document).ready(function() {
         function getContext($modal) {
             return {id: $modal.data('pedidoId') || $modal.data('id') || 0, tipo: $modal.hasClass('modal-faturar-pedido') ? 'pedido' : 'caixa'};
         }
-        function getTotalPedido($modal) {return parseBR($modal.find('.totalModal').val());}
+        function parseDataValor(valor) {
+            if (valor === undefined || valor === null || valor === '') {
+                return 0;
+            }
+            const numero = parseFloat(String(valor).replace(',', '.'));
+            return isNaN(numero) ? 0 : numero;
+        }
+        function getTotalPedido($modal) {
+            // CAIXA
+            // No Caixa o total está no input .totalModal
+            const $totalModal = $modal.find('.totalModal');
+            if ($totalModal.length) {
+                return parseBR($totalModal.val()) || 0;
+            }
+            // PEDIDO
+            // No Pedido o total está no atributo data-total
+            const total = $modal.attr('data-total');
+            return parseDataValor(total);
+        }
         function getTotalFormas($modal) {
             let soma = 0;
             $modal.find('.table-formas tbody tr').each(function () {
-                soma += parseBR($(this).data('valor'));
+                soma += parseDataValor($(this).attr('data-valor'));
             });
             return soma;
         }
@@ -5308,15 +6232,46 @@ $(document).ready(function() {
             const saldo = total - pago;
             const $input = $modal.find('.inp-valor-pgto');
             const $saldo = $modal.find('.saldo-restante');
-            $saldo.removeClass('saldo-ok saldo-erro saldo-animar');
-            void $saldo[0].offsetWidth;
-            if (Math.abs(saldo) < 0.001) {$saldo.html('<i class="fa-solid fa-check"></i> Sem Saldo Restante! ').addClass('saldo-ok saldo-animar');}
-            else if (saldo < 0) {
-                const troco = Math.abs(saldo);
-                $saldo.html('<i class="fa-solid fa-sack-dollar"></i> Troco: R$ ' + formatBR(troco)).addClass('saldo-ok saldo-animar');
+            const $totalPago = $modal.find('.total-pago');
+            // 🔥 TOTAL INFORMADO
+            $totalPago.text(`R$ ${formatBR(pago)}`).removeClass('text-success text-danger text-primary');
+            if (pago > 0) {
+                $totalPago.addClass('text-primary');
+            } else {
+                $totalPago.addClass('text-primary');
             }
-            else {$saldo.html('<i class="fa-solid fa-triangle-exclamation"></i> Saldo Restante: R$ ' + formatBR(saldo)).addClass('saldo-erro saldo-animar');}
-            $input.val(formatBR(saldo));
+            // 🔥 SALDO RESTANTE
+            $saldo.removeClass('text-success text-danger text-warning saldo-ok saldo-erro saldo-animar');
+            void $saldo[0]?.offsetWidth;
+            // SALDO ZERADO
+            if (Math.abs(saldo) < 0.001) {
+                $saldo.html('<i class="fa-solid fa-check me-1"></i>Sem Saldo Restante!').addClass('text-success saldo-ok saldo-animar');
+                $input.val('0,00');
+            // TROCO
+            } else if (saldo < 0) {
+                const troco = Math.abs(saldo);
+                $saldo
+                    .html(
+                        '<i class="fa-solid fa-sack-dollar me-1"></i>' +
+                        'Troco: R$ ' +
+                        formatBR(troco)
+                    ).addClass('text-success saldo-ok saldo-animar');
+                $input.val('0,00');
+            // AINDA FALTA PAGAR
+            } else {
+                $saldo
+                    .html(
+                        '<i class="fa-solid fa-triangle-exclamation me-1"></i>' +
+                        'Saldo Restante: R$ ' +
+                        formatBR(saldo)
+                    ).addClass('text-danger saldo-erro saldo-animar');
+                $input.val(formatBR(saldo));
+            }
+        }
+        function atualizarQtdFormas($modal) {
+            const qtd = $modal.find('.table-formas tbody tr').length;
+            $modal.find('.qtd-formas-pgto').text(qtd);
+            $modal.find('.qtd-formas-texto').text(qtd === 1 ? 'forma' : 'formas');
         }
         $("#finalizarVendaBtn").click(function(){
             const $modal = $('.modal-pagamento');
@@ -5326,11 +6281,12 @@ $(document).ready(function() {
             const $tbody = $modal.find('.preview-table tbody');
             $tbody.empty();
             let tem = false;
-            const baseDate = new Date();
+            const $fat = $modal.find('.dt-fat-pedido');
+            const baseDate = ($fat.length && parseBrDate($fat.val())) || new Date();
             $modal.find('.table-formas tbody tr').each(function () {
                 const parcelas = parseInt($(this).data('parcelas'));
                 const dias = parseInt($(this).data('dias'));
-                const valor = parseBR($(this).data('valor'));
+                const valor = parseDataValor($(this).attr('data-valor'));
                 if (parcelas < 1 || $(this).data('gera') != 1) return;
                 tem = true;
                 const valores = splitValue(valor, parcelas);
@@ -5348,7 +6304,7 @@ $(document).ready(function() {
                     `);
                 }
             });
-            $modal.find('.preview-table, .preview-title').toggleClass('d-none', !tem);
+            $modal.find('.preview-table-wrapper, .preview-title').toggleClass('d-none', !tem);
             $tbody.find('.inp-vencimento').each(function () {initDatepickerCampo($(this));});
         }
         $(document).on('click', '.btn-lib-dt-fat-ped', function (e) {
@@ -5400,7 +6356,7 @@ $(document).ready(function() {
             const $modal = $(this).closest('.modal-faturar-pedido');
             limparTabelaFormas($modal);
             $modal.find('.preview-table tbody').empty();
-            $modal.find('.preview-table, .preview-title').addClass('d-none');
+            $modal.find('.preview-table-wrapper, .preview-title').addClass('d-none');
             $modal.find('.inp-valor-pgto').val('');
             $modal.find('.dt-fat-pedido').val('');
             setEstadoBotaoDataFatPedido($modal, false);
@@ -5416,7 +6372,10 @@ $(document).ready(function() {
             const $select = $(this);
             const id = $select.val();
             const $modal = $select.closest('.modal');
-            if (!id) return;
+            if (!id) {
+                $select.removeData('gera troco gateway credencial tipo');
+                return;
+            }
             $.get('/formas_pgto/forma-pgto-info/' + id + '/', function (data) {
                 const ehPrazo = (data.tipo || '').toLowerCase() === 'a prazo';
                 // 🔥 mostra parcelas só se for a prazo
@@ -5438,7 +6397,7 @@ $(document).ready(function() {
             });
         });
         // 🚀 ADD FORMA (COM TODAS VALIDAÇÕES)
-        $(document).on('click', '.btn-add-forma', function () {
+        $(document).on('click', '.btn-add-forma', async function () {
             const $modal = $(this).closest('.modal');
             const $select = $modal.find('[id^=formaPgtoSelect-], .forma-pgto');
             const formaId = $select.val();
@@ -5457,15 +6416,35 @@ $(document).ready(function() {
             }
             if ($select.data('troco') === undefined) {
                 toast(`Aguarde o carregamento dos dados da forma!`, "default");
+                fecharLoading();
                 return;
             }
             if ($select.data('gateway') === undefined) {
                 toast(`Aguarde o carregamento dos dados da forma!`, "default");
+                fecharLoading();
                 return;
             }
             if (valorNum <= 0) {
                 toast(`Valor informado inválido!`, "warning");
                 return;
+            }
+            if (geraParcelas) {
+                try {
+                    const lim = await $.getJSON('/ajax/verificar-parcelas/');
+                    if (parcelas > lim.max_parcelas) {
+                        toast(`Máximo permitido: ${lim.max_parcelas} parcelas.`, 'warning');
+                        $modal.find('.parcelasPgto').val(lim.max_parcelas).focus();
+                        return;
+                    }
+                    if (dias > lim.max_dias) {
+                        toast(`Máximo permitido: ${lim.max_dias} dias.`, 'warning');
+                        $modal.find('.diasPgto').val(lim.max_dias).focus();
+                        return;
+                    }
+                } catch (e) {
+                    erroInternet();
+                    return;
+                }
             }
             iniciarLoading();
             const $tbody = $modal.find('.table-formas tbody');
@@ -5484,6 +6463,7 @@ $(document).ready(function() {
                     <td><button class="btn btn-danger btn-sm btn-remove-forma"><i class="fa fa-trash"></i></button></td>
                 </tr>
             `);
+            atualizarQtdFormas($modal);
             gerarParcelas($modal);
             atualizarSaldo($modal);
             const total = getTotalPedido($modal);
@@ -5555,26 +6535,78 @@ $(document).ready(function() {
         });
         $(document).on('shown.bs.modal', '.modal-pagamento', function () {
             iniciarLoading();
-            let modal = $(this);
-            if (modal.find('.table-formas tbody tr').length > 0) {
+            const modal  = $(this);
+            const $tbody = modal.find('.table-formas tbody');
+            const ehCaixa = modal.data('tipo') === 'caixa';
+
+            // Caixa: sempre começa limpo (antes as linhas antigas ficavam se fechasse o modal)
+            if (ehCaixa) {
+                $tbody.empty();
+                modal.find('.preview-table tbody').empty();
+                gerarParcelas(modal);
+                atualizarQtdFormas(modal);
+            }
+
+            if ($tbody.children('tr').length) {
                 fecharLoading();
                 return;
             }
-            let select = modal.find('.forma-pgto');
-            let inputValor = modal.find('.inp-valor-pgto');
-            let btnAdd = modal.find('.btn-add-forma');
-            let total = parseBR(modal.find('.totalModal').val()) || 0;
-            $.get('/formas_pgto/forma-padrao/', function (resp) {
-                if (!resp.id) return;
-                let option = new Option(resp.text, resp.id, true, true);
-                select.append(option).trigger('change');
-                // 🔥 CORREÇÃO AQUI
-                inputValor.val(formatBR(total));
-                setTimeout(() => {
-                    btnAdd.click();
-                }, 400);
-            });
+
+            // Resolve a forma padrão: caixa usa a filial da tela; pedido usa data-filial do modal
+            let formaId, formaNome;
+            if (ehCaixa) {
+                const filial = DADOS_FILIAL?.[String(FILIAL_ID)];
+                formaId   = filial?.forma_padrao      || modal.data('forma-padrao-id');
+                formaNome = filial?.forma_padrao_nome || modal.data('forma-padrao-text');
+            } else {
+                const filial = DADOS_FILIAL?.[String(modal.data('filial'))];
+                formaId   = filial?.forma_padrao;
+                formaNome = filial?.forma_padrao_nome;
+            }
+            if (!formaId) {
+                atualizarSaldo(modal);
+                fecharLoading();
+                return;
+            }
+
+            const $select = modal.find('.forma-pgto');
+            const $btnAdd = modal.find('.btn-add-forma');
+            $select.empty().append(new Option(formaNome, formaId, true, true)).trigger('change');
+            modal.find('.inp-valor-pgto').val(formatBR(getTotalPedido(modal)));
+
+            // Espera o /forma-pgto-info/ responder (o change carrega troco/gateway/gera) antes de adicionar
+            let tentativas = 0;
+            const espera = setInterval(() => {
+                const pronto = $select.data('troco') !== undefined && $select.data('gateway') !== undefined;
+                if (pronto) {
+                    clearInterval(espera);
+                    $btnAdd.trigger('click');
+                } else if (++tentativas > 30) {
+                    clearInterval(espera);
+                    fecharLoading();
+                }
+            }, 100);
         });
+        function validarLimiteCreditoPedido($modal) {
+            const limiteDisponivel = parseBR($modal.find('.limite-disponivel-cliente').val() || 0);
+            let valorAPrazo = 0;
+            $modal.find('.table-formas tbody tr').each(function () {
+                const $tr = $(this);
+                const valor = parseDataValor($tr.attr('data-valor'));
+                const geraParcelas = parseInt($tr.attr('data-gera') || 0);
+                if (geraParcelas === 1 && valor > 0) {
+                    valorAPrazo += valor;
+                }
+            });
+            if (valorAPrazo <= 0) {
+                return true;
+            }
+            if (valorAPrazo > limiteDisponivel) {
+                toast(`Limite de crédito insuficiente! Disponível: R$ ${formatBR(limiteDisponivel)} | Valor a prazo: R$ ${formatBR(valorAPrazo)}`,'warning');
+                return false;
+            }
+            return true;
+        }
         // ✅ CONFIRMAR (CAIXA + PEDIDO)
         $(document).on('click', '.btn-confirmar-pedido', function (e) {
             e.preventDefault();
@@ -5583,7 +6615,7 @@ $(document).ready(function() {
             let formas = [];
             let parcelas = [];
             $modal.find('.table-formas tbody tr').each(function () {
-                formas.push({forma:$(this).data('forma'),valor:parseBR($(this).data('valor')),parcelas:parseInt($(this).data('parcelas')),dias:parseInt($(this).data('dias'))});
+                formas.push({forma:$(this).data('forma'),valor: parseDataValor($(this).attr('data-valor')),parcelas:parseInt($(this).data('parcelas')),dias:parseInt($(this).data('dias'))});
             });
             $modal.find('.preview-table tbody tr').each(function () {
                 parcelas.push({numero: $(this).find('td:eq(0)').text(), valor: $(this).find('.inp-valor').val(), vencimento: $(this).find('.inp-vencimento').val()});
@@ -5593,12 +6625,17 @@ $(document).ready(function() {
                 let formasGateway = [];
                 $modal.find('.table-formas tbody tr').each(function () {
                     const gateway = $(this).data('gateway');
-                    const valor = parseBR($(this).data('valor') || 0);
+                    const valor = parseDataValor(
+                        $(this).attr('data-valor')
+                    );
                     if (valor <= 0) return;
                     const obj = {forma: $(this).data('forma'), valor: valor, parcelas: parseInt($(this).data('parcelas') || 1), dias: parseInt($(this).data('dias') || 0)};
                     if (gateway && gateway !== 'nenhum') {formasGateway.push(obj);}
                     else {formasNormais.push(obj);}
                 });
+                if (!validarLimiteCreditoPedido($modal)) {
+                    return;
+                }
                 // 🔥 PRIORIDADE TOTAL PARA PIX (gateway)
                 if (formasGateway.length > 0) {
                     $.get(`/pedidos/${ctx.id}/recuperar-pagamento/`, function (resp) {
@@ -5616,12 +6653,29 @@ $(document).ready(function() {
                 if (formasNormais.length > 0) {faturarNormal($modal, ctx.id, formasNormais, parcelas);}
             }
             if (ctx.tipo === 'caixa') {
+                // 🔥 Bloqueio de venda a prazo sem limite
+                if (cliente?.bloqueado) {
+                    toast(cliente.motivo_bloqueio || 'Cliente bloqueado para vendas.', 'warning');
+                    return;
+                }
+                if (cliente?.somente_avista) {
+                    const temPrazo = $modal.find('.table-formas tbody tr[data-gera="1"]').length > 0;
+                    if (temPrazo) {
+                        toast(`Cliente ${cliente.nome} permite apenas vendas à vista.`, 'warning');
+                        return;
+                    }
+                }
+                if (!validarLimiteCreditoPedido($modal)) {
+                    return;
+                }
                 iniciarLoading();
                 let formasNormais = [];
                 let formasGateway = [];
                 $modal.find('.table-formas tbody tr').each(function () {
                     const gateway = $(this).data('gateway');
-                    const valor = parseBR($(this).data('valor') || 0);
+                    const valor = parseDataValor(
+                        $(this).attr('data-valor')
+                    );
                     if (valor <= 0) return;
                     const obj = {forma_id:$(this).data('forma'),valor:valor,parcelas:parseInt($(this).data('parcelas') || 1),dias:parseInt($(this).data('dias') || 0)};
                     if (gateway && gateway !== 'nenhum') {formasGateway.push(obj); }
@@ -5649,13 +6703,20 @@ $(document).ready(function() {
                     const trocoAttr = $(this).attr('data-troco'); // 🔥 mais confiável
                     if (trocoAttr == "1") {permiteTroco = true;}
                 });
-                if (totalPago < totalPedido) {
-                    toast(`Valor Pago é menor que o total!`, "warning");
+                if ($modal.find('.table-formas tbody tr').length === 0) {
+                    toast(`Nenhuma forma de pagamento foi adicionada!`, "warning");
+                    fecharLoading();
                     return;
                 }
-                if (totalPago > totalPedido) {
+                if (totalPago + 0.005 < totalPedido) {
+                    toast(`Valor Pago (R$ ${formatBR(totalPago)}) é menor que o total (R$ ${formatBR(totalPedido)})!`, "warning");
+                    fecharLoading();
+                    return;
+                }
+                if (totalPago - totalPedido > 0.005) {
                     if (!permiteTroco) {
                         toast(`Nenhuma forma permite troco!`, "warning");
+                        fecharLoading();
                         return;
                     }
                     troco = totalPago - totalPedido;
@@ -5912,7 +6973,10 @@ $(document).ready(function() {
                 iniciarLoading();
                 setTimeout(() => location.reload(), 3000);
             },
-            error: function () {toast(`Erro ao cancelar orçamento!`, "error");}
+            error: function () {
+                console.error(`Erro ao cancelar orçamento!`);
+                erroInternet();
+            }
         });
     });
     // Pedidos
@@ -5944,7 +7008,10 @@ $(document).ready(function() {
                 iniciarLoading();
                 setTimeout(() => location.reload(), 3000);
             },
-            error: function () {toast(`Erro ao cancelar pedido!`, "error");}
+            error: function () {
+                console.error(`Erro ao cancelar pedido!`);
+                erroInternet();
+            }
         });
     });
     // Contador de confirmação
@@ -6107,6 +7174,10 @@ $(document).ready(function() {
             $('#loadingOverlay').prop('hidden', true);
         }, 250);
     }
+    function erroInternet() {
+        fecharLoading();
+        toast(`Erro de internet ou sistema indisponível!`, "error");
+    }
     function arredondarComAjuste(valor) {
         let arredondado = parseBR(valor);
         let decimal = arredondado % 1;
@@ -6163,6 +7234,7 @@ $(document).ready(function() {
         let resultado = m2 * parseBR(multi);
         $(`.peso[data-porta="${porta}"]`).val(formatBR(resultado));
     }
+
     function calcTesteira(porta) {
         let peso = parseBR($(`.peso[data-porta="${porta}"]`).val()) || 0;
         let resultado = 0;
@@ -6280,6 +7352,163 @@ $(document).ready(function() {
         somaFormas();
         fecharLoading();
     });
+    async function atualizarPrecosProdutosPedido(tabelaId) {
+        const linhas = [];
+        $('#tabela-produtos tbody tr').each(function () {
+            const $tr = $(this);
+            const idx = $tr.data('id');
+            if (idx === undefined || idx === null) {
+                return;
+            }
+            const $codigo = $tr.find(`input[name="produtos[${idx}][codigo]"]`);
+            if (!$codigo.length) {
+                return;
+            }
+            const codigo = String($codigo.val() || '').trim();
+            if (!codigo) {
+                return;
+            }
+            linhas.push({$tr: $tr,idx: idx,codigo: codigo});
+        });
+        if (linhas.length === 0) {
+            return;
+        }
+        for (const linha of linhas) {
+            const url = `/produtos/lista_ajax_ent/?s=${encodeURIComponent(linha.codigo)}&tp=cod&tabela_id=${encodeURIComponent(tabelaId)}&num_pag=todos&page=1`;
+            const resp = await fetch(url, {method: 'GET',headers: {'X-Requested-With': 'XMLHttpRequest'}});
+            if (!resp.ok) {
+                throw new Error(`Erro HTTP ${resp.status} ao consultar o produto ${linha.codigo}.`);
+            }
+            const data = await resp.json();
+            const produtos = Array.isArray(data.produtos) ? data.produtos : [];
+            const produto = produtos.find(p => String(p.id) === linha.codigo);
+            if (!produto) {
+                console.warn(`Produto ${linha.codigo} não encontrado.`);
+                continue;
+            }
+            const novoPreco = Number(produto.vl_prod) || 0;
+            console.log('Atualizando pedido:','Produto =', linha.codigo, '| Tabela =', tabelaId,'| Preço =', novoPreco);
+            atualizarLinhaPrecoPedido(linha.$tr,linha.idx,novoPreco);
+        }
+        calcTotalPedido();
+    }
+    function atualizarLinhaPrecoPedido($tr, idx, novoPreco) {
+        const $qtd = $tr.find(`input[name="produtos[${idx}][quantidade]"]`);
+        const $desconto = $tr.find(`input[name="produtos[${idx}][desconto]"]`);
+        const $tipoDesc = $tr.find(`input[name="produtos[${idx}][tipo_desc]"]`);
+        const $operacao = $tr.find(`input[name="produtos[${idx}][operacao]"]`);
+        const $valorDescReal = $tr.find(`input[name="produtos[${idx}][valor_desc_real]"]`);
+        const qtd = parseBR($qtd.val()) || 0;
+        const dsct = parseBR($desconto.val()) || 0;
+        const tipo = ($tipoDesc.val() || '').trim().toLowerCase();
+        const operacao = ($operacao.val() || '').trim().toLowerCase();
+        // PREÇO x QUANTIDADE
+        const totalBase = novoPreco * qtd;
+        let total = totalBase;
+        let valorDescReais = 0;
+        // DESCONTO
+        if (operacao === 'desconto') {
+            if (tipo === 'valor') {
+                valorDescReais = dsct;
+                total -= dsct;
+            } else if (tipo === 'percentual') {
+                valorDescReais = totalBase * (dsct / 100);
+                total -= valorDescReais;
+            }
+        }
+        // ACRÉSCIMO
+        else if (operacao === 'acréscimo' || operacao === 'acrescimo') {
+            if (tipo === 'valor') {
+                valorDescReais = dsct;
+                total += dsct;
+            } else if (tipo === 'percentual') {
+                valorDescReais = totalBase * (dsct / 100);
+                total += valorDescReais;
+            }
+        }
+        if (total < 0) {
+            total = 0;
+        }
+        // PREÇO UNITÁRIO
+        const $preco = $tr.find(`input[name="produtos[${idx}][preco_unitario]"]`);
+        $preco.val(formatInputBR(novoPreco));
+        // Atualiza texto da célula do preço
+        const $tdPreco = $preco.closest('td');
+        $tdPreco.contents().filter(function () {
+            return this.nodeType === 3;
+        }).first().replaceWith(`\n${formatBR(novoPreco)}\n`);
+        // VALOR REAL DO DESCONTO/ACRÉSCIMO
+        $valorDescReal.val(formatInputBR(valorDescReais));
+        // TOTAL DA LINHA
+        $tr.find('td:eq(5)').html(`<span style="font-weight:bold; color:#2E8B57;">${formatBR(total)}</span>`);
+    }
+    $(document).on("change", "#id_tabela_preco", async function () {
+        const tabelaId = $(this).val();
+        if (!tabelaId) {
+            toast("Selecione uma Tabela de Preço.","warning");
+            return;
+        }
+        iniciarLoading();
+        try {
+            await atualizarPrecosProdutosPedido(tabelaId);
+            toast("Preços dos produtos atualizados conforme a Tabela de Preço.", "success");
+        } catch (erro) {
+            console.error("Erro ao atualizar preços do pedido:",erro);
+            toast("Não foi possível atualizar os preços dos produtos.","danger");
+        } finally {
+            fecharLoading();
+        }
+    });
+    $(document).on("change", "#id_tabela_preco", async function () {
+        const idTabela = $(this).val();
+        if (!idTabela) {
+            toast("Selecione uma Tabela de Preço.", "warning");
+            return;
+        }
+        iniciarLoading();
+        try {
+            const portas = new Set();
+            // Procura todas as tabelas de produtos existentes
+            $('[id^="tblProd_"] .item-lista[data-item-id]').each(function () {
+                const idTabelaProdutos = $(this)
+                    .closest('[id^="tblProd_"]')
+                    .attr('id');
+                const porta = idTabelaProdutos.replace('tblProd_', '');
+                if (porta) {
+                    portas.add(porta);
+                }
+            });
+            // Procura todas as tabelas de adicionais existentes
+            $('[id^="tblAdc_"] .item-lista[data-item-id]').each(function () {
+                const idTabelaAdicionais = $(this)
+                    .closest('[id^="tblAdc_"]')
+                    .attr('id');
+                const porta = idTabelaAdicionais.replace('tblAdc_', '');
+                if (porta) {
+                    portas.add(porta);
+                }
+            });
+            // Reconsulta os preços de cada porta
+            for (const porta of portas) {
+                await atualizarTabelaPorta(porta);
+            }
+            // Recalcula os totais gerais
+            atualizarSubtotal();
+            calcularValorForma();
+            somaFormas();
+        } catch (erro) {
+            console.error(
+                "Erro ao atualizar preços pela tabela:",
+                erro
+            );
+            toast(
+                "Não foi possível atualizar os preços dos produtos.",
+                "danger"
+            );
+        } finally {
+            fecharLoading();
+        }
+    });
     function calcularCamposDerivados(contexto) {
         const qtd_lam   = parseBR(contexto.qtd_lam) || 0;
         const larg_c    = parseBR(contexto.larg_c)  || 0;
@@ -6395,6 +7624,9 @@ $(document).ready(function() {
         aplicarResultadoCalculo(porta, data);
         recalcularTotaisPorta(porta);
     }
+    function getManagerItem(porta, id) {
+        return (prodManager.data[porta] || []).find(i => Number(i.id) === Number(id)) || (prodAdcManager.data[porta] || []).find(i => Number(i.id) === Number(id));
+    }
     function atualizarQtdNoManager(porta, id, qtd) {
         const itemProd = (prodManager.data[porta] || []).find(i => i.id === id);
         if (itemProd) { itemProd.qtd_final = qtd; return; }
@@ -6406,7 +7638,9 @@ $(document).ready(function() {
         let totalVendaProd  = 0;
         let totalCompraAdc  = 0;
         let totalVendaAdc   = 0;
-        const idsRetornados = new Set(data.itens.map(i => Number(i.id)));
+        const itens = Array.isArray(data.itens) ? data.itens : [];
+        const idsRetornados = new Set(itens.map(i => Number(i.id)));
+        // ESCONDE PRODUTOS DE REGRA QUE NÃO RETORNARAM
         $(`#tblProd_${porta} .item-lista`).each(function () {
             const $tr = $(this);
             const id = Number($tr.data('item-id'));
@@ -6414,13 +7648,16 @@ $(document).ready(function() {
             if (!origem) return;
             const qtdManual = $tr.data('qtd-manual');
             let qtdExibida = null;
-            if (qtdManual !== undefined && qtdManual !== null) {qtdExibida = parseBR(qtdManual) || 0;}
-            else {
+            if (qtdManual !== undefined && qtdManual !== null) {
+                qtdExibida = parseBR(qtdManual) || 0;
+            } else {
                 const txt = $tr.find('.qtd-div').text();
                 qtdExibida = txt ? parseBR(txt) : 0;
             }
-            if (qtdExibida > 0) {return;}
-            if (!idsRetornados.has(id)) {$tr.hide();}
+            if (qtdExibida > 0) return;
+            if (!idsRetornados.has(id)) {
+                $tr.hide();
+            }
         });
         $(`#tblAdc_${porta} .item-lista`).each(function () {
             const $tr = $(this);
@@ -6429,15 +7666,19 @@ $(document).ready(function() {
             if (!origem) return;
             const qtdManual = $tr.data('qtd-manual');
             let qtdExibida = null;
-            if (qtdManual !== undefined && qtdManual !== null) {qtdExibida = parseBR(qtdManual) || 0;}
-            else {
+            if (qtdManual !== undefined && qtdManual !== null) {
+                qtdExibida = parseBR(qtdManual) || 0;
+            } else {
                 const txt = $tr.find('.qtd-div').text();
                 qtdExibida = txt ? parseBR(txt) : 0;
             }
-            if (qtdExibida > 0) {return;}
-            if (!idsRetornados.has(id)) {$tr.hide();}
+            if (qtdExibida > 0) return;
+            if (!idsRetornados.has(id)) {
+                $tr.hide();
+            }
         });
-        data.itens.forEach(item => {
+        // APLICA OS VALORES RETORNADOS PELO BACKEND
+        itens.forEach(item => {
             let $tr = $(`#tblProd_${porta} .item-lista[data-item-id="${item.id}"]`);
             let tipo = 'prod';
             if (!$tr.length) {
@@ -6445,24 +7686,58 @@ $(document).ready(function() {
                 tipo = 'adc';
             }
             if (!$tr.length) return;
-            let qtdManual = $tr.data('qtd-manual');
-            let qtdBackend = Number(item.qtd) || 0;
+            // QUANTIDADE
+            const qtdManual = $tr.data('qtd-manual');
+            const qtdBackend = Number(item.qtd) || 0;
             let qtd;
-            if (qtdManual !== undefined && qtdManual !== null && qtdManual > 0) {qtd = Number(qtdManual);}
-            else {qtd = qtdBackend;}
+            if (
+                qtdManual !== undefined &&
+                qtdManual !== null &&
+                Number(qtdManual) > 0
+            ) {
+                qtd = Number(qtdManual);
+            } else {
+                qtd = qtdBackend;
+            }
             if ($tr.data('regra-origem') && qtd <= 0) {
                 $tr.hide();
                 return;
             }
             $tr.show();
-            const vlCompra = parseBR($tr.find('.vl-c-div').text());
-            const vlUnit   = parseBR($tr.find('.vl-u-div').text());
-            const totCompra = isFinite(vlCompra * qtd) ? vlCompra * qtd : 0;
-            const totVenda  = isFinite(vlUnit * qtd) ? vlUnit * qtd : 0;
+            // NOVO PREÇO DA TABELA
+            const mgrItem = getManagerItem(porta, item.id);
+            const vlUnit = (mgrItem && mgrItem.vl_manual) ? (Number(mgrItem.vl_unit) || 0) : (Number(item.vl_unit) || 0);
+            // Atualiza o preço unitário na linha
+            $tr.find('.vl-u-div').text(formatBR(vlUnit));
+            // Guarda também no elemento, caso alguma outra função use
+            $tr.data('vl-unit', vlUnit);
+            // PREÇO DE COMPRA
+            const vlCompra = parseBR($tr.find('.vl-c-div').text()) || 0;
+            // TOTAIS
+            const totCompra = isFinite(vlCompra * qtd)
+                ? vlCompra * qtd
+                : 0;
+            const totVenda = isFinite(vlUnit * qtd)
+                ? vlUnit * qtd
+                : 0;
+            // ATUALIZA DOM
             $tr.find('.qtd-div').text(formatBR(qtd));
             $tr.find('.tot-c-div').text(formatBR(totCompra));
             $tr.find('.tot-v-div').text(formatBR(totVenda));
+            // ATUALIZA MANAGER
             atualizarQtdNoManager(porta, item.id, qtd);
+            // Também atualiza o preço no manager
+            const manager = tipo === 'prod'
+                ? prodManager
+                : prodAdcManager;
+            const lista = manager.data[porta] || [];
+            const produtoManager = lista.find(
+                p => Number(p.id) === Number(item.id)
+            );
+            if (produtoManager) {
+                produtoManager.vl_unit = vlUnit;
+            }
+            // ACUMULA TOTAIS
             if (tipo === 'prod') {
                 totalCompraProd += totCompra;
                 totalVendaProd  += totVenda;
@@ -6471,10 +7746,12 @@ $(document).ready(function() {
                 totalVendaAdc  += totVenda;
             }
         });
+        // TOTAIS DA PORTA
         $(`#totCompra_porta_${porta}`).text("R$ " + formatBR(totalCompraProd));
         $(`#totVenda_porta_${porta}`).text("R$ " + formatBR(totalVendaProd));
         $(`#totCompraAdc_porta_${porta}`).text("R$ " + formatBR(totalCompraAdc));
         $(`#totVendaAdc_porta_${porta}`).text("R$ " + formatBR(totalVendaAdc));
+        atualizarSubtotal();
     }
     gerarJSONFormas();
     let debounceTimeout;
@@ -6578,12 +7855,15 @@ $(document).ready(function() {
         if (window.prodManager?.data) prodManager.data = {};
         if (window.prodAdcManager?.data) prodAdcManager.data = {};
         resetarControleRegras();
-        $(".tb-portas-lista .item-lista").empty();
+        // Remove TODAS as portas anteriores
+        $(".corpo-lista").empty();
+
+        // Remove os acordeões anteriores
         $("#accordionProdutos").empty();
         $("#accordionAdicionais").empty();
         for (let i = 1; i <= qtd; i++) {
-            $(".tb-portas-lista").append(`
-                <div>
+            $(".corpo-lista").append(`
+                <div class="indice-portas mb-3 me-2">
                     <small class="badge rounded-pill text-bg-dark num-porta ms-1 mt-1">Porta #${i}</small>
                     <!-- Ações -->
                     <div class="col-md-1 mb-1 mb-md-1 mt-1 acoes-col" style="float: right;">
@@ -6593,9 +7873,9 @@ $(document).ready(function() {
                         </div>
                     </div>
                 </div>
-                <div class="list-group-item py-1 item-lista linha-porta" id="linha_resumo_${i}" data-porta="${i}">
+                <div class="list-group-item py-1 item-lista linha-porta mt-3" id="linha_resumo_${i}" data-porta="${i}">
                     <div class="row align-items-center linha-lista">
-                        <div class="col-md-1 fw-semibold">
+                        <div class="col-md-1 text-center fw-semibold">
                             <!-- Largura -->
                             <div class="border-bottom codigo-col lg-div" data-label="Largura:">
                                 <small class="f-flex d-md-none">Largura:</small><input type="text" class="form-control form-control-sm border-dark-subtle larg" name="larg" data-porta="${i}" placeholder="0,00">
@@ -6605,7 +7885,7 @@ $(document).ready(function() {
                                 <small class="f-flex d-md-none">Altura:</small><input type="text" class="form-control form-control-sm border-dark-subtle alt" name="alt" data-porta="${i}" placeholder="0,00">
                             </div>
                         </div>
-                        <div class="col-md-1 fw-semibold">
+                        <div class="col-md-1 text-center fw-semibold">
                             <!-- Largura de Corte -->
                             <div class="border-bottom codigo-col lg-c-div" data-label="Lg. Corte:">
                                 <small class="f-flex d-md-none">Lg. Corte:</small><input readonly class="form-control form-control-sm border-dark-subtle larg-corte" name="larg-corte" data-porta="${i}" placeholder="0,00">
@@ -6635,17 +7915,17 @@ $(document).ready(function() {
                                 <small class="f-flex d-md-none">Peso:</small><input readonly class="form-control form-control-sm border-dark-subtle peso" name="peso" data-porta="${i}" placeholder="0,00">
                             </div>
                         </div>
-                        <div class="col-md-1 fw-semibold">
+                        <div class="col-md-2 descricao-col fw-semibold">
                             <!-- Rolo -->
-                            <div class="border-bottom codigo-col rolo-div" data-label="Rolo:">
+                            <div class="border-bottom descricao-col rolo-div" data-label="Rolo:">
                                 <small class="f-flex d-md-none">Rolo:</small><input readonly class="form-control form-control-sm border-dark-subtle rolo" name="rolo" data-porta="${i}" placeholder="0,00">
                             </div>
                             <!-- Tipo Lâmina -->
-                            <div class="border-bottom codigo-col tp-l-div" data-label="Tipo Lâmina:">
+                            <div class="border-bottom descricao-col tp-l-div" data-label="Tipo Lâmina:">
                                 <small class="f-flex d-md-none">Tipo Lâmina:</small>
                                 <select class="form-select form-select-sm border-dark-subtle tipo-lamina" name="tipo-lamina" data-porta="${i}">
-                                    <option value="FECHADA_24">Lisa Fechada - Chapa 24 (1.20cm)</option>
                                     <option value="FECHADA_22">Lisa Fechada - Chapa 22 (1.30cm)</option>
+                                    <option value="FECHADA_24">Lisa Fechada - Chapa 24 (1.20cm)</option>
                                     <option value="FECHADA_20">Lisa Fechada - Chapa 20 (1.40cm)</option>
                                     <option value="TRANSVISION_24">Transvision - Chapa 24 (1.20cm)</option>
                                     <option value="TRANSVISION_22">Transvision - Chapa 22 (1.30cm)</option>
@@ -6671,7 +7951,7 @@ $(document).ready(function() {
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-2 fw-semibold">
+                        <div class="col-md-1 fw-semibold">
                             <!-- Tipo Vão -->
                             <div class="border-bottom codigo-col tp-v-div" data-label="Tipo Vão:">
                                 <small class="f-flex d-md-none">Tipo Vão:</small>
@@ -6682,8 +7962,8 @@ $(document).ready(function() {
                                 </select>
                             </div>
                             <!-- Acabamento Guia -->
-                            <div class="border-bottom codigo-col ac-g-div" data-label="Acabamento Guia:">
-                                <small class="f-flex d-md-none">Acabamento Guia:</small>
+                            <div class="border-bottom codigo-col ac-g-div" data-label="Acaba. Guia:">
+                                <small class="f-flex d-md-none">Acaba. Guia:</small>
                                 <select class="form-select form-select-sm border-dark-subtle acab-guia" name="acab-guia" data-porta="${i}">
                                     <option value="Sem Acabamento">Sem Acabamento</option>
                                     <option value="Com Acabamento">Com Acabamento</option>
@@ -6693,8 +7973,8 @@ $(document).ready(function() {
                         </div>
                         <div class="col-md-1 fw-semibold">
                             <!-- Tipo Acionamento -->
-                            <div class="border-bottom codigo-col tp-ac-div" data-label="Tipo Acionamento:">
-                                <small class="f-flex d-md-none">Tipo Acionamento:</small>
+                            <div class="border-bottom codigo-col tp-ac-div" data-label="Tp. Acionamento:">
+                                <small class="f-flex d-md-none">Tp. Acionamento:</small>
                                 <select class="form-select form-select-sm border-dark-subtle tipo-acio" name="tipo-acio" data-porta="${i}">
                                     <option value="Manual">Manual</option>
                                     <option value="Elétrico">Elétrico</option>
@@ -6723,8 +8003,8 @@ $(document).ready(function() {
                                 </select>
                             </div>
                             <!-- Tipo Travamento -->
-                            <div class="border-bottom codigo-col tp-trav-div" data-label="Tipo Travamento:">
-                                <small class="f-flex d-md-none">Tipo Travamento:</small>
+                            <div class="border-bottom codigo-col tp-trav-div" data-label="Tp. Travamento:">
+                                <small class="f-flex d-md-none">Tp. Travamento:</small>
                                 <select class="form-select form-select-sm border-dark-subtle tipo-travamento" name="tipo-travamento" data-porta="${i}">
                                     <option value="Sem Trava">Sem Trava</option>
                                     <option value="Trava Manual">Trava Manual</option>
@@ -6848,32 +8128,32 @@ $(document).ready(function() {
     $(document).on('change', '.guia-esq, .guia-dir', function() {console.log("ALTEROU GUIA:", $(this).val(), "PORTA:", $(this).data('porta'));});
     function criarFormularioProduto(num) {
         return `
-            <div class="row g-2 mb-3 form-produto" data-porta="${num}">
-                <div class="col-md-2">
+            <div class="row g-0 mb-3 mt-1 form-produto" data-porta="${num}" style="margin-left: -10px; margin-right: -10px;">
+                <div class="col-md-2 me-1">
                     <label name="cod-prod" class="form-label">Cód. Produto</label>
                     <div class="input-group">
                         <input type="text" class="form-control form-control-sm cod-prod" data-porta="${num}" name="cod-prod" placeholder="Cód. Produto">
                         <button class="btn btn-outline-dark btn-sm btn-busca-prod" type="button" data-porta="${num}" data-bs-toggle="modal" data-bs-target="#produtoModal"><i class="fa-solid fa-magnifying-glass"></i></button>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-3 me-1">
                     <label name="desc-prod" class="form-label">Descrição</label>
                     <input type="text" class="form-control form-control-sm desc-prod" data-porta="${num}" name="desc-prod" disabled>
                 </div>
-                <div class="col-md-1">
+                <div class="col-md-1 me-1">
                     <label name="unid-prod" class="form-label">Unidade</label>
                     <input type="text" class="form-control form-control-sm unid-prod" data-porta="${num}" name="unid-prod" disabled>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-2 me-1">
                     <label name="valor-prod" class="form-label">Valor</label>
                     <input type="text" class="form-control form-control-sm valor-prod text-end" name="valor-prod" value="0,00" style='color: darksuccess; font-weight: bold; background: honeydew;' data-porta="${num}">
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-2 me-1">
                     <label name="qtd-prod" class="form-label">Qtde.</label>
                     <input type="text" class="form-control form-control-sm qtd-prod" name="qtd-prod" placeholder="0,00" value="0,00" data-porta="${num}">
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="button" class="btn btn-success btn-sm btn-add-prod" data-porta="${num}"><i class="fas fa-plus"></i> Incluir</button>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="button" class="btn btn-success btn-sm btn-add-prod" data-porta="${num}"><i class="fas fa-plus"></i></button>
                 </div>
             </div>
         `;
@@ -6886,10 +8166,10 @@ $(document).ready(function() {
                         Produtos – Porta ${num}
                     </button>
                 </h2>
-                <div id="collapseProd_${num}" class="accordion-collapse collapse">
+                <div id="collapseProd_${num}" class="accordion-collapse collapse show">
                     <div class="accordion-body table-container w-100">
                         ${criarFormularioProduto(num)}
-                        <div class="list-group tb-prod-orc-lista" id="tblProd_${num}">
+                        <div class="list-group tb-prod-orc-lista" id="tblProd_${num}" style="margin-left: -10px; margin-right: -10px;">
                             <!-- Cabeçalho -->
                             <div class="list-group-item bg-light fw-bold cabecalho-lista">
                                 <div class="row align-items-center">
@@ -6922,32 +8202,32 @@ $(document).ready(function() {
     }
     function criarFormularioAdicional(num) {
         return `
-            <div class="row g-2 mb-3 form-adicional" data-porta="${num}">
-                <div class="col-md-2">
+            <div class="row g-0 mb-2 mt-1 form-adicional" data-porta="${num}" style="margin-left: -10px; margin-right: -10px;">
+                <div class="col-md-2 me-1">
                     <label for="cod-prod-adc" class="form-label">Cód. Produto</label>
                     <div class="input-group">
                         <input type="text" class="form-control form-control-sm cod-prod-adc" name="cod-prod-adc" data-porta="${num}" placeholder="Cód. Produto">
                         <button class="btn btn-outline-dark btn-sm btn-busca-prod-adc" type="button" data-porta="${num}" data-bs-toggle="modal" data-bs-target="#produtoAdcModal"><i class="fa-solid fa-magnifying-glass"></i></button>
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-2 me-1">
                     <label for="desc-prod-adc" class="form-label">Descrição</label>
                     <input type="text" class="form-control form-control-sm desc-prod-adc" name="desc-prod-adc" data-porta="${num}" disabled>
                 </div>
-                <div class="col-md-1">
+                <div class="col-md-1 me-1">
                     <label for="unid-prod-adc" class="form-label">Unidade</label>
                     <input type="text" class="form-control form-control-sm unid-prod-adc" name="unid-prod-adc" data-porta="${num}" disabled>
                 </div>
                 <input type="hidden" class="vl-compra-prod-adc" data-porta="${num}" value="0,00">
-                <div class="col-md-2">
+                <div class="col-md-1 me-1">
                     <label for="valor-prod-adc" class="form-label">Valor</label>
                     <input type="text" class="form-control form-control-sm valor-prod-adc text-end" name="valor-prod-adc" value="0,00" style='color: darksuccess; font-weight: bold; background: honeydew;' data-porta="${num}">
                 </div>
-                <div class="col-md-1">
+                <div class="col-md-1 me-1">
                     <label for="qtd-prod-adc" class="form-label">Qtde.</label>
                     <input type="text" class="form-control form-control-sm qtd-prod-adc" placeholder="0,00" value="0,00" name="qtd-prod-adc" data-porta="${num}">
                 </div>
-                <div class="col-md-2 mt-2 campo-lado-adc d-none">
+                <div class="col-md-1 me-1 campo-lado-adc d-none">
                     <label for="lado-adc" class="form-label">Lado</label>
                     <select class="form-select form-select-sm lado-adc" name="lado-adc" data-porta="${num}">
                         <option value="E" selected>Esquerdo</option>
@@ -6955,8 +8235,16 @@ $(document).ready(function() {
                         <option value="C">Centro</option>
                     </select>
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="button" class="btn btn-success btn-sm btn-add-prod-adc" data-porta="${num}"><i class="fas fa-plus"></i> Incluir</button>
+                <div class="col-md-1 me-1 d-none">
+                    <label for="lg-adc" class="form-label">Largura (mm)</label>
+                    <input type="text" class="form-control form-control-sm lg-adc" placeholder="0,00" value="0,00" name="lg-adc" data-porta="${num}">
+                </div>
+                <div class="col-md-1 me-1 d-none">
+                    <label for="at-adc" class="form-label">Altura (mm)</label>
+                    <input type="text" class="form-control form-control-sm at-adc" placeholder="0,00" value="0,00" name="at-adc" data-porta="${num}">
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="button" class="btn btn-success btn-sm btn-add-prod-adc" data-porta="${num}"><i class="fas fa-plus"></i></button>
                 </div>
             </div>
         `;
@@ -6969,12 +8257,12 @@ $(document).ready(function() {
                         Adicionais – Porta ${num}
                     </button>
                 </h2>
-                <div id="collapseAdc_${num}" class="accordion-collapse collapse">
+                <div id="collapseAdc_${num}" class="accordion-collapse collapse show">
                     <div class="accordion-body table-container w-100">
                         ${criarFormularioAdicional(num)}
                         <div class="list-group tb-adc-orc-lista" id="tblAdc_${num}">
                             <!-- Cabeçalho -->
-                            <div class="list-group-item bg-light fw-bold cabecalho-lista">
+                            <div class="list-group-item bg-light fw-bold cabecalho-lista" style="margin-left: -10px; margin-right: -10px;">
                                 <div class="row align-items-center">
                                     <div class="col-md-1 border-end">Código</div>
                                     <div class="col-md-4 border-end">Descrição</div>
@@ -7007,6 +8295,7 @@ $(document).ready(function() {
         const p = Number(porta);
         manager.data[p] ??= [];
         let item = manager.data[p].find(x => Number(x.cod) === Number(dados.cod));
+        const existia = !!item;
         if (!item) {
             item = {id: Number(dados.cod), cod: Number(dados.cod), desc: dados.desc || '', unid: dados.unid || '', vl_compra: parseBR(dados.vl_compra) || 0, vl_unit: parseBR(dados.vl) || 0,
                 qtd_calc: 0, qtd_final: 0, qtd_manual: true, ativo: true, ...extra
@@ -7018,7 +8307,11 @@ $(document).ready(function() {
         item.qtd_final = parseBR(dados.qtd) || 0;
         item.qtd_manual = true;
         item.ativo = item.qtd_final > 0;
-        item.vl_unit = parseBR(dados.vl) || 0;
+        const vlNovo = parseBR(dados.vl) || 0;
+        if (existia && Math.abs((item.vl_unit || 0) - vlNovo) > 0.005) {
+            item.vl_manual = true;
+        }
+        item.vl_unit = vlNovo;
         item.vl_compra = parseBR(dados.vl_compra) || parseBR(item.vl_compra) || 0;
         Object.assign(item, extra);
         const totCompra = item.qtd_final * item.vl_compra;
@@ -7046,7 +8339,7 @@ $(document).ready(function() {
         $row.find('.tot-v-div').text(f(item.vl_total));
     }
     function adicionarProdutoNaTabela(porta, dados) {adicionarItemTabela({manager: prodManager, tabelaId: 'tblProd', porta, dados});}
-    function adicionarAdicionalNaTabela(porta, dados) {adicionarItemTabela({manager: prodAdcManager, tabelaId: 'tblAdc', porta, dados, extra: {lado: dados.lado || '', especifico: dados.especifico || ''}});}
+    function adicionarAdicionalNaTabela(porta, dados) {adicionarItemTabela({manager: prodAdcManager, tabelaId: 'tblAdc', porta, dados, extra: {lado: dados.lado || '', especifico: dados.especifico || '', larg_pa: dados.larg_pa || '', alt_pa: dados.alt_pa || ''}});}
     $(document).on("click", ".btn-add-prod", function () {
         const porta = $(this).data("porta");
         const cod  = $(`.cod-prod[data-porta="${porta}"]`).val();
@@ -7074,7 +8367,9 @@ $(document).ready(function() {
         const vl_compra = parseBR(vl_compra_raw) || 0;
         const lado = $(`.lado-adc[data-porta="${porta}"]`).val() || '';
         const especifico = ($form.data('especifico') || '').trim();
-        console.log('ADD ADC', { cod, desc, unid, qtd, vl, vl_compra, vl_compra_raw });
+        const larg_pa = parseBR($form.find('.lg-adc').val()) || 0;
+        const alt_pa  = parseBR($form.find('.at-adc').val()) || 0;
+        console.log('ADD ADC', { cod, desc, unid, qtd, vl, vl_compra, vl_compra_raw, larg_pa, alt_pa });
         const precisaLado = ['Portinhola', 'Alçapão', 'Coluna Removível'].includes(especifico);
         if (!cod || !desc || qtd <= 0) {
             toast(`Produto adicional incompleto!`, "warning");
@@ -7085,12 +8380,16 @@ $(document).ready(function() {
             $(`.lado-adc[data-porta="${porta}"]`).focus();
             return;
         }
-        adicionarAdicionalNaTabela(porta, {cod, desc, unid, qtd, vl, vl_compra, lado, especifico});
+        adicionarAdicionalNaTabela(porta, {cod, desc, unid, qtd, vl, vl_compra, lado, especifico, larg_pa, alt_pa});
         $(`.cod-prod-adc[data-porta="${porta}"], .desc-prod-adc[data-porta="${porta}"], .unid-prod-adc[data-porta="${porta}"], .valor-prod-adc[data-porta="${porta}"], .qtd-prod-adc[data-porta="${porta}"]`).val('');
         $form.find('.vl-compra-prod-adc').val('0,00');
         $(`.lado-adc[data-porta="${porta}"]`).val('');
+        $form.find('.lg-adc').val('0,00');
+        $form.find('.at-adc').val('0,00');
         $form.removeData('especifico');
         $form.find('.campo-lado-adc').addClass('d-none');
+        $form.find('.lg-adc').closest('.col-md-1').addClass('d-none');
+        $form.find('.at-adc').closest('.col-md-1').addClass('d-none');
         $(`.cod-prod-adc[data-porta="${porta}"]`).focus();
     });
     function observarTotaisPorta(porta) {
@@ -7245,7 +8544,7 @@ $(document).ready(function() {
             }));
             prodAdcManager.data[p] = (porta.adicionais || []).map(item => ({id: Number(item.codProd), cod: Number(item.codProd), regra: null, regra_origem: item.regra_origem || null,
                 qtd_calc: Number(item.qtdProd), qtd_final: Number(item.qtdProd), vl_unit: Number(item.vl_unit  || 0), vl_compra: Number(item.vl_compra || 0), qtd_manual: false,
-                ativo: Number(item.qtdProd) > 0}));
+                ativo: Number(item.qtdProd) > 0, lado: item.lado || '', larg_pa: item.larg_pa || '', alt_pa: item.alt_pa || '',}));
         });
     }
     function atualizarJSONPortas() {
@@ -7256,7 +8555,7 @@ $(document).ready(function() {
                 codProd: i.cod, qtdProd: i.qtd_final, vl_unit: i.vl_unit, vl_total: i.qtd_final * i.vl_unit, ativo: true, regra_origem: i.regra_origem || ''
             }));
             const adicionais = (prodAdcManager.data[p] || []).filter(i => i.ativo && i.qtd_final > 0).map(i => ({
-                codProd: i.cod, qtdProd: i.qtd_final, vl_unit: i.vl_unit, vl_total: i.qtd_final * i.vl_unit, ativo: true, lado: i.lado || '', regra_origem: i.regra_origem || ''
+                codProd: i.cod, qtdProd: i.qtd_final, vl_unit: i.vl_unit, vl_total: i.qtd_final * i.vl_unit, ativo: true, lado: i.lado || '', regra_origem: i.regra_origem || '', larg_pa: i.larg_pa || '', alt_pa: i.alt_pa || '',
             }));
             const det = portaDetalhes[p] || {};
             portas.push({
@@ -7513,7 +8812,7 @@ $(document).ready(function() {
         const vl = parseBR($('#editValorItemAdcInput').val()) || 0;
         const qtd = parseBR($('#editQtdAdcInput').val()) || 0;
         const vl_compra = parseBR($('#editValorCompraItemAdcInput').val()) || 0;
-        adicionarAdicionalNaTabela(porta, {cod, desc, unid, qtd, vl, vl_compra, lado: item.lado || '', especifico: item.especifico || ''});
+        adicionarAdicionalNaTabela(porta, {cod, desc, unid, qtd, vl, vl_compra, lado: item.lado || '', especifico: item.especifico || '', larg_pa: item.larg_pa || '', alt_pa: item.alt_pa || ''});
         const $tr = $(`#tblAdc_${porta} .item-lista[data-item-id="${itemId}"]`);
         $tr.data('qtd-manual', qtd);
         if (item) {
@@ -7763,7 +9062,7 @@ $(document).ready(function() {
                         else {$('#id_qtd_prod').focus();}
                     }
                     else {toast(`Código de produto não encontrado!`, "warning");}
-                }, error: function() {toast(`Erro ao buscar o produto. Tente novamente!`, "error");}
+                }, error: function() {erroInternet();}
             });
         }
     });
@@ -7773,14 +9072,32 @@ $(document).ready(function() {
         if (!isAdicional) return;
         const opcoes = ['Portinhola', 'Alçapão', 'Coluna Removível'];
         const especifico = (produto.especifico || '').trim();
-        const $campo = $form.find('.campo-lado-adc');
-        const $select = $form.find('.lado-adc');
+        const $campo    = $form.find('.campo-lado-adc');
+        const $select   = $form.find('.lado-adc');
+        const $lgAdc    = $form.find('.lg-adc');
+        const $atAdc    = $form.find('.at-adc');
+        const $wrapLarg = $lgAdc.closest('.col-md-1');
+        const $wrapAlt  = $atAdc.closest('.col-md-1');
         if (opcoes.includes(especifico)) {
             $campo.removeClass('d-none');
+            $wrapLarg.removeClass('d-none');
+            $wrapAlt.removeClass('d-none');
             $select.val('E');
+            // Preenche com as medidas cadastradas no produto (Portinhola)
+            if (especifico === 'Portinhola') {
+                $lgAdc.val(formatBR(produto.larg_port ?? 0));
+                $atAdc.val(formatBR(produto.alt_port ?? 0));
+            } else {
+                $lgAdc.val('0,00');
+                $atAdc.val('0,00');
+            }
         } else {
             $campo.addClass('d-none');
+            $wrapLarg.addClass('d-none');
+            $wrapAlt.addClass('d-none');
             $select.val('');
+            $lgAdc.val('0,00');
+            $atAdc.val('0,00');
         }
     }
     function buscarProdutoPorCodigo($input, tipo) {
@@ -7844,15 +9161,20 @@ $(document).ready(function() {
                         $('#id_bairro_txt').val(cliente.bairro);
                         $('#id_cidade_txt').val(cliente.cidade);
                         $('#id_uf_txt').val(cliente.uf);
+                    } else {
+                        toast(`Erro ao buscar os dados do cliente!`, "error");
                     }
-                }, error: function() {console.error('Erro ao buscar os dados do cliente.');}
+                }, error: function() {erroInternet();}
             });
         }
     }
     $('#id_cli').on('change', function() {carregarDadosCliente($(this).val());});
     carregarDadosCliente($('#id_cli').val());
     $('#button-addon2').on('click', function() {$('#produtoModal').modal('show');});
-    $('#add-produtos').on('click', function() {$('#edProdModal').modal('show');});
+    $('#add-produtos').on('click', function() {
+        selEstPadrao();
+        $('#edProdModal').modal('show');
+    });
     $('#add-produtosP').on('click', function() {$('#edProdModalP').modal('show');});
     $('#edProdModal').on('shown.bs.modal', function () {$('#id_cod_produto').trigger('focus');});
     function controlarPreco() {
@@ -8015,7 +9337,8 @@ $(document).ready(function() {
                     });
                 }
                 else {tabela.append('<tr><td colspan="6">Nenhum produto encontrado.</td></tr>');}
-            }, error: function() {}
+            },
+            error: function() {erroInternet();}
         });
     });
     $(document).on('click', '.selecionar-produto', function() {
@@ -8077,7 +9400,8 @@ $(document).ready(function() {
                     });
                 }
                 else {tabela.append('<tr><td colspan="6">Nenhum produto encontrado.</td></tr>');}
-            }, error: function() {}
+            },
+            error: function() {erroInternet();}
         });
     });
     $(document).on('click', '.selecionar-produto-principal', function () {
@@ -8121,7 +9445,8 @@ $(document).ready(function() {
                     });
                 }
                 else {tabela.append('<tr><td colspan="6">Nenhum produto encontrado.</td></tr>');}
-            }, error: function() {}
+            },
+            error: function() {erroInternet();}
         });
     });
     $(document).on('click', '.selecionar-produto-adicional', function () {
@@ -8194,20 +9519,36 @@ $(document).ready(function() {
         let labelapelido = $("label[for='id_fantasia']");
         let labelIE = $("label[for='id_ie']");
         let inputCpfCnpj = $("#id_cpf_cnpj");
+        iniciarLoading();
         if (tipoPessoa === "Física") {
             labelCpfCnpj.text("CPF*");
             labelnome.text("Nome Completo*");
             labelapelido.text("Apelido*");
             labelIE.text("RG");
             inputCpfCnpj.unmask().mask("000.000.000-00"); // Máscara para CPF
+            $("#div_id_dt_nascimento").removeClass("d-none");
+            $("#div_id_dt_fundacao").addClass("d-none");
+            $("#div_id_ie_st").addClass("d-none");
+            $("#div_id_im").addClass("d-none");
+            $("#div_id_suframa").addClass("d-none");
+            $("#div_id_cnae").addClass("d-none");
+            $("#id_ind_ie").val("9");
             fecharLoading();
         } else {
             labelCpfCnpj.text("CNPJ*");
             labelnome.text("Razão Social*");
             labelapelido.text("Fantasia*");
             labelIE.text("IE");
+            $("#div_id_dt_fundacao").removeClass("d-none");
+            $("#div_id_ie_st").removeClass("d-none");
+            $("#div_id_im").removeClass("d-none");
+            $("#div_id_suframa").removeClass("d-none");
+            $("#div_id_cnae").removeClass("d-none");
+            $("#div_id_dt_nascimento").addClass("d-none");
+            $("#id_ind_ie").val("1");
             inputCpfCnpj.unmask().mask("00.000.000/0000-00"); // Máscara para CNPJ
         }
+        fecharLoading();
     }
     $("#id_cnpj").mask("00.000.000/0000-00");
     atualizarCampo(); // Executa ao carregar a página com valor existente
@@ -8229,7 +9570,7 @@ $(document).ready(function() {
         else if (r.length > 0) {r = r.replace(/^(\d*)/, "($1");}
         return r;
     }
-    $("#id_tel, #id_celular, #id_whatsapp").on("input", function () {maskInput($(this));});
+    $("#id_tel, #id_tel2, #id_celular, #id_whatsapp").on("input", function () {maskInput($(this));});
     function mascaraFone(phone) {
         let cleanedPhone = phone.replace(/\D/g, '');
         if (cleanedPhone.length > 2) {
@@ -8318,6 +9659,7 @@ $(document).ready(function() {
                 error: function() {
                     $("#fantasia_fantasia").attr("hidden", true).text("");
                     $('#id_empresa_login').focus();
+                    erroInternet();
                 },
                 complete: function() {fecharLoading();}
             });
@@ -8943,14 +10285,14 @@ $(document).ready(function() {
     $('#id_serial, #id_nome_empresa, #id_nome_emp, #id_desc_prod').focus();
     // $('#loadingModal').modal({keyboard: true, backdrop: 'static'});
     // Fornecedores
-    $('#fornecedor, #id_forn, #id_fornecedor').select2({
+    $('#fornecedor, #id_forn, #id_fornecedor, #id_forn_p').select2({
         placeholder:opSel, allowClear:true, minimumInputLength:1, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/fornecedores/lista_ajax/')}).on('select2:open', focSel2);
     // Vendedores
     $('#dadosVendedor, #vendedor, #vendedor_r_ped, #id_vend, #id_vendedor').select2({
-        placeholder:opSel, allowClear:true, minimumInputLength:1, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/vendedores/lista_ajax/')}).on('select2:open', focSel2);
+        placeholder:opSel,allowClear:true,minimumInputLength:1,templateResult:rendOpt,templateSelection:d=>d.text,language:lingSel,ajax:ajSel2('/vendedores/lista_ajax/')}).on('select2:open', focSel2);
     // Clientes
     $('#dadosCliente, #cliente, #id_cli, #id_cliente').select2({
-        placeholder:opSel, allowClear:true, minimumInputLength:1, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/clientes/lista_ajax/')}).on('select2:open', focSel2);
+        placeholder:opSel,allowClear:true,minimumInputLength:1,templateResult:rendOpt,templateSelection:d=>d.text,language:lingSel,ajax:ajSel2('/clientes/lista_ajax/')}).on('select2:open', focSel2);
     // Cidades
     $('#id_cidade_fil, #id_cidade').select2({
         placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/cidades/lista_ajax/')}).on('select2:open', focSel2);
@@ -8958,7 +10300,7 @@ $(document).ready(function() {
     $('#id_uf').select2({
         placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/estados/lista_ajax/')}).on('select2:open', focSel2);
     // Estoques
-    $('#id_estoque_padrao').select2({
+    $('#id_estoque_padrao, #id_estoque').select2({
         placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/estoques/lista_ajax/')}).on('select2:open', focSel2);
     // Informações
     $('#id_observacao_nfe').select2({
@@ -9014,7 +10356,7 @@ $(document).ready(function() {
     $('#id_banco_fil').select2({
         placeholder:opSel, allowClear:true, templateResult:rendOpt, templateSelection:d=>d.text, language:lingSel, ajax:ajSel2('/bancos/lista_ajax/')}).on('select2:open', focSel2);
     // Formas de Pagamento
-    $('#forma_saida, #forma_entrada, .forma-pgto, #id_formas_pgto, #id_form_pgto, [id^="formas_pgto_cr"], [id^="formaPgtoSelect-"]').each(function () {
+    $('#forma_saida, #forma_entrada, .forma-pgto, #id_formas_pgto, #id_forma_padrao, #id_form_pgto, [id^="formas_pgto_cr"], [id^="formaPgtoSelect-"]').each(function () {
         const $sel = $(this);
         const $modalPai = $sel.closest('.modal');
         $sel.select2({placeholder: opSel, allowClear: true, templateResult: rendOpt, templateSelection: d => d.text, language: lingSel,
@@ -9094,56 +10436,22 @@ $(document).ready(function() {
             });
         });
     };
-
     // ─── Init ────────────────────────────────────────
     var CSRF_TOKEN = $('[name=csrfmiddlewaretoken]').val();
-
     $('#bairro-wrapper').addNovoInline({
-        url: '/bairros/add-ajax/',
-        select2: {
-            placeholder: opSel,
-            allowClear: true,
-            templateResult: rendOpt,
-            templateSelection: d => d.text,
-            language: lingSel,
-            ajax: ajSel2('/bairros/lista_ajax/')
-        }
+        url:'/bairros/add-ajax/',select2:{placeholder:opSel,allowClear:true,templateResult:rendOpt,templateSelection:d => d.text,language: lingSel,ajax:ajSel2('/bairros/lista_ajax/')}
     });
     $('#marca-wrapper').addNovoInline({
-        url: '/marcas/add-ajax/',
-        select2: {
-            placeholder: opSel,
-            allowClear: true,
-            templateResult: rendOpt,
-            templateSelection: d => d.text,
-            language: lingSel,
-            ajax: ajSel2('/marcas/lista_ajax/')
-        }
+        url:'/marcas/add-ajax/',select2:{placeholder:opSel,allowClear:true,templateResult:rendOpt,templateSelection:d => d.text,language:lingSel,ajax:ajSel2('/marcas/lista_ajax/')}
     });
     $('#grupo-wrapper').addNovoInline({
-        url: '/grupos/add-ajax/',
-        select2: {
-            placeholder: opSel,
-            allowClear: true,
-            templateResult: rendOpt,
-            templateSelection: d => d.text,
-            language: lingSel,
-            ajax: ajSel2('/grupos/lista_ajax/')
-        }
+        url:'/grupos/add-ajax/',select2:{placeholder:opSel,allowClear:true,templateResult:rendOpt,templateSelection:d => d.text,language:lingSel,ajax:ajSel2('/grupos/lista_ajax/')}
     });
     $('#unidade-wrapper').addNovoInline({
-        url: '/unidades/add-ajax/',
-        select2: {
-            placeholder: opSel,
-            allowClear: true,
-            templateResult: rendOpt,
-            templateSelection: d => d.text,
-            language: lingSel,
-            ajax: ajSel2('/unidades/lista_ajax/')
-        }
+        url:'/unidades/add-ajax/',select2:{placeholder:opSel,allowClear:true,templateResult:rendOpt,templateSelection:d => d.text,language:lingSel,ajax:ajSel2('/unidades/lista_ajax/')}
     });
     // Selects unificados
-    $('#id_unid_prod, #unid, #id_unidadeProduto, #id_form_pgto, #userSelect, #id_tp_chave, [id^="sel-status"]').select2({placeholder: 'Selecione uma opção', allowClear: true});
+    $('#id_unid_prod, #unid, #id_unidadeProduto, #id_form_pgto, #userSelect, #id_tp_chave, [id^="sel-status"]').select2({placeholder: opSel, allowClear: true});
     // Funções referentes aos formulários de cadastro e edição
     $('#createForm').on('keydown', function(e) {
         if (e.key === 'Enter') {
@@ -9159,7 +10467,7 @@ $(document).ready(function() {
         let mes = (dataAtual.getMonth() + 1).toString().padStart(2, '0'); // Adiciona zero à esquerda, se necessário
         let dia = dataAtual.getDate().toString().padStart(2, '0'); // Adiciona zero à esquerda, se necessário
         return `${dia}/${mes}/${ano}`;}
-    const seletorAutoData = '[id^="dt_pag_cr-"], [id^="cel-dt-"], [id^="dt_pag_cp-"], #id_data_vencimento, .dt-fat-orcamento, .dt-fat-pedido, #id_dt_inicio, #id_dt_venc, #data, #id_dt_emi, #dt_efet_ent, #inpDtPriParc, #id_dt_prev_instalacao, #id_dt_ent, #id_data_aniversario, #id_data_emissao, #data_inicio1, #data_emi_ini1, #data_emi_fim1, #data_ent_ini1, #data_ent_fim1, #data_inst_ini1, #data_inst_fim1, #data_fim1, #data_inicio2, #data_fim2, #id_data_doc, #id_data_prop, #id_dt_visita, #dtVisita, #id_dt_criacao';
+    const seletorAutoData = '[id^="dt_pag_cr-"], [id^="cel-dt-"], [id^="dt_pag_cp-"], #id_data_vencimento, .dt-fat-orcamento, .dt-fat-pedido, #id_dt_nascimento, #id_dt_fundacao, #id_dt_inicio, #id_dt_venc, #data, #id_dt_emi, #dt_efet_ent, #inpDtPriParc, #id_dt_prev_instalacao, #id_dt_ent, #id_data_aniversario, #id_data_emissao, #data_inicio1, #data_emi_ini1, #data_emi_fim1, #data_ent_ini1, #data_ent_fim1, #data_inst_ini1, #data_inst_fim1, #data_fim1, #data_inicio2, #data_fim2, #id_data_doc, #id_data_prop, #id_dt_visita, #dtVisita, #id_dt_criacao';
     $(seletorAutoData).each(function () {if (!$(this).val()) {$(this).val(obterDataAtual2());}});
     if ($('#id_qtd, #id_quantidade').val() === '') {$('#id_qtd, #id_quantidade').val('1.00');}
     if ($('#id_rolo').val() === '') {$('#id_rolo').val('0.60');}
@@ -9187,7 +10495,7 @@ $(document).ready(function() {
         value = value.replace(/(\d{2})(\d)/, '$1/$2');
         return value.substring(0, 10);
     };
-    const seletorMascaraData = '[id^="dt_pag_cr-"], [id^="cel-dt-"], [id^="dt_pag_cp-"], #id_data_vencimento, #id_dt_inicio, #data, .dt-fat-orcamento, .dt-fat-pedido, #id_dt_emi, #dt_efet_ent, #inpDtPriParc, #id_dt_prev_instalacao, #id_dt_ent, #id_dt_venc, #id_data_aniversario, #id_data_prop, #id_data_certificado, #id_data_nascimento, #id_data_nascimento_administrador, #data_inicio1, #data_emi_ini1, #data_emi_fim1, #data_ent_ini1, #data_ent_fim1, #data_inst_ini1, #data_inst_fim1, #data_fim1, #data_inicio2, #data_fim2, #id_data_emissao, #id_data_entrega, #id_dt_criacao';
+    const seletorMascaraData = '[id^="dt_pag_cr-"], [id^="cel-dt-"], [id^="dt_pag_cp-"], #id_data_vencimento, #id_dt_nascimento, #id_dt_fundacao, #id_dt_inicio, #data, .dt-fat-orcamento, .dt-fat-pedido, #id_dt_emi, #dt_efet_ent, #inpDtPriParc, #id_dt_prev_instalacao, #id_dt_ent, #id_dt_venc, #id_data_aniversario, #id_data_prop, #id_data_certificado, #id_data_nascimento, #id_data_nascimento_administrador, #data_inicio1, #data_emi_ini1, #data_emi_fim1, #data_ent_ini1, #data_ent_fim1, #data_inst_ini1, #data_inst_fim1, #data_fim1, #data_inicio2, #data_fim2, #id_data_emissao, #id_data_entrega, #id_dt_criacao';
     $(document).on('input', seletorMascaraData, function (event) {dataFormatada(event);});
     const dataFormatada1 = (event) => {
         let input = event.target;
@@ -9210,7 +10518,7 @@ $(document).ready(function() {
     if ($("#id_qtd_usu, #id_qtd_ass").val() === '') {$("#id_qtd_usu, #id_qtd_ass").val('1');}
     if ($("#id_desc_imp").val() === '') {$("#id_desc_imp").val('IMPLANTAÇÃO/TREINAMENTO');}
     if ($("#id_desc_ass").val() === '') {$("#id_desc_ass").val('ASSESSORIA MENSAL');}
-    let selectors = '#id_peso_m2, #id_espessura_lam, #det_largura_passagem, #det_altura_passagem, #id_diametro_eixo, #id_limite_credito, #id_desconto_maximo, #id_acrescimo_maximo, #id_limite_credito_padrao, #id_estoque_minimo, #id_estoque_maximo, #id_desc_acresEd, #id_preco_unitEd, #id_lg_ps, #id_at_ps, #vl_saida, #vl_entrada, #id_vl_imp, #id_dsct_imp, #id_vl_fin_imp, #id_vl_ass, #id_dsct_ass, #id_vl_fin_ass, #id_vl_p_s, #editValorItemInput, #editValorItemAdcInput, #valorPgto, .money, #id_quantidadeP, #id_quantidadeEd, #id_vl_form_pgto, #id_multi_m2, #id_multi_lg_corte1, #id_multi_lg_corte2, #id_multi_lg_corte3, .inp-valor-pgto, #id_desc_acres, #id_preco_unitP, [id^=desc_m_cr], [id^=desc_j_cr], [id^="cel-parcela-"], [id^=desc_m_cp], [id^=desc_j_cp], [id^=juros_cr], [id^=juros_cp], [id^=multa_cr], [id^=multa_cp], [id^=vl_pg_cr], [id^=vl_pg_cp], .inp-valor, #id_valor, #id_juros, #id_multa, #id_vl_juros, #id_vl_multa, #id_ft_juros, #id_ft_multa, .valor-prod, .valor-prod-adc, .qtd-prod-adc, .qtd-prod, #campo_1, #campo_2, #id_margem, #id_vl_prod, #id_vl_tab, #id_vl_tabEnt, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
+    let selectors = '#id_larg_port, #id_alt_port, .lg-adc, .at-adc, #id_peso_m2, #id_espessura_lam, #det_largura_passagem, #det_altura_passagem, #id_diametro_eixo, #id_limite_credito, #id_desconto_padrao, #id_desconto_maximo, #id_acrescimo_maximo, #id_limite_credito_padrao, #id_estoque_minimo, #id_estoque_maximo, #id_desc_acresEd, #id_preco_unitEd, #id_lg_ps, #id_at_ps, #vl_saida, #vl_entrada, #id_vl_imp, #id_dsct_imp, #id_vl_fin_imp, #id_vl_ass, #id_dsct_ass, #id_vl_fin_ass, #id_vl_p_s, #editValorItemInput, #editValorItemAdcInput, #valorPgto, .money, #id_quantidadeP, #id_quantidadeEd, #id_vl_form_pgto, #id_multi_m2, #id_multi_lg_corte1, #id_multi_lg_corte2, #id_multi_lg_corte3, .inp-valor-pgto, #id_desc_acres, #id_preco_unitP, [id^=desc_m_cr], [id^=desc_j_cr], [id^="cel-parcela-"], [id^=desc_m_cp], [id^=desc_j_cp], [id^=juros_cr], [id^=juros_cp], [id^=multa_cr], [id^=multa_cp], [id^=vl_pg_cr], [id^=vl_pg_cp], .inp-valor, #id_valor, #id_juros, #id_multa, #id_vl_juros, #id_vl_multa, #id_ft_juros, #id_ft_multa, .valor-prod, .valor-prod-adc, .qtd-prod-adc, .qtd-prod, #campo_1, #campo_2, #id_margem, #id_vl_prod, #id_vl_tab, #id_vl_tabEnt, .inpFrete, #id_quantidade, #total-frete, .editable, #id_preco_unit, #id_valor_mensalidade, #id_vl_mens, #id_qtd, #id_m2, #id_acrescimo, #id_desconto, #id_vl_compra, #id_vl_compra_adc, #id_estoque_prod, #campo_desconto, #campo_acrescimo';
     function calcDscoImp() {
         const imp = parseBR($("#id_vl_imp").val());
         const dsct = parseBR($("#id_dsct_imp").val());
@@ -9482,7 +10790,7 @@ $(document).ready(function() {
                 $(`#infoEntModal`).modal('show');
             },
             error: function(xhr) {
-                fecharLoading();
+                erroInternet();
                 console.error('Erro ao carregar orçamento:', xhr.responseText);
             }
         });
@@ -9592,7 +10900,7 @@ $(document).ready(function() {
                 $('#infoEntModal').modal('show');
             },
             error: function(xhr) {
-                fecharLoading();
+                erroInternet();
                 console.error('Erro ao carregar pedido:', xhr.responseText);
             }
         });
@@ -9713,8 +11021,8 @@ $(document).ready(function() {
                 $('#infoEntModal').modal('show');
             },
             error: function(xhr) {
-                fecharLoading();
-                console.error('Erro:', xhr.responseText);
+                erroInternet();
+                console.error('Erro ao exibir Contas à Receber:', xhr.responseText);
             }
         });
     }
@@ -9789,8 +11097,8 @@ $(document).ready(function() {
                 $('#infoEntModal').modal('show');
             },
             error: function(xhr) {
-                fecharLoading();
-                console.error('Erro:', xhr.responseText);
+                erroInternet();
+                console.error('Erro ao exibir Contas à Pagar:', xhr.responseText);
             }
         });
     }

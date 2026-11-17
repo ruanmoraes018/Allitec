@@ -15,4 +15,6 @@ urlpatterns = [
     path('portal/', views.portal_pagamentos, name='portal_pagamentos'),
     path('login/', views.login_portal, name="login_portal"),
     path('logout/', views.logout_portal, name="logout_portal"),
+    path("portal/acesso/<uuid:token>/",views.portal_pagamentos_acesso,name="portal_pagamentos_acesso",),
+    path("mensalidades/portal/acessar/",views.acesso_portal_pagamentos,name="acesso_portal_pagamentos",),
 ]

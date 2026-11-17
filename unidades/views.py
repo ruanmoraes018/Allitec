@@ -10,6 +10,8 @@ from util.permissoes import verifica_permissao
 from django.db.models import Q
 from django.views.decorators.http import require_POST
 from util.logs import gerar_alteracoes, registrar_log
+from django.db import DatabaseError, IntegrityError, transaction
+from django.core.exceptions import ObjectDoesNotExist
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -52,14 +54,23 @@ def lista_unidades_ajax(request):
 
 @login_required
 def add_unidade(request):
+    error_messages = []
+    empresa = request.user.empresa
     if not request.user.has_perm('unidades.add_unidade'):
         messages.info(request, 'Você não tem permissão para adicionar unidades.')
         return redirect('/unidades/lista/')
-    if request.method == 'POST':
-        form = UnidadeForm(request.POST)
-        if form.is_valid():
+    if request.method != 'POST':
+        form = UnidadeForm()
+        return render(request, 'unidades/add.html', {'form': form, 'error_messages': error_messages})
+    form = UnidadeForm(request.POST)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'unidades/add.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             nome = form.cleaned_data['nome_unidade'].strip().upper()
-            empresa = request.user.empresa
             # Verifica duplicata antes de salvar
             if Unidade.objects.filter(nome_unidade=nome, vinc_emp=empresa).exists():
                 messages.warning(request, f'A unidade "{nome}" já está cadastrada.')
@@ -71,12 +82,18 @@ def add_unidade(request):
             registrar_log(request, "CRIAR", "Unidade", b.nome_unidade, f"Adicionou a unidade: {b.codigo} - {b.nome_unidade}", b.id, gerar_alteracoes(obj_novo=b))
             messages.success(request, 'Unidade adicionada com sucesso!')
             return redirect('/unidades/lista/?tp=cod&s=' + str(b.codigo))
-        else:
-            error_messages = [f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!" for field in form if field.errors]
-            return render(request, 'unidades/add.html', {'form': form, 'error_messages': error_messages})
-    else:
-        form = UnidadeForm()
-    return render(request, 'unidades/add.html', {'form': form})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'unidades/add.html', {'form': form, 'error_messages': error_messages})
 
 @login_required
 @require_POST
@@ -84,55 +101,85 @@ def add_unidade_ajax(request):
     nome = request.POST.get('nome', '').strip().upper()
     if not nome:
         return JsonResponse({'erro': 'Nome vazio'}, status=400)
-    empresa = request.user.empresa
-    unidade, criado = Unidade.objects.get_or_create(nome_unidade=nome, vinc_emp=empresa)
-    if criado:
-        registrar_log(request, "CRIAR", "Unidade", unidade.nome_unidade, f"Adicionou a unidade: {unidade.codigo} - {unidade.nome_unidade}", unidade.id, gerar_alteracoes(obj_novo=unidade))
-    return JsonResponse({'id': unidade.codigo, 'nome': unidade.nome_unidade, 'criado': criado})
+    try:
+        with transaction.atomic():
+            empresa = request.user.empresa
+            unidade, criado = Unidade.objects.get_or_create(nome_unidade=nome, vinc_emp=empresa)
+            if criado:
+                registrar_log(request, "CRIAR", "Unidade", unidade.nome_unidade, f"Adicionou a unidade: {unidade.codigo} - {unidade.nome_unidade}", unidade.id, gerar_alteracoes(obj_novo=unidade))
+            return JsonResponse({'id': unidade.codigo, 'nome': unidade.nome_unidade, 'criado': criado})
+    except ValueError as e:
+        return JsonResponse({'erro': e}, status=400)
+    except Exception as e:
+        return JsonResponse({'erro': e}, status=400)
 
 @login_required
 def att_unidade(request, codigo):
-    b = get_object_or_404(Unidade, codigo=codigo, vinc_emp=request.user.empresa)
+    error_messages = []
+    empresa = request.user.empresa
+    b = get_object_or_404(Unidade, codigo=codigo, vinc_emp=empresa)
     if not request.user.has_perm('unidades.change_unidade'):
         messages.info(request, 'Você não tem permissão para editar unidades.')
         return redirect('/unidades/lista/')
-    it_old = Unidade.objects.get(codigo=b.codigo, vinc_emp=request.user.empresa)
-    form = UnidadeForm(instance=b)
-    if request.method == 'POST':
-        form = UnidadeForm(request.POST, instance=b)
-        if form.is_valid():
+    it_old = Unidade.objects.get(codigo=b.codigo, vinc_emp=empresa)
+    if request.method != 'POST':
+        form = UnidadeForm(instance=b)
+        return render(request, 'unidades/att.html', {'form': form, 'b': b, 'error_messages': error_messages})
+    form = UnidadeForm(request.POST, instance=b)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'unidades/att.html', {'form': form, 'b': b, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             nome = form.cleaned_data['nome_unidade'].strip().upper()
-            empresa = request.user.empresa
             # Verifica duplicata excluindo o próprio registro
             if Unidade.objects.filter(nome_unidade=nome, vinc_emp=empresa).exclude(codigo=codigo).exists():
                 messages.warning(request, f'A unidade "{nome}" já está cadastrada.')
                 return render(request, 'unidades/att.html', {'form': form, 'b': b})
-            b = form.save(commit=False)
-            b.nome_unidade = nome
-            b.vinc_emp = empresa
-            b.save()
+            form.nome_unidade = nome
+            b = form.save()
             registrar_log(request, "ALTERAR", "Unidade", b.nome_unidade, f"Alterou a unidade: {b.codigo} - {b.nome_unidade}",  b.id, gerar_alteracoes(it_old, b))
             messages.success(request, 'Unidade atualizada com sucesso!')
             next_url = request.POST.get('next') or request.GET.get('next')
             if next_url:
                 return redirect(next_url)
             return redirect('/unidades/lista/?tp=cod&s=' + str(b.codigo))
-        else:
-            error_messages = [f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!" for field in form if field.errors]
-            return render(request, 'unidades/att.html', {'form': form, 'b': b, 'error_messages': error_messages})
-    return render(request, 'unidades/att.html', {'form': form, 'b': b})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'unidades/att.html', {'form': form, 'b': b, 'error_messages': error_messages})
 
 @login_required
 def del_unidade(request, codigo):
     if not request.user.has_perm('unidades.delete_unidade'):
         messages.info(request, 'Você não tem permissão para deletar unidades.')
         return redirect('/unidades/lista/')
-    c = get_object_or_404(Unidade, codigo=codigo, vinc_emp=request.user.empresa)
-    registrar_log(
-        request, "EXCLUIR", "Unidade", c.nome_unidade,
-        f"Excluiu a unidade: {c.codigo} - {c.nome_unidade}",
-        c.id, gerar_alteracoes(obj_antigo=c)
-    )
-    c.delete()
-    messages.success(request, 'Unidade deletada com sucesso!')
+    try:
+        with transaction.atomic():
+            c = get_object_or_404(Unidade, codigo=codigo, vinc_emp=request.user.empresa)
+            registrar_log(request, "EXCLUIR", "Unidade", c.nome_unidade,f"Excluiu a unidade: {c.codigo} - {c.nome_unidade}",c.id, gerar_alteracoes(obj_antigo=c))
+            c.delete()
+            messages.success(request, 'Unidade deletada com sucesso!')
+            return redirect('/unidades/lista/')
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return redirect('/unidades/lista/')

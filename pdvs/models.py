@@ -10,15 +10,15 @@ class PDV(models.Model):
     def __str__(self):
         return self.nome
     def save(self, *args, **kwargs):
-        if self.vinc_emp and not self.codigo:
+        self.nome = self.nome.strip().upper()
+        if self._state.adding and self.vinc_emp_id and not self.codigo:
             with transaction.atomic():
-                ult = (PDV.objects.select_for_update().filter(vinc_emp=self.vinc_emp).aggregate(models.Max('codigo'))['codigo__max'] or 0)
+                ult = (PDV.objects.select_for_update().filter(vinc_emp_id=self.vinc_emp_id).aggregate(max_codigo=models.Max('codigo'))['max_codigo'] or 0)
                 self.codigo = ult + 1
-                self.nome = self.nome.strip().upper()
                 super().save(*args, **kwargs)
-        else:
-            self.nome = self.nome.strip().upper()
-            super().save(*args, **kwargs)
+            return
+        super().save(*args, **kwargs)
+
     class Meta:
         verbose_name_plural = "Pontos de Venda"
         constraints = [models.UniqueConstraint(fields=['codigo', 'vinc_emp'], name='unique_codigo_pdv_empresa')]

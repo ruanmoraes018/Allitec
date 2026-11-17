@@ -1,6 +1,6 @@
 from django.db import transaction
 from django.contrib.auth.hashers import make_password
-from empresas.models import Empresa
+from django.contrib.auth.models import Permission
 from filiais.models import Filial, Usuario
 from clientes.models import Cliente
 from tecnicos.models import Tecnico
@@ -15,6 +15,38 @@ from vendedores.models import Vendedor
 unidades = ['UN', 'M²', 'ML', 'KG']
 formas = ['DINHEIRO', 'CRÉDITO', 'DÉBITO', 'PIX', 'CREDIÁRIO']
 tabelas = ['AVISTA', 'APRAZO']
+permissoes_allitec = [
+    'view_caixa', 'add_caixa', 'change_caixa', 'delete_caixa', 'caixa_outro_user',
+    'view_pdv', 'add_pdv', 'change_pdv', 'delete_pdv',
+    'view_tabelapreco', 'add_tabelapreco', 'change_tabelapreco', 'delete_tabelapreco',
+    'view_formapgto', 'add_formapgto', 'change_formapgto', 'delete_formapgto',
+    'view_tipocobranca', 'add_tipocobranca', 'change_tipocobranca', 'delete_tipocobranca',
+    'view_entrada', 'add_entrada', 'change_entrada', 'delete_entrada', 'efetivar_entrada', 'cancelar_entrada',
+    'view_bairro', 'add_bairro', 'change_bairro', 'delete_bairro',
+    'view_cidade', 'add_cidade', 'change_cidade', 'delete_cidade',
+    'view_estado', 'add_estado', 'change_estado', 'delete_estado',
+    'view_grupo', 'add_grupo', 'change_grupo', 'delete_grupo',
+    'view_unidade', 'add_unidade', 'change_unidade', 'delete_unidade',
+    'view_banco', 'add_banco', 'change_banco', 'delete_banco',
+    'view_filial', 'add_filial', 'change_filial', 'delete_filial',
+    'view_usuario', 'add_usuario', 'change_usuario', 'delete_usuario',
+    'view_produto', 'add_produto', 'change_produto', 'clonar_produto', 'delete_produto', 'relatorio_vendas_produto',
+    'view_cliente', 'add_cliente', 'change_cliente', 'delete_cliente',
+    'view_fornecedor', 'add_fornecedor', 'change_fornecedor', 'delete_fornecedor',
+    'view_vendedor', 'add_vendedor', 'change_vendedor', 'delete_vendedor',
+    'view_orcamento', 'add_orcamento', 'change_orcamento', 'clonar_orcamento', 'delete_orcamento', 'atribuir_desconto', 'atribuir_acrescimo', 'faturar_orcamento', 'cancelar_orcamento',
+    'alterar_dt_venc_orc', 'alterar_dt_fat_orc', 'vender_sem_estoque_orc',
+    'view_tecnico', 'add_tecnico', 'change_tecnico', 'delete_tecnico',
+    'view_marca', 'add_marca', 'change_marca', 'delete_marca',
+    'view_regraproduto', 'add_regraproduto', 'change_regraproduto', 'delete_regraproduto',
+    'view_pedido', 'add_pedido', 'change_pedido', 'delete_pedido', 'clonar_pedido', 'atribuir_desconto_ped', 'atribuir_acrescimo_ped', 'faturar_pedido', 'cancelar_pedido',
+    'vender_sem_estoque_ped', 'alt_vl_ped', 'alterar_data_faturamento', 'relatorio_pedidos',
+    'view_contareceber', 'add_contareceber', 'change_contareceber', 'delete_contareceber', 'atribuir_desconto_cr', 'baixar_cr', 'estornar_cr',
+    'view_contapagar', 'add_contapagar', 'change_contapagar', 'baixar_cp', 'estornar_cp',
+    'view_estoque', 'add_estoque', 'change_estoque', 'delete_estoque',
+    'view_informacoes', 'add_informacoes', 'change_informacoes', 'delete_informacoes',
+    'view_gruporegraproduto', 'add_gruporegraproduto', 'change_gruporegraproduto', 'delete_gruporegraproduto',
+]
 
 class EmpresaService:
     @staticmethod
@@ -24,7 +56,7 @@ class EmpresaService:
         nova_empresa.situacao = 'Ativa'
         logo = request_files.get('logo') if request_files else None
         if logo: nova_empresa.logo = logo
-        else: nova_empresa.logo = 'default_logo.png'
+        else: nova_empresa.logo = 'default.png'
         nova_empresa.save()
         filial_criada = None
         if nova_empresa.gerar_filial:
@@ -32,83 +64,28 @@ class EmpresaService:
             cidade, _ = Cidade.objects.get_or_create(nome_cidade=nova_empresa.cidade_emp, vinc_emp=nova_empresa)
             estado, _ = Estado.objects.get_or_create(nome_estado=nova_empresa.uf_emp, vinc_emp=nova_empresa)
             # Geração de Filial
-            filial_criada, _ = Filial.objects.get_or_create(
-                cnpj=nova_empresa.cnpj,
-                vinc_emp=nova_empresa,
-                defaults={
-                    'situacao': 'Ativa',
-                    'ie': nova_empresa.ie,
-                    'razao_social': nova_empresa.razao_social,
-                    'fantasia': nova_empresa.fantasia,
-                    'endereco': nova_empresa.endereco,
-                    'cep': nova_empresa.cep,
-                    'numero': nova_empresa.numero,
-                    'bairro_fil': bairro,
-                    'complem': nova_empresa.complem,
-                    'cidade_fil': cidade,
-                    'uf': estado,
-                    'tel': nova_empresa.tel,
-                    'fantasia_normalizado': nova_empresa.fantasia_normalizado,
-                    'principal': True,
-                    'logo': nova_empresa.logo,
+            filial_criada, _ = Filial.objects.get_or_create(cnpj=nova_empresa.cnpj, vinc_emp=nova_empresa,
+                defaults={'situacao': 'Ativa', 'ie': nova_empresa.ie, 'razao_social': nova_empresa.razao_social, 'fantasia': nova_empresa.fantasia, 'endereco': nova_empresa.endereco,
+                    'cep':nova_empresa.cep,'numero':nova_empresa.numero,'bairro_fil':bairro,'complem':nova_empresa.complem,'cidade_fil':cidade,'uf':estado,'tel': nova_empresa.tel,
+                    'fantasia_normalizado': nova_empresa.fantasia_normalizado, 'principal': True, 'logo': nova_empresa.logo,
                 }
             )
             # Geração de Cliente Padrão
-            Cliente.objects.get_or_create(
-                cpf_cnpj='080.681.140-41',
-                vinc_emp=nova_empresa,
-                defaults={
-                    'situacao': 'Ativo',
-                    'pessoa': 'Física',
-                    'ie': '0',
-                    'razao_social': 'CONSUMIDOR',
-                    'fantasia': 'CONSUMIDOR',
-                    'endereco': nova_empresa.endereco,
-                    'cep': nova_empresa.cep,
-                    'numero': nova_empresa.numero,
-                    'bairro': bairro,
-                    'complem': nova_empresa.complem,
-                    'cidade': cidade,
-                    'uf': estado,
-                    'tel': nova_empresa.tel,
-                    'email': nova_empresa.email,
+            Cliente.objects.get_or_create(cpf_cnpj='080.681.140-41', vinc_emp=nova_empresa, vinc_fil=filial_criada, avulso='Sim',
+                defaults={'situacao':'Ativo','pessoa':'Física','ie':'0','razao_social':'CONSUMIDOR','fantasia':'CONSUMIDOR','endereco':nova_empresa.endereco,'cep':nova_empresa.cep,
+                    'numero': nova_empresa.numero,'bairro': bairro,'complem': nova_empresa.complem,'cidade': cidade,'uf': estado,'tel': nova_empresa.tel,'email': nova_empresa.email,
                 }
             )
             # Geração de Vendedor Padrão
-            Vendedor.objects.get_or_create(
-                cpf_cnpj='080.681.140-41',
-                vinc_emp=nova_empresa,
-                defaults={
-                    'situacao': 'Ativo',
-                    'pessoa': 'Física',
-                    'ie': '0',
-                    'razao_social': 'DIVERSOS',
-                    'fantasia': 'DIVERSOS',
-                    'endereco': nova_empresa.endereco,
-                    'cep': nova_empresa.cep,
-                    'numero': nova_empresa.numero,
-                    'bairro': bairro,
-                    'complem': nova_empresa.complem,
-                    'cidade': cidade,
-                    'uf': estado,
-                    'tel': nova_empresa.tel,
-                    'email': nova_empresa.email,
+            Vendedor.objects.get_or_create(cpf_cnpj='080.681.140-41', vinc_emp=nova_empresa,
+                defaults={'situacao':'Ativo','pessoa':'Física','ie':'0','razao_social':'DIVERSOS','fantasia':'DIVERSOS','endereco':nova_empresa.endereco,'cep':nova_empresa.cep,
+                    'numero':nova_empresa.numero,'bairro':bairro,'complem':nova_empresa.complem,'cidade':cidade,'uf':estado,'tel':nova_empresa.tel,'email':nova_empresa.email,
                 }
             )
             # Geração de Técnico Padrão
-            Tecnico.objects.get_or_create(
-                nome='DIVERSOS',
-                vinc_emp=nova_empresa,
-                defaults={
-                    'situacao': 'Ativo',
-                    'endereco': nova_empresa.endereco,
-                    'cep': nova_empresa.cep,
-                    'numero': nova_empresa.numero,
-                    'bairro': bairro,
-                    'cidade': cidade,
-                    'uf': estado,
-                    'tel': nova_empresa.tel,
-                    'email': nova_empresa.email,
+            Tecnico.objects.get_or_create(nome='DIVERSOS', vinc_emp=nova_empresa,
+                defaults={'situacao':'Ativo','endereco':nova_empresa.endereco,'cep':nova_empresa.cep,'numero':nova_empresa.numero,'bairro':bairro,'cidade':cidade,'uf':estado,
+                    'tel':nova_empresa.tel,'email':nova_empresa.email,
                 }
             )
             # Geração de Unidades
@@ -117,63 +94,25 @@ class EmpresaService:
             # Geração de Formas de Pagamento
             for f in formas:
                 if f == 'DINHEIRO':
-                    FormaPgto.objects.get_or_create(
-                        descricao=f,
-                        vinc_emp=nova_empresa,
-                        defaults={
-                            'situacao': 'Ativo',
-                            'troco': 'Sim',
-                            'forma_padrao': 'Sim',
-                            'tipo': 'A vista',
-                            'gateway': 'nenhum',
-                            'credenciais': {},
-                        }
+                    FormaPgto.objects.get_or_create(descricao=f, vinc_emp=nova_empresa,
+                        defaults={'situacao': 'Ativo', 'troco': 'Sim', 'forma_padrao': 'Sim', 'tipo': 'A vista', 'gateway': 'nenhum', 'credenciais': {},}
                     )
                 elif f == 'CREDIÁRIO':
-                    FormaPgto.objects.get_or_create(
-                        descricao=f,
-                        vinc_emp=nova_empresa,
-                        defaults={
-                            'situacao': 'Ativo',
-                            'troco': 'Não',
-                            'forma_padrao': 'Não',
-                            'tipo': 'A prazo',
-                            'gateway': 'nenhum',
-                            'credenciais': {},
-                        }
+                    FormaPgto.objects.get_or_create(descricao=f, vinc_emp=nova_empresa,
+                        defaults={'situacao': 'Ativo', 'troco': 'Não', 'forma_padrao': 'Não', 'tipo': 'A prazo', 'gateway': 'nenhum', 'credenciais': {},}
                     )
                 else:
-                    FormaPgto.objects.get_or_create(
-                        descricao=f,
-                        vinc_emp=nova_empresa,
-                        defaults={
-                            'situacao': 'Ativo',
-                            'troco': 'Não',
-                            'forma_padrao': 'Não',
-                            'tipo': 'A vista',
-                            'gateway': 'nenhum',
-                            'credenciais': {},
-                        }
+                    FormaPgto.objects.get_or_create(descricao=f, vinc_emp=nova_empresa,
+                        defaults={'situacao': 'Ativo', 'troco': 'Não', 'forma_padrao': 'Não', 'tipo': 'A vista', 'gateway': 'nenhum', 'credenciais': {},}
                     )
             # Geração de Tabela de Preço
             for t in tabelas:
-                TabelaPreco.objects.get_or_create(
-                    descricao=t,
-                    vinc_emp=nova_empresa,
-                    defaults={
-                        'margem': 50,
-                        'tipo': 'A vista' if t == 'AVISTA' else 'A prazo',
-                    }
-                )
+                TabelaPreco.objects.get_or_create(descricao=t, vinc_emp=nova_empresa, defaults={'margem': 50, 'tipo': 'A vista' if t == 'AVISTA' else 'A prazo',})
             # Usuário Padrão
             if not Usuario.objects.filter(username="allitec", empresa=nova_empresa).exists():
-                Usuario.objects.create(
-                    username="allitec",
-                    empresa=nova_empresa,
-                    filial_user=filial_criada,
-                    password=make_password("@admin@"),
-                    first_name="ALLITEC",
-                    is_master=True,
+                usuario = Usuario.objects.create(username="allitec", empresa=nova_empresa, filial_user=filial_criada, password=make_password("@admin@"), first_name="ALLITEC", is_master=True,
                     is_active=True,
                 )
+                permissoes = Permission.objects.filter(codename__in=permissoes_allitec)
+                usuario.user_permissions.set(permissoes)
         return nova_empresa, filial_criada

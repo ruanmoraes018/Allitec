@@ -12,32 +12,268 @@ c = 'form-control form-control-sm border-dark-subtle focus-ring focus-ring-dark'
 s = 'form-select form-select-sm border-dark-subtle focus-ring focus-ring-dark'
 
 class RegraProdutoForm(forms.ModelForm):
-    codigo = forms.CharField(label="Código", widget=forms.TextInput(attrs={"class":f"{c} text-uppercase", "placeholder":"Ex: MOTOR_PESO"}))
-    descricao = forms.CharField(label="Descrição", widget=forms.TextInput(attrs={"class":f"{c} text-uppercase"}))
-    categoria = forms.ChoiceField(choices=CATEGORIA_CHOICES, widget=forms.Select(attrs={"class":f"{s}"}))
-    formula = forms.CharField(label="Fórmula", widget=forms.Textarea(attrs={"class":f"{c}","rows":2, "placeholder":"JSON opcional"}))
-    ativo = forms.ChoiceField(label='Ativo', choices=[(True, 'Sim'), (False, 'Não')], widget=forms.Select(attrs={"class":f"{s}"}))
+    codigo = forms.CharField(
+        label="Código",
+        widget=forms.TextInput(
+            attrs={
+                "class": f"{c} text-uppercase",
+                "placeholder": "Ex: MOTOR_PESO",
+            }
+        ),
+    )
+
+    descricao = forms.CharField(
+        label="Descrição",
+        widget=forms.TextInput(
+            attrs={
+                "class": f"{c} text-uppercase",
+            }
+        ),
+    )
+
+    categoria = forms.ChoiceField(
+        choices=CATEGORIA_CHOICES,
+        widget=forms.Select(
+            attrs={
+                "class": f"{s}",
+            }
+        ),
+    )
+
+    formula = forms.CharField(
+        label="Fórmula",
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "class": f"{c}",
+                "rows": 2,
+                "placeholder": "JSON opcional",
+            }
+        ),
+    )
+
+    ativo = forms.ChoiceField(
+        label="Ativo",
+        choices=[
+            (True, "Sim"),
+            (False, "Não"),
+        ],
+        widget=forms.Select(
+            attrs={
+                "class": f"{s}",
+            }
+        ),
+    )
+
+    # ---------------------------------------------------------
+    # IMPORTANTE:
+    # O valor enviado pelo HTML será o cod_local,
+    # mas o cleaned_data["grupo"] será um objeto
+    # GrupoRegraProduto.
+    # ---------------------------------------------------------
+    grupo = forms.ModelChoiceField(
+        queryset=GrupoRegraProduto.objects.none(),
+        to_field_name="cod_local",
+        empty_label="Escolha uma opção",
+        widget=forms.Select(
+            attrs={
+                "class": "form-select form-select-sm",
+                "id": "id_grupo_regra",
+            }
+        ),
+        required=False,
+    )
 
     class Meta:
         model = RegraProduto
-        exclude = ("vinc_emp", "cod_local", "criado_em", "alterado_em",)
+
+        exclude = (
+            "vinc_emp",
+            "cod_local",
+            "criado_em",
+            "alterado_em",
+        )
+
         widgets = {
-            "grupo": forms.Select(attrs={"class":"form-select form-select-sm", "id":"id_grupo_regra"}),
-            "tipo": forms.Select(attrs={"class":"form-select form-select-sm"}),
-            "ordem": forms.NumberInput(attrs={"class":"form-control form-control-sm", "min":0}),
+            "tipo": forms.Select(
+                attrs={
+                    "class": "form-select form-select-sm",
+                }
+            ),
+            "ordem": forms.NumberInput(
+                attrs={
+                    "class": "form-control form-control-sm",
+                    "min": 0,
+                }
+            ),
         }
 
-    def __init__(self,*args,empresa=None,**kwargs):
-        super().__init__(*args,**kwargs)
-        if empresa:
-            self.fields["grupo"].queryset = (GrupoRegraProduto.objects.filter(vinc_emp=empresa))
+    def __init__(self, *args, **kwargs):
+        self.empresa = kwargs.pop("empresa", None)
+        self.user = kwargs.pop("user", None)
+
+        super().__init__(*args, **kwargs)
+
+        # ---------------------------------------------------------
+        # Se não recebeu empresa explicitamente e está editando,
+        # tenta obter a empresa do próprio registro.
+        # ---------------------------------------------------------
+        if not self.empresa:
+            if self.instance and self.instance.pk:
+                self.empresa = getattr(
+                    self.instance,
+                    "vinc_emp",
+                    None
+                )
+
+        # ---------------------------------------------------------
+        # Grupos disponíveis SOMENTE para a empresa atual
+        # ---------------------------------------------------------
+        if self.empresa:
+            self.fields["grupo"].queryset = (
+                GrupoRegraProduto.objects
+                .filter(
+                    vinc_emp=self.empresa,
+                    ativo=True,
+                )
+                .order_by("ordem", "codigo")
+            )
+
+        # ---------------------------------------------------------
+        # Valor inicial na edição
+        # Como to_field_name="cod_local", basta usar o cod_local.
+        # ---------------------------------------------------------
+        if (
+            self.instance
+            and self.instance.pk
+            and self.instance.grupo_id
+        ):
+            self.initial["grupo"] = self.instance.grupo.cod_local
+
+        # ---------------------------------------------------------
+        # Crispy Forms
+        # ---------------------------------------------------------
         self.helper = FormHelper()
-        self.helper.form_tag=False
+        self.helper.form_tag = False
+
         self.helper.layout = Layout(
-            Row(Column("grupo",css_class="col-md-4"),Column("categoria",css_class="col-md-3"),Column("tipo",css_class="col-md-3"),Column("ativo",css_class="col-md-2"),),
-            Row(Column("codigo", css_class="col-md-4"), Column("descricao", css_class="col-md-6"), Column("ordem", css_class="col-md-2"),),
-            Row(Column("formula", css_class="col-md-12"))
+            Row(
+                Column(
+                    "grupo",
+                    css_class="col-md-4"
+                ),
+                Column(
+                    "categoria",
+                    css_class="col-md-3"
+                ),
+                Column(
+                    "tipo",
+                    css_class="col-md-3"
+                ),
+                Column(
+                    "ativo",
+                    css_class="col-md-2"
+                ),
+            ),
+            Row(
+                Column(
+                    "codigo",
+                    css_class="col-md-4"
+                ),
+                Column(
+                    "descricao",
+                    css_class="col-md-6"
+                ),
+                Column(
+                    "ordem",
+                    css_class="col-md-2"
+                ),
+            ),
+            Row(
+                Column(
+                    "formula",
+                    css_class="col-md-12"
+                )
+            ),
         )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        # ---------------------------------------------------------
+        # Empresa obrigatória
+        # ---------------------------------------------------------
+        if not self.empresa:
+            raise forms.ValidationError(
+                "Empresa não identificada para esta operação."
+            )
+
+        # ---------------------------------------------------------
+        # GRUPO
+        #
+        # Aqui cleaned_data["grupo"] JÁ É um GrupoRegraProduto.
+        #
+        # Não faça mais:
+        #
+        # GrupoRegraProduto.objects.get(
+        #     cod_local=grupo_codigo
+        # )
+        # ---------------------------------------------------------
+        grupo = cleaned_data.get("grupo")
+
+        if grupo:
+            # Segurança adicional:
+            # garante que o grupo pertence à empresa atual.
+            if grupo.vinc_emp_id != self.empresa.pk:
+                self.add_error(
+                    "grupo",
+                    "Grupo inválido para esta empresa."
+                )
+            else:
+                cleaned_data["grupo"] = grupo
+
+        # ---------------------------------------------------------
+        # Código único por empresa
+        # ---------------------------------------------------------
+        codigo = cleaned_data.get("codigo")
+
+        if codigo:
+            codigo = codigo.strip().upper()
+            cleaned_data["codigo"] = codigo
+
+            qs = RegraProduto.objects.filter(
+                vinc_emp=self.empresa,
+                codigo=codigo,
+            )
+
+            # Na edição, ignora o próprio registro
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(
+                    pk=self.instance.pk
+                )
+
+            if qs.exists():
+                self.add_error(
+                    "codigo",
+                    "Já existe uma regra com este código nesta empresa."
+                )
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+
+        # ---------------------------------------------------------
+        # A empresa NÃO vem do formulário.
+        # Vem do contexto da view.
+        # ---------------------------------------------------------
+        obj.vinc_emp = self.empresa
+
+        if commit:
+            obj.save()
+            self.save_m2m()
+
+        return obj
 
 class RegraProdutoItemForm(forms.ModelForm):
     # Define o campo produto com to_field_name="codigo"

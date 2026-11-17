@@ -1,6 +1,17 @@
 import os
 from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
+ENV_FILE = BASE_DIR / ".env"
+if ENV_FILE.exists():
+    with open(ENV_FILE, encoding="utf-8") as f:
+        for linha in f:
+            linha = linha.strip()
+            if linha and not linha.startswith("#") and "=" in linha:
+                chave, valor = linha.split("=", 1)
+                os.environ.setdefault(chave.strip(), valor.strip())
+EVOLUTION_API_URL = os.environ.get("EVOLUTION_API_URL")
+EVOLUTION_API_KEY = os.environ.get("EVOLUTION_API_KEY")
+EVOLUTION_INSTANCE = os.environ.get("EVOLUTION_INSTANCE", "allitec")
 SECRET_KEY = 'django-insecure-q+la1=z6y43yf-+j=c+3cf2scm_6lw6l)lz0y8lwb^5zv3i35z'
 DEBUG = True
 ALLOWED_HOSTS = ['*', 'allitec.pythonanywhere.com', '127.0.0.1']

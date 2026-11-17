@@ -6,16 +6,15 @@ from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from core.pagamentos.fluxo import gerar_pagamento_conta_receber
 from util.parse_decimal import parse_decimal
-from .models import ContaReceber, ContaReceberBaixaForma
+from .models import ContaReceber
 from .forms import ContaReceberForm
 import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
-from django.db import transaction
 from filiais.models import Filial
 from decimal import Decimal
 from datetime import timedelta, date, datetime
-from django.db import DatabaseError, IntegrityError
+from django.db import DatabaseError, IntegrityError, transaction
 from django.core.exceptions import ObjectDoesNotExist
 from formas_pgto.models import FormaPgto
 from django.template.loader import render_to_string
@@ -26,7 +25,6 @@ from util.logs import gerar_alteracoes, registrar_log
 import json
 from django.utils import timezone
 from django.db.models import Sum
-from pedidos.models import Pedido
 from django.conf import settings
 import re
 from util.logo_impressao import img_base64
@@ -122,58 +120,71 @@ def detalhes_conta_receber_ajax(request, codigo):
 
 @login_required
 def add_conta_receber(request):
+    error_messages = []
     if not request.user.has_perm('contas_receber.add_contareceber'):
         messages.info(request, 'Você não tem permissão para adicionar contas à receber.')
         return redirect('/contas_receber/lista/')
-    error_messages = []
-    if request.method == 'POST':
-        form = ContaReceberForm(request.POST, empresa=request.user.empresa)
-        if form.is_valid():
-            try:
-                cr = form.save(commit=False)
-                cr.vinc_emp = request.user.empresa
-                cr.valor = parse_decimal(request.POST.get('valor'))
-                cr.data_emissao = datetime.now().date()
-                cr.save()
-                registrar_log(
-                    request, "CRIAR", "Conta à Receber", cr.num_conta,
-                    f"Adicionou a conta à receber: {cr.num_conta} - {cr.cliente.fantasia}",
-                    cr.id, gerar_alteracoes(obj_novo=cr)
-                )
-                cid = str(cr.codigo)
-                messages.success(request, 'Conta à Receber gerada com sucesso!')
-                return redirect('/contas_receber/lista/?tp=cod&s=' + cid)
-            except ObjectDoesNotExist: error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
-            except IntegrityError as e:
-                detalhe = str(e)
-                if hasattr(e, '__cause__') and e.__cause__: detalhe = str(e.__cause__)
-                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
-            except DatabaseError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
-            except Exception as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
-        else:
-            for field in form:
-                for error in field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
-    else: form = ContaReceberForm(empresa=request.user.empresa)
+    empresa = request.user.empresa
+    if request.method != 'POST':
+        form = ContaReceberForm(empresa=empresa)
+        return render(request, 'contas_receber/add.html', {'form': form, 'error_messages': error_messages})
+    form = ContaReceberForm(request.POST, empresa=empresa)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'contas_receber/add.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
+            cr = form.save(commit=False)
+            cr.vinc_emp = request.user.empresa
+            cr.valor = parse_decimal(request.POST.get('valor'))
+            cr.data_emissao = datetime.now().date()
+            cr.save()
+            registrar_log(request,"CRIAR","Conta à Receber",cr.num_conta,f"Adicionou a conta à receber: {cr.num_conta} - {cr.cliente.fantasia}",
+                cr.id, gerar_alteracoes(obj_novo=cr)
+            )
+            cid = str(cr.codigo)
+            messages.success(request, 'Conta à Receber gerada com sucesso!')
+            return redirect('/contas_receber/lista/?tp=cod&s=' + cid)
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return render(request, 'contas_receber/add.html', {'form': form, 'error_messages': error_messages})
 
 @login_required
 def att_conta_receber(request, codigo):
+    error_messages = []
+    empresa = request.user.empresa
     cr = get_object_or_404(ContaReceber, codigo=codigo, vinc_emp=request.user.empresa)
     it_old = ContaReceber.objects.get(codigo=cr.codigo, vinc_emp=request.user.empresa)
     form = ContaReceberForm(instance=cr, empresa=request.user.empresa)
     if not request.user.has_perm('contas_receber.change_contareceber'):
         messages.info(request, 'Você não tem permissão para editar contas à receber.')
         return redirect('/contas_receber/lista/')
-    if request.method == 'POST':
-        dt_o = cr.data_emissao
-        form = ContaReceberForm(request.POST, instance=cr, empresa=request.user.empresa)
-        if form.is_valid():
+    if request.method != 'POST':
+        form = ContaReceberForm(instance=cr, empresa=empresa)
+        return render(request, 'contas_receber/att.html', {'form': form, 'cr': cr, 'error_messages': error_messages})
+    form = ContaReceberForm(request.POST, instance=cr, empresa=empresa)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+    try:
+        with transaction.atomic():
+            dt_o = cr.data_emissao
             cr.data_emissao = dt_o
             cr.valor = parse_decimal(request.POST.get('valor'))
             cr.save()
-            registrar_log(
-                request, "ALTERAR", "Conta à Receber", cr.num_conta,
-                f"Alterou a conta à receber: {cr.num_conta} - {cr.cliente.fantasia}",
+            registrar_log(request, "ALTERAR", "Conta à Receber", cr.num_conta, f"Alterou a conta à receber: {cr.num_conta} - {cr.cliente.fantasia}",
                 cr.id, gerar_alteracoes(it_old, cr)
             )
             next_url = request.POST.get('next') or request.GET.get('next')
@@ -181,150 +192,414 @@ def att_conta_receber(request, codigo):
             messages.success(request, 'Conta à Receber atualizada com sucesso!')
             if next_url: return redirect(next_url)
             else: return redirect('/contas_receber/lista/?tp=cod&s=' + cid)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'contas_receber/att.html', {'form': form, 'cr': cr, 'error_messages': error_messages})
-    else:
-        form = ContaReceberForm(instance=cr, empresa=request.user.empresa)
-        return render(request, 'contas_receber/att.html', {'form': form, 'cr': cr})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'contas_receber/att.html', {'form': form, 'cr': cr, 'error_messages': error_messages})
 
 @login_required
 def del_conta_receber(request, codigo):
     if not request.user.has_perm('contas_receber.delete_contareceber'):
         messages.info(request, 'Você não tem permissão para deletar contas à receber.')
         return redirect('/contas_receber/lista/')
-    cr = get_object_or_404(ContaReceber, codigo=codigo, vinc_emp=request.user.empresa)
-    registrar_log(
-        request, "EXCLUIR", "Conta à Receber", cr.num_conta,
-        f"Excluiu a conta à receber: {cr.num_conta} - {cr.cliente.fantasia}",
-        cr.id, gerar_alteracoes(obj_antigo=cr)
-    )
-    cr.delete()
-    messages.success(request, 'Conta à Receber deletada com sucesso!')
+    try:
+        with transaction.atomic():
+            cr = get_object_or_404(ContaReceber, codigo=codigo, vinc_emp=request.user.empresa)
+            registrar_log(
+                request, "EXCLUIR", "Conta à Receber", cr.num_conta,
+                f"Excluiu a conta à receber: {cr.num_conta} - {cr.cliente.fantasia}",
+                cr.id, gerar_alteracoes(obj_antigo=cr)
+            )
+            cr.delete()
+            messages.success(request, 'Conta à Receber deletada com sucesso!')
+            return redirect('/contas_receber/lista/')
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return redirect('/contas_receber/lista/')
 
 @login_required
 @transaction.atomic
 def pagar_conta_receber(request, codigo):
-    cr = get_object_or_404(ContaReceber, codigo=codigo, vinc_emp=request.user.empresa)
+    cr = get_object_or_404(
+        ContaReceber,
+        codigo=codigo,
+        vinc_emp=request.user.empresa
+    )
+
     if cr.situacao == 'Paga':
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({
+                "success": False,
+                "erro": "Conta à Receber já está paga."
+            }, status=400)
+
         messages.warning(request, 'Conta à Receber já está paga.')
         return redirect('/contas_receber/lista/')
+
     if request.method != 'POST':
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({
+                "success": False,
+                "erro": "Método inválido."
+            }, status=400)
+
         messages.error(request, 'Método inválido.')
         return redirect('/contas_receber/lista/')
+
     def dec(v):
         try:
             v = str(v or '0').strip()
-            if ',' in v: v = v.replace('.', '').replace(',', '.')
+
+            if ',' in v:
+                v = v.replace('.', '').replace(',', '.')
+
             return Decimal(v)
-        except: return Decimal('0.00')
+        except Exception:
+            return Decimal('0.00')
+
     juros_final = dec(request.POST.get('juros'))
     multa_final = dec(request.POST.get('multa'))
     desconto_final = dec(request.POST.get('desconto'))
+
     forma_ids = request.POST.getlist('forma_id[]')
     forma_valores_raw = request.POST.getlist('forma_valor[]')
+
     if not forma_ids or len(forma_ids) != len(forma_valores_raw):
-        messages.warning(request, 'Informe pelo menos uma forma de pagamento válida.')
+        mensagem = 'Informe pelo menos uma forma de pagamento válida.'
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({
+                "success": False,
+                "erro": mensagem
+            }, status=400)
+
+        messages.warning(request, mensagem)
         return redirect('/contas_receber/lista/')
-    formas_processadas = []
-    total_pago = Decimal('0.00')
-    for forma_id, valor_raw in zip(forma_ids, forma_valores_raw):
-        valor = dec(valor_raw)
-        if valor <= 0: continue
-        formas_processadas.append({'forma_id': forma_id,'valor': valor,})
-        total_pago += valor
-    if not formas_processadas:
-        messages.warning(request, 'Nenhum valor válido foi informado para a baixa.')
-        return redirect('/contas_receber/lista/')
-    total_titulo = cr.valor + juros_final + multa_final - desconto_final
-    if total_pago <= 0:
-        messages.warning(request, 'O valor pago deve ser maior que zero.')
-        return redirect('/contas_receber/lista/')
-    if total_pago > total_titulo:
-        messages.warning(request, 'O valor pago não pode ser maior que o total do título.')
-        return redirect('/contas_receber/lista/')
-    restante = total_titulo - total_pago
-    cr.desconto = desconto_final
-    cr.observacao = (cr.observacao or '') + f' Baixa de R$ {total_pago:.2f}.'
-    if len(formas_processadas) == 1: cr.forma_pgto__codigo = formas_processadas[0]['forma_id']
-    pagamentos = []
-    for item in formas_processadas:
-        forma = FormaPgto.objects.get(codigo=item["forma_id"], vinc_emp=request.user.empresa)
-        pagamentos.append({"forma_pgto": forma, "valor": item["valor"]})
-    saldo = cr.baixar(pagamentos=pagamentos, juros=juros_final, multa=multa_final, desconto=desconto_final)
-    origem = "Gerado Manualmente"
-    if cr.pedido:
-        origem = f"Pedido Nº {cr.pedido.codigo}"
-    elif cr.orcamento:
-        origem = f"Orçamento Nº {cr.orcamento.codigo}"
-    registrar_log(
-        request=request, tipo="BAIXA", modulo="Contas a Receber", objeto=cr.num_conta,
-        descricao=f"Realizou a baixa da conta à receber {cr.num_conta} - {cr.cliente.fantasia}",
-        objeto_id=cr.id,
-        alteracoes={
-            "Cliente": cr.cliente.fantasia, "Origem": origem, "Parcela": cr.num_conta,
-            "Valor Original": float(cr.valor), "Valor Recebido": float(cr.valor_pago),
-            "Data do Recebimento": timezone.localdate().strftime("%d/%m/%Y"),
-            "Forma(s) de Pagamento": ", ".join(fp.forma_pgto.descricao for fp in cr.formas_baixa.all()),
-        }
-    )
-    tem_avista = any((p["forma_pgto"].tipo or "").strip().lower() == "a vista" for p in pagamentos)
-    imp_recibo = (cr.vinc_fil.imp_recibo_cr or "Não").strip()
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return JsonResponse({
-            "success": True, "codigo": cr.codigo, "tem_avista": tem_avista, "imp_recibo": imp_recibo,
-            "url_recibo": reverse("recibo_cr", args=[cr.codigo]), "redirect": f"/contas_receber/lista/",
-        })
-    if saldo > 0:
-        messages.success(request, f"Baixa parcial realizada. Saldo restante: R$ {saldo:.2f}.")
-        return redirect(f"/contas_receber/lista/")
-    else:
-        messages.success(request, "Baixa realizada com sucesso.")
-        return redirect('/contas_receber/lista/')
+
+    try:
+        with transaction.atomic():
+
+            formas_processadas = []
+            total_pago = Decimal('0.00')
+
+            for forma_id, valor_raw in zip(
+                forma_ids,
+                forma_valores_raw
+            ):
+                valor = dec(valor_raw)
+
+                if valor <= 0:
+                    continue
+
+                formas_processadas.append({
+                    'forma_id': forma_id,
+                    'valor': valor,
+                })
+
+                total_pago += valor
+
+            if not formas_processadas:
+                mensagem = 'Nenhum valor válido foi informado para a baixa.'
+
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse({
+                        "success": False,
+                        "erro": mensagem
+                    }, status=400)
+
+                messages.warning(request, mensagem)
+                return redirect('/contas_receber/lista/')
+
+            total_titulo = (
+                cr.valor
+                + juros_final
+                + multa_final
+                - desconto_final
+            )
+
+            if total_pago <= 0:
+                mensagem = 'O valor pago deve ser maior que zero.'
+
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse({
+                        "success": False,
+                        "erro": mensagem
+                    }, status=400)
+
+                messages.warning(request, mensagem)
+                return redirect('/contas_receber/lista/')
+
+            if total_pago > total_titulo:
+                mensagem = 'O valor pago não pode ser maior que o total do título.'
+
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse({
+                        "success": False,
+                        "erro": mensagem
+                    }, status=400)
+
+                messages.warning(request, mensagem)
+                return redirect('/contas_receber/lista/')
+
+            cr.desconto = desconto_final
+            cr.observacao = (
+                (cr.observacao or '')
+                + f' Baixa de R$ {total_pago:.2f}.'
+            )
+
+            pagamentos = []
+
+            for item in formas_processadas:
+                forma = FormaPgto.objects.get(
+                    codigo=item["forma_id"],
+                    vinc_emp=request.user.empresa
+                )
+
+                pagamentos.append({
+                    "forma_pgto": forma,
+                    "valor": item["valor"]
+                })
+
+            saldo = cr.baixar(
+                pagamentos=pagamentos,
+                juros=juros_final,
+                multa=multa_final,
+                desconto=desconto_final
+            )
+
+            origem = "Gerado Manualmente"
+
+            if cr.pedido:
+                origem = f"Pedido Nº {cr.pedido.codigo}"
+
+            elif cr.orcamento:
+                origem = f"Orçamento Nº {cr.orcamento.codigo}"
+
+            registrar_log(
+                request=request,
+                tipo="BAIXA",
+                modulo="Contas a Receber",
+                objeto=cr.num_conta,
+                descricao=(
+                    f"Realizou a baixa da conta à receber "
+                    f"{cr.num_conta} - {cr.cliente.fantasia}"
+                ),
+                objeto_id=cr.id,
+                alteracoes={
+                    "Cliente": cr.cliente.fantasia,
+                    "Origem": origem,
+                    "Parcela": cr.num_conta,
+                    "Valor Original": float(cr.valor),
+                    "Valor Recebido": float(cr.valor_pago),
+                    "Data do Recebimento": timezone.localdate().strftime(
+                        "%d/%m/%Y"
+                    ),
+                    "Forma(s) de Pagamento": ", ".join(
+                        fp.forma_pgto.descricao
+                        for fp in cr.formas_baixa.all()
+                    ),
+                }
+            )
+
+            tem_avista = any(
+                (p["forma_pgto"].tipo or "").strip().lower() == "a vista"
+                for p in pagamentos
+            )
+
+            imp_recibo = (
+                cr.vinc_fil.impressao.imp_recibo_cr or "Não"
+            ).strip()
+
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse({
+                    "success": True,
+                    "codigo": cr.codigo,
+                    "tem_avista": tem_avista,
+                    "imp_recibo": imp_recibo,
+                    "url_recibo": reverse(
+                        "recibo_cr",
+                        args=[cr.codigo]
+                    ),
+                    "redirect": "/contas_receber/lista/",
+                    "saldo": str(saldo),
+                })
+
+            if saldo > 0:
+                messages.success(
+                    request,
+                    f"Baixa parcial realizada. "
+                    f"Saldo restante: R$ {saldo:.2f}."
+                )
+            else:
+                messages.success(
+                    request,
+                    "Baixa realizada com sucesso."
+                )
+
+            return redirect('/contas_receber/lista/')
+
+    except ObjectDoesNotExist as e:
+        detalhe = str(e) or "Objeto não encontrado."
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({
+                "success": False,
+                "erro": f"Objeto não encontrado: {detalhe}"
+            }, status=400)
+
+        messages.error(
+            request,
+            f"<i class='fa-solid fa-xmark'></i> Objeto não encontrado: {detalhe}"
+        )
+
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({
+                "success": False,
+                "erro": f"Erro de integridade: {detalhe}"
+            }, status=400)
+
+        messages.error(
+            request,
+            f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}"
+        )
+
+    except DatabaseError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({
+                "success": False,
+                "erro": f"Erro de banco de dados: {detalhe}"
+            }, status=400)
+
+        messages.error(
+            request,
+            f"<i class='fa-solid fa-xmark'></i> Erro de banco de dados: {detalhe}"
+        )
+
+    except ValueError as e:
+        detalhe = str(e)
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({
+                "success": False,
+                "erro": f"Valor inválido: {detalhe}"
+            }, status=400)
+
+        messages.error(
+            request,
+            f"<i class='fa-solid fa-xmark'></i> {detalhe}"
+        )
+
+    except Exception as e:
+        detalhe = str(e)
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({
+                "success": False,
+                "erro": f"Erro inesperado: {detalhe}"
+            }, status=500)
+
+        messages.error(
+            request,
+            f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {detalhe}"
+        )
+
+    return redirect('/contas_receber/lista/')
 
 @login_required
 @transaction.atomic
 def estornar_conta_receber(request, codigo):
     cr = get_object_or_404(ContaReceber, codigo=codigo, vinc_emp=request.user.empresa)
     try:
-        cr.estornar()
-        registrar_log(
-            request=request, tipo="ESTORNO", modulo="Contas à Receber", objeto=cr.num_conta,
-            descricao=f"Estornou a conta à receber {cr.num_conta} - {cr.cliente.fantasia}",
-            objeto_id=cr.id, alteracoes={"Motivo do Estorno": cr.motivo}
-        )
+        with transaction.atomic():
+            cr.estornar()
+            registrar_log(request=request,tipo="ESTORNO",modulo="Contas à Receber",objeto=cr.num_conta,descricao=f"Estornou a conta à receber {cr.num_conta} - {cr.cliente.fantasia}",
+                objeto_id=cr.id, alteracoes={"Motivo do Estorno": cr.motivo}
+            )
+            messages.success(request, "Estorno da conta à receber realizado com sucesso!")
+            return redirect("/contas_receber/lista/")
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
     except ValueError as e:
-        messages.warning(request, str(e))
-    else:
-        messages.success(request, "Estorno da conta à receber realizado com sucesso!")
-    return redirect("/contas_receber/lista/")
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return redirect('/contas_receber/lista/')
 
 @login_required
 def gerar_pix_conta_receber(request, conta_id):
+    erros = []
     conta = get_object_or_404(ContaReceber, codigo=conta_id, vinc_emp=request.user.empresa)
     if conta.situacao == "Paga": return JsonResponse({"erro": "Conta já paga"})
     formas_json = request.POST.get("formas", "[]")
     try: formas = json.loads(formas_json)
-    except: return JsonResponse({"erro": "Formato inválido de formas"})
-    if not formas: return JsonResponse({"erro": "Nenhuma forma enviada"})
-    total = Decimal('0.00')
-    forma_pix = None
-    for f in formas:
-        valor = Decimal(str(f.get("valor", 0)))
-        forma_id = f.get("forma_id")
-        if valor <= 0 or not forma_id: continue
-        forma = FormaPgto.objects.filter(codigo=forma_id, vinc_emp=request.user.empresa).first()
-        if not forma: continue
-        total += valor
-        if (forma.gateway or "").strip().lower() not in ["", "nenhum", "none"]: forma_pix = forma
-    if not forma_pix: return JsonResponse({"erro": "Nenhuma forma com gateway encontrada"})
-    if total <= 0: return JsonResponse({"erro": "Valor inválido"})
-    pagamento = gerar_pagamento_conta_receber(conta, forma_pix, total)
-    if not pagamento: return JsonResponse({"erro": "Falha ao gerar PIX"})
-    return JsonResponse({"txid": pagamento.txid, "qr_code": pagamento.qr_code, "qr_base64": pagamento.qr_base64, "valor": str(total)})
+    except:
+        erros.append("Formato inválido de formas")
+        return JsonResponse({"erro": erros})
+    if not formas:
+        erros.append("Nenhuma forma enviada")
+        return JsonResponse({"erro": erros})
+    try:
+        with transaction.atomic():
+            total = Decimal('0.00')
+            forma_pix = None
+            for f in formas:
+                valor = Decimal(str(f.get("valor", 0)))
+                forma_id = f.get("forma_id")
+                if valor <= 0 or not forma_id: continue
+                forma = FormaPgto.objects.filter(codigo=forma_id, vinc_emp=request.user.empresa).first()
+                if not forma: continue
+                total += valor
+                if (forma.gateway or "").strip().lower() not in ["", "nenhum", "none"]: forma_pix = forma
+            if not forma_pix:
+                erros.append("Nenhuma forma com gateway encontrada")
+                return JsonResponse({"erro": erros})
+            if total <= 0:
+                erros.append("Valor inválido")
+                return JsonResponse({"erro": erros})
+            pagamento = gerar_pagamento_conta_receber(conta, forma_pix, total)
+            if not pagamento:
+                erros.append("Erro ao gerar PIX")
+                return JsonResponse({"erro": erros})
+            return JsonResponse({"txid": pagamento.txid, "qr_code": pagamento.qr_code, "qr_base64": pagamento.qr_base64, "valor": str(total)})
+    except ObjectDoesNotExist:
+        erros.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        erros.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        erros.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        erros.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        erros.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return JsonResponse({"erro": f"Falha ao gerar PIX: {erros}"})
 
 @login_required
 def status_pagamento_conta(request, conta_id):
@@ -362,25 +637,21 @@ def imprimir_carne(request, codigo):
     contas_contexto = []
     total_parcelas = contas.count()
     for c in contas:
-        if not c.vinc_fil.chave_pix:
+        if not c.vinc_fil.financeiro.chave_pix:
             return HttpResponse(f'A filial "{c.vinc_fil}" não possui uma chave Pix cadastrada.')
         nome = c.vinc_fil.fantasia.strip().upper()
         cidade = c.vinc_fil.cidade_fil.nome_cidade.strip().upper()
         chave_pix = c.vinc_fil.chave_pix.strip()
         if c.vinc_fil.tp_chave == "Telefone":
             chave_pix = re.sub(r"\D", "", chave_pix)
-            if not chave_pix.startswith("55"):
-                chave_pix = "55" + chave_pix
+            if not chave_pix.startswith("55"): chave_pix = "55" + chave_pix
             chave_pix = "+" + chave_pix
         txt_id = f"CR{c.codigo}"
         valor = f"{c.valor:.2f}"
         # Descrição do Pix
-        if c.pedido:
-            descricao = (f"Parcela {c.num_conta}-{total_parcelas} (Pedido Nº {c.pedido.codigo})")
-        elif c.orcamento:
-            descricao = (f"Parcela {c.num_conta}-{total_parcelas} (Orçamento Nº {c.orcamento.codigo})")
-        else:
-            descricao = (f"Conta a Receber {c.num_conta}")
+        if c.pedido: descricao = (f"Parcela {c.num_conta}-{total_parcelas} (Pedido Nº {c.pedido.codigo})")
+        elif c.orcamento: descricao = (f"Parcela {c.num_conta}-{total_parcelas} (Orçamento Nº {c.orcamento.codigo})")
+        else: descricao = (f"Conta a Receber {c.num_conta}")
         resultado = Payload(nome, chave_pix, valor, cidade, txt_id, descricao).gerarPayload()
         c.qr_code = resultado["qr_code"]
         c.pix_copia_cola = resultado["payload"]
@@ -389,10 +660,8 @@ def imprimir_carne(request, codigo):
     html = render_to_string("contas_receber/carne.html", {"empresa": conta.vinc_fil, "cliente": conta.cliente, "documento": documento, "tipo_documento": tipo_documento, "contas": contas_contexto, "lg_emp": lg_emp,})
     pdf = HTML(string=html, base_url=settings.MEDIA_ROOT).write_pdf()
     response = HttpResponse(pdf, content_type="application/pdf")
-    if documento:
-        response["Content-Disposition"] = (f'inline; filename="Carnê {tipo_documento} {documento.codigo}.pdf"')
-    else:
-        response["Content-Disposition"] = (f'inline; filename="Carnê ContaReceber {conta.codigo}.pdf"')
+    if documento: response["Content-Disposition"] = (f'inline; filename="Carnê {tipo_documento} {documento.codigo}.pdf"')
+    else: response["Content-Disposition"] = (f'inline; filename="Carnê ContaReceber {conta.codigo}.pdf"')
     return response
 
 @login_required

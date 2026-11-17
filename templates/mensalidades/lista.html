@@ -156,6 +156,7 @@
                                     <small class="f-flex d-md-none">Dt. Vencimento:</small> {{ m.dt_venc|date:"d/m/Y" }}
                                 </div>
                             </div>
+                            <div class="col-md-1 fw-bold descricao-col" data-label="Empresa:">{{ m.vl_mens|moeda_br }}</div>
                             <!-- Dias Atraso -->
                             <div class="col-md-1 fw-bold codigo-col" style="font-size: 0.875rem;" data-label="Dias Atraso:">
                                 {% if m.dias_atraso > 0 %}
@@ -200,7 +201,7 @@
                                     <p>Você confirma a EXCLUSÃO DA MENSALIDADE - <strong>{{ m.id }}</strong>?</p>
                                 </div>
                                 <div class="modal-footer">
-                                    <form method="post" action="{% url 'del-empresa' m.id %}" class="form-excluir">
+                                    <form method="post" action="{% url 'del-mensalidade' m.id %}" class="form-excluir">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-primary btn-confirmar" id="confirmBtn" disabled>
                                             <u>S</u>im <span class="contador">3</span>
@@ -288,7 +289,7 @@
                                     {% if mensalidades.number > 4 %}
                                         <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
                                     {% endif %}
-                                    
+
                                     {% for num in mensalidades.paginator.page_range %}
                                         {% if num >= mensalidades.number|add:'-2' and num <= mensalidades.number|add:'2' %}
                                             {% if mensalidades.number == num %}

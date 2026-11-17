@@ -2,6 +2,85 @@ body, html {width: 100%; min-height: 100%; margin: 0; padding: 0;
   background: radial-gradient(circle at top right, rgba(70, 140, 255, 0.18), transparent 25%), linear-gradient(135deg, #071a2f 0%, #0c2340 45%, #10395c 100%);
   font-size: 15px; font-family: Times; overflow-x: hidden; overflow-y: auto;
 }
+/*  FORMULÁRIO MODERNO - ALLITEC */
+.form-modern {width: 100%;}
+/*  Seções */
+.form-section {
+    background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+#modalConfirmarCancelamento {z-index: 1070 !important;}
+
+.modal-backdrop.show:nth-of-type(2) {
+    z-index: 1065 !important;
+}
+.form-section:hover {border-color: #d9dde2; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);}
+/*  Cabeçalho da seção */
+.form-section-title {display: flex; align-items: center; gap: 11px; margin-bottom: 10px; padding-bottom: 14px; border-bottom: 1px solid #edf0f2;}
+.form-section-icon {width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 9px; background: #f3f4f6; color: #343a40;
+    font-size: 15px; flex-shrink: 0;
+}
+.form-section-title h6 {margin: 0; font-size: 14px; font-weight: 600; color: #212529;}
+.form-section-title small {display: block; margin-top: 2px; color: #8a9199; font-size: 11px;}
+/* Campos */
+.form-modern .form-label {font-size: 12px; font-weight: 500; color: #495057; margin-bottom: 5px;}
+.form-modern .form-control, .form-modern .form-select {border-color: #d9dee3; border-radius: 7px; font-size: 13px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+.form-modern .form-control-sm, .form-modern .form-select-sm {min-height: 34px;}
+.form-modern .form-control:focus, .form-modern .form-select:focus {border-color: #6c757d; box-shadow: 0 0 0 3px rgba(108, 117, 125, 0.10); background-color: #fff;}
+/*  Campos somente leitura */
+.form-modern .form-control[readonly], .form-modern .form-control:disabled, .form-modern .form-select:disabled {background-color: #f8f9fa; color: #6c757d;}
+/*  Texto de ajuda / erros */
+.form-modern .help-block, .form-modern .form-text {font-size: 11px; color: #8a9199;}
+.form-modern .invalid-feedback {font-size: 11px;}
+/*  Campos obrigatórios */
+.form-modern .requiredField .asteriskField {color: #dc3545; margin-left: 2px;}
+/*  Input Group */
+.form-modern .input-group .form-control {border-radius: 7px 0 0 7px;}
+.form-modern .input-group .btn {border-radius: 0 7px 7px 0;}
+/*  Bairro */
+#bairro-wrapper {width: 100%;}
+#bairro-select-area, #bairro-input-area {min-width: 0;}
+#bairro-select-area .select2-container {width: 100% !important;}
+#bairro-wrapper .btn {min-width: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 0;}
+#bairro-wrapper .btn:last-child {border-radius: 0 7px 7px 0;}
+#bairro-wrapper .btn:first-of-type {border-radius: 0 7px 7px 0;}
+/*Select2*/
+.form-modern .select2-container {width: 100% !important;}
+.form-modern .select2-container--default .select2-selection--single {height: 34px !important; border: 1px solid #adb5bd !important; border-radius: 7px; background-color: #fff;
+    display: flex !important; align-items: center !important; position: relative !important;
+}
+/* Texto selecionado */
+.form-modern .select2-container--default .select2-selection--single .select2-selection__rendered {padding-left: 10px !important; padding-right: 55px !important;
+    line-height: normal !important; display: flex !important; align-items: center !important; height: 100% !important; font-size: 13px; color: #343a40;
+}
+/*  Botão limpar (X) */
+.form-modern .select2-container--default .select2-selection--single .select2-selection__clear {position: absolute !important; right: 27px !important; top: 50% !important;
+    transform: translateY(-50%) !important; margin: 0 !important; padding: 0 !important; width: 20px !important; height: 22px !important; display: flex !important;
+    align-items: center !important; justify-content: center !important; font-size: 17px !important; line-height: 1 !important; color: #6c757d; z-index: 2; border: 0;
+    background: transparent; cursor: pointer;
+}
+.form-modern .select2-container--default .select2-selection--single .select2-selection__clear:hover {color: #dc3545;}
+/*  Seta */
+.form-modern .select2-container--default .select2-selection--single .select2-selection__arrow {position: absolute !important; height: 100% !important; top: 0 !important;
+    right: 5px !important; width: 20px !important; display: flex !important; align-items: center !important; justify-content: center !important; z-index: 3;
+}
+/*  Linhas */
+.form-modern .row {row-gap: 2px;}
+/*  Rodapé do formulário */
+.form-modern-footer {display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 6px; padding: 16px 2px 2px; border-top: 1px solid #edf0f2;}
+.form-modern-footer .btn {min-height: 36px; padding: 6px 16px; border-radius: 7px; font-size: 13px; font-weight: 500;}
+/*  Responsividade */
+@media (max-width: 767.98px) {
+    .form-section {padding: 15px; border-radius: 10px; margin-bottom: 14px;}
+    .form-section-title {margin-bottom: 16px;}
+    .form-section-icon {width: 34px; height: 34px; font-size: 14px;}
+    .form-section-title h6 {font-size: 13px;}
+    .form-modern .row {--bs-gutter-y: 0.75rem;}
+    .form-modern-footer {flex-direction: column-reverse; align-items: stretch;}
+    .form-modern-footer .btn {width: 100%;}
+}
 #fotoViewer{position:fixed; inset:0; background:rgba(0,0,0,.88); display:none; justify-content:center; align-items:center; z-index:999999; animation:fadeViewer .18s;}
 #viewerImagem{max-width:92vw; max-height:92vh; border-radius:10px; box-shadow:0 15px 50px rgba(0,0,0,.5); animation:zoomViewer .2s;}
 .fechar-viewer{position:absolute; top:18px; right:25px; width:42px; height:42px; border:0; border-radius:50%; background:rgba(255,255,255,.15); color:#fff; font-size:22px; transition:.2s;}
@@ -101,9 +180,10 @@ body, html {width: 100%; min-height: 100%; margin: 0; padding: 0;
 #xml-itens-body td:nth-child(3) {min-width: 280px;}
 /* Cores específicas */
 .op-editar   { color: #13c43f; }
+.op-whatsapp { color: #2E8B57; }
 .op-clonar   { color: #483D8B; }
 .op-deletar  { color: #db1e47; }
-.op-detalhe  { color: #ff8800; }
+.op-detalhe, .op-fornecedor, .op-detalhe-pedido  { color: #ff8800; }
 .op-detalhe-cr, .op-detalhe-cp  { color: #ff8800; }
 .op-faturar  { color: #3CB371; }
 .op-estornar { color: #5F9EA0; }

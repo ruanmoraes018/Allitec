@@ -2,12 +2,12 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import Mensalidade, CobrancaPix
+from .models import Mensalidade, CobrancaPix,  AcessoPortal
 from .forms import MensalidadeForm
 import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
-from django.db import DatabaseError, IntegrityError
+from django.db import DatabaseError, IntegrityError, transaction
 from django.core.exceptions import ObjectDoesNotExist
 from empresas.models import Empresa
 from datetime import datetime, date, timedelta
@@ -18,6 +18,7 @@ from django.conf import settings
 import json
 import re
 from django.db.models import Q
+from django.utils import timezone
 sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
 
 def remove_accents(input_str):
@@ -70,9 +71,7 @@ def lista_mensalidades(request):
     page = request.GET.get('page')
     mensalidades = paginator.get_page(page)
     empresas = Empresa.objects.all()
-    return render(request, 'mensalidades/lista.html', {
-        'mensalidades': mensalidades, 'empresas': empresas, 'emp': emp, 'sit': sit, 'dt_ini': dt_ini, 'dt_fim': dt_fim, 'p_dt': por_dt, 'list_p': list_p, 'ordem': ordem, 'reg': reg,
-    })
+    return render(request,'mensalidades/lista.html',{'mensalidades':mensalidades,'empresas':empresas,'emp':emp,'sit':sit,'dt_ini':dt_ini,'dt_fim':dt_fim,'p_dt':por_dt,'list_p':list_p,'ordem':ordem,'reg':reg})
 
 @login_required
 def lista_mensalidades_ajax(request):
@@ -88,102 +87,201 @@ def lista_mensalidades_ajax(request):
 
 @login_required
 def add_mensalidade(request):
+    error_messages = []
     if not request.user.has_perm('mensalidades.add_mensalidade'):
         messages.info(request, 'Você não tem permissão para adicionar mensalidades.')
         return redirect('/mensalidades/lista/')
-    error_messages = []
-    if request.method == 'POST':
-        form = MensalidadeForm(request.POST)
-        if form.is_valid():
-            try:
-                mens = form.save(commit=False)
-                mens.save()
-                cid = str(mens.id)
-                messages.success(request, 'Mensalidade gerada com sucesso!')
-                return redirect('/mensalidades/lista/?tp=cod&s=' + cid)
-            except ObjectDoesNotExist: error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
-            except IntegrityError: error_messages.append("<i class='fa-solid fa-xmark'></i> Erro de integridade no banco.")
-            except DatabaseError: error_messages.append("<i class='fa-solid fa-xmark'></i> Erro de banco de dados.")
-            except Exception as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
-        else:
-            for field in form:
-                for error in field.errors:
-                    error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
-    else: form = MensalidadeForm()
+    if request.method != 'POST':
+        form = MensalidadeForm()
+        return render(request, 'mensalidades/add.html', {'form': form, 'error_messages': error_messages})
+    form = MensalidadeForm(request.POST)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'mensalidades/add.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
+            mens = form.save(commit=False)
+            mens.save()
+            cid = str(mens.id)
+            messages.success(request, 'Mensalidade gerada com sucesso!')
+            return redirect('/mensalidades/lista/?tp=cod&s=' + cid)
+    except ObjectDoesNotExist: error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return render(request, 'mensalidades/add.html', {'form': form, 'error_messages': error_messages})
 
 @login_required
 def att_mensalidade(request, id):
+    error_messages = []
     mensalidade = get_object_or_404(Mensalidade, pk=id)
-    form = MensalidadeForm(instance=mensalidade)
     if not request.user.has_perm('mensalidades.change_mensalidade'):
         messages.info(request, 'Você não tem permissão para editar mensalidades.')
         return redirect('/mensalidades/lista/')
-    if request.method == 'POST':
-        form = MensalidadeForm(request.POST, instance=mensalidade)
-        if form.is_valid():
-            mensalidade.save()
+    if request.method != 'POST':
+        form = MensalidadeForm(instance=mensalidade)
+        return render(request, 'mensalidades/att.html', {'form': form, 'mensalidade': mensalidade, 'error_messages': error_messages})
+    form = MensalidadeForm(request.POST, instance=mensalidade)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'mensalidades/att.html', {'form': form, 'mensalidade': mensalidade, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
+            mensalidade = form.save()
             next_url = request.POST.get('next') or request.GET.get('next')
             cid = str(mensalidade.id)
             messages.success(request, 'Mensalidade atualizada com sucesso!')
             if next_url: return redirect(next_url)
             else: return redirect('/mensalidades/lista/?tp=cod&s=' + cid)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'mensalidades/att.html', {'form': form, 'mensalidade': mensalidade, 'error_messages': error_messages})
-    else: return render(request, 'mensalidades/att.html', {'form': form, 'mensalidade': mensalidade})
+    except ObjectDoesNotExist: error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'mensalidades/att.html', {'form': form, 'mensalidade': mensalidade, 'error_messages': error_messages})
 
 @login_required
 def del_mensalidade(request, id):
     if not request.user.has_perm('mensalidades.delete_mensalidade'):
         messages.info(request, 'Você não tem permissão para deletar mensalidades.')
         return redirect('/mensalidades/lista/')
-    mensalidade = get_object_or_404(Mensalidade, pk=id)
-    mensalidade.delete()
-    messages.success(request, 'Mensalidade deletada com sucesso!')
+    try:
+        with transaction.atomic():
+            mensalidade = get_object_or_404(Mensalidade, pk=id)
+            mensalidade.delete()
+            messages.success(request, 'Mensalidade deletada com sucesso!')
+            return redirect('/mensalidades/lista/')
+    except ObjectDoesNotExist: messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e: messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e: messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e: messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return redirect('/mensalidades/lista/')
 
 @login_required
 def baixar_mensalidade(request, id):
-    m = get_object_or_404(Mensalidade, pk=id)
-    if m.situacao == 'Baixada':
-        messages.warning(request, 'Mensalidade já está Baixada')
-        return redirect('/mensalidades/lista/')
-    elif m.situacao == 'Aberta':
-        m.situacao = "Baixada"
-        m.dt_pag = datetime.now()
-        m.save()
-        messages.success(request, 'Baixa da Mensalidade realizada com sucesso!')
-        return redirect('/mensalidades/lista/')
+    try:
+        with transaction.atomic():
+            m = get_object_or_404(Mensalidade, pk=id)
+            if m.situacao == 'Baixada':
+                messages.warning(request, 'Mensalidade já está Baixada')
+                return redirect('/mensalidades/lista/')
+            elif m.situacao == 'Aberta':
+                m.situacao = "Baixada"
+                m.dt_pag = datetime.now()
+                m.save()
+                messages.success(request, 'Baixa da Mensalidade realizada com sucesso!')
+                return redirect('/mensalidades/lista/')
+    except ObjectDoesNotExist: messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e: messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e: messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e: messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return redirect('/mensalidades/lista/')
 
 @login_required
 def estornar_mensalidade(request, id):
-    m = get_object_or_404(Mensalidade, pk=id)
-    if m.situacao == 'Aberta':
-        messages.warning(request, 'Mensalidades Abertas não podem ser estornadas!')
-        return redirect('/mensalidades/lista/')
-    elif m.situacao == 'Baixada':
-        m.situacao = "Aberta"
-        m.save()
-        messages.success(request, 'Estorno da Mensalidade realizada com sucesso!')
-        return redirect('/mensalidades/lista/')
+    try:
+        with transaction.atomic():
+            m = get_object_or_404(Mensalidade, pk=id)
+            if m.situacao == 'Aberta':
+                messages.warning(request, 'Mensalidades Abertas não podem ser estornadas!')
+                return redirect('/mensalidades/lista/')
+            elif m.situacao == 'Baixada':
+                m.situacao = "Aberta"
+                m.save()
+                messages.success(request, 'Estorno da Mensalidade realizada com sucesso!')
+                return redirect('/mensalidades/lista/')
+    except ObjectDoesNotExist: messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e: messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e: messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e: messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return redirect('/mensalidades/lista/')
+
+@login_required
+def acesso_portal_pagamentos(request):
+
+    filial = getattr(request.user, 'filial_user', None)
+
+    if not filial:
+        return redirect('/mensalidades/login/')
+
+    empresa = filial.vinc_emp
+
+    acesso = AcessoPortal.objects.create(
+        empresa=empresa,
+        expira_em=timezone.now() + timedelta(minutes=2)
+    )
+
+    return redirect(
+        'portal_pagamentos_acesso',
+        token=acesso.token
+    )
+
+
+def portal_pagamentos_acesso(request, token):
+
+    acesso = get_object_or_404(
+        AcessoPortal.objects.select_related('empresa'),
+        token=token
+    )
+
+    if not acesso.esta_valido():
+        return redirect('/mensalidades/login/')
+
+    acesso.usado = True
+    acesso.save(update_fields=['usado'])
+
+    request.session['empresa_portal_id'] = acesso.empresa_id
+
+    return redirect('/mensalidades/portal/')
+
 # ÁREA DO PORTAL
 def login_portal(request):
     erro = None
     if request.method == "POST":
-        cnpj = request.POST.get("cnpj")
-        senha = request.POST.get("senha")
-        cnpj = re.sub(r'\D', '', cnpj)
-        try:
-            empresa = Empresa.objects.get(cnpj=cnpj)
-            if empresa.senha_portal == senha:
-                request.session['empresa_portal_id'] = empresa.id
-                return redirect('/mensalidades/portal/')
-            else: erro = "Senha inválida"
-        except Empresa.DoesNotExist: erro = "CNPJ não encontrado"
-    return render(request, "mensalidades/login_portal.html", {"erro": erro})
+        cnpj = request.POST.get("cnpj_login", "").strip()
+        senha = request.POST.get("senha_login", "")
+        # Remove tudo que não for número
+        cnpj_numeros = re.sub(r"\D", "", cnpj)
+        # Formata para o padrão armazenado no banco
+        if len(cnpj_numeros) == 14:
+            cnpj = (
+                f"{cnpj_numeros[:2]}."
+                f"{cnpj_numeros[2:5]}."
+                f"{cnpj_numeros[5:8]}/"
+                f"{cnpj_numeros[8:12]}-"
+                f"{cnpj_numeros[12:]}"
+            )
+        else:
+            erro = "CNPJ inválido"
+        if not erro:
+            try:
+                empresa = Empresa.objects.get(cnpj=cnpj)
+                if empresa.senha_portal == senha:
+                    request.session["empresa_portal_id"] = empresa.id
+                    return redirect("/mensalidades/portal/")
+                else:
+                    erro = "Senha inválida"
+            except Empresa.DoesNotExist:
+                erro = "CNPJ não encontrado"
+    return render(request,"mensalidades/login_portal.html",{"erro": erro})
 
 def portal_required(view_func):
     def wrapper(request, *args, **kwargs):

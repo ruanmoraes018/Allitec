@@ -27,69 +27,71 @@
                         </span>
                     </div>
                     <div class="card-body">
-                        <div class="row g-3" style="margin-left: -8px;">
-                            <input type="hidden" name="next" value="{{ request.GET.next }}">
-                            <div class="col-md-1">
-                                {{ form.situacao|as_crispy_field }}
-                            </div>
-                            <div class="col-md-1">
-                                {{ form.pessoa|as_crispy_field }}
-                            </div>
-                            <div class="col-md-2">
-                                {{ form.cpf_cnpj|as_crispy_field }}
-                            </div>
-                            <div class="col-md-2">
-                                {{ form.ie|as_crispy_field }}
-                            </div>
-                            <div class="col-md-3">
-                                {{ form.razao_social|as_crispy_field }}
-                            </div>
-                            <div class="col-md-3">
-                                {{ form.fantasia|as_crispy_field }}
-                            </div>
-                            <div class="col-md-2">
-                                {{ form.cep|as_crispy_field }}
-                            </div>
-                            <div class="col-md-4">
-                                {{ form.endereco|as_crispy_field }}
-                            </div>
-                            <div class="col-md-1">
-                                {{ form.numero|as_crispy_field }}
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label mb-2">Bairro*</label>
-                                <div class="input-group input-group-sm" id="bairro-wrapper">
-                                    <div id="bairro-select-area" class="flex-grow-1">
-                                        {{ form.bairro }}
+                        <div class="form-modern">
+                            <div class="form-section">
+                                <div class="form-section-title">
+                                    <div class="form-section-icon"><i class="fa-solid fa-user"></i></div>
+                                    <div>
+                                        <h6>Dados do Fornecedor</h6>
+                                        <small>Informações principais do cadastro</small>
                                     </div>
-                                    <div id="bairro-input-area" style="flex:1; display:none;">
-                                        <input type="text" id="novo-bairro" class="form-control form-control-sm border-dark-subtle " placeholder="Digite o novo bairro">
-                                    </div>
-                                    <button type="button" class="btn btn-dark rounded-end" id="btn-novo-bairro">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-success btn-sm" id="btn-confirmar-bairro" style="display:none;">
-                                        <i class="fa-solid fa-check"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-danger btn-sm" id="btn-cancelar-bairro" style="display:none;">
-                                        <i class="fa-solid fa-xmark"></i>
-                                    </button>
+                                </div>
+                                <div class="row g-1">
+                                    <div class="col-md-1">{{ form.situacao|as_crispy_field }}</div>
+                                    <div class="col-md-1">{{ form.pessoa|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.cpf_cnpj|as_crispy_field }}</div>
+                                    <div class="col-md-1">{{ form.ie|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ form.razao_social|as_crispy_field }}</div>
+                                    <div class="col-md-3">{{ form.fantasia|as_crispy_field }}</div>
                                 </div>
                             </div>
-                            <div class="col-md-2">
-                                {{ form.cidade|as_crispy_field }}
+                            <div class="form-section">
+                                <div class="form-section-title">
+                                    <div class="form-section-icon"><i class="fa-solid fa-location-dot"></i></div>
+                                    <div>
+                                        <h6>Endereço</h6>
+                                        <small>Localização e endereço do fornecedor</small>
+                                    </div>
+                                </div>
+                                <div class="row g-1">
+                                    <div class="col-md-2">{{ form.cep|as_crispy_field }}</div>
+                                    <div class="col-md-8">{{ form.endereco|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.numero|as_crispy_field }}</div>
+                                </div>
+                                <div class="row g-1 mt-1">
+                                    <div class="col-md-3">{{ form.complem|as_crispy_field }}</div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Bairro<span class="asteriskField">*</span></label>
+                                        <div class="input-group input-group-sm" id="bairro-wrapper">
+                                            <div id="bairro-select-area" class="flex-grow-1">{{ form.bairro }}</div>
+                                            <div id="bairro-input-area" style="flex:1; display:none;">
+                                                <input type="text" id="novo-bairro" class="form-control form-control-sm border-dark-subtle" placeholder="Digite o novo bairro">
+                                            </div>
+                                            <button type="button" class="btn btn-dark" id="btn-novo-bairro" title="Cadastrar novo bairro"><i class="fas fa-plus"></i></button>
+                                            <button type="button"class="btn btn-success btn-sm" id="btn-confirmar-bairro" style="display:none;" title="Confirmar bairro">
+                                                <i class="fa-solid fa-check"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-danger btn-sm" id="btn-cancelar-bairro" style="display:none;" title="Cancelar">
+                                                <i class="fa-solid fa-xmark"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">{{ form.cidade|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.uf|as_crispy_field }}</div>
+                                </div>
                             </div>
-                            <div class="col-md-3">
-                                {{ form.complem|as_crispy_field }}
-                            </div>
-                            <div class="col-md-2">
-                                {{ form.uf|as_crispy_field }}
-                            </div>
-                            <div class="col-md-2">
-                                {{ form.tel|as_crispy_field }}
-                            </div>
-                            <div class="col-md-4">
-                                {{ form.email|as_crispy_field }}
+                            <div class="form-section">
+                                <div class="form-section-title">
+                                    <div class="form-section-icon"><i class="fa-solid fa-address-book"></i></div>
+                                    <div>
+                                        <h6>Contato</h6>
+                                        <small>Informações para comunicação</small>
+                                    </div>
+                                </div>
+                                <div class="row g-1">
+                                    <div class="col-md-4">{{ form.tel|as_crispy_field }}</div>
+                                    <div class="col-md-8">{{ form.email|as_crispy_field }}</div>
+                                </div>
                             </div>
                         </div>
                     </div>

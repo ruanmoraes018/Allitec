@@ -7,9 +7,10 @@ from .forms import InformacoesForm
 import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
-from filiais.models import Usuario
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from util.logs import gerar_alteracoes, registrar_log
+from django.db import DatabaseError, IntegrityError, transaction
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -53,71 +54,102 @@ def lista_informacoes_ajax(request):
 
 @login_required
 def add_informacao(request):
+    error_messages = []
+    empresa = request.user.empresa
     if not request.user.has_perm('informacoes.add_informacoes'):
         messages.info(request, 'Você não tem permissão para adicionar informações.')
         return redirect('/informacoes/lista/')
-    if request.method == 'POST':
-        form = InformacoesForm(request.POST)
-        if form.is_valid():
+    if request.method != 'POST':
+        form = InformacoesForm()
+        return render(request, 'informacoes/add.html', {'form': form, 'error_messages': error_messages})
+    form = InformacoesForm(request.POST)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'informacoes/add.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             c = form.save(commit=False)
             c.empresa = request.user.empresa
             c.save()
-            registrar_log(
-                request, "CRIAR", "Informações", c.descricao,
-                f"Adicionou a informação: {c.codigo} - {c.descricao}",
-                c.id, gerar_alteracoes(obj_novo=c)
-            )
+            registrar_log(request, "CRIAR", "Informações", c.descricao, f"Adicionou a informação: {c.codigo} - {c.descricao}", c.id, gerar_alteracoes(obj_novo=c))
             messages.success(request, 'Informações adicionada com sucesso!')
             cid = str(c.codigo)
             return redirect('/informacoes/lista/?tp=cod&s=' + cid)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'informacoes/add.html', {'form': form, 'error_messages': error_messages})
-    else: form = InformacoesForm()
-    return render(request, 'informacoes/add.html', {'form': form})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'informacoes/add.html', {'form': form, 'error_messages': error_messages})
 
 @login_required
 def att_informacao(request, codigo):
+    error_messages = []
     c = get_object_or_404(Informacoes, codigo=codigo, empresa=request.user.empresa)
     it_old = Informacoes.objects.get(codigo=c.codigo, empresa=request.user.empresa)
-    form = InformacoesForm(instance=c)
     if not request.user.has_perm('informacoes.change_informacoes'):
         messages.info(request, 'Você não tem permissão para editar informações.')
         return redirect('/informacoes/lista/')
-    if request.method == 'POST':
-        form = InformacoesForm(request.POST, instance=c)
-        if form.is_valid():
+    if request.method != 'POST':
+        form = InformacoesForm(instance=c)
+        return render(request, 'informacoes/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
+    form = InformacoesForm(request.POST, instance=c)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'informacoes/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             c.save()
-            registrar_log(
-                request, "ALTERAR", "Informações", c.descricao,
-                f"Alterou a informação: {c.codigo} - {c.descricao}",
-                c.id, gerar_alteracoes(it_old, c)
-            )
+            registrar_log(request, "ALTERAR", "Informações", c.descricao, f"Alterou a informação: {c.codigo} - {c.descricao}", c.id, gerar_alteracoes(it_old, c))
             next_url = request.POST.get('next') or request.GET.get('next')
             cid = str(c.codigo)
             messages.success(request, 'Informações atualizada com sucesso!')
             if next_url: return redirect(next_url)
             else: return redirect('/informacoes/lista/?tp=cod&s=' + cid)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'informacoes/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
-    else: return render(request, 'informacoes/att.html', {'form': form, 'c': c})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'informacoes/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
 
 @login_required
 def del_informacao(request, codigo):
     if not request.user.has_perm('informacoes.delete_informacoes'):
         messages.info(request, 'Você não tem permissão para deletar informacoes.')
         return redirect('/informacoes/lista/')
-    c = get_object_or_404(Informacoes, codigo=codigo, empresa=request.user.empresa)
-    registrar_log(
-        request, "EXCLUIR", "Informações", c.descricao,
-        f"Excluiu a informação: {c.codigo} - {c.descricao}",
-        c.id, gerar_alteracoes(obj_antigo=c)
-    )
-    c.delete()
-    messages.success(request, 'Informações deletada com sucesso!')
+    try:
+        with transaction.atomic():
+            c = get_object_or_404(Informacoes, codigo=codigo, empresa=request.user.empresa)
+            registrar_log(request, "EXCLUIR", "Informações", c.descricao, f"Excluiu a informação: {c.codigo} - {c.descricao}", c.id, gerar_alteracoes(obj_antigo=c))
+            c.delete()
+            messages.success(request, 'Informações deletada com sucesso!')
+            return redirect('/informacoes/lista/')
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return redirect('/informacoes/lista/')

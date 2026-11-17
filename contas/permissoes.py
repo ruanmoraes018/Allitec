@@ -23,7 +23,7 @@ ORDEM_CODENAME = [
     'view_cliente','add_cliente','change_cliente','delete_cliente',
     'view_fornecedor','add_fornecedor','change_fornecedor','delete_fornecedor',
     'view_vendedor','add_vendedor','change_vendedor','delete_vendedor',
-    'view_orcamento','add_orcamento','change_orcamento','clonar_orcamento','delete_orcamento','atribuir_desconto','atribuir_acrescimo','faturar_orcamento','cancelar_orcamento','alterar_dt_venc_orc','alterar_dt_fat_orc','vender_sem_estoque_orc',
+    'view_orcamento','add_orcamento','change_orcamento','clonar_orcamento','delete_orcamento','atribuir_desconto','atribuir_acrescimo','faturar_orcamento','cancelar_orcamento','alterar_dt_venc_orc','alterar_dt_fat_orc','vender_sem_estoque_orc','enviar_orcamento_whatsapp',
     'view_tecnico','add_tecnico','change_tecnico','delete_tecnico',
     'view_marca','add_marca','change_marca','delete_marca',
     'view_regraproduto','add_regraproduto','change_regraproduto','delete_regraproduto',
@@ -76,7 +76,7 @@ GRUPOS_PERMISSOES = OrderedDict({
     'Vendedores': ['view_vendedor','add_vendedor','change_vendedor','delete_vendedor'],
     'Orçamentos': [
         'view_orcamento','add_orcamento','change_orcamento','clonar_orcamento','delete_orcamento','atribuir_desconto','atribuir_acrescimo','faturar_orcamento',
-        'cancelar_orcamento','alterar_dt_venc_orc','alterar_dt_fat_orc','vender_sem_estoque_orc'
+        'cancelar_orcamento','alterar_dt_venc_orc','alterar_dt_fat_orc','vender_sem_estoque_orc','enviar_orcamento_whatsapp',
     ],
     'Técnicos': ['view_tecnico','add_tecnico','change_tecnico','delete_tecnico'],
     'Marcas': ['view_marca','add_marca','change_marca','delete_marca'],

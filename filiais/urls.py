@@ -18,9 +18,9 @@ urlpatterns = [
     path('filiais/js/', views.dados_filiais_js, name="dados_filiais_js"),
     path('pagamentos/webhook/', views.webhook_pagamentos, name='webhook_pagamentos'),
     path("filiais/validar-certificado/", views.validar_certificado, name="validar_certificado",),
-    path(
-        "filiais/<int:codigo>/validar-certificado-salvo/",
-        views.validar_certificado_salvo,
-        name="validar_certificado_salvo"
-    )
+    path("filiais/<int:codigo>/validar-certificado-salvo/", views.validar_certificado_salvo, name="validar_certificado_salvo"),
+    path('estoques/filial/<int:codigo>/', views.lista_estoques_filial, name='lista_estoques_filial'),
+    path('filiais/<int:codigo>/whatsapp/status/', views.whatsapp_status, name='whatsapp_status'),
+    path('filiais/<int:codigo>/whatsapp/conectar/', views.whatsapp_conectar, name='whatsapp_conectar'),
+    path('filiais/<int:codigo>/whatsapp/desconectar/',views.whatsapp_desconectar,name='whatsapp_desconectar'),
 ]

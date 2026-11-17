@@ -50,46 +50,46 @@
                                 </button>
                                 <input type="file" id="input-xml" accept=".xml" hidden>
                             </div>
-                            <div class="card mt-2" style="margin: 0; margin-left: 4px;">
+                            <div class="card mt-2 tab-container" style="margin: 0; margin-left: 4px;">
                                 <div class="form-buttons" style="margin-left: 10px; margin-top: 2px;">
                                     <div class="card-header bg-white">
-                                        <button type="button" class="btn btn-dark" id="endBtn">Produtos</button>
-                                        <button type="button" class="btn btn-dark" id="complBtn">Observações</button>
+                                        <button type="button" class="btn btn-dark menu-btn" data-section="enderecos" id="endBtn">Produtos</button>
+                                        <button type="button" class="btn btn-dark menu-btn" data-section="complementos" id="complBtn">Observações</button>
                                     </div>
                                 </div>
-                                <div class="form-section" id="enderecos">
-                                    <div class="table-responsive mt-2">
-                                        <table class="table table-sm table-bordered table-striped table-hover table-rounded mb-2" id="tabela-produtos">
-                                            <thead class="table-dark">
-                                                <tr>
-                                                    <th scope="col" style="text-align: center; cursor: pointer; width: 2%;" onclick="toggleSelectAll()"><input type="checkbox" class="form-check-input" id="select-all" onclick="event.stopPropagation(); toggleSelectAll();"></th>
-                                                    <th>Código</th>
-                                                    <th>Produto</th>
-                                                    <th>Quantidade</th>
-                                                    <th>Vl. Unit.</th>
-                                                    <th>Desconto</th>
-                                                    <th>Vl. Total</th>
-                                                    <th>Tabela(s)</th>
-                                                    <th style="width: 75px;">Ações</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr class="vazio">
-                                                    <td colspan="9" class="text-center">Nenhum produto inserido.</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
+                                <div class="form-section active-section" id="enderecos">
+                                    <div class="list-group tb-ent-lista">
+                                        <!-- Cabeçalho -->
+                                        <div class="list-group-item bg-light fw-bold cabecalho-lista">
+                                            <div class="row align-items-center">
+                                                <div class="col-md-1 text-center border-end" onclick="toggleSelectAll()"><input type="checkbox" class="form-check-input" id="select-all" onclick="event.stopPropagation(); toggleSelectAll();"></div>
+                                                <div class="col-md-1 text-center border-end">Código</div>
+                                                <div class="col-md-2 text-center border-end">Produto</div>
+                                                <div class="col-md-1 border-end">Quantidade</div>
+                                                <div class="col-md-1 border-end">Estoque</div>
+                                                <div class="col-md-1 border-end">Vl. Unit.</div>
+                                                <div class="col-md-1 border-end">Desconto</div>
+                                                <div class="col-md-1 border-end">Vl. Total</div>
+                                                <div class="col-md-2 border-end">Tabela(s)</div>
+                                                <div class="col-md-1">Ações</div>
+                                            </div>
+                                        </div>
+                                        <div class="list-group-item py-1 item-lista vazio">
+                                            <div class="row align-items-center linha-lista">
+                                                <div class="col-md-12 text-center fw-semibold descricao-col">Nenhum produto inserido.</div>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="mb-2 d-grid gap-2 d-md-flex justify-content-md-end">
-                                    <button type="button" style="float: right; margin-right: 10px;" class="btn btn-sucess me-md-2 btn-sm bg-success text-white fw-bold dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Outras</button>
-                                    <ul class="dropdown-menu">
-                                        <li>
-                                            <button class="dropdown-item" type="button" id="mdAttTbPrecoEnt">
-                                                Atribuir Tabela
-                                            </button>
-                                        </li>
-                                    </ul>
+                                    <div class="mb-2 mt-2 d-grid gap-2 d-md-flex justify-content-md-end">
+                                        <button type="button" style="float: right; margin-right: 10px;" class="btn btn-sucess me-md-2 btn-sm bg-success text-white fw-bold dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Outras</button>
+                                        <ul class="dropdown-menu">
+                                            <li>
+                                                <button class="dropdown-item" type="button" id="mdAttTbPrecoEnt">
+                                                    Atribuir Tabela
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
                                 <div class="form-section" id="complementos">
                                     <div class="row mt-2" style="margin-left: -8px;">
@@ -158,14 +158,6 @@
                         <div class="col-md-3">
                             <label class="form-label">Conteúdo da Pesquisa:</label>
                             <input type="text" id="campo-pesquisa-produto" class="form-control form-control-sm" placeholder="Digite a descrição do produto">
-                        </div>
-                        <div class="col-md-1">
-                            <label class="form-label">Tipo:</label>
-                            <select class="form-select form-select-sm" id="campo-tipo-produto">
-                                <option value="">Todos</option>
-                                <option value="Principal">Principal</option>
-                                <option value="Adicional">Adicional</option>
-                            </select>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Marca:</label>
@@ -241,7 +233,7 @@
                             <label for="id_desc_prod" class="form-label requiredField">Descrição</label>
                             <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_desc_prod" autofocus name="desc_prod" disabled="disabled">
                         </div>
-                        <div class="col-md-4" id="div_id_marca">
+                        <div class="col-md-2" id="div_id_marca">
                             <label for="id_marcaProd" class="form-label requiredField">Marca</label>
                             <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_marcaProd" name="marca" disabled="disabled">
                         </div>
@@ -249,9 +241,15 @@
                             <label for="id_unidProduto" class="form-label requiredField">Unidade</label>
                             <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_unidProduto" name="unidProd" disabled="disabled">
                         </div>
-                        <div class="col-md-4" id="div_id_grupo">
+                        <div class="col-md-2" id="div_id_grupo">
                             <label for="id_grupoProd" class="form-label requiredField">Grupo</label>
                             <input type="text" class="form-control form-control-sm border-dark-subtle" id="id_grupoProd" name="grupo" disabled="disabled">
+                        </div>
+                        <div class="col-md-4" id="div_id_estoque">
+                            <label for="id_estoque" class="form-label">Estoque*</label>
+                            <select id="id_estoque" class="form-select form-select-sm" name="estoque">
+                                <option value="">Escolha uma opção</option>
+                            </select>
                         </div>
                         <div class="col-md-2" id="div_id_preco_unit">
                             <label for="id_preco_unit" class="form-label requiredField">Preço Unitário*</label>
@@ -284,19 +282,21 @@
                                 <i class="fa-solid fa-plus"></i> Incluir
                             </button>
                         </div>
-                        <div class="table-container">
-                            <table class="table table-sm table-bordered table-striped table-hover table-responsive-md table-rounded" id="tab-prec">
-                                <thead class="table-dark">
-                                    <tr>
-                                        <th>Tabela</th><th>Margem (%)</th><th>Valor</th><th style="width: 80px;">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr class="vazio">
-                                        <td colspan="7" class="text-center">Nenhuma tabela inserida.</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div class="list-group tab-prec-ent-lista">
+                            <!-- Cabeçalho -->
+                            <div class="list-group-item bg-light fw-bold cabecalho-lista">
+                                <div class="row align-items-center">
+                                    <div class="col-md-3 border-end">Tabela</div>
+                                    <div class="col-md-3 border-end">Margem (%)</div>
+                                    <div class="col-md-3 border-end">Valor</div>
+                                    <div class="col-md-3">Ações</div>
+                                </div>
+                            </div>
+                            <div class="list-group-item py-1 item-lista vazio">
+                                <div class="row align-items-center linha-lista">
+                                    <div class="col-md-12 text-center fw-semibold descricao-col">Nenhuma tabela inserida.</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

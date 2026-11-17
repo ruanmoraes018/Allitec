@@ -8,15 +8,15 @@ class Informacoes(models.Model):
     empresa = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
 
     def save(self, *args, **kwargs):
-        if self.empresa and not self.codigo:
+        self.descricao = self.descricao.strip().upper()
+        if self._state.adding and self.vinc_emp_id and not self.codigo:
             with transaction.atomic():
-                ult = (Informacoes.objects.select_for_update().filter(empresa=self.empresa).aggregate(models.Max('codigo'))['codigo__max'] or 0)
+                ult = (Informacoes.objects.select_for_update().filter(vinc_emp_id=self.vinc_emp_id).aggregate(max_codigo=models.Max('codigo'))['max_codigo'] or 0)
                 self.codigo = ult + 1
-                self.descricao = self.descricao.strip().upper()
                 super().save(*args, **kwargs)
-        else:
-            self.descricao = self.descricao.strip().upper()
-            super().save(*args, **kwargs)
+            return
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.descricao
 

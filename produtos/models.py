@@ -5,6 +5,8 @@ from unidades.models import Unidade
 from tabelas_preco.models import TabelaPreco
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from decimal import Decimal
+from django.core.validators import MinValueValidator
 
 class Produto(models.Model):
     codigo = models.PositiveIntegerField(blank=True, null=True)
@@ -25,17 +27,19 @@ class Produto(models.Model):
     diametro_eixo = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, help_text="Diâmetro do eixo em cm. Preencher apenas para produtos do tipo Eixo.")
     espessura_lam = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, help_text="Espessura da lâmina em cm. Preencher apenas para produtos do tipo Lâmina.")
     peso_m2 = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, help_text="Peso (Kg) por M². Preencher apenas para produtos do tipo Lâmina.")
+    larg_port = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, help_text="Largura (mm). Preencher apenas para produtos do tipo Portinhola.")
+    alt_port = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, help_text="Altura (mm). Preencher apenas para produtos do tipo Portinhola.")
 
     def save(self, *args, **kwargs):
-        if self.vinc_emp and not self.codigo:
+        self.desc_prod = self.desc_prod.strip().upper()
+        if self._state.adding and self.vinc_emp_id and not self.codigo:
             with transaction.atomic():
-                ult = (Produto.objects.select_for_update().filter(vinc_emp=self.vinc_emp).aggregate(models.Max('codigo'))['codigo__max'] or 0)
+                ult = (Produto.objects.select_for_update().filter(vinc_emp_id=self.vinc_emp_id).aggregate(max_codigo=models.Max('codigo'))['max_codigo'] or 0)
                 self.codigo = ult + 1
-                self.desc_prod = self.desc_prod.strip().upper()
                 super().save(*args, **kwargs)
-        else:
-            self.desc_prod = self.desc_prod.strip().upper()
-            super().save(*args, **kwargs)
+            return
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.desc_prod}"
 
@@ -88,9 +92,7 @@ class ProdutoFornecedor(models.Model):
             raise ValidationError(errors)
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['vinc_emp', 'fornecedor', 'codigo_fornecedor'], name='unique_codigo_fornecedor_por_empresa')
-        ]
+        constraints = [models.UniqueConstraint(fields=['vinc_emp', 'fornecedor', 'codigo_fornecedor'], name='unique_codigo_fornecedor_por_empresa')]
 
 class CodigoProduto(models.Model):
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
@@ -105,9 +107,51 @@ class CodigoProduto(models.Model):
             raise ValidationError({'produto': 'O produto precisa pertencer à mesma empresa do código.'})
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['vinc_emp', 'codigo'], name='unique_codigo_por_empresa')
+        constraints = [models.UniqueConstraint(fields=['vinc_emp', 'codigo'], name='unique_codigo_por_empresa')]
+
+class SaldoEstoque(models.Model):
+    estoque = models.ForeignKey('estoques.Estoque', on_delete=models.CASCADE, related_name='saldos', verbose_name='Estoque')
+    produto = models.ForeignKey('produtos.Produto', on_delete=models.CASCADE, related_name='saldos_estoque',verbose_name='Produto')
+    quantidade = models.DecimalField(max_digits=15,decimal_places=3,default=Decimal('0.000'),validators=[MinValueValidator(Decimal('0.000'))],verbose_name='Quantidade')
+    estoque_minimo = models.DecimalField(max_digits=15,decimal_places=3,default=Decimal('0.000'),validators=[MinValueValidator(Decimal('0.000'))],verbose_name='Estoque mínimo')
+    estoque_maximo = models.DecimalField(max_digits=15,decimal_places=3,default=Decimal('0.000'),validators=[MinValueValidator(Decimal('0.000'))],verbose_name='Estoque máximo')
+    data_atualizacao = models.DateTimeField(auto_now=True, verbose_name='Última atualização')
+
+    class Meta:
+        verbose_name = 'Saldo de estoque'
+        verbose_name_plural = 'Saldos de estoque'
+
+        constraints = [models.UniqueConstraint(fields=['estoque', 'produto'], name='unique_saldo_estoque_produto')]
+        indexes = [models.Index(fields=['estoque', 'produto']), models.Index(fields=['produto']),]
+
+    def __str__(self):
+        return f'{self.produto} - {self.estoque}: {self.quantidade}'
+
+class MovimentoEstoque(models.Model):
+    ENTRADA = 'ENTRADA'
+    SAIDA = 'SAIDA'
+    AJUSTE = 'AJUSTE'
+    TRANSFERENCIA = 'TRANSFERENCIA'
+    TIPO_CHOICES = [(ENTRADA, 'Entrada'),(SAIDA, 'Saída'),(AJUSTE, 'Ajuste'),(TRANSFERENCIA, 'Transferência'),]
+    estoque = models.ForeignKey('estoques.Estoque', on_delete=models.CASCADE, related_name='movimentos', verbose_name='Estoque')
+    produto = models.ForeignKey('produtos.Produto', on_delete=models.PROTECT, related_name='movimentos_estoque', verbose_name='Produto')
+    quantidade = models.DecimalField(max_digits=15, decimal_places=3, verbose_name='Quantidade')
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, verbose_name='Tipo')
+    saldo_anterior = models.DecimalField(max_digits=15, decimal_places=3, verbose_name='Saldo anterior')
+    saldo_posterior = models.DecimalField(max_digits=15, decimal_places=3, verbose_name='Saldo posterior')
+    descricao = models.CharField(max_length=255, blank=True, null=True, verbose_name='Descrição')
+    usuario = models.ForeignKey('filiais.Usuario', on_delete=models.SET_NULL, null=True, blank=True, related_name='movimentos_estoque', verbose_name='Usuário')
+    data_hora = models.DateTimeField(auto_now_add=True, verbose_name='Data/Hora')
+    class Meta:
+        verbose_name = 'Movimento de estoque'
+        verbose_name_plural = 'Movimentos de estoque'
+        ordering = ['-data_hora']
+        indexes = [
+            models.Index(fields=['estoque', 'produto', 'data_hora']),models.Index(fields=['produto', 'data_hora']),models.Index(fields=['tipo', 'data_hora']),
         ]
+
+    def __str__(self):
+        return (f'{self.produto} - {self.get_tipo_display()} - {self.quantidade}')
 
 class Alerta(models.Model):
     TIPO = (

@@ -27,134 +27,156 @@
                         </span>
                     </div>
                     <div class="card-body">
-                        <div class="row" style="margin-left: -20px; margin-right: -20px;">
-                            <div class="accordion" id="accordionPanelsStayOpenExample">
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button fw-bold" type="button" style="max-height: 30px; background-color: #A9A9A9;" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseOne" aria-expanded="true" aria-controls="panelsStayOpen-collapseOne">
-                                            <i class="fa-solid fa-database me-2"></i> Informações
-                                        </button>
-                                    </h2>
-                                    <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse show">
-                                        <div class="accordion-body">
-                                            <div class="row" style="margin-left:-20px; margin-right: -20px;">
-                                                <div class="col-md-1">
-                                                    {{ form.situacao|as_crispy_field }}
-                                                </div>
-                                                <div class="col-md-5">
-                                                    {{ form.desc_prod|as_crispy_field }}
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label mb-2">Marca*</label>
-                                                    <div class="input-group input-group-sm" id="marca-wrapper">
-                                                        <div id="marca-select-area" class="flex-grow-1">
-                                                            {{ form.marca }}
-                                                        </div>
-                                                        <div id="marca-input-area" style="flex:1; display:none;">
-                                                            <input type="text" id="nova-marca" class="form-control form-control-sm border-dark-subtle " placeholder="Digite a nova marca">
-                                                        </div>
-                                                        <button type="button" class="btn btn-dark rounded-end" id="btn-nova-marca">
-                                                            <i class="fas fa-plus"></i>
-                                                        </button>
-                                                        <button type="button" class="btn btn-success btn-sm" id="btn-confirmar-marca" style="display:none;">
-                                                            <i class="fa-solid fa-check"></i>
-                                                        </button>
-                                                        <button type="button" class="btn btn-danger btn-sm" id="btn-cancelar-marca" style="display:none;">
-                                                            <i class="fa-solid fa-xmark"></i>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label mb-2">Grupo*</label>
-                                                    <div class="input-group input-group-sm" id="grupo-wrapper">
-                                                        <div id="grupo-select-area" class="flex-grow-1">
-                                                            {{ form.grupo }}
-                                                        </div>
-                                                        <div id="grupo-input-area" style="flex:1; display:none;">
-                                                            <input type="text" id="novo-grupo" class="form-control form-control-sm border-dark-subtle " placeholder="Digite o novo grupo">
-                                                        </div>
-                                                        <button type="button" class="btn btn-dark rounded-end" id="btn-novo-grupo">
-                                                            <i class="fas fa-plus"></i>
-                                                        </button>
-                                                        <button type="button" class="btn btn-success btn-sm" id="btn-confirmar-grupo" style="display:none;">
-                                                            <i class="fa-solid fa-check"></i>
-                                                        </button>
-                                                        <button type="button" class="btn btn-danger btn-sm" id="btn-cancelar-grupo" style="display:none;">
-                                                            <i class="fa-solid fa-xmark"></i>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label mb-2">Unidade*</label>
-                                                    <div class="input-group input-group-sm" id="unidade-wrapper">
-                                                        <div id="unidade-select-area" class="flex-grow-1">
-                                                            {{ form.unidProd }}
-                                                        </div>
-                                                        <div id="unidade-input-area" style="flex:1; display:none;">
-                                                            <input type="text" id="nova-unidade" class="form-control form-control-sm border-dark-subtle " placeholder="Digite a nova unidade (abv.)">
-                                                        </div>
-                                                        <button type="button" class="btn btn-dark rounded-end" id="btn-nova-unidade">
-                                                            <i class="fas fa-plus"></i>
-                                                        </button>
-                                                        <button type="button" class="btn btn-success btn-sm" id="btn-confirmar-unidade" style="display:none;">
-                                                            <i class="fa-solid fa-check"></i>
-                                                        </button>
-                                                        <button type="button" class="btn btn-danger btn-sm" id="btn-cancelar-unidade" style="display:none;">
-                                                            <i class="fa-solid fa-xmark"></i>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                         </div>
-                                    </div>
-                                </div>
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button collapsed fw-bold" type="button" style="max-height: 30px; background-color: #A9A9A9;" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseTwo" aria-expanded="false" aria-controls="panelsStayOpen-collapseTwo">
-                                            <i class="fa-solid fa-scale-balanced me-2"></i> Custo/Venda
-                                        </button>
-                                    </h2>
-                                    <div id="panelsStayOpen-collapseTwo" class="accordion-collapse collapse">
-                                        <div class="accordion-body">
-                                            <div class="row" style="margin-left:-20px; margin-right: -20px;">
-                                                <div class="col-md-2">
-                                                    {{ form.vl_compra|as_crispy_field }}
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <label for="id_tabela" class="form-label">Tabela de Preço*</label>
-                                                    <select id="id_tabela" class="form-select form-select-sm" name="tabela">
-                                                        <option value="">Selecione uma tabela</option>
-                                                    </select>
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <label for="id_margem" class="form-label">Margem (%)</label>
-                                                    <input type="Decimal" id="id_margem" class="form-control form-control-sm border-dark-subtle" name="margem">
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <label for="id_vl_prod" class="form-label">Preço de Venda*</label>
-                                                    <input type="Decimal" id="id_vl_tab" class="form-control form-control-sm border-dark-subtle" style='color: darkgreen; font-weight: bold; background: honeydew;' name="vl_prod">
-                                                </div>
-                                                <div class="col-md-2 d-flex align-items-start">
-                                                    <button class="btn btn-dark btn-sm w-100" type="button" id="add-tab" style="margin-top: 30px;">
-                                                        <i class="fa-solid fa-plus"></i> Incluir
-                                                    </button>
-                                                </div>
-                                                <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-1" style="margin: 0; padding: 0; margin-left: 10px; width: 98%;">
-                                                    <div class="list-group">
-                                                        <!-- Cabeçalho -->
-                                                        <div class="list-group-item bg-light fw-bold cabecalho-lista">
-                                                            <div class="row align-items-center">
-                                                                <div class="col-md-1 border-end">Tabela</div>
-                                                                <div class="col-md-1 border-end">Margem (%)</div>
-                                                                <div class="col-md-1 border-end">Valor</div>
-                                                                <div class="col-md-1">Ações</div>
+                        <div class="form-modern">
+                            <div class="row" style="margin-left: -20px; margin-right: -20px;">
+                                <div class="accordion" id="accordionPanelsStayOpenExample">
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button fw-bold" type="button" style="max-height: 30px; background-color: #A9A9A9;" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseOne" aria-expanded="true" aria-controls="panelsStayOpen-collapseOne">
+                                                <i class="fa-solid fa-database me-2"></i> Informações
+                                            </button>
+                                        </h2>
+                                        <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse show">
+                                            <div class="accordion-body">
+                                                <div class="row" style="margin-left:-20px; margin-right: -20px;">
+                                                    <div class="form-section">
+                                                        <div class="form-section-title">
+                                                            <div class="form-section-icon"><i class="fa-brands fa-product-hunt"></i></div>
+                                                            <div>
+                                                                <h6>Dados do Produto</h6>
+                                                                <small>Informações principais do cadastro</small>
                                                             </div>
                                                         </div>
-                                                        <!-- Registros -->
-                                                        <div class="list-group-item py-1 item-lista">
-                                                            <div class="row align-items-center linha-lista">
-                                                                <!-- Vazio -->
-                                                                <div class="col-md-12 fw-semibold descricao-col vazio">Nenhuma tabela inserida.</div>
+                                                        <div class="row g-1">
+                                                            <div class="col-md-1">{{ form.situacao|as_crispy_field }}</div>
+                                                            <div class="col-md-5">{{ form.desc_prod|as_crispy_field }}</div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label mb-2">Marca*</label>
+                                                                <div class="input-group input-group-sm" id="marca-wrapper">
+                                                                    <div id="marca-select-area" class="flex-grow-1">{{ form.marca }}</div>
+                                                                    <div id="marca-input-area" style="flex:1; display:none;">
+                                                                        <input type="text" id="nova-marca" class="form-control form-control-sm border-dark-subtle " placeholder="Digite a nova marca">
+                                                                    </div>
+                                                                    <button type="button" class="btn btn-dark rounded-end" id="btn-nova-marca"><i class="fas fa-plus"></i></button>
+                                                                    <button type="button" class="btn btn-success btn-sm" id="btn-confirmar-marca" style="display:none;"><i class="fa-solid fa-check"></i></button>
+                                                                    <button type="button" class="btn btn-danger btn-sm" id="btn-cancelar-marca" style="display:none;"><i class="fa-solid fa-xmark"></i></button>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label mb-2">Grupo*</label>
+                                                                <div class="input-group input-group-sm" id="grupo-wrapper">
+                                                                    <div id="grupo-select-area" class="flex-grow-1">{{ form.grupo }}</div>
+                                                                    <div id="grupo-input-area" style="flex:1; display:none;">
+                                                                        <input type="text" id="novo-grupo" class="form-control form-control-sm border-dark-subtle " placeholder="Digite o novo grupo">
+                                                                    </div>
+                                                                    <button type="button" class="btn btn-dark rounded-end" id="btn-novo-grupo"><i class="fas fa-plus"></i></button>
+                                                                    <button type="button" class="btn btn-success btn-sm" id="btn-confirmar-grupo" style="display:none;"><i class="fa-solid fa-check"></i></button>
+                                                                    <button type="button" class="btn btn-danger btn-sm" id="btn-cancelar-grupo" style="display:none;"><i class="fa-solid fa-xmark"></i></button>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label mb-2">Unidade*</label>
+                                                                <div class="input-group input-group-sm" id="unidade-wrapper">
+                                                                    <div id="unidade-select-area" class="flex-grow-1">{{ form.unidProd }}</div>
+                                                                    <div id="unidade-input-area" style="flex:1; display:none;">
+                                                                        <input type="text" id="nova-unidade" class="form-control form-control-sm border-dark-subtle " placeholder="Digite a nova unidade (abv.)">
+                                                                    </div>
+                                                                    <button type="button" class="btn btn-dark rounded-end" id="btn-nova-unidade"><i class="fas fa-plus"></i></button>
+                                                                    <button type="button" class="btn btn-success btn-sm" id="btn-confirmar-unidade" style="display:none;"><i class="fa-solid fa-check"></i></button>
+                                                                    <button type="button" class="btn btn-danger btn-sm" id="btn-cancelar-unidade" style="display:none;"><i class="fa-solid fa-xmark"></i></button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                             </div>
+                                        </div>
+                                    </div>
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed fw-bold" type="button" style="max-height: 30px; background-color: #A9A9A9;" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseTwo" aria-expanded="false" aria-controls="panelsStayOpen-collapseTwo">
+                                                <i class="fa-solid fa-scale-balanced me-2"></i> Custo/Venda
+                                            </button>
+                                        </h2>
+                                        <div id="panelsStayOpen-collapseTwo" class="accordion-collapse collapse">
+                                            <div class="accordion-body">
+                                                <div class="row" style="margin-left:-20px; margin-right: -20px;">
+                                                    <div class="form-section">
+                                                        <div class="form-section-title">
+                                                            <div class="form-section-icon"><i class="fa-solid fa-tags"></i></div>
+                                                            <div>
+                                                                <h6>Preços de Venda</h6>
+                                                                <small>Valores de Compra e Venda do Produto</small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row g-1">
+                                                            <div class="col-md-2">{{ form.vl_compra|as_crispy_field }}</div>
+                                                            <div class="col-md-2">
+                                                                <label for="id_tabela" class="form-label">Tabela de Preço*</label>
+                                                                <select id="id_tabela" class="form-select form-select-sm" name="tabela">
+                                                                    <option value="">Selecione uma tabela</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label for="id_margem" class="form-label">Margem (%)</label>
+                                                                <input type="Decimal" id="id_margem" class="form-control form-control-sm border-dark-subtle" name="margem">
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label for="id_vl_prod" class="form-label">Preço de Venda*</label>
+                                                                <input type="Decimal" id="id_vl_tab" class="form-control form-control-sm border-dark-subtle" style='color: darkgreen; font-weight: bold; background: honeydew;' name="vl_prod">
+                                                            </div>
+                                                            <div class="col-md-2 d-flex align-items-start">
+                                                                <button class="btn btn-dark btn-sm w-100" type="button" id="add-tab" style="margin-top: 30px;"><i class="fa-solid fa-plus"></i> Incluir</button>
+                                                            </div>
+                                                            <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-1" style="margin: 0; padding: 0; margin-left: 10px; width: 98%;">
+                                                                <div class="list-group tb-prod-lista">
+                                                                    <!-- Cabeçalho -->
+                                                                    <div class="list-group-item bg-light fw-bold cabecalho-lista">
+                                                                        <div class="row align-items-center">
+                                                                            <div class="col-md-7 border-end">Tabela</div>
+                                                                            <div class="col-md-2 border-end">Margem (%)</div>
+                                                                            <div class="col-md-2 border-end">Valor</div>
+                                                                            <div class="col-md-1">Ações</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <!-- Registros -->
+                                                                    {% if prod_tabelas %}
+                                                                        {% for item in prod_tabelas %}
+                                                                            <div class="list-group-item py-1 item-lista" data-id="{{ forloop.counter0 }}">
+                                                                                <div class="row align-items-center linha-lista">
+                                                                                    <!-- Tabela -->
+                                                                                    <div class="col-md-7 fw-bold descricao-col tb-div" data-label="Tabela:">
+                                                                                        {{ item.tabela.descricao }}
+                                                                                        <input type="hidden" name="tab_preco[{{ forloop.counter0 }}][tabela]" value="{{ item.tabela.codigo }}">
+                                                                                    </div>
+                                                                                    <!-- Margem -->
+                                                                                    <div class="col-md-2 fw-semibold codigo-col mg-div" data-label="Margem:">
+                                                                                        {{ item.margem|floatformat:2 }}
+                                                                                        <input type="hidden" name="tab_preco[{{ forloop.counter0 }}][margem]" value="{{ item.margem|floatformat:2 }}">
+                                                                                    </div>
+                                                                                    <!-- Valor -->
+                                                                                    <div class="col-md-2 fw-semibold codigo-col vl-div" data-label="Valor:">
+                                                                                        {{ item.vl_prod|floatformat:2 }}
+                                                                                        <input type="hidden" name="tab_preco[{{ forloop.counter0 }}][vl_prod]" value="{{ item.vl_prod|floatformat:2 }}">
+                                                                                    </div>
+                                                                                    <!-- Ações -->
+                                                                                    <div class="col-md-1 text-center mb-1 mb-md-0 acoes-col">
+                                                                                        <div class="btn-group btn-group-sm">
+                                                                                            <button type="button" class="editando btn btn-light btn-sm border"><i class="fas fa-edit text-success"></i></button>
+                                                                                            <button type="button" class="remover btn btn-light btn-sm border"><i class="fas fa-trash text-danger"></i></button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        {% empty %}
+                                                                            <div class="list-group-item py-1 item-lista">
+                                                                                <div class="row align-items-center linha-lista">
+                                                                                    <div class="col-md-12 text-center fw-semibold descricao-col vazio">Nenhuma tabela inserida.</div>
+                                                                                </div>
+                                                                            </div>
+                                                                        {% endfor %}
+                                                                    {% endif %}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -162,86 +184,225 @@
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button collapsed fw-bold" type="button" style="max-height: 30px; background-color: #A9A9A9;" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseThree" aria-expanded="false" aria-controls="panelsStayOpen-collapseThree">
-                                            <i class="fa-solid fa-boxes-packing me-2"></i> Estoque e Outros
-                                        </button>
-                                    </h2>
-                                    <div id="panelsStayOpen-collapseThree" class="accordion-collapse collapse">
-                                        <div class="accordion-body">
-                                            <div class="row" style="margin-left:-20px; margin-right: -20px;">
-                                                <div class="col-md-1">
-                                                    {{ form.estoque_prod|as_crispy_field }}
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label">Estoque Mínimo <i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado para Alertas quando atinge a quantidade definida."></i></label>
-                                                    {{ form.estoque_minimo|as_crispy_field }}
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label">Estoque Máximo <i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado para Alertas quando ultrapassa a quantidade definida."></i></label>
-                                                    {{ form.estoque_maximo|as_crispy_field }}
-                                                </div>
-                                                <div class="col-md-1">
-                                                    <label class="form-label">Tipo<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Orçamentos - Portas"></i></label>
-                                                    {{ form.tp_prod|as_crispy_field }}
-                                                </div>
-                                                <div class="col-md-2 form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="id_lista_orc" name="lista_orc" {% if p.lista_orc %}checked{% endif %}>
-                                                    <label class="form-check-label" for="id_lista_orc">
-                                                        Exibir em Orç. - Portas
-                                                    </label>
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label">Produto Específico<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Orçamentos - Portas"></i></label>
-                                                    {{ form.especifico|as_crispy_field }}
-                                                </div>
-                                                <div class="col-md-2">
-                                                    {{ form.diametro_eixo|as_crispy_field }}
-                                                    {{ form.espessura_lam|as_crispy_field }}
-                                                    {{ form.peso_m2|as_crispy_field }}
-                                                </div>
-                                            </div>
-                                            <div class="row" style="margin-left:-10px; margin-right: -10px;">
-                                                <div class="card" style="margin: 0; margin-top: 15px; width: 30rem;">
-                                                    <div class="card-header fw-bold bg-light text-secondary">
-                                                        Código Secundário
-                                                    </div>
-                                                    <div class="card-body">
-                                                        <div class="row mb-1" style="margin-left: -30px; margin-right: -30px;">
-                                                            <div class="col-md-9">
-                                                                <label for="cod-sec" class="form-label">Código:</label>
-                                                                <input type="text" id="cod-sec" class="form-control form-control-sm border-dark-subtle" name="cod-sec">
-                                                            </div>
-                                                            <div class="col-md-3 d-flex align-items-start">
-                                                                <button class="btn btn-success btn-sm w-100" type="button" id="add-cod-sec-tab" style="margin-top: 30px;">
-                                                                    <i class="fa-solid fa-plus" aria-hidden="true"></i> Incluir
-                                                                </button>
+                                    <!--Para Estoque e Código secundário-->
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed fw-bold" type="button" style="max-height: 30px; background-color: #A9A9A9;" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseThree" aria-expanded="false" aria-controls="panelsStayOpen-collapseThree">
+                                                <i class="fa-solid fa-boxes-packing me-2"></i> Estoque / Código Secundário
+                                            </button>
+                                        </h2>
+                                        <div id="panelsStayOpen-collapseThree" class="accordion-collapse collapse">
+                                            <div class="accordion-body">
+                                                <div class="row g-0">
+                                                    <div class="form-section">
+                                                        <div class="form-section-title">
+                                                            <div class="form-section-icon"><i class="fa-solid fa-boxes-packing me-2"></i></div>
+                                                            <div>
+                                                                <h6>Saldos de Estoque e Códigos de Barras</h6>
+                                                                <small>Informações de quantidade de estoque e códigos adicionais do produto</small>
                                                             </div>
                                                         </div>
-                                                        <div style="max-height: 100px; overflow-y: auto; margin-left: -18px; margin-right: -18px;">
-                                                            <table class="table table-sm table-bordered rounded-top" id="tb-cod-sec">
-                                                                <thead class="table-secondary">
-                                                                    <tr>
-                                                                        <th scope="col">Código</th>
-                                                                        <th scope="col" style="width: 30px;">Exc.</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    {% for c in codigos %}
-                                                                        <tr data-id="{{ forloop.counter0 }}">
-                                                                            <td>
-                                                                                {{ c.codigo }}
-                                                                                <input type="hidden" name="codigo[{{ forloop.counter0 }}][codigo]" value="{{ c.codigo }}">
-                                                                            </td>
-                                                                            <td>
-                                                                                <button type="button" class="remover btn btn-danger btn-sm mt-1 mb-1"><i class="fa-solid fa-trash"></i></button>
-                                                                            </td>
-                                                                        </tr>
-                                                                    {% endfor %}
-                                                                </tbody>
-                                                            </table>
+                                                        <div class="row g-1">
+                                                            <!-- CARD DE ESTOQUE -->
+                                                            <div class="col-lg-7">
+                                                                <div class="card shadow-sm border-0 h-100">
+                                                                    <div class="card-header bg-light border-bottom fw-bold text-secondary d-flex align-items-center">
+                                                                        <i class="fa-solid fa-boxes-stacked me-2"></i> Estoque por Filial
+                                                                    </div>
+                                                                    <div class="card-body">
+                                                                        <div class="row g-2 align-items-end">
+                                                                            <!-- FILIAL -->
+                                                                            <div class="col-md-4">
+                                                                                <label for="estoque-filial" class="form-label">Filial</label>
+                                                                                <select id="estoque-filial"class="form-select form-select-sm border-dark-subtle">
+                                                                                    <option value="">Escolha uma opção</option>
+                                                                                    {% for filial in filiais %}
+                                                                                        <option value="{{ filial.codigo }}">{{ filial.fantasia }}</option>
+                                                                                    {% endfor %}
+                                                                                </select>
+                                                                            </div>
+                                                                            <!-- ESTOQUE -->
+                                                                            <div class="col-md-4">
+                                                                                <label for="estoque-estoque" class="form-label">Estoque</label>
+                                                                                <select id="estoque-estoque" class="form-select form-select-sm border-dark-subtle" disabled>
+                                                                                    <option value="">Escolha uma opção</option>
+                                                                                </select>
+                                                                            </div>
+                                                                            <!-- QUANTIDADE -->
+                                                                            <div class="col-md-4">
+                                                                                <label for="estoque-quantidade" class="form-label">Quantidade</label>
+                                                                                <input type="text" id="estoque-quantidade" class="form-control form-control-sm border-dark-subtle" placeholder="0,000" autocomplete="off">
+                                                                            </div>
+                                                                            <!-- MÍNIMO -->
+                                                                            <div class="col-md-4">
+                                                                                <label for="estoque-minimo" class="form-label">
+                                                                                    Estoque Mínimo
+                                                                                    <i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado para alertas quando atinge a quantidade definida."></i>
+                                                                                </label>
+                                                                                <input type="text" id="estoque-minimo" class="form-control form-control-sm border-dark-subtle" placeholder="0,000" autocomplete="off">
+                                                                            </div>
+                                                                            <!-- MÁXIMO -->
+                                                                            <div class="col-md-4">
+                                                                                <label for="estoque-maximo" class="form-label">
+                                                                                    Estoque Máximo
+                                                                                    <i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado para alertas quando ultrapassa a quantidade definida."></i>
+                                                                                </label>
+                                                                                <input type="text" id="estoque-maximo" class="form-control form-control-sm border-dark-subtle" placeholder="0,000" autocomplete="off">
+                                                                            </div>
+                                                                            <!-- BOTÃO -->
+                                                                            <div class="col-md-4">
+                                                                                <button type="button" class="btn btn-success btn-sm w-100" id="add-estoque">
+                                                                                    <i class="fa-solid fa-plus me-1"></i>
+                                                                                    Incluir Estoque
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                        <!-- TABELA DE ESTOQUES -->
+                                                                        <div class="mt-3" style="max-height: 180px; overflow-y: auto;">
+                                                                            <table class="table table-sm table-bordered align-middle mb-0" id="tb-estoque">
+                                                                                <thead class="table-secondary sticky-top">
+                                                                                    <tr>
+                                                                                        <th>Filial</th>
+                                                                                        <th>Estoque</th>
+                                                                                        <th class="text-end">Qtd.</th>
+                                                                                        <th class="text-end">Mín.</th>
+                                                                                        <th class="text-end">Máx.</th>
+                                                                                        <th style="width: 75px;" class="text-center">
+                                                                                            Ações
+                                                                                        </th>
+                                                                                    </tr>
+                                                                                </thead>
+                                                                                <tbody>
+                                                                                    {% for saldo in saldos_estoque %}
+                                                                                        <tr data-id="{{ forloop.counter0 }}">
+                                                                                            <td>
+                                                                                                {{ saldo.estoque.filial.fantasia }}
+                                                                                                <input type="hidden" name="estoque[{{ forloop.counter0 }}][filial]" value="{{ saldo.estoque.filial.codigo }}">
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                {{ saldo.estoque.descricao }}
+                                                                                                <input type="hidden" name="estoque[{{ forloop.counter0 }}][estoque]" value="{{ saldo.estoque.codigo }}">
+                                                                                            </td>
+                                                                                            <td class="text-end">
+                                                                                                {{ saldo.quantidade|floatformat:3 }}
+                                                                                                <input type="hidden" name="estoque[{{ forloop.counter0 }}][quantidade]" value="{{ saldo.quantidade }}">
+                                                                                            </td>
+                                                                                            <td class="text-end">
+                                                                                                {{ saldo.estoque_minimo|floatformat:3 }}
+                                                                                                <input type="hidden" name="estoque[{{ forloop.counter0 }}][estoque_minimo]" value="{{ saldo.estoque_minimo }}">
+                                                                                            </td>
+                                                                                            <td class="text-end">
+                                                                                                {{ saldo.estoque_maximo|floatformat:3 }}
+                                                                                                <input type="hidden" name="estoque[{{ forloop.counter0 }}][estoque_maximo]" value="{{ saldo.estoque_maximo }}">
+                                                                                            </td>
+                                                                                            <td class="text-center text-nowrap">
+                                                                                                <button type="button" class="editar-estoque btn btn-success btn-sm" title="Editar">
+                                                                                                    <i class="fa-solid fa-pen"></i>
+                                                                                                </button>
+                                                                                                <button type="button" class="remover-estoque btn btn-danger btn-sm" title="Excluir">
+                                                                                                    <i class="fa-solid fa-trash"></i>
+                                                                                                </button>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    {% endfor %}
+                                                                                </tbody>
+                                                                            </table>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <!-- CARD CÓDIGO SECUNDÁRIO -->
+                                                            <div class="col-lg-5">
+                                                                <div class="card shadow-sm border-0 h-100">
+                                                                    <div class="card-header bg-light border-bottom fw-bold text-secondary d-flex align-items-center">
+                                                                        <i class="fa-solid fa-barcode me-2"></i> Código Secundário
+                                                                    </div>
+                                                                    <div class="card-body">
+                                                                        <div class="row g-2 align-items-end">
+                                                                            <div class="col-md-8">
+                                                                                <label for="cod-sec" class="form-label">Código</label>
+                                                                                <input type="text" id="cod-sec" class="form-control form-control-sm border-dark-subtle" name="cod-sec" autocomplete="off">
+                                                                            </div>
+                                                                            <div class="col-md-4">
+                                                                                <button class="btn btn-success btn-sm w-100" type="button" id="add-cod-sec-tab"><i class="fa-solid fa-plus me-1"></i> Incluir</button>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="mt-3" style="max-height: 180px; overflow-y: auto;">
+                                                                            <table class="table table-sm table-bordered align-middle mb-0" id="tb-cod-sec">
+                                                                                <thead class="table-secondary sticky-top">
+                                                                                    <tr>
+                                                                                        <th scope="col">Código</th>
+                                                                                        <th scope="col" style="width: 45px;" class="text-center">Exc.</th>
+                                                                                    </tr>
+                                                                                </thead>
+                                                                                <tbody>
+                                                                                    {% for c in codigos %}
+                                                                                        <tr data-id="{{ forloop.counter0 }}">
+                                                                                            <td>
+                                                                                                {{ c.codigo }}
+                                                                                                <input type="hidden" name="codigo[{{ forloop.counter0 }}][codigo]" value="{{ c.codigo }}">
+                                                                                            </td>
+                                                                                            <td class="text-center">
+                                                                                                <button type="button" class="remover-l-c btn btn-danger btn-sm">
+                                                                                                    <i class="fa-solid fa-trash"></i>
+                                                                                                </button>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    {% endfor %}
+                                                                                </tbody>
+                                                                            </table>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!--Para Orçamento - Porta-->
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed fw-bold" type="button" style="max-height: 30px; background-color: #A9A9A9;" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseFour" aria-expanded="false" aria-controls="panelsStayOpen-collapseFour">
+                                                <i class="fa-solid fa-align-justify me-2"></i> Orçamento - Porta
+                                            </button>
+                                        </h2>
+                                        <div id="panelsStayOpen-collapseFour" class="accordion-collapse collapse">
+                                            <div class="accordion-body">
+                                                <div class="row" style="margin-left:-20px; margin-right: -20px;">
+                                                    <div class="form-section">
+                                                        <div class="form-section-title">
+                                                            <div class="form-section-icon"><i class="fa-solid fa-align-justify me-2"></i></div>
+                                                            <div>
+                                                                <h6>Dados de Portas de Enrolar</h6>
+                                                                <small>Informações para orçamentos - portas</small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row g-1">
+                                                            <div class="col-md-1">
+                                                                <label class="form-label">Tipo<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Orçamentos - Portas"></i></label>
+                                                                {{ form.tp_prod|as_crispy_field }}
+                                                            </div>
+                                                            <div class="col-md-2 form-check form-switch">
+                                                                <input class="form-check-input" type="checkbox" id="id_lista_orc" name="lista_orc" {% if p.lista_orc %}checked{% endif %}>
+                                                                <label class="form-check-label" for="id_lista_orc">
+                                                                    Exibir em Orç. - Portas
+                                                                </label>
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Produto Específico<i class="fa-solid fa-circle-exclamation ms-1" data-bs-toggle="tooltip" title="Utilizado em Orçamentos - Portas"></i></label>
+                                                                {{ form.especifico|as_crispy_field }}
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                {{ form.diametro_eixo|as_crispy_field }}
+                                                                {{ form.espessura_lam|as_crispy_field }}
+                                                                {{ form.peso_m2|as_crispy_field }}
+                                                                {{ form.larg_port|as_crispy_field }}
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                {{ form.alt_port|as_crispy_field }}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>

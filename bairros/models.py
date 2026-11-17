@@ -6,15 +6,14 @@ class Bairro(models.Model):
     nome_bairro = models.CharField(max_length=100)
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE)
     def save(self, *args, **kwargs):
-        if self.vinc_emp and not self.codigo:
+        self.nome_bairro = self.nome_bairro.strip().upper()
+        if self._state.adding and self.vinc_emp_id and not self.codigo:
             with transaction.atomic():
-                ult = (Bairro.objects.select_for_update().filter(vinc_emp=self.vinc_emp).aggregate(models.Max('codigo'))['codigo__max'] or 0)
+                ult = (Bairro.objects.select_for_update().filter(vinc_emp_id=self.vinc_emp_id).aggregate(max_codigo=models.Max('codigo'))['max_codigo'] or 0)
                 self.codigo = ult + 1
-                self.nome_bairro = self.nome_bairro.strip().upper()
                 super().save(*args, **kwargs)
-        else:
-            self.nome_bairro = self.nome_bairro.strip().upper()
-            super().save(*args, **kwargs)
+            return
+        super().save(*args, **kwargs)
     def __str__(self):
         return self.nome_bairro
     class Meta:

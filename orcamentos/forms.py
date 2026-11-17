@@ -22,7 +22,8 @@ class OrcamentoForm(forms.ModelForm):
     solicitante = forms.ChoiceField(label='Técnico/Solicitante', widget=forms.Select(attrs={'class': f'{s}'}))
     fornecedor = forms.ChoiceField(label='Fornecedor', widget=forms.Select(attrs={'class': f'{s}'}))
     pintura = forms.ChoiceField(choices=[('Sim', 'Sim'),('Não', 'Não')], widget=forms.Select(attrs={'class': f'{s}'}))
-    portao_social = forms.ChoiceField(label="Portão Social", choices=[('Não', 'Não'),('Sim', 'Sim')], widget=forms.Select(attrs={'class': f'{s}'}))
+    portao_social = forms.ChoiceField(label="Portão Soc.", choices=[('Não', 'Não'),('Sim', 'Sim')], widget=forms.Select(attrs={'class': f'{s}'}))
+    tp_ps = forms.ChoiceField(label="Tp. P. Social", choices=[('Chapa', 'Chapa'),('Metalon', 'Metalon')], widget=forms.Select(attrs={'class': s}))
     tp_pintura = forms.ChoiceField(label="Tipo Pintura", choices=[('Eletrostática', 'Eletrostática'),('Automotiva', 'Automotiva')], widget=forms.Select(attrs={'class': f'{s}', 'style': 'font-size: 0.875rem;'}))
     cor = forms.ChoiceField(
         choices = [
@@ -88,6 +89,7 @@ class OrcamentoForm(forms.ModelForm):
                     self.initial['cli'] = str(self.user.filial_user.cli.codigo)
                     self.initial['solicitante'] = str(self.user.filial_user.tec.codigo)
                     self.initial['tabela_preco'] = str(self.user.filial_user.tb_preco.codigo)
+                    self.initial['fornecedor'] = str(self.user.filial_user.orcamento_porta.forn_p.codigo)
             # --- FORMAS DE PAGAMENTO ---
             qs_formas = FormaPgto.objects.filter(vinc_emp=self.empresa, situacao='Ativo')
             tabela = getattr(self.instance, 'tabela_preco', None)

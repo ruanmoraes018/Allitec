@@ -4,32 +4,48 @@ from bairros.models import Bairro
 from cidades.models import Cidade
 from estados.models import Estado
 from filiais.models import Filial
+from datetime import datetime
+from util.parse_decimal import parse_decimal
+
+c = "form-control form-control-sm border-dark-subtle"
+s = "form-select form-select-sm border-dark-subtle"
 
 class ClienteForm(forms.ModelForm):
-    vinc_fil = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Filial')
-    situacao = forms.ChoiceField(label="Situação", choices=[('Ativo', 'Ativo'), ('Inativo', 'Inativo')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
-    somente_avista = forms.ChoiceField(label="Vender somente à vista", choices=[(True, 'Sim'), (False, 'Não')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
-    pessoa = forms.ChoiceField(label="Pessoa", choices=[('Física', 'Física'), ('Jurídica', 'Jurídica')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
-    cpf_cnpj = forms.CharField(label='CPF', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
-    ie = forms.CharField(label='Inscrição Estadual/RG', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
-    razao_social = forms.CharField(label='Razão Social', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
-    fantasia = forms.CharField(label='Fantasia', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
-    endereco = forms.CharField(label='Endereço', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
-    cep = forms.CharField(label='CEP', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
-    complem = forms.CharField(label='Complemento', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}))
-    bairro = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Bairro')
-    cidade = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Cidade')
-    uf = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control form-control-sm border-dark-subtle text-uppercase'}), label='Estado')
-    numero = forms.CharField(label='Nº', widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle'}))
-    tel = forms.CharField(label="Fone", max_length=20, widget=forms.TextInput(attrs={'maxlength': '20', 'class': 'form-control form-control-sm border-dark-subtle'}))
-    email = forms.CharField(label='E-mail', required=False, widget=forms.TextInput(attrs={'class': 'form-control form-control-sm border-dark-subtle text-lowercase'}))
-
-    avulso = forms.ChoiceField(label="Cliente Avulso", choices=[('Sim', 'Sim'), ('Não', 'Não')], widget=forms.Select(attrs={'class': 'form-select form-select-sm border-dark-subtle'}))
+    vinc_fil = forms.ChoiceField(widget=forms.Select(attrs={'class': s}), label='Filial')
+    situacao = forms.ChoiceField(label="Situação", choices=[('Ativo', 'Ativo'), ('Inativo', 'Inativo')], widget=forms.Select(attrs={'class': s}))
+    somente_avista = forms.ChoiceField(label="Vender somente à vista", choices=[(True, 'Sim'), (False, 'Não')], widget=forms.Select(attrs={'class': s}))
+    pessoa = forms.ChoiceField(label="Pessoa", choices=[('Física', 'Física'), ('Jurídica', 'Jurídica')], widget=forms.Select(attrs={'class': s}))
+    cpf_cnpj = forms.CharField(label='CPF', widget=forms.TextInput(attrs={'class': c}))
+    ie = forms.CharField(label='RG', required=False, widget=forms.TextInput(attrs={'class': c}))
+    ie_st = forms.CharField(label='IE ST', required=False, widget=forms.TextInput(attrs={'class': c}))
+    im = forms.CharField(label='Insc. Municipal', required=False, widget=forms.TextInput(attrs={'class': c}))
+    suframa = forms.CharField(label='SUFRAMA', required=False, widget=forms.TextInput(attrs={'class': c}))
+    cnae = forms.CharField(label='CNAE', required=False, widget=forms.TextInput(attrs={'class': c}))
+    ind_ie = forms.ChoiceField(label="Indicador IE", choices=[('1', 'Contribuinte'), ('2', 'Isento'), ('9', 'Não contribuinte')], widget=forms.Select(attrs={'class': s}))
+    regime_tributario = forms.ChoiceField(label="Regime Tributário", choices=[('1', 'Simples Nacional'), ('2', 'Simples Nacional – Excesso de Sublimite'), ('3', 'Regime Normal')], widget=forms.Select(attrs={'class': s}))
+    razao_social = forms.CharField(label='Razão Social', widget=forms.TextInput(attrs={'class': f'{c} text-uppercase'}))
+    fantasia = forms.CharField(label='Fantasia', widget=forms.TextInput(attrs={'class': f'{c} text-uppercase'}))
+    endereco = forms.CharField(label='Endereço', widget=forms.TextInput(attrs={'class': f'{c} text-uppercase'}))
+    cep = forms.CharField(label='CEP', widget=forms.TextInput(attrs={'class': c}))
+    complem = forms.CharField(label='Complemento', required=False, widget=forms.TextInput(attrs={'class': f'{c} text-uppercase'}))
+    bairro = forms.ChoiceField(widget=forms.Select(attrs={'class': f'{c} text-uppercase'}), label='Bairro')
+    cidade = forms.ChoiceField(widget=forms.Select(attrs={'class': f'{c} text-uppercase'}), label='Cidade')
+    uf = forms.ChoiceField(widget=forms.Select(attrs={'class': f'{c} text-uppercase'}), label='Estado')
+    numero = forms.CharField(label='Nº', widget=forms.TextInput(attrs={'class': c}))
+    tel = forms.CharField(label="Fone", max_length=20, widget=forms.TextInput(attrs={'maxlength': '20', 'class': c}))
+    tel2 = forms.CharField(label="2º Fone", max_length=20, required=False, widget=forms.TextInput(attrs={'maxlength': '20', 'class': c}))
+    limite_credito = forms.CharField(label='Limite Crédito', required=False, widget=forms.TextInput(attrs={'class': c}))
+    bloqueado = forms.ChoiceField(label="Bloqueado para Vendas", choices=[(False, 'Não'), (True, 'Sim')], widget=forms.Select(attrs={'class': s}))
+    motivo_bloqueio = forms.CharField(label='Motivo Bloqueio', required=False, widget=forms.TextInput(attrs={'class': c}))
+    email = forms.CharField(label='E-mail', required=False, widget=forms.TextInput(attrs={'class': f'{c} text-lowercase'}))
+    avulso = forms.ChoiceField(label="Cliente Avulso", choices=[(False, 'Não'), (True, 'Sim')], widget=forms.Select(attrs={'class': s}))
+    desconto_padrao = forms.CharField(label='Desconto Padrão (%)', required=False, widget=forms.TextInput(attrs={'class': c}))
+    dt_nascimento = forms.CharField(label='Dt. Nascimento', required=False, widget=forms.TextInput(attrs={'class': c}))
+    dt_fundacao = forms.CharField(label='Dt. Fundação', required=False, widget=forms.TextInput(attrs={'class': c}))
+    observacoes = forms.CharField(label='Observações', required=False, widget=forms.Textarea(attrs={'class': f'{c} text-uppercase', 'rows': 2}))
     class Meta:
         model = Cliente
-        fields = (
-            'somente_avista', 'situacao', 'pessoa', 'cpf_cnpj', 'ie', 'razao_social', 'fantasia', 'cep', 'endereco', 'numero', 'bairro', 'complem', 'cidade', 'uf', 'tel', 'email', 'vinc_fil', 'avulso'
-        )
+        exclude = ('codigo', 'vinc_emp', 'dt_reg', 'dt_ult_compra')
     def __init__(self, *args, **kwargs):
         # Captura e remove a empresa dos kwargs de forma segura
         self.empresa = kwargs.pop('empresa', None)
@@ -52,6 +68,8 @@ class ClienteForm(forms.ModelForm):
                 if self.instance.cidade: self.initial['cidade'] = str(self.instance.cidade.codigo)
                 if self.instance.uf: self.initial['uf'] = str(self.instance.uf.codigo)
                 if self.instance.vinc_fil: self.initial['vinc_fil'] = str(self.instance.vinc_fil.codigo)
+                if self.instance.dt_nascimento: self.initial['dt_nascimento'] = self.instance.dt_nascimento.strftime('%d/%m/%Y')
+                if self.instance.dt_fundacao: self.initial['dt_fundacao'] = self.instance.dt_fundacao.strftime('%d/%m/%Y')
             else:
                 # ✅ Se for CRIAÇÃO (Novo Registro): Pré-seleciona a filial do usuário logado
                 if self.user and self.user.filial_user:
@@ -61,9 +79,22 @@ class ClienteForm(forms.ModelForm):
             self.fields['cidade'].choices = [('', 'Escolha uma Cidade')]
             self.fields['uf'].choices = [('', 'Escolha um Estado')]
             self.fields['vinc_fil'].choices = [('', 'Escolha uma Filial')]
+        if getattr(self.instance, 'pk', None):
+            if getattr(self.instance, 'dt_nascimento', None): self.initial['dt_nascimento'] = self.instance.dt_nascimento.strftime('%d/%m/%Y')
+            if getattr(self.instance, 'dt_fundacao', None): self.initial['dt_fundacao'] = self.instance.dt_fundacao.strftime('%d/%m/%Y')
 
     def clean(self):
         cleaned_data = super().clean()
+        # Converte datas do formato DD/MM/YYYY para date
+        for campo in ['dt_nascimento', 'dt_fundacao']:
+            valor = cleaned_data.get(campo)
+            if valor:
+                try: cleaned_data[campo] = datetime.strptime(valor, '%d/%m/%Y').date()
+                except ValueError: self.add_error(campo,'Data inválida. Use o formato DD/MM/AAAA.')
+        c_d = ['desconto_padrao', 'limite_credito']
+        for c in c_d:
+            try: cleaned_data[c] = parse_decimal(cleaned_data.get(c))
+            except: self.add_error(c, 'Valor inválido.')
         # Mapeamento genérico: 'nome_no_form': (ClasseDoModel, 'Nome Amigável para o Erro')
         campos_select2 = {'bairro': (Bairro, 'Bairro'), 'cidade': (Cidade, 'Cidade'), 'uf': (Estado, 'UF'), 'vinc_fil': (Filial, 'Filial'),}
         for nome_campo, (model_classe, nome_exibicao) in campos_select2.items():

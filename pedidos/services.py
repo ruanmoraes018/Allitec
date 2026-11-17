@@ -1,6 +1,7 @@
 from datetime import datetime
 from formas_pgto.models import FormaPgto
 from util.logs import gerar_alteracoes, registrar_log
+from produtos.services import retirar_estoque
 
 def finalizar_pedido(pedido, formas=None, parcelas=None, parcial=False, request=None):
     from decimal import Decimal
@@ -10,22 +11,16 @@ def finalizar_pedido(pedido, formas=None, parcelas=None, parcial=False, request=
     user = getattr(request, "user", None)
     # 🔥 verifica permissão de vender sem estoque
     pode_vender_sem_estoque = (user and user.has_perm("pedidos.vender_sem_estoque_ped"))
-    # 🔥 BAIXA DE ESTOQUE
+    # BAIXA DE ESTOQUE
     if not getattr(pedido, "estoque_baixado", False):
+        estoque = pedido.vinc_fil.estoque.estoque_padrao
         for item in pedido.itens.select_related('produto'):
-            produto = item.produto
-            atual = produto.estoque_prod or Decimal('0')
-            # 🔥 regra principal
-            if not pode_vender_sem_estoque:
-                nova_qtd = atual - item.quantidade
-                # bloqueia venda sem estoque
-                if nova_qtd < 0:
-                    return {"ok": False, "erro": f"Estoque insuficiente para {produto}. Disponível: {produto.estoque_prod}!"}
-                produto.estoque_prod = nova_qtd
-            else:
-                # 🔥 vende mesmo sem estoque (ou mantém negativo, depende da sua regra)
-                produto.estoque_prod = atual - item.quantidade
-            produto.save(update_fields=["estoque_prod"])
+            try:
+                retirar_estoque(estoque=estoque,produto=item.produto,quantidade=item.quantidade,usuario=user,descricao=f'Baixa referente ao pedido {pedido.codigo}',
+                    permitir_negativo=pode_vender_sem_estoque,
+                )
+            except ValueError as e:
+                return {"ok": False,"erro": f'{item.produto}: {e}'}
         pedido.estoque_baixado = True
     # 🔥 FORMAS DE PAGAMENTO
     if formas:
@@ -48,7 +43,7 @@ def finalizar_pedido(pedido, formas=None, parcelas=None, parcial=False, request=
                 except ValueError: data_vencimento = None  # ou escolha outra estratégia
             numero_preview = str(p.get("numero"))
             sufixo = numero_preview.split("/", 1)[1]
-            ContaReceber.objects.create(data_emissao=p.get("data_emissao"), vinc_emp=pedido.vinc_emp, vinc_fil=pedido.vinc_fil, cliente=pedido.cli, pedido=pedido,
+            ContaReceber.objects.create(data_emissao=p.get("data_emissao"),vinc_emp=pedido.vinc_emp,vinc_fil=pedido.vinc_fil,cliente=pedido.cli,pedido=pedido,
                 forma_pgto_id=p.get("forma"), num_conta=f"P-{pedido.codigo}/{len(parcelas):02d}-{sufixo}", valor=Decimal(str(p.get("valor"))), data_vencimento=data_vencimento,
                 situacao="Aberta",
             )
@@ -59,6 +54,6 @@ def finalizar_pedido(pedido, formas=None, parcelas=None, parcial=False, request=
     pedido.save()
     registrar_log(request=request, tipo="FATURAR", modulo="Pedido", objeto=pedido.codigo, objeto_id=pedido.id, descricao=f"Faturou o pedido nº {pedido.codigo}",
         alteracoes={
-            "Valor Total": pedido.total, "Cliente": str(pedido.cli), "Vendedor": str(pedido.vendedor),"Forma de Pagamento": ", ".join(str(fp.formas_pgto) for fp in pedido.formas_pgto.all())
+            "Valor Total":str(pedido.total),"Cliente":str(pedido.cli),"Vendedor":str(pedido.vendedor),"Forma de Pagamento":", ".join(str(fp.forma_pgto) for fp in pedido.formas_pgto.all())
         }
     )

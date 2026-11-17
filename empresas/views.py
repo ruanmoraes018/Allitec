@@ -10,6 +10,8 @@ from util.permissoes import verifica_permissao
 from django.http import JsonResponse
 from django.db.models import Q
 from empresas.services import EmpresaService
+from django.db import DatabaseError, IntegrityError, transaction
+from django.core.exceptions import ObjectDoesNotExist
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -67,55 +69,95 @@ def lista_empresas_ajax(request):
 
 @login_required
 def add_empresa(request):
+    error_messages = []
     if not request.user.has_perm('empresas.add_empresa'):
         messages.info(request, 'Você não tem permissão para adicionar empresas.')
         return redirect('/empresas/lista/')
-    if request.method == 'POST':
-        form = EmpresaForm(request.POST, request.FILES)
-        if form.is_valid():
-            try:
-                EmpresaService.criar_empresa_com_estrutura(form=form, request_files=request.FILES)
-                messages.success(request, 'Empresa cadastrada com sucesso.')
-                return redirect('/empresas/lista/')
-            except Exception as e: messages.error(request, f'Erro ao cadastrar empresa: {str(e)}')
-        error_messages = [
-            f"<i class='fa-solid fa-xmark'></i> Campo ({f.label}) é obrigatório!"
-            for f in form if f.errors
-        ]
+    if request.method != 'POST':
+        form = EmpresaForm()
         return render(request, 'empresas/add.html', {'form': form, 'error_messages': error_messages})
-    return render(request, 'empresas/add.html', {'form': EmpresaForm()})
+    form = EmpresaForm(request.POST, request.FILES)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'empresas/add.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
+            EmpresaService.criar_empresa_com_estrutura(form=form, request_files=request.FILES)
+            messages.success(request, 'Empresa cadastrada com sucesso.')
+            return redirect('/empresas/lista/')
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'empresas/add.html', {'form': form, 'error_messages': error_messages})
 
 @login_required
 def att_empresa(request, id):
+    error_messages = []
     empresa = get_object_or_404(Empresa, id=id)
-    form = EmpresaForm(instance=empresa)
     if not request.user.has_perm('empresas.change_empresa'):
         messages.info(request, 'Você não tem permissão para editar empresas.')
         return redirect('/empresas/lista/')
-    if request.method == 'POST':
-        form = EmpresaForm(request.POST, request.FILES, instance=empresa)
-        if form.is_valid():
-            form.save()
+    if request.method != 'POST':
+        form = EmpresaForm(instance=empresa)
+        return render(request, 'empresas/att.html', {'form': form, 'empresa': empresa, 'error_messages': error_messages})
+    form = EmpresaForm(request.POST, request.FILES, instance=empresa)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'empresas/att.html', {'form': form, 'empresa': empresa, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
+            empresa = form.save()
             next_url = request.POST.get('next') or request.GET.get('next')
             messages.success(request, 'Empresa atualizada com sucesso.')
             if next_url: return redirect(next_url)
             else: return redirect('/empresas/lista/')
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'empresas/att.html', {'form': form, 'empresa': empresa, 'error_messages': error_messages})
-    else: form = EmpresaForm(instance=empresa)
-    return render(request, 'empresas/att.html', {'form': form, 'empresa': empresa})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'empresas/att.html', {'form': form, 'empresa': empresa, 'error_messages': error_messages})
+
 
 @login_required
 def del_empresa(request, id):
-    empresa = get_object_or_404(Empresa, id=id)
     if not request.user.has_perm('empresas.delete_empresa'):
         messages.info(request, 'Você não tem permissão para deletar empresas.')
         return redirect('/empresas/lista/')
-    if request.method == 'POST':
-        empresa.delete()
-        messages.success(request, 'Empresa excluída com sucesso.')
-        return redirect('/empresas/lista/')
-    return render(request, 'empresas/del_empresa.html')
+    try:
+        with transaction.atomic():
+            empresa = Empresa.objects.filter(id=id).first()
+            if not empresa:
+                messages.error(request, 'Empresa não encontrada ou já foi excluída.')
+                return redirect('/empresas/lista/')
+            if request.method == 'POST':
+                empresa.delete()
+                messages.success(request,'Empresa excluída com sucesso.')
+                return redirect('/empresas/lista/')
+            return render(request,'empresas/del_empresa.html',{'empresa': empresa})
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f'Erro de integridade: {detalhe}')
+    except DatabaseError as e:
+        messages.error(request, f'Erro de banco: {str(e)}')
+    except Exception as e:
+        messages.error(request, f'Erro inesperado: {str(e)}')
+    return redirect('/empresas/lista/')

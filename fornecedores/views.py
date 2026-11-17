@@ -9,10 +9,9 @@ import unicodedata
 from django.http import JsonResponse
 from django.db.models import Q
 from util.permissoes import verifica_permissao, verifica_alguma_permissao
-from bairros.models import Bairro
-from cidades.models import Cidade
-from estados.models import Estado
+from django.core.exceptions import ObjectDoesNotExist
 from util.logs import gerar_alteracoes, registrar_log
+from django.db import DatabaseError, IntegrityError, transaction
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -72,16 +71,22 @@ def lista_fornecedores_ajax(request):
 
 @login_required
 def add_fornecedor(request):
+    error_messages = []
+    empresa = request.user.empresa
     if not request.user.has_perm('fornecedores.add_fornecedor'):
         messages.info(request, 'Você não tem permissão para adicionar fornecedores.')
         return redirect('/fornecedores/lista/')
-    empresa = request.user.empresa
-    if not empresa:
-        messages.error(request, 'Erro crítico: Seu usuário não está vinculado a nenhuma empresa cadastrada.')
-        return redirect('/fornecedores/lista/')
-    if request.method == 'POST':
-        form = FornecedorForm(data=request.POST, empresa=empresa)
-        if form.is_valid():
+    if request.method != 'POST':
+        form = FornecedorForm(empresa=empresa)
+        return render(request, 'fornecedores/add.html', {'form': form, 'error_messages': error_messages})
+    form = FornecedorForm(data=request.POST, empresa=empresa)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'fornecedores/add.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             c = form.save(commit=False)
             c.vinc_emp = empresa  # Busca a filial do usuário logado
             c.save()
@@ -93,57 +98,80 @@ def add_fornecedor(request):
             messages.success(request, 'Fornecedor adicionado com sucesso!')
             clie = str(c.codigo)
             return redirect('/fornecedores/lista/?tp=cod&s=' + clie)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'fornecedores/add.html', {'form': form, 'error_messages': error_messages})
-    else: form = FornecedorForm(empresa=empresa)
-    return render(request, 'fornecedores/add.html', {'form': form})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'fornecedores/add.html', {'form': form, 'error_messages': error_messages})
 
 @verifica_alguma_permissao('fornecedores.add_fornecedor', 'fornecedores.change_fornecedor', 'fornecedores.delete_fornecedor')
 @login_required
 def att_fornecedor(request, codigo):
+    error_messages = []
+    empresa = request.user.empresa
     cli = get_object_or_404(Fornecedor, codigo=codigo, vinc_emp=request.user.empresa)
     it_old = Fornecedor.objects.get(codigo=cli.codigo, vinc_emp=request.user.empresa)
-    form = FornecedorForm(instance=cli, empresa=request.user.empresa)
     if not request.user.has_perm('fornecedores.change_fornecedor'):
         messages.info(request, 'Você não tem permissão para editar fornecedores.')
         return redirect('/fornecedores/lista/')
-    if request.method == 'POST':
-        form = FornecedorForm(request.POST, instance=cli, empresa=request.user.empresa)
-        if form.is_valid():
-            cli.save()
-            registrar_log(
-                request, "ALTERAR", "Fornecedor", cli.fantasia,
-                f"Alterou o cadastro do fornecedor: {cli.codigo} - {cli.fantasia}",
-                cli.id, gerar_alteracoes(it_old, cli)
-            )
+    if request.method != 'POST':
+        form = FornecedorForm(instance=cli, empresa=empresa)
+        return render(request, 'fornecedores/att.html', {'form': form, 'cli': cli, 'error_messages': error_messages})
+    form = FornecedorForm(request.POST, instance=cli, empresa=empresa)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'fornecedores/att.html', {'form': form, 'cli': cli, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
+            cli = form.save()
+            registrar_log(request, "ALTERAR", "Fornecedor", cli.fantasia, f"Alterou o fornecedor: {cli.codigo} - {cli.fantasia}", cli.id, gerar_alteracoes(it_old, cli))
             next_url = request.POST.get('next') or request.GET.get('next')
             clie = str(cli.codigo)
             messages.success(request, 'Fornecedor atualizado com sucesso!')
             if next_url: return redirect(next_url)
             else: return redirect('/fornecedores/lista/?tp=cod&s=' + clie)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'fornecedores/att.html', {'form': form, 'cli': cli, 'error_messages': error_messages})
-    else:
-        form = FornecedorForm(instance=cli, empresa=request.user.empresa)
-        return render(request, 'fornecedores/att.html', {'form': form, 'cli': cli})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'fornecedores/att.html', {'form': form, 'cli': cli, 'error_messages': error_messages})
 
 @login_required
 def del_fornecedor(request, codigo):
     if not request.user.has_perm('fornecedores.delete_fornecedor'):
         messages.info(request, 'Você não tem permissão para deletar fornecedores.')
         return redirect('/fornecedores/lista/')
-    cli = get_object_or_404(Fornecedor, codigo=codigo, vinc_emp=request.user.empresa)
-    registrar_log(
-        request, "EXCLUIR", "Fornecedor", cli.fantasia,
-        f"Excluiu o cadastro do fornecedor: {cli.codigo} - {cli.fantasia}",
-        cli.id, gerar_alteracoes(obj_antigo=cli)
-    )
-    cli.delete()
-    messages.success(request, 'Fornecedor deletado com sucesso!')
+    try:
+        with transaction.atomic():
+            cli = get_object_or_404(Fornecedor, codigo=codigo, vinc_emp=request.user.empresa)
+            registrar_log(request, "EXCLUIR", "Fornecedor", cli.fantasia, f"Excluiu o fornecedor: {cli.codigo} - {cli.fantasia}", cli.id, gerar_alteracoes(obj_antigo=cli))
+            cli.delete()
+            messages.success(request, 'Fornecedor deletado com sucesso!')
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return redirect('/fornecedores/lista/')

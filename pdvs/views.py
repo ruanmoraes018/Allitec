@@ -10,6 +10,8 @@ from util.permissoes import verifica_permissao
 from django.db.models import Q
 from filiais.models import Filial
 from util.logs import gerar_alteracoes, registrar_log
+from django.db import DatabaseError, IntegrityError, transaction
+from django.core.exceptions import ObjectDoesNotExist
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -54,78 +56,111 @@ def lista_pdvs_ajax(request):
         results = [{'id': p.codigo, 'text': f"{p.nome.upper()}"} for p in pdvs]
         return JsonResponse({'results': results})
     except Exception as e: return JsonResponse({'results': [], 'error': str(e)})
-    
+
 @login_required
 def add_pdv(request):
+    error_messages = []
+    empresa = request.user.empresa
     if not request.user.has_perm('pdvs.add_pdv'):
         messages.info(request, 'Você não tem permissão para adicionar PDVs.')
         return redirect('/pdvs/lista/')
-    if request.method == 'POST':
-        form = PDVForm(request.POST, empresa=request.user.empresa, user=request.user)
-        if form.is_valid():
+    if request.method != 'POST':
+        form = PDVForm(empresa=empresa, user=request.user)
+        return render(request, 'pdvs/add.html', {'form': form, 'error_messages': error_messages})
+    form = PDVForm(request.POST, empresa=request.user.empresa, user=request.user)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'pdvs/add.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             b = form.save(commit=False)
             b.vinc_emp = request.user.empresa
             b.save()
-            registrar_log(
-                request, "CRIAR", "PDV", b.nome,
-                f"Adicionou o PDV: {b.codigo} - {b.nome}",
-                b.id, gerar_alteracoes(obj_novo=b)
-            )
+            registrar_log(request, "CRIAR", "PDV", b.nome, f"Adicionou o PDV: {b.codigo} - {b.nome}", b.id, gerar_alteracoes(obj_novo=b))
             messages.success(request, 'PDV adicionado com sucesso!')
             bank = str(b.codigo)
             return redirect('/pdvs/lista/?tp=cod&s=' + bank)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'pdvs/add.html', {'form': form, 'error_messages': error_messages})
-    else: form = PDVForm(empresa=request.user.empresa, user=request.user)
-    return render(request, 'pdvs/add.html', {'form': form})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'pdvs/add.html', {'form': form, 'error_messages': error_messages})
 
 @login_required
 def att_pdv(request, codigo):
-    b = get_object_or_404(PDV, codigo=codigo, vinc_emp=request.user.empresa)
-    it_old = PDV.objects.get(codigo=b.codigo, vinc_emp=request.user.empresa)
-    form = PDVForm(instance=b, empresa=request.user.empresa, user=request.user)
+    error_messages = []
+    empresa = request.user.empresa
+    b = get_object_or_404(PDV, codigo=codigo, vinc_emp=empresa)
+    it_old = PDV.objects.get(codigo=b.codigo, vinc_emp=empresa)
+    form = PDVForm(instance=b, empresa=empresa, user=request.user)
     if not request.user.has_perm('pdvs.change_pdv'):
         messages.info(request, 'Você não tem permissão para editar PDVs.')
         return redirect('/pdvs/lista/')
-    if request.method == 'POST':
-        form = PDVForm(request.POST, instance=b, empresa=request.user.empresa, user=request.user)
-        if form.is_valid():
+    if request.method != 'POST':
+        form = PDVForm(instance=b, empresa=empresa, user=request.user)
+        return render(request, 'pdvs/att.html', {'form': form, 'b': b, 'error_messages': error_messages})
+    form = PDVForm(request.POST, instance=b, empresa=empresa, user=request.user)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'pdvs/att.html', {'form': form, 'b': b, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             b.save()
-            registrar_log(
-                request, "ALTERAR", "PDV", b.nome,
-                f"Alterou o PDV: {b.codigo} - {b.nome}",
-                b.id, gerar_alteracoes(it_old, b)
-            )
+            registrar_log(request, "ALTERAR", "PDV", b.nome, f"Alterou o PDV: {b.codigo} - {b.nome}", b.id, gerar_alteracoes(it_old, b))
             next_url = request.POST.get('next') or request.GET.get('next')
             bank = str(b.codigo)
             messages.success(request, 'PDV atualizado com sucesso!')
             if next_url: return redirect(next_url)
             else: return redirect('/pdvs/lista/?tp=cod&s=' + bank)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'pdvs/att.html', {'form': form, 'b': b, 'error_messages': error_messages})
-    else: return render(request, 'pdvs/att.html', {'form': form, 'b': b})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'pdvs/att.html', {'form': form, 'b': b, 'error_messages': error_messages})
 
 @login_required
 def del_pdv(request, codigo):
     if not request.user.has_perm('pdvs.delete_pdv'):
         messages.info(request, 'Você não tem permissão para deletar PDVs.')
         return redirect('/pdvs/lista/')
-    b = get_object_or_404(PDV, codigo=codigo, vinc_emp=request.user.empresa)
-    if b.caixamovimento_set.exists():
-        messages.error(request, 'Não é possível deletar este PDV porque existem movimentos associados a ele.')
-        return redirect('/pdvs/lista/')
-    else:   
-        registrar_log(
-            request, "EXCLUIR", "PDV", b.nome,
-            f"Excluiu o PDV: {b.codigo} - {b.nome}",
-            b.id, gerar_alteracoes(obj_antigo=b)
-        )
-        b.delete()
-        messages.success(request, 'PDV deletado com sucesso!')
-        return redirect('/pdvs/lista/')
+    try:
+        with transaction.atomic():
+            b = get_object_or_404(PDV, codigo=codigo, vinc_emp=request.user.empresa)
+            if b.caixamovimento_set.exists():
+                messages.error(request, 'Não é possível deletar este PDV porque existem movimentos associados a ele.')
+                return redirect('/pdvs/lista/')
+            else:
+                registrar_log(request, "EXCLUIR", "PDV", b.nome, f"Excluiu o PDV: {b.codigo} - {b.nome}", b.id, gerar_alteracoes(obj_antigo=b))
+                b.delete()
+                messages.success(request, 'PDV deletado com sucesso!')
+                return redirect('/pdvs/lista/')
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return redirect('/pdvs/lista/')

@@ -7,9 +7,10 @@ from .forms import BancoForm
 import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
-from filiais.models import Usuario
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from util.logs import gerar_alteracoes, registrar_log
+from django.db import DatabaseError, IntegrityError, transaction
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -50,74 +51,105 @@ def lista_bancos_ajax(request):
         return JsonResponse({'results': results})
     except Exception as e:
         return JsonResponse({'results': [], 'error': str(e)})
-    
+
 @login_required
 def add_banco(request):
+    error_messages = []
     if not request.user.has_perm('bancos.add_banco'):
         messages.info(request, 'Você não tem permissão para adicionar bancos.')
         return redirect('/bancos/lista/')
-    if request.method == 'POST':
-        form = BancoForm(request.POST)
-        if form.is_valid():
+    empresa = request.user.empresa
+    if request.method != 'POST':
+        form = BancoForm()
+        return render(request, 'bancos/add.html', {'form': form, 'error_messages': error_messages})
+    form = BancoForm(request.POST)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'bancos/add.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             b = form.save(commit=False)
-            b.vinc_emp = request.user.empresa
+            b.vinc_emp = empresa
             b.save()
-            registrar_log(
-                request, "CRIAR", "Banco", b.nome_banco,
-                f"Adicionou o banco: {b.codigo} - {b.nome_banco}",
-                b.id, gerar_alteracoes(obj_novo=b)
-            )
+            registrar_log(request, "CRIAR", "Banco", b.nome_banco,f"Adicionou o banco: {b.codigo} - {b.nome_banco}",b.id, gerar_alteracoes(obj_novo=b))
             messages.success(request, 'Banco adicionado com sucesso!')
             bank = str(b.codigo)
             return redirect('/bancos/lista/?tp=cod&s=' + bank)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'bancos/add.html', {'form': form, 'error_messages': error_messages})
-    else: form = BancoForm()
-    return render(request, 'bancos/add.html', {'form': form})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'bancos/add.html', {'form': form, 'error_messages': error_messages})
 
 @login_required
 def att_banco(request, codigo):
+    error_messages = []
     b = get_object_or_404(Banco, codigo=codigo, vinc_emp=request.user.empresa)
     it_old = Banco.objects.get(codigo=b.codigo, vinc_emp=request.user.empresa)
-    form = BancoForm(instance=b)
     if not request.user.has_perm('bancos.change_banco'):
         messages.info(request, 'Você não tem permissão para editar bancos.')
         return redirect('/bancos/lista/')
-    if request.method == 'POST':
-        form = BancoForm(request.POST, instance=b, vinc_emp=request.user.empresa)
-        if form.is_valid():
-            b.save()
-            registrar_log(
-                request, "ALTERAR", "Banco", b.nome_banco,
-                f"Alterou o banco: {b.codigo} - {b.nome_banco}",
-                b.id, gerar_alteracoes(it_old, b)
-            )
+    if request.method != 'POST':
+        form = BancoForm(instance=b)
+        return render(request, 'bancos/att.html', {'form': form, 'b': b, 'error_messages': error_messages})
+    form = BancoForm(request.POST, instance=b)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'bancos/att.html', {'form': form, 'b': b, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
+            b = form.save()
+            registrar_log(request, "ALTERAR", "Banco", b.nome_banco,f"Alterou o banco: {b.codigo} - {b.nome_banco}",b.id, gerar_alteracoes(it_old, b))
             next_url = request.POST.get('next') or request.GET.get('next')
             bank = str(b.codigo)
             messages.success(request, 'Banco atualizado com sucesso!')
             if next_url: return redirect(next_url)
             else: return redirect('/bancos/lista/?tp=cod&s=' + bank)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'bancos/att.html', {'form': form, 'b': b, 'error_messages': error_messages})
-    else: return render(request, 'bancos/att.html', {'form': form, 'b': b})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'bancos/att.html', {'form': form, 'b': b, 'error_messages': error_messages})
 
 @login_required
 def del_banco(request, codigo):
     if not request.user.has_perm('bancos.delete_banco'):
         messages.info(request, 'Você não tem permissão para deletar bancos.')
         return redirect('/bancos/lista/')
-    b = get_object_or_404(Banco, codigo=codigo, vinc_emp=request.user.empresa)
-    registrar_log(
-        request, "EXCLUIR", "Banco", b.nome_banco,
-        f"Excluiu o banco: {b.codigo} - {b.nome_banco}",
-        b.id, gerar_alteracoes(obj_antigo=b)
-    )
-    b.delete()
-    messages.success(request, 'Banco deletado com sucesso!')
+    try:
+        with transaction.atomic():
+            b = get_object_or_404(Banco, codigo=codigo, vinc_emp=request.user.empresa)
+            registrar_log(request, "EXCLUIR", "Banco", b.nome_banco,f"Excluiu o banco: {b.codigo} - {b.nome_banco}",b.id, gerar_alteracoes(obj_antigo=b))
+            b.delete()
+            messages.success(request, 'Banco deletado com sucesso!')
+            return redirect('/bancos/lista/')
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return redirect('/bancos/lista/')

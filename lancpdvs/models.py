@@ -12,32 +12,29 @@ class Caixa(models.Model):
     observacao = models.TextField(blank=True)
     saldo_final = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     diferenca = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
     @property
     def saldo_inicial(self):
         mov = self.movimentos.filter(categoria='Saldo Inicial').first()
         return mov.valor if mov else 0
+
     def save(self, *args, **kwargs):
-        if self.vinc_emp and not self.codigo:
+        if self._state.adding and self.vinc_emp_id and not self.codigo:
             with transaction.atomic():
-                ult = (Caixa.objects.select_for_update().filter(vinc_emp=self.vinc_emp).aggregate(models.Max('codigo'))['codigo__max'] or 0)
+                ult = (Caixa.objects.select_for_update().filter(vinc_emp_id=self.vinc_emp_id).aggregate(max_codigo=models.Max('codigo'))['max_codigo'] or 0)
                 self.codigo = ult + 1
                 super().save(*args, **kwargs)
-        else: super().save(*args, **kwargs)
+            return
+        super().save(*args, **kwargs)
+
     class Meta:
         verbose_name_plural = "Lançamento de Caixas"
-        permissions = [
-            ("caixa_outro_user", "Pode realizar lançamentos em caixas de outros usuários"),
-        ]
+        permissions = [("caixa_outro_user", "Pode realizar lançamentos em caixas de outros usuários"),]
         constraints = [models.UniqueConstraint(fields=['codigo', 'vinc_emp'], name='unique_codigo_caixa_empresa')]
+
     @property
     def formas_convertidas(self):
-        return [
-            {
-                "descricao": f.forma_pagamento.descricao,
-                "valor": f.valor_informado,  # ou valor_registrado, se preferir
-            }
-            for f in self.fechamentos.select_related("forma_pagamento").order_by("forma_pagamento__codigo")
-        ]
+        return [{"descricao": f.forma_pagamento.descricao, "valor": f.valor_informado,} for f in self.fechamentos.select_related("forma_pagamento").order_by("forma_pagamento__codigo")]
 
 class CaixaMovimento(models.Model):
     codigo = models.PositiveIntegerField(blank=True, null=True)
@@ -51,28 +48,24 @@ class CaixaMovimento(models.Model):
     descricao = models.CharField(max_length=255, blank=True)
     data_hora = models.DateTimeField(auto_now_add=True)
     usuario = models.ForeignKey('filiais.Usuario', on_delete=models.SET_NULL, null=True)
-    def save(self, *args, **kwargs):
-        if self.caixa.situacao == 'Fechado': raise ValueError("Caixa fechado não pode receber movimentações.")
-        if not self.codigo:
-            with transaction.atomic():
-                ultimo = (
-                    CaixaMovimento.objects
-                    .select_for_update()
-                    .filter(caixa=self.caixa)
-                    .aggregate(models.Max('codigo'))['codigo__max']
-                    or 0
-                )
 
-                self.codigo = ultimo + 1
+    def save(self, *args, **kwargs):
+        if self.caixa.situacao == 'Fechado':
+            raise ValueError("Caixa fechado não pode receber movimentações.")
+
+        if self._state.adding and not self.codigo:
+            with transaction.atomic():
+                ult = (CaixaMovimento.objects.select_for_update()
+                       .filter(caixa=self.caixa)
+                       .aggregate(max_codigo=models.Max('codigo'))['max_codigo'] or 0)
+                self.codigo = ult + 1
+                super().save(*args, **kwargs)
+            return
         super().save(*args, **kwargs)
+
     class Meta:
         indexes = [models.Index(fields=['caixa', 'tipo']), models.Index(fields=['caixa', 'forma_pagamento']),]
-        constraints = [
-            models.UniqueConstraint(
-                fields=['caixa', 'codigo'],
-                name='unique_codigo_movimento_caixa'
-            )
-        ]
+        constraints = [models.UniqueConstraint(fields=['caixa', 'codigo'],name='unique_codigo_movimento_caixa')]
 
 class CaixaFechamento(models.Model):
     caixa = models.ForeignKey(Caixa, on_delete=models.CASCADE, related_name="fechamentos")
@@ -80,8 +73,10 @@ class CaixaFechamento(models.Model):
     valor_registrado = models.DecimalField(max_digits=10, decimal_places=2)
     valor_informado = models.DecimalField(max_digits=10, decimal_places=2)
     diferenca = models.DecimalField(max_digits=10, decimal_places=2)
+
     class Meta:
         unique_together = ('caixa', 'forma_pagamento')
+
     def save(self, *args, **kwargs):
         if self.caixa.situacao == 'Fechado':
             raise ValueError("Não é permitido alterar movimentos de um caixa fechado.")

@@ -4,28 +4,26 @@ from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 import pandas as pd
-from django.db import transaction
 from produtos.models import Produto, ProdutoTabela
 from .models import RegraProduto, RegraProdutoItem, CondicaoRegraProduto
 from .forms import RegraProdutoForm, ImportarRegraProdutoForm, RegraProdutoItemForm
 import unicodedata
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from util.permissoes import verifica_permissao
 import json
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, ROUND_UP
 from django.views.decorators.http import require_POST
 from openpyxl import Workbook
-from django.http import HttpResponse
 from openpyxl.styles import Font
 import ast
 import operator as op
 from django.db.models import Q
-from django.db import DatabaseError, IntegrityError
+from django.db import DatabaseError, IntegrityError, transaction
 from django.core.exceptions import ObjectDoesNotExist
 from util.parse_decimal import parse_decimal
 from util.logs import gerar_alteracoes, registrar_log
-from decimal import ROUND_UP
 from django.forms import inlineformset_factory
+from tabelas_preco.models import TabelaPreco
 
 ItemFormSet = inlineformset_factory(RegraProduto, RegraProdutoItem, form=RegraProdutoItemForm, extra=0, can_delete=True)
 
@@ -97,7 +95,9 @@ def lista_regras(request):
                     messages.error(request, erro)
                 return redirect("lista-regras")
             for _, row in df.iterrows():
-                RegraProduto.objects.update_or_create(vinc_emp=empresa, codigo=row["codigo"], defaults={"descricao": row["descricao"], "tipo": row["tipo"], "expressao_json": row["expressao_json"], "ativo": bool(row["ativo"]),})
+                RegraProduto.objects.update_or_create(vinc_emp=empresa,codigo=row["codigo"],defaults={"descricao":row["descricao"],"tipo":row["tipo"],"expressao_json":row["expressao_json"],
+                    "ativo":bool(row["ativo"])
+                })
             messages.success(request, "Regras de produto importadas com sucesso!")
             return redirect("lista-regras")
     form = ImportarRegraProdutoForm()
@@ -145,21 +145,15 @@ def regras_js(request):
     empresa = request.user.empresa
     if not empresa:
         return JsonResponse({}, status=403)
-    regras = (
-        RegraProduto.objects.filter(vinc_emp=empresa, ativo=True).prefetch_related(Prefetch("itens", queryset=RegraProdutoItem.objects.prefetch_related("condicoes")))
-    )
+    regras = (RegraProduto.objects.filter(vinc_emp=empresa, ativo=True).prefetch_related(Prefetch("itens", queryset=RegraProdutoItem.objects.prefetch_related("condicoes"))))
     data = {}
     for regra in regras:
         data[regra.codigo] = {
             "tipo": regra.tipo, "categoria": regra.categoria, "formula": regra.formula,
             "itens": [
-                {
-                    "produto": item.produto_id, "formula_qtd": item.formula_qtd, "descricao": item.descricao, "prioridade": item.prioridade,
-                    "condicoes": [
-                        {"campo": c.campo, "operador": c.operador, "valor": c.valor, "ordem": c.ordem,} for c in item.condicoes.all()
-                    ],
-                }
-                for item in regra.itens.all()
+                {"produto": item.produto_id, "formula_qtd": item.formula_qtd, "descricao": item.descricao, "prioridade": item.prioridade,
+                    "condicoes": [{"campo": c.campo, "operador": c.operador, "valor": c.valor, "ordem": c.ordem,} for c in item.condicoes.all()],
+                } for item in regra.itens.all()
             ],
         }
     return JsonResponse(data)
@@ -182,40 +176,28 @@ def avaliar_expressao_segura(expressao, contexto):
 
 def calcular_expressao_segura(expr, contexto):
     def _eval(node):
-        if isinstance(node, ast.Num):
-            return node.n
-        elif isinstance(node, ast.Constant):
-            return node.value
-        elif isinstance(node, ast.BinOp):
-            return OPERADORES[type(node.op)](_eval(node.left), _eval(node.right))
-        elif isinstance(node, ast.UnaryOp):
-            return OPERADORES[type(node.op)](_eval(node.operand))
+        if isinstance(node, ast.Num): return node.n
+        elif isinstance(node, ast.Constant): return node.value
+        elif isinstance(node, ast.BinOp): return OPERADORES[type(node.op)](_eval(node.left), _eval(node.right))
+        elif isinstance(node, ast.UnaryOp): return OPERADORES[type(node.op)](_eval(node.operand))
         elif isinstance(node, ast.Name):
-            if node.id in contexto:
-                return float(parse_decimal(contexto[node.id]))
+            if node.id in contexto: return float(parse_decimal(contexto[node.id]))
             raise ValueError(f"Variável '{node.id}' não encontrada")
-        else:
-            raise TypeError(node)
+        else: raise TypeError(node)
     tree = ast.parse(expr, mode='eval')
     return _eval(tree.body)
 
-import re
-
 def _avaliar_condicoes(condicoes, contexto):
-
     def eh_numero(v):
         # Aceita apenas strings que parecem números: "1.5", "1,5", "10", "-3"
         return bool(re.match(r'^-?\d+([.,]\d+)?$', str(v).strip()))
-
     for c in condicoes:
         campo = c.campo
         operador = c.operador
         valor_cond = c.valor
         valor_ctx = contexto.get(campo)
-
         if valor_ctx is None:
             return False
-
         if eh_numero(valor_ctx) and eh_numero(valor_cond):
             v_ctx  = parse_decimal(str(valor_ctx))
             v_cond = parse_decimal(str(valor_cond))
@@ -242,7 +224,6 @@ def _avaliar_condicoes(condicoes, contexto):
             elif operador in (">", "<", ">=", "<="):
                 # strings não suportam esses operadores
                 return False
-
     return True
 
 def aplicar_regra_selecao(regra, contexto):
@@ -304,8 +285,8 @@ def aplicar_regras_porta(request):
                         'vl_unit': float(preco.vl_prod), 'qtd': float(qtd), 'regra_origem': regra.codigo,
                         # ✅ ADICIONE:
                         'especifico': getattr(produto, 'especifico', None), 'espessura_lam': float(produto.espessura_lam) if getattr(produto, 'espessura_lam', None) else None,
-                        'peso_m2': float(produto.peso_m2) if getattr(produto, 'peso_m2', None) else None,
-                        'diametro_eixo': float(produto.diametro_eixo) if getattr(produto, 'diametro_eixo', None) else None,
+                        'peso_m2': float(produto.peso_m2) if getattr(produto, 'peso_m2', None) else None, 'larg_port': float(produto.larg_port) if getattr(produto, 'larg_port', None) else None,
+                        'diametro_eixo': float(produto.diametro_eixo) if getattr(produto, 'diametro_eixo', None) else None, 'alt_port': float(produto.alt_port) if getattr(produto, 'alt_port', None) else None,
                     }
                     # Se for regra de testeira, marca para o JS capturar
                     if regra.categoria == 'testeira':
@@ -340,7 +321,6 @@ def _calcular_campos_derivados(produtos_resultado, contexto):
     larg_c  = Decimal(str(contexto.get("larg_c") or 0))
     # Busca motor selecionado
     motor_item = next((p for p in produtos_resultado if p.get("regra_origem") == "MOTOR_PESO"), None)
-    testeira = 32  # fallback
     if motor_item:
         try:
             regra_motor = RegraProduto.objects.get(codigo="MOTOR_PESO")
@@ -348,7 +328,6 @@ def _calcular_campos_derivados(produtos_resultado, contexto):
             desc = (motor_item.get("desc_prod_regra") or motor_item.get("desc_prod") or "").upper()
             for chave, valor in tabela_testeiras.items():
                 if chave.upper() in desc:
-                    testeira = valor
                     break
         except Exception:
             pass
@@ -367,45 +346,40 @@ def calcular_orcamento(request):
     try:
         raw_body = json.loads(request.body)
         body = raw_body[0] if isinstance(raw_body, list) else raw_body
-        tabela_id    = body.get('tabela_id')
+        tabela_id = body.get('tabela_id')
         produtos_req = body.get('produtos', [])
+        # VALIDA TABELA
+        tabela = TabelaPreco.objects.filter(codigo=tabela_id,vinc_emp=empresa).first()
+        if not tabela:
+            return JsonResponse({'success': False,'error': f'Tabela de preço "{tabela_id}" não encontrada.'}, status=400)
+        # PRODUTOS
         ids_originais = list(set(p['id'] for p in produtos_req if 'id' in p))
-        produtos_base = Produto.objects.filter(codigo__in=ids_originais, vinc_emp=empresa)
-        precos = {p.produto.codigo: p.vl_prod for p in ProdutoTabela.objects.filter(tabela__codigo=tabela_id, produto__codigo__in=ids_originais)}
+        produtos_base = Produto.objects.filter(codigo__in=ids_originais,vinc_emp=empresa)
+        # PREÇOS DA TABELA SELECIONADA
+        precos = {p.produto.codigo: p.vl_prod for p in ProdutoTabela.objects.filter(tabela=tabela,produto__codigo__in=ids_originais,produto__vinc_emp=empresa).select_related('produto')}
         qtd_por_id = {p['id']: p.get('qtd', 1) for p in produtos_req}
         itens_dict = {}
         total_geral = Decimal('0.00')
         for prod in produtos_base:
-            qtd     = parse_decimal(qtd_por_id.get(prod.codigo, 1))
-            vl_unit = precos.get(prod.codigo, Decimal('0.00'))
-            total   = qtd * vl_unit
+            qtd = parse_decimal(qtd_por_id.get(prod.codigo, 1))
+            vl_unit = precos.get(prod.codigo,Decimal('0.00'))
+            total = qtd * vl_unit
             item = itens_dict.setdefault(prod.codigo, {
-                'id': prod.codigo, 'desc': prod.desc_prod, 'qtd': Decimal('0'), 'vl_unit': vl_unit, 'total': Decimal('0.00'), 'regra_aplicada': None,
-                # Atributos técnicos do produto enviados ao JS
-                'especifico': getattr(prod, 'especifico', None), 'espessura_lam': float(getattr(prod, 'espessura_lam', 0) or 0),
-                'peso_m2': float(getattr(prod, 'peso_m2', 0) or 0), 'diametro_eixo': float(getattr(prod, 'diametro_eixo', 0) or 0),
-            })
-            item['qtd']   += qtd
+                    'id': prod.codigo,'desc': prod.desc_prod,'qtd': Decimal('0'),'vl_unit': vl_unit,'total': Decimal('0.00'),'regra_aplicada': None,'especifico': getattr(prod, 'especifico', None),
+                    'espessura_lam': float(getattr(prod, 'espessura_lam', 0) or 0),'peso_m2': float(getattr(prod, 'peso_m2', 0) or 0),'diametro_eixo': float(getattr(prod, 'diametro_eixo', 0) or 0),
+                }
+            )
+            item['qtd'] += qtd
             item['total'] += total
         itens_saida = []
         for item in itens_dict.values():
             total_geral += item['total']
-            itens_saida.append({
-                'id': item['id'], 'desc': item['desc'], 'qtd': float(item['qtd']), 'vl_unit': float(item['vl_unit']), 'total': float(item['total']),
-                'regra_aplicada': item['regra_aplicada'], 'especifico': item['especifico'], 'espessura_lam': item['espessura_lam'], 'peso_m2': item['peso_m2'],
-                'diametro_eixo': item['diametro_eixo'],
+            itens_saida.append({'id': item['id'],'desc': item['desc'],'qtd': float(item['qtd']),'vl_unit': float(item['vl_unit']),'total': float(item['total']),'regra_aplicada': item['regra_aplicada'],
+                'especifico': item['especifico'],'espessura_lam': item['espessura_lam'],'peso_m2': item['peso_m2'],'diametro_eixo': item['diametro_eixo'],
             })
-        return JsonResponse({'itens': itens_saida, 'total': float(total_geral)})
+        return JsonResponse({'success': True,'itens': itens_saida,'total': float(total_geral)})
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
-import json
-from django.db import IntegrityError, DatabaseError, transaction
-from django.core.exceptions import ObjectDoesNotExist
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from .models import RegraProduto, RegraProdutoItem, CondicaoRegraProduto
-from produtos.models import Produto
+        return JsonResponse({'success': False,'error': str(e)}, status=500)
 
 def salvar_condicoes_item(item, condicoes_json_str):
     item.condicoes.all().delete()
@@ -425,106 +399,113 @@ def salvar_condicoes_item(item, condicoes_json_str):
 
 @login_required
 def add_regra(request):
+    error_messages = []
     empresa = request.user.empresa
-    if request.method == "POST":
-        form = RegraProdutoForm(request.POST, empresa=empresa)
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    regra = form.save(commit=False)
-                    regra.vinc_emp = empresa
-                    regra.save()
-                    itens_formset = ItemFormSet(request.POST, instance=regra, prefix='itens', form_kwargs={'empresa': empresa})
-                    if itens_formset.is_valid():
-                        instances = itens_formset.save()
-                        for idx, item_instance in enumerate(instances):
-                            cond_json = request.POST.get(f"itens-{idx}-condicoes_json", '')
-                            salvar_condicoes_item(item_instance, cond_json)
-                    else:
-                        raise Exception(itens_formset.errors)
-                registrar_log(request, "CRIAR", "Regra de Produto", regra.descricao,
-                    f"Adicionou a regra: {regra.cod_local} - {regra.descricao}",
-                    regra.id, gerar_alteracoes(obj_novo=regra)
-                )
-                messages.success(request, "Regra adicionada com sucesso!")
-                return redirect('/regras_produto/lista/?tp=cod&s=' + regra.codigo)
-            except Exception as e:
-                traceback.print_exc()
-                messages.error(request, str(e))
-    else:
+    if request.method != 'POST':
         form = RegraProdutoForm(empresa=empresa)
-        itens_formset = ItemFormSet(prefix='itens', form_kwargs={'empresa': empresa})
-    if request.method == "POST" and not form.is_valid():
         itens_formset = ItemFormSet(request.POST, prefix='itens', form_kwargs={'empresa': empresa})
-    return render(request, "regras_produto/add.html", {"form": form, "itens_formset": itens_formset,})
+        return render(request, 'regras_produto/add.html', {'form': form, "itens_formset": itens_formset, 'error_messages': error_messages})
+    form = RegraProdutoForm(request.POST, empresa=empresa)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'regras_produto/add.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
+            regra = form.save(commit=False)
+            regra.vinc_emp = empresa
+            regra.save()
+            itens_formset = ItemFormSet(request.POST, instance=regra, prefix='itens', form_kwargs={'empresa': empresa})
+            if itens_formset.is_valid():
+                instances = itens_formset.save()
+                for idx, item_instance in enumerate(instances):
+                    cond_json = request.POST.get(f"itens-{idx}-condicoes_json", '')
+                    salvar_condicoes_item(item_instance, cond_json)
+            else:
+                raise Exception(itens_formset.errors)
+            registrar_log(request, "CRIAR", "Regra de Produto", regra.descricao,
+                f"Adicionou a regra: {regra.cod_local} - {regra.descricao}",
+                regra.id, gerar_alteracoes(obj_novo=regra)
+            )
+            messages.success(request, "Regra adicionada com sucesso!")
+            return redirect('/regras_produto/lista/?tp=cod&s=' + regra.codigo)
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    itens_formset = ItemFormSet(request.POST, prefix='itens', form_kwargs={'empresa': empresa})
+    return render(request, "regras_produto/add.html", {"form": form, 'error_messages': error_messages, "itens_formset": itens_formset,})
 
 
 @login_required
 def att_regra(request, cod_local):
+    error_messages = []
     empresa = request.user.empresa
     if not request.user.has_perm('regras_produto.change_regraproduto'):
         messages.info(request, 'Você não tem permissão para editar regras de produto.')
         return redirect('/regras_produto/lista/')
     regra = get_object_or_404(RegraProduto, cod_local=cod_local, vinc_emp=empresa)
     it_old = RegraProduto.objects.get(cod_local=regra.cod_local, vinc_emp=empresa)
-    if request.method == "POST":
-        form = RegraProdutoForm(request.POST, instance=regra, empresa=empresa)
-        itens_formset = ItemFormSet(request.POST, instance=regra, prefix='itens', form_kwargs={'empresa': request.user.empresa})
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    regra = form.save()
-                    if itens_formset.is_valid():
-                        objs = itens_formset.save(commit=False)
-                        print("REGRA:", regra.id)
-                        for obj in objs:
-                            print("ANTES:", obj.regra_id)
-                            obj.regra = regra
-                            print("DEPOIS:", obj.regra_id)
-                            obj.save()
-                        for obj in itens_formset.deleted_objects:
-                            obj.delete()
-                        itens_formset.save_m2m()
-                        instances = objs
-                        for idx, item_instance in enumerate(instances):
-                            cond_json = request.POST.get(f"itens-{idx}-condicoes_json", '')
-                            salvar_condicoes_item(item_instance, cond_json)
-                    else:
-                        raise Exception(itens_formset.errors)
-                registrar_log(request, "ALTERAR", "Regra de Produto", regra.descricao,
-                    f"Alterou a regra: {regra.cod_local} - {regra.descricao}",
-                    regra.id, gerar_alteracoes(it_old, regra)
-                )
-                messages.success(request, "Regra atualizada com sucesso!")
-                next_url = request.POST.get("next") or request.GET.get("next")
-                if next_url:
-                    return redirect(next_url)
-                return redirect('/regras_produto/lista/?tp=cod&s=' + regra.codigo)
-            except Exception as e:
-                traceback.print_exc()
-                messages.error(request, str(e))
-            except DatabaseError as e:
-                messages.error(request, f"Erro de banco de dados ao atualizar a regra: {e}")
-            except Exception as e:
-                messages.error(request, f"Erro inesperado ao atualizar a regra: {e}")
-        else:
-            for field in form:
-                for erro in field.errors:
-                    messages.error(request, f"Campo '{field.label}': {erro}")
-            for erro in form.non_field_errors():
-                messages.error(request, erro)
-            for i, item_form in enumerate(itens_formset):
-                for field in item_form:
-                    for erro in field.errors:
-                        messages.error(request, f"Item {i+1} — '{field.label}': {erro}")
-    else:
+    if request.method != 'POST':
         form = RegraProdutoForm(instance=regra, empresa=empresa)
         itens_formset = ItemFormSet(instance=regra, prefix='itens', form_kwargs={'empresa': empresa})
-    if request.method == "POST" and not form.is_valid():
-        itens_formset = ItemFormSet(request.POST,
-            prefix='itens',
-            form_kwargs={'empresa': empresa}
-        )
+        for i, item_form in enumerate(itens_formset):
+            for field in item_form:
+                for erro in field.errors:
+                    error_messages.error(request, f"Item {i+1} — '{field.label}': {erro}")
+        return render(request, 'regras_produto/att.html', {'form': form, "itens_formset": itens_formset, 'regra': regra, 'error_messages': error_messages})
+    form = RegraProdutoForm(request.POST, instance=regra, empresa=empresa)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'regras_produto/att.html', {'form': form, 'regra': regra, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
+            regra = form.save()
+            itens_formset = ItemFormSet(request.POST, instance=regra, prefix='itens', form_kwargs={'empresa': request.user.empresa})
+            if itens_formset.is_valid():
+                objs = itens_formset.save(commit=False)
+                for obj in objs:
+                    obj.regra = regra
+                    obj.save()
+                for obj in itens_formset.deleted_objects:
+                    obj.delete()
+                itens_formset.save_m2m()
+                instances = objs
+                for idx, item_instance in enumerate(instances):
+                    cond_json = request.POST.get(f"itens-{idx}-condicoes_json", '')
+                    salvar_condicoes_item(item_instance, cond_json)
+            else:
+                raise Exception(itens_formset.errors)
+            registrar_log(request, "ALTERAR", "Regra de Produto", regra.descricao,
+                f"Alterou a regra: {regra.cod_local} - {regra.descricao}",
+                regra.id, gerar_alteracoes(it_old, regra)
+            )
+            messages.success(request, "Regra atualizada com sucesso!")
+            next_url = request.POST.get("next") or request.GET.get("next")
+            if next_url:
+                return redirect(next_url)
+            return redirect('/regras_produto/lista/?tp=cod&s=' + regra.codigo)
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     dados = []
     for item in regra.itens.all():
         linha = {"produto_id": item.produto.codigo, "desc_prod": str(item.produto), "qtd_expr": item.formula_qtd}
@@ -534,22 +515,33 @@ def att_regra(request, cod_local):
         if cond:
             linha["condicoes"] = cond
         dados.append(linha)
-    return render(request, "regras_produto/att.html", {
-        "form": form,
-        "itens_formset": itens_formset,
-    })
+    return render(request, "regras_produto/att.html", {"form": form, "itens_formset": itens_formset, 'error_messages': error_messages})
 
 @login_required
 def del_regra(request, cod_local):
     if not request.user.has_perm('regras_produto.delete_regraproduto'):
         messages.info(request, 'Você não tem permissão para deletar regras de produto.')
         return redirect('/regras_produto/lista/')
-    e = get_object_or_404(RegraProduto, cod_local=cod_local, vinc_emp=request.user.empresa)
-    registrar_log(
-        request, "EXCLUIR", "Regra de Produto", e.descricao,
-        f"Excluiu a regra de produto: {e.cod_local} - {e.descricao}",
-        e.id, gerar_alteracoes(obj_antigo=e)
-    )
-    e.delete()
-    messages.success(request, 'Regra deletada com sucesso!')
+    try:
+        with transaction.atomic():
+            e = get_object_or_404(RegraProduto, cod_local=cod_local, vinc_emp=request.user.empresa)
+            registrar_log(
+                request, "EXCLUIR", "Regra de Produto", e.descricao,
+                f"Excluiu a regra de produto: {e.cod_local} - {e.descricao}",
+                e.id, gerar_alteracoes(obj_antigo=e)
+            )
+            e.delete()
+            messages.success(request, 'Regra deletada com sucesso!')
+            return redirect('/regras_produto/lista/')
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return redirect('/regras_produto/lista/')

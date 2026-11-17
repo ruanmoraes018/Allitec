@@ -13,57 +13,44 @@ class FormaPgto(models.Model):
     tipo = models.CharField(max_length=8, choices=[('A vista', 'A vista'), ('A prazo', 'A prazo')], default='A vista')
     gera_parcelas = models.BooleanField(default=False)
     vinc_emp = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE, null=True, blank=True)
-    # 🔥 Gateway dinâmico
     gateway = models.CharField(max_length=20,choices=[('nenhum','Nenhum'),('mercadopago','Mercado Pago'),('pagseguro','PagSeguro'),('stripe','Stripe'),('pix_direto','Pix Direto'), ('infinitepay', 'InfinitePay'),],default='nenhum')
-    # 🔥 Credenciais flexíveis
     credenciais = models.JSONField(null=True, blank=True)
+
     def save(self, *args, **kwargs):
-        if self.vinc_emp and not self.codigo:
+        self.descricao = self.descricao.strip().upper()
+        if self._state.adding and self.vinc_emp_id and not self.codigo:
             with transaction.atomic():
-                ult = (FormaPgto.objects.select_for_update().filter(vinc_emp=self.vinc_emp).aggregate(models.Max('codigo'))['codigo__max'] or 0)
+                ult = (FormaPgto.objects.select_for_update().filter(vinc_emp_id=self.vinc_emp_id).aggregate(max_codigo=models.Max('codigo'))['max_codigo'] or 0)
                 self.codigo = ult + 1
-                self.descricao = self.descricao.strip().upper()
                 super().save(*args, **kwargs)
-        else:
-            self.descricao = self.descricao.strip().upper()
-            super().save(*args, **kwargs)
+            return
+        super().save(*args, **kwargs)
+
     def clean(self):
         if self.gateway == "nenhum":
             return
-
         cred = self.credenciais
-        # 🔥 GARANTE QUE É DICT
         if isinstance(cred, str):
             try:
                 cred = json.loads(cred)
             except:
                 raise ValidationError("Credenciais inválidas")
-
         if not cred:
             raise ValidationError("Credenciais obrigatórias para este gateway")
-
-        # Pega a lista padrão do arquivo credenciais.py
         obrigatorios = CREDENCIAIS_GATEWAY.get(self.gateway, [])
-
-        # 🔥 CORREÇÃO: Se for pix_direto e estiver em homologação, removemos a obrigatoriedade do certificado
         if self.gateway == "pix_direto" and cred.get("ambiente") == "homologacao":
-            # Faz uma cópia da lista para não alterar o arquivo original do sistema globalmente
             obrigatorios = [campo for campo in obrigatorios if campo != "certificado_path"]
-
-        faltando = [
-            campo for campo in obrigatorios
-            if campo not in cred or not cred.get(campo)
-        ]
-
+        faltando = [campo for campo in obrigatorios if campo not in cred or not cred.get(campo)]
         if faltando:
             raise ValidationError(f"Campos obrigatórios faltando: {', '.join(faltando)}")
-
-        # 🔥 salva já convertido
         self.credenciais = cred
+
     def get_credencial(self, chave):
         return (self.credenciais or {}).get(chave)
+
     def __str__(self):
         return self.descricao
+
     class Meta:
         verbose_name_plural = "Formas de Pagamento"
         constraints = [models.UniqueConstraint(fields=['codigo', 'vinc_emp'], name='unique_codigo_formas_empresa')]

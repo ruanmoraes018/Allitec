@@ -1,5 +1,4 @@
 import json
-from django.forms import ValidationError
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.contrib import messages
@@ -9,7 +8,6 @@ from .forms import FormaPgtoForm
 import unicodedata
 from django.http import JsonResponse
 from util.permissoes import verifica_permissao
-from filiais.models import Usuario
 from django.db.models import Q
 from django.db import IntegrityError, DatabaseError, transaction
 from django.core.exceptions import ObjectDoesNotExist
@@ -80,39 +78,40 @@ def get_forma_pgto(request):
 @login_required
 def add_formas_pgto(request):
     error_messages = []
+    empresa = request.user.empresa
     if not request.user.has_perm('formas_pgto.add_formapgto'):
         messages.info(request, 'Você não tem permissão para adicionar formas de pagamento.')
         return redirect('/formas_pgto/lista/')
+    if request.method != 'POST':
+        form = FormaPgtoForm()
+        return render(request, 'formas_pgto/add.html', {'form': form, 'error_messages': error_messages})
+    form = FormaPgtoForm(request.POST, request.FILES)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'formas_pgto/add.html', {'form': form, 'error_messages': error_messages})
     try:
-        if request.method == 'POST':
-            form = FormaPgtoForm(request.POST, request.FILES)
-            if not form.is_valid():
-                # 1. Pega erros dos campos
-                error_messages = [f"Campo ({field.label}) é obrigatório!" for field in form if field.errors]
-
-                # 🔥 CORREÇÃO: Pega também os erros globais (como os do clean)
-                for err in form.non_field_errors():
-                    error_messages.append(f"<i class='fa-solid fa-xmark'></i> {err}")
-
-                return render(request, 'formas_pgto/add.html', {'form': form, 'error_messages': error_messages})
-
+        with transaction.atomic():
             c = form.save(commit=False)
-            c.vinc_emp = request.user.empresa
+            c.vinc_emp = empresa
             c.save()
-            registrar_log(
-                request, "CRIAR", "Forma de Pagamento", c.descricao,
-                f"Adicionou a forma de pagamento: {c.codigo} - {c.descricao}",
-                c.id, gerar_alteracoes(obj_novo=c)
-            )
+            registrar_log(request, "CRIAR", "Forma de Pagamento", c.descricao, f"Adicionou a forma de pagamento: {c.codigo} - {c.descricao}", c.id, gerar_alteracoes(obj_novo=c))
             messages.success(request, 'Forma de Pagamento adicionada com sucesso!')
             cid = str(c.codigo)
             return redirect('/formas_pgto/lista/?tp=cod&s=' + cid)
-        form = FormaPgtoForm()
-    except ObjectDoesNotExist: error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
-    except IntegrityError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}")
-    except DatabaseError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco de dados: {str(e)}")
-    except Exception as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
-    return render(request, 'formas_pgto/add.html', {'form': form})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'formas_pgto/add.html', {'form': form, 'error_messages': error_messages})
 
 @login_required
 def att_formas_pgto(request, codigo):
@@ -122,38 +121,36 @@ def att_formas_pgto(request, codigo):
     if not request.user.has_perm('formas_pgto.change_formapgto'):
         messages.info(request, 'Você não tem permissão para editar formas de pagamento.')
         return redirect('/formas_pgto/lista/')
-    if request.method == 'POST':
-        form = FormaPgtoForm(request.POST, request.FILES, instance=c)
-        try:
-            if form.is_valid():
-                c = form.save()  # 🔥 ESSENCIAL (salva credenciais corretamente)
-                registrar_log(
-                    request, "ALTERAR", "Forma de Pagamento", c.descricao,
-                    f"Alterou a forma de pagamento: {c.codigo} - {c.descricao}",
-                    c.id, gerar_alteracoes(it_old, c)
-                )
-                next_url = request.POST.get('next') or request.GET.get('next')
-                cid = str(c.codigo)
-                messages.success(request, 'Forma de Pagamento atualizada com sucesso!')
-                if next_url: return redirect(next_url)
-                else: return redirect(f'/formas_pgto/lista/?tp=cod&s={cid}')
-            else:
-                # erros de campo
-                for field in form:
-                    for error in field.errors:
-                        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {field.label}: {error}")
-        except ValidationError as e:
-            # erros do clean()
-            if hasattr(e, 'messages'):
-                for msg in e.messages:
-                    error_messages.append(f"<i class='fa-solid fa-xmark'></i> {msg}")
-            else: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de validação.")
-        except IntegrityError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {str(e)}")
-        except DatabaseError as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco de dados: {str(e)}")
-        except Exception as e: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
-    else:
+    if request.method != 'POST':
         form = FormaPgtoForm(instance=c)
         form.initial['credenciais'] = json.dumps(form.initial.get('credenciais', {}))
+        return render(request, 'formas_pgto/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
+    form = FormaPgtoForm(request.POST, request.FILES, instance=c)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'formas_pgto/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
+            c = form.save()  # 🔥 ESSENCIAL (salva credenciais corretamente)
+            registrar_log(request, "ALTERAR", "Forma de Pagamento", c.descricao, f"Alterou a forma de pagamento: {c.codigo} - {c.descricao}", c.id, gerar_alteracoes(it_old, c))
+            next_url = request.POST.get('next') or request.GET.get('next')
+            cid = str(c.codigo)
+            messages.success(request, 'Forma de Pagamento atualizada com sucesso!')
+            if next_url: return redirect(next_url)
+            else: return redirect(f'/formas_pgto/lista/?tp=cod&s={cid}')
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return render(request, 'formas_pgto/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
 
 @login_required
@@ -161,12 +158,25 @@ def del_formas_pgto(request, codigo):
     if not request.user.has_perm('formas_pgto.delete_formapgto'):
         messages.info(request, 'Você não tem permissão para deletar formas de pagamento.')
         return redirect('/formas_pgto/lista/')
-    c = get_object_or_404(FormaPgto, codigo=codigo, vinc_emp=request.user.empresa)
-    registrar_log(
-        request, "EXCLUIR", "Forma de pagamento", c.descricao,
-        f"Excluiu a forma de pagamento: {c.codigo} - {c.descricao}",
-        c.id, gerar_alteracoes(obj_antigo=c)
-    )
-    c.delete()
-    messages.success(request, 'Forma de Pagamento deletada com sucesso!')
+    try:
+        with transaction.atomic():
+            c = get_object_or_404(FormaPgto, codigo=codigo, vinc_emp=request.user.empresa)
+            registrar_log(
+                request, "EXCLUIR", "Forma de pagamento", c.descricao,
+                f"Excluiu a forma de pagamento: {c.codigo} - {c.descricao}",
+                c.id, gerar_alteracoes(obj_antigo=c)
+            )
+            c.delete()
+            messages.success(request, 'Forma de Pagamento deletada com sucesso!')
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return redirect('/formas_pgto/lista/')

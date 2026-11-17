@@ -9,6 +9,8 @@ from django.http import JsonResponse
 from util.permissoes import verifica_permissao
 from django.db.models import Q
 from util.logs import gerar_alteracoes, registrar_log
+from django.db import DatabaseError, IntegrityError, transaction
+from django.core.exceptions import ObjectDoesNotExist
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -59,14 +61,24 @@ def get_tabela_preco(request):
 
 @login_required
 def add_tabelas_preco(request):
+    error_messages = []
+    empresa = request.user.empresa
     if not request.user.has_perm('tabelas_preco.add_tabelapreco'):
         messages.info(request, 'Você não tem permissão para adicionar tabelas de preço.')
         return redirect('/tabelas_preco/lista/')
-    if request.method == 'POST':
-        form = TabelaPrecoForm(request.POST)
-        if form.is_valid():
+    if request.method != 'POST':
+        form = TabelaPrecoForm()
+        return render(request, 'tabelas_preco/add.html', {'form': form, 'error_messages': error_messages})
+    form = TabelaPrecoForm(request.POST)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'tabelas_preco/add.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             c = form.save(commit=False)
-            c.vinc_emp = request.user.empresa
+            c.vinc_emp = empresa
             c.save()
             registrar_log(
                 request, "CRIAR", "Tabela de Preço", c.descricao,
@@ -76,25 +88,38 @@ def add_tabelas_preco(request):
             messages.success(request, 'Tabela de Preço adicionada com sucesso!')
             cid = str(c.codigo)
             return redirect('/tabelas_preco/lista/?tp=cod&s=' + cid)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'tabelas_preco/add.html', {'form': form, 'error_messages': error_messages})
-    else: form = TabelaPrecoForm()
-    return render(request, 'tabelas_preco/add.html', {'form': form})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'tabelas_preco/add.html', {'form': form, 'error_messages': error_messages})
 
 @login_required
 def att_tabelas_preco(request, codigo):
+    error_messages = []
     c = get_object_or_404(TabelaPreco, codigo=codigo, vinc_emp=request.user.empresa)
     it_old = TabelaPreco.objects.get(codigo=c.codigo, vinc_emp=request.user.empresa)
-    form = TabelaPrecoForm(instance=c)
     if not request.user.has_perm('tabelas_preco.change_tabelapreco'):
         messages.info(request, 'Você não tem permissão para editar tabelas de preço.')
         return redirect('/tabelas_preco/lista/')
-    if request.method == 'POST':
-        form = TabelaPrecoForm(request.POST, instance=c)
-        if form.is_valid():
+    if request.method != 'POST':
+        form = TabelaPrecoForm(instance=c)
+        return render(request, 'tabelas_preco/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
+    form = TabelaPrecoForm(request.POST, instance=c)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'tabelas_preco/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             c = form.save(commit=False)
             c.save()
             registrar_log(
@@ -107,24 +132,44 @@ def att_tabelas_preco(request, codigo):
             next_url = request.POST.get('next') or request.GET.get('next')
             if next_url: return redirect(next_url)
             else: return redirect('/tabelas_preco/lista/?tp=cod&s=' + cid)
-        else:
-            error_messages = []
-            for field in form:
-                if field.errors: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, 'tabelas_preco/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
-    else: return render(request, 'tabelas_preco/att.html', {'form': form, 'c': c})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'tabelas_preco/att.html', {'form': form, 'c': c, 'error_messages': error_messages})
 
 @login_required
 def del_tabelas_preco(request, codigo):
     if not request.user.has_perm('tabelas_preco.delete_tabelapreco'):
         messages.info(request, 'Você não tem permissão para deletar tabelas de preço.')
         return redirect('/tabelas_preco/lista/')
-    c = get_object_or_404(TabelaPreco, codigo=codigo, vinc_emp=request.user.empresa)
-    registrar_log(
-        request, "EXCLUIR", "Tabela de Preço", c.descricao,
-        f"Excluiu a tabela de preço: {c.codigo} - {c.descricao}",
-        c.id, gerar_alteracoes(obj_antigo=c)
-    )
-    c.delete()
-    messages.success(request, 'Tabela de Preço deletada com sucesso!')
+    try:
+        with transaction.atomic():
+            c = get_object_or_404(TabelaPreco, codigo=codigo, vinc_emp=request.user.empresa)
+            registrar_log(
+                request, "EXCLUIR", "Tabela de Preço", c.descricao,
+                f"Excluiu a tabela de preço: {c.codigo} - {c.descricao}",
+                c.id, gerar_alteracoes(obj_antigo=c)
+            )
+            c.delete()
+            messages.success(request, 'Tabela de Preço deletada com sucesso!')
+            return redirect('/tabelas_preco/lista/')
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return redirect('/tabelas_preco/lista/')

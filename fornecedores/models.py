@@ -29,24 +29,21 @@ class Fornecedor(models.Model):
     tel = models.CharField(max_length=30)
     email = models.EmailField(max_length=40, blank=True, null=True, default="")
     dt_reg = models.DateField(verbose_name="Data de Registro", null=True, blank=True, db_index=True)
+
     def save(self, *args, **kwargs):
-        if self.vinc_emp and not self.codigo:
+        self.razao_social = self.razao_social.strip().upper()
+        self.fantasia = self.fantasia.strip().upper()
+        self.endereco = self.endereco.strip().upper()
+        self.complem = self.complem.strip().upper()
+        self.email = self.email.strip().lower()
+        if self._state.adding and self.vinc_emp_id and not self.codigo:
             with transaction.atomic():
-                ult = (Fornecedor.objects.select_for_update().filter(vinc_emp=self.vinc_emp).aggregate(models.Max('codigo'))['codigo__max'] or 0)
+                ult = (Fornecedor.objects.select_for_update().filter(vinc_emp_id=self.vinc_emp_id).aggregate(max_codigo=models.Max('codigo'))['max_codigo'] or 0)
                 self.codigo = ult + 1
-                self.razao_social = self.razao_social.strip().upper()
-                self.fantasia = self.fantasia.strip().upper()
-                self.endereco = self.endereco.strip().upper()
-                self.complem = self.complem.strip().upper()
-                self.email = self.email.strip().lower()
                 super().save(*args, **kwargs)
-        else:
-            self.razao_social = self.razao_social.strip().upper()
-            self.fantasia = self.fantasia.strip().upper()
-            self.endereco = self.endereco.strip().upper()
-            self.complem = self.complem.strip().upper()
-            self.email = self.email.strip().lower()
-            super().save(*args, **kwargs)
+            return
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.fantasia}"
 

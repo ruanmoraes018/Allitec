@@ -3,7 +3,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from formas_pgto.models import FormaPgto
 from util.permissoes import verifica_permissao, verifica_alguma_permissao
 import json
@@ -18,7 +18,8 @@ from produtos.models import CodigoProduto, Produto
 from .forms import PedidoForm
 from core.pagamentos.fluxo import gerar_pagamentos_pedido
 from pedidos.services import finalizar_pedido
-from django.db import transaction
+from django.db import DatabaseError, IntegrityError, transaction
+from django.core.exceptions import ObjectDoesNotExist
 from contas_receber.models import ContaReceber
 import logging
 logger = logging.getLogger(__name__)
@@ -26,11 +27,14 @@ from django.utils.timezone import localtime
 import re
 from django.utils import timezone
 from django.template.loader import render_to_string
-from django.http import HttpResponse
 from weasyprint import HTML, CSS
 from util.logo_impressao import img_base64
 from util.logs import gerar_alteracoes, registrar_log
 from util.filiais import aplicar_filtro_filial
+import base64
+from io import BytesIO
+import qrcode
+from produtos.services import adicionar_estoque
 
 @verifica_permissao('pedidos.view_pedido')
 @login_required
@@ -154,20 +158,23 @@ def buscar_produto(codigo, empresa):
 
 @login_required
 def add_pedido(request):
+    error_messages = []
+    empresa = request.user.empresa
     # Verifica se o usuário tem permissão para adicionar pedidos
     if not request.user.has_perm('pedidos.add_pedido'):
         messages.info(request, 'Você não tem permissão para adicionar pedidos.')
         return redirect('/pedidos/lista/')
-    empresa = request.user.empresa
-    if not empresa:
-        messages.error(request, 'Erro crítico: Seu usuário não está vinculado a nenhuma empresa cadastrada.')
-        return redirect('/pedidos/lista/')
-    # Se a requisição for do tipo POST (formulário enviado)
-    if request.method == "POST":
-        # Cria uma instância do formulário com os dados enviados
-        form = PedidoForm(data=request.POST, empresa=empresa, user=request.user)
-        # Valida se o formulário está correto
-        if form.is_valid():
+    if request.method != 'POST':
+        form = PedidoForm(empresa=empresa, user=request.user)
+        return render(request, 'pedidos/add.html', {'form': form, 'error_messages': error_messages})
+    form = PedidoForm(data=request.POST, empresa=empresa, user=request.user)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, 'pedidos/add.html', {'form': form, 'error_messages': error_messages})
+    try:
+        with transaction.atomic():
             # Cria o objeto pedido sem salvar ainda no banco
             pedido = form.save(commit=False)
             pedido.vinc_emp = empresa
@@ -221,37 +228,46 @@ def add_pedido(request):
             pedido.total = pedido.atualizar_total()
             pedido.save(update_fields=["total"])
             # Exibe mensagem de sucesso e redireciona para a lista de pedidos
-            registrar_log(
-                request, "CRIAR", "Pedido", pedido.codigo,
-                f"Registrou o pedido, Nº: {pedido.codigo}",
-                pedido.id, gerar_alteracoes(obj_novo=pedido)
-            )
+            registrar_log(request, "CRIAR", "Pedido", pedido.codigo, f"Registrou o pedido, Nº: {pedido.codigo}", pedido.id, gerar_alteracoes(obj_novo=pedido))
             messages.success(request, f'Pedido gerado com sucesso!')
             return redirect(f'/pedidos/lista/?s={pedido.codigo}')
-        else:
-            # Caso o formulário seja inválido, gera mensagens de erro personalizadas
-            error_messages = []
-            for field in form: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            # Renderiza novamente a página com os erros
-            return render(request, "pedidos/add.html", {"form": form, 'error_messages': error_messages})
-    else: form = PedidoForm(empresa=empresa, user=request.user)
-    # Renderiza a página com o formulário
-    return render(request, "pedidos/add.html", {"form": form,})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, 'pedidos/add.html', {'form': form, 'error_messages': error_messages})
 
 @verifica_alguma_permissao('pedidos.add_pedido', 'pedidos.change_pedido', 'pedidos.delete_pedido')
 @login_required
 def att_pedido(request, codigo):
-    pedido = get_object_or_404(Pedido, codigo=codigo, vinc_emp=request.user.empresa)
-    it_old = Pedido.objects.get(codigo=pedido.codigo, vinc_emp=request.user.empresa)
+    error_messages = []
+    empresa = request.user.empresa
+    pedido = get_object_or_404(Pedido, codigo=codigo, vinc_emp=empresa)
+    it_old = Pedido.objects.get(codigo=pedido.codigo, vinc_emp=empresa)
     if not request.user.has_perm('pedidos.change_pedido'):
         messages.info(request, 'Você não tem permissão para editar pedidos.')
         return redirect('/pedidos/lista/')
     if pedido.situacao in ["Faturado", "Cancelado"]:
         messages.warning(request, 'Pedidos só podem ser editados com Situação em Aberto!')
         return redirect(f'/pedidos/lista/?s={pedido.codigo}')
-    if request.method == "POST":
-        form = PedidoForm(data=request.POST, instance=pedido, empresa=request.user.empresa, user=request.user)
-        if form.is_valid():
+    if request.method != 'POST':
+        form = PedidoForm(instance=pedido, empresa=empresa, user=request.user)
+        return render(request, "pedidos/att.html", {"form": form, "pedido": pedido, "error_messages": error_messages, "produtos": pedido.itens.all()})
+    form = PedidoForm(data=request.POST, instance=pedido, empresa=empresa, user=request.user)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, "pedidos/att.html", {"form": form, "pedido": pedido, "error_messages": error_messages, "produtos": pedido.itens.all()})
+    try:
+        with transaction.atomic():
             pedido = form.save(commit=False)
             dt_emissao = request.POST.get('dt_emi')
             # converte a string em um objeto date
@@ -307,34 +323,45 @@ def att_pedido(request, codigo):
                 if p.valor != pedido.total:
                     p.status = "cancelado"
                     p.save(update_fields=["status"])
-            registrar_log(
-                request, "ALTERAR", "Pedido", pedido.codigo,
-                f"Alterou o registro do pedido, Nº: {pedido.codigo}",
-                pedido.id, gerar_alteracoes(it_old, pedido)
-            )
+            registrar_log(request, "ALTERAR", "Pedido", pedido.codigo, f"Alterou o registro do pedido, Nº: {pedido.codigo}", pedido.id, gerar_alteracoes(it_old, pedido))
             messages.success(request, 'Pedido atualizado com sucesso!')
             if next_url: return redirect(next_url)
             return redirect(f'/pedidos/lista/?s={pedido.codigo}')
-        else:
-            error_messages = []
-            for field in form: error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}) é obrigatório!")
-            return render(request, "pedidos/att.html", {"form": form, "pedido": pedido, "error_messages": error_messages})
-    else: form = PedidoForm(instance=pedido, empresa=request.user.empresa, user=request.user)
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return render(request, "pedidos/att.html", {"form": form, "pedido": pedido, "produtos": pedido.itens.all(),})
 
 @login_required
 def clonar_pedido(request, codigo):
+    error_messages = []
+    empresa = request.user.empresa
     if not request.user.has_perm('pedidos.clonar_pedido'):
         messages.warning(request, "Você não tem permissão para clonar pedidos.")
         return redirect('/pedidos/lista/')
-    empresa = request.user.empresa
     if not empresa:
         messages.error(request, 'Erro crítico: Seu usuário não está vinculado a nenhuma empresa cadastrada.')
         return redirect('/pedidos/lista/')
     pedido_origem = get_object_or_404(Pedido, codigo=codigo, vinc_emp=empresa)
-    if request.method == "POST":
-        form = PedidoForm(data=request.POST, empresa=empresa, user=request.user)
-        if form.is_valid():
+    if request.method != 'POST':
+        form = PedidoForm(instance=pedido_origem, empresa=empresa, user=request.user)
+        return render(request, "pedidos/clonar.html", {"form": form, 'error_messages': error_messages, "produtos": pedido_origem.itens.all()})
+    form = PedidoForm(data=request.POST, empresa=empresa, user=request.user)
+    if not form.is_valid():
+        for field in form:
+            for error in field.errors:
+                error_messages.append(f"<i class='fa-solid fa-xmark'></i> Campo ({field.label}): {error}")
+        return render(request, "pedidos/clonar.html", {"form": form, 'error_messages': error_messages, "produtos": pedido_origem.itens.all()})
+    try:
+        with transaction.atomic():
             pedido = form.save(commit=False)
             pedido.vinc_emp = empresa
             pedido.usuario = request.user
@@ -376,15 +403,23 @@ def clonar_pedido(request, codigo):
                     itens_existentes[key] = novo
             pedido.total = pedido.atualizar_total()
             pedido.save(update_fields=["total"])
-            registrar_log(
-                request, "CRIAR", "Pedido", pedido.codigo,
-                f"Registrou o pedido, Nº: {pedido.codigo} a partir da clonagem do pedido Nº: {pedido_origem.codigo}",
+            registrar_log(request, "CRIAR", "Pedido", pedido.codigo,f"Registrou o pedido, Nº: {pedido.codigo} a partir da clonagem do pedido Nº: {pedido_origem.codigo}",
                 pedido.id, gerar_alteracoes(obj_novo=pedido)
             )
             messages.success(request, "Pedido clonado com sucesso!")
             return redirect(f'/pedidos/lista/?s={pedido.codigo}')
-    else: form = PedidoForm(instance=pedido_origem, empresa=empresa, user=request.user)
-    return render(request, "pedidos/clonar.html", {"form": form, "produtos": pedido_origem.itens.all(),})
+    except ObjectDoesNotExist:
+        error_messages.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        error_messages.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return render(request, "pedidos/clonar.html", {"form": form, 'error_messages': error_messages, "produtos": pedido_origem.itens.all()})
 
 @login_required
 def del_pedido(request, codigo):
@@ -395,18 +430,28 @@ def del_pedido(request, codigo):
     if pedido.situacao != 'Aberto':
         messages.warning(request, 'Pedidos só podem ser deletados com Situação em <i>Aberto</i>!')
         return redirect(f'/pedidos/lista/?s={pedido.codigo}')
-    registrar_log(
-        request, "EXCLUIR", "Pedido", pedido.codigo,
-        f"Excluiu o pedido, Nº: {pedido.codigo}",
-        pedido.id, gerar_alteracoes(obj_antigo=pedido)
-    )
-    pedido.delete()
-    messages.success(request, f'Pedido deletado com sucesso!')
+    try:
+        with transaction.atomic():
+            registrar_log(request, "EXCLUIR", "Pedido", pedido.codigo,f"Excluiu o pedido, Nº: {pedido.codigo}",pedido.id, gerar_alteracoes(obj_antigo=pedido))
+            pedido.delete()
+            messages.success(request, f'Pedido deletado com sucesso!')
+            return redirect('/pedidos/lista/')
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return redirect('/pedidos/lista/')
 
 @login_required
-@transaction.atomic
 def faturar_pedido(request, codigo):
+    erros = []
     empresa = request.user.empresa
     pedido = get_object_or_404(Pedido.objects.select_related('cli', 'vinc_fil', 'vinc_emp').prefetch_related('itens__produto'), codigo=codigo, vinc_emp=empresa)
     if not request.user.has_perm('pedidos.faturar_pedido'):
@@ -419,47 +464,90 @@ def faturar_pedido(request, codigo):
         return redirect(f'/pedidos/lista/?s={pedido.codigo}')
     dados = json.loads(request.POST.get('dados_pagamento', '[]'))
     parcelas_json = request.POST.get('parcelas_json', '').strip()
-    if not dados: return JsonResponse({"ok": False, "msg": "Informe ao menos uma forma de pagamento."})
-    total = Decimal('0.00')
-    formas_normais = []
-    formas_gateway = []
-    tem_forma_com_parcela = False
-    for d in dados:
-        forma_id = d.get('forma')
-        try: valor = Decimal(str(d.get('valor', 0))).quantize(Decimal('0.01'))
-        except: return JsonResponse({"ok": False, "msg": "Valor inválido."})
-        if valor <= 0: continue
-        forma = FormaPgto.objects.filter(codigo=forma_id, vinc_emp=empresa).first()
-        if not forma: return JsonResponse({"ok": False, "msg": "Forma não encontrada."})
-        obj = {"forma": forma.codigo, "valor": valor, "parcelas": d.get('parcelas', 1), "dias": d.get('dias', 0)}
-        if forma.gateway and forma.gateway != "nenhum": formas_gateway.append(obj)
-        else: formas_normais.append(obj)
-        if forma.gera_parcelas: tem_forma_com_parcela = True
-        total += valor
-    if total != pedido.total: return JsonResponse({"ok": False, "msg": f"Total das formas (R$ {total}) difere do pedido (R$ {pedido.total})"})
-    # 🔹 PARCELAS
-    parcelas = []
-    if tem_forma_com_parcela:
-        if not parcelas_json: return JsonResponse({"ok": False, "msg": "Parcelas não informadas."})
-        try: parcelas_data = json.loads(parcelas_json)
-        except: return JsonResponse({"ok": False, "msg": "Erro nas parcelas."})
-        for idx, item in enumerate(parcelas_data, 1):
-            valor_str = str(item.get('valor', '0')).replace('.', '').replace(',', '.')
-            valor_parcela = Decimal(valor_str).quantize(Decimal('0.01'))
-            vencimento = datetime.strptime(item.get('vencimento'), '%d/%m/%Y').date()
-            parcelas.append({"forma": formas_normais[0]['forma'] if formas_normais else None, "numero": f"{pedido.codigo}/{idx}", "valor": valor_parcela, "vencimento": vencimento, "data_emissao": pedido.dt_fat or timezone.now().date()})
-    # 🔥 FATURA PARTE NORMAL
-    if formas_normais:
-        resultado = finalizar_pedido(pedido, formas=formas_normais, parcelas=parcelas if tem_forma_com_parcela else None, parcial=bool(formas_gateway), request=request)
-        # 🔥 BLOQUEIO REAL DE ERRO
-        if isinstance(resultado, dict) and not resultado.get("ok", True):
-            transaction.set_rollback(True)
-            return JsonResponse({"ok": False, "msg": resultado["erro"]})
-    return JsonResponse({"ok": True, "msg": "Pagamento processado. Aguardando restante." if formas_gateway else "Pedido faturado com sucesso!"})
+    if not dados:
+        erros.append("Informe ao menos uma forma de pagamento.")
+        return JsonResponse({"ok": False, "msg": erros})
+    try:
+        with transaction.atomic():
+            total = Decimal('0.00')
+            valor_a_prazo = Decimal('0.00')
+            formas_normais = []
+            formas_gateway = []
+            tem_forma_com_parcela = False
+            for d in dados:
+                forma_id = d.get('forma')
+                try:
+                    valor = Decimal(str(d.get('valor', 0))).quantize(Decimal('0.01'))
+                except:
+                    erros.append("Valor inválido.")
+                    return JsonResponse({"ok": False, "msg": erros})
+                if valor <= 0:
+                    continue
+                forma = FormaPgto.objects.filter(codigo=forma_id,vinc_emp=empresa).first()
+                if not forma:
+                    erros.append("Forma não encontrada.")
+                    return JsonResponse({"ok": False, "msg": erros})
+                obj = {"forma": forma.codigo,"valor": valor,"parcelas": d.get('parcelas', 1),"dias": d.get('dias', 0)}
+                if forma.gateway and forma.gateway != "nenhum":
+                    formas_gateway.append(obj)
+                else:
+                    formas_normais.append(obj)
+                if forma.gera_parcelas:
+                    tem_forma_com_parcela = True
+                    valor_a_prazo += valor
+                total += valor
+            if total != pedido.total:
+                erros.append(f"Total das formas (R$ {total}) difere do pedido (R$ {pedido.total})")
+                return JsonResponse({"ok": False, "msg": erros})
+            # 🔹 PARCELAS
+            parcelas = []
+            if tem_forma_com_parcela:
+                if valor_a_prazo > 0:
+                    cliente = pedido.cli
+                    permitido, mensagem = cliente.pode_comprar_a_prazo(
+                        valor_a_prazo
+                    )
+                    if not permitido:
+                        transaction.set_rollback(True)
+                        return JsonResponse({"ok": False,"msg": [mensagem]})
+                if not parcelas_json:
+                    erros.append("Parcelas não informadas.")
+                    return JsonResponse({"ok": False, "msg": erros})
+                try: parcelas_data = json.loads(parcelas_json)
+                except:
+                    erros.append("Erro nas parcelas.")
+                    return JsonResponse({"ok": False, "msg": erros})
+                for idx, item in enumerate(parcelas_data, 1):
+                    valor_str = str(item.get('valor', '0')).replace('.', '').replace(',', '.')
+                    valor_parcela = Decimal(valor_str).quantize(Decimal('0.01'))
+                    vencimento = datetime.strptime(item.get('vencimento'), '%d/%m/%Y').date()
+                    parcelas.append({
+                        "forma":formas_normais[0]['forma'] if formas_normais else None,"numero":f"{pedido.codigo}/{idx}","valor":valor_parcela,"vencimento":vencimento,
+                        "data_emissao":pedido.dt_fat or timezone.now().date()
+                    })
+            # 🔥 FATURA PARTE NORMAL
+            if formas_normais:
+                resultado = finalizar_pedido(pedido, formas=formas_normais, parcelas=parcelas if tem_forma_com_parcela else None, parcial=bool(formas_gateway), request=request)
+                # 🔥 BLOQUEIO REAL DE ERRO
+                if isinstance(resultado, dict) and not resultado.get("ok", True):
+                    transaction.set_rollback(True)
+                    return JsonResponse({"ok": False, "msg": resultado["erro"]})
+            return JsonResponse({"ok": True, "msg": "Pagamento processado. Aguardando restante." if formas_gateway else "Pedido faturado com sucesso!"})
+    except ObjectDoesNotExist:
+        erros.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        erros.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        erros.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        erros.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        erros.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return JsonResponse({"erro": erros})
 
 @require_POST
 @login_required
-@transaction.atomic
 def cancelar_pedido(request, codigo):
     pedido = get_object_or_404(Pedido.objects.select_related('vinc_emp', 'vinc_fil', 'cli').prefetch_related('itens__produto'), codigo=codigo, vinc_emp=request.user.empresa)
     if not request.user.has_perm('pedidos.cancelar_pedido'):
@@ -476,223 +564,131 @@ def cancelar_pedido(request, codigo):
     if contas_pagas:
         messages.error(request, 'Não é possível cancelar: existem contas já recebidas.')
         return redirect(f'/pedidos/lista/?s={pedido.codigo}')
-    ContaReceber.objects.filter(pedido=pedido, vinc_emp=pedido.vinc_emp, vinc_fil=pedido.vinc_fil, situacao='Aberta').delete()
-    for item in pedido.itens.all():
-        produto = item.produto
-        produto.estoque_prod = (produto.estoque_prod or 0) + (item.quantidade or 0)
-        produto.save(update_fields=["estoque_prod"])
-    pedido.situacao = "Cancelado"
-    pedido.dt_canc = datetime.now()  # opcional (log de cancelamento)
-    pedido.motivo = motivo
-    pedido.save(update_fields=["situacao", "dt_fat"])
-    registrar_log(
-        request=request,
-        tipo="CANCELAR",
-        modulo="Pedido",
-        objeto=pedido.codigo,
-        objeto_id=pedido.id,
-        descricao=f"Cancelou o pedido, nº {pedido.codigo}",
-        alteracoes={
-            "Motivo": pedido.motivo,
-            "Data do Cancelamento": pedido.dt_canc,
-        }
-    )
-    messages.success(request, f'Pedido {pedido.codigo} cancelado com sucesso!')
+    try:
+        with transaction.atomic():
+            ContaReceber.objects.filter(pedido=pedido, vinc_emp=pedido.vinc_emp, vinc_fil=pedido.vinc_fil, situacao='Aberta').delete()
+            for item in pedido.itens.select_related('produto'):
+                adicionar_estoque(estoque=pedido.vinc_fil.estoque.estoque_padrao,produto=item.produto,quantidade=item.quantidade,usuario=request.user,
+                    descricao=f'Estorno referente ao cancelamento do pedido {pedido.codigo}',
+                )
+            pedido.situacao = "Cancelado"
+            pedido.dt_canc = datetime.now()  # opcional (log de cancelamento)
+            pedido.motivo = motivo
+            pedido.save(update_fields=["situacao", "dt_canc", "motivo"])
+            registrar_log(request=request,tipo="CANCELAR",modulo="Pedido",objeto=pedido.codigo,objeto_id=pedido.id,descricao=f"Cancelou o pedido, nº {pedido.codigo}",
+                alteracoes={"Motivo": pedido.motivo,"Data do Cancelamento": pedido.dt_canc,}
+            )
+            messages.success(request, f'Pedido {pedido.codigo} cancelado com sucesso!')
+            return redirect(f'/pedidos/lista/?s={pedido.codigo}')
+    except ObjectDoesNotExist:
+        messages.error(request, "<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> {str(e)}")
+    except Exception as e:
+        messages.error(request, f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
     return redirect(f'/pedidos/lista/?s={pedido.codigo}')
 
-# @login_required
-# @require_POST
-# def gerar_pagamento_pedido(request, pedido_id):
-#     import requests
-#     import json
-
-#     pedido = get_object_or_404(Pedido, codigo=pedido_id, vinc_emp=request.user.empresa)
-
-#     # 1. Monta o payload exatamente com os seus dados reais
-#     url = "https://api.checkout.infinitepay.io/links"
-#     headers = {
-#         "Content-Type": "application/json",
-#         "accept": "application/json"
-#     }
-
-#     # Ruan, usei aqui a sua URL exata de webhook que você passou: /pagamentos/webhook/
-#     payload = {
-#         "handle": "ruan-moraes-9r1",
-#         "webhook_url": "https://allitec.pythonanywhere.com/pagamentos/webhook/",
-#         "items": [
-#             {
-#                 "quantity": 1,
-#                 "price": int(float(pedido.total) * 100),
-#                 "description": f"Pedido {pedido.codigo}"
-#             }
-#         ]
-#     }
-
-#     # 2. Tenta disparar a requisição e captura QUALQUER retorno ou erro
-#     try:
-#         response = requests.post(url, json=payload, headers=headers, timeout=10)
-
-#         # Devolve o Payload enviado e a resposta da InfinitePay na tela para inspeção
-#         return JsonResponse({
-#             "erro": f"DEBUG ATIVO - Status da API: {response.status_code}",
-#             "payload_enviado": payload,
-#             "resposta_api_text": response.text
-#         }, status=400) # Força cair no .fail() do JS para exibir o texto
-
-#     except Exception as e:
-#         # Se o PythonAnywhere Free bloquear a requisição, vai cair aqui e mostrar o motivo
-#         return JsonResponse({
-#             "erro": f"Falha de Conexão (Possível bloqueio de conta Free): {str(e)}",
-#             "payload_enviado": payload
-#         }, status=400)
 @login_required
 @require_POST
 def gerar_pagamento_pedido(request, pedido_id):
-    import json
-    import base64
-    from io import BytesIO
-    import qrcode
-
-    def gerar_qr_base64(payload_pix):
-        qr = qrcode.QRCode(version=1, box_size=10, border=4)
-        qr.add_data(payload_pix)
-        qr.make(fit=True)
-
-        img = qr.make_image(fill_color="black", back_color="white")
-
-        buffer = BytesIO()
-        img.save(buffer, format="PNG")
-
-        return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode()
-
-    pedido = get_object_or_404(
-        Pedido,
-        codigo=pedido_id,
-        vinc_emp=request.user.empresa
-    )
-
-    # 🔹 Validação da situação
-    if pedido.situacao != "Aberto":
-        return JsonResponse({
-            "erro": f"Bloqueado: A situação deste pedido é '{pedido.situacao}' e não 'Aberto'."
-        })
-
-    # 🔥 Se já existir um PIX pendente, devolve ele ao invés de bloquear
-    pagamento = pedido.pagamentos.filter(status="pendente").last()
-
-    if pagamento:
-
-        qr_base64 = pagamento.qr_base64
-
-        # Caso registros antigos não tenham a imagem salva
-        if not qr_base64 and pagamento.qr_code:
-            qr_base64 = gerar_qr_base64(pagamento.qr_code)
-
-            pagamento.qr_base64 = qr_base64
-            pagamento.save(update_fields=["qr_base64"])
-
-        return JsonResponse({
-            "pendente": True,
-            "pagamentos": [{
-                "txid": pagamento.txid,
-                "qr_code": pagamento.qr_code,
-                "qr_base64": qr_base64,
-                "valor": str(pagamento.valor)
-            }]
-        })
-
-    formas = json.loads(request.POST.get("formas", "[]"))
-
-    # 🔹 Validação das formas
-    if not formas:
-        return JsonResponse({
-            "erro": "Bloqueado: O seu Front-end enviou uma lista de formas de pagamento vazia."
-        })
-
-    # Limpa as formas anteriores
-    PedidoFormaPgto.objects.filter(pedido=pedido).delete()
-
-    # Grava novamente as formas
-    for f in formas:
-        forma = FormaPgto.objects.get(
-            codigo=f["forma"],
-            vinc_emp=request.user.empresa
-        )
-
-        PedidoFormaPgto.objects.create(
-            pedido=pedido,
-            forma_pgto=forma,
-            valor=f["valor"]
-        )
-
+    erros = []
+    empresa = request.user.empresa
     try:
-        pagamentos = gerar_pagamentos_pedido(pedido)
+        with transaction.atomic():
+            def gerar_qr_base64(payload_pix):
+                qr = qrcode.QRCode(version=1, box_size=10, border=4)
+                qr.add_data(payload_pix)
+                qr.make(fit=True)
+                img = qr.make_image(fill_color="black", back_color="white")
+                buffer = BytesIO()
+                img.save(buffer, format="PNG")
+                return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode()
+            pedido = get_object_or_404(Pedido, codigo=pedido_id, vinc_emp=empresa)
+            # 🔹 Validação da situação
+            if pedido.situacao != "Aberto":
+                return JsonResponse({"erro": f"Bloqueado: A situação deste pedido é '{pedido.situacao}' e não 'Aberto'."})
+            # 🔥 Se já existir um PIX pendente, devolve ele ao invés de bloquear
+            pagamento = pedido.pagamentos.filter(status="pendente").last()
+            if pagamento:
+                qr_base64 = pagamento.qr_base64
+                # Caso registros antigos não tenham a imagem salva
+                if not qr_base64 and pagamento.qr_code:
+                    qr_base64 = gerar_qr_base64(pagamento.qr_code)
+                    pagamento.qr_base64 = qr_base64
+                    pagamento.save(update_fields=["qr_base64"])
+                return JsonResponse({"pendente": True,"pagamentos": [{"txid": pagamento.txid, "qr_code": pagamento.qr_code, "qr_base64": qr_base64, "valor": str(pagamento.valor)}]})
+            formas = json.loads(request.POST.get("formas", "[]"))
+            # 🔹 Validação das formas
+            if not formas:
+                return JsonResponse({"erro": "Bloqueado: O seu Front-end enviou uma lista de formas de pagamento vazia."})
+            # Limpa as formas anteriores
+            PedidoFormaPgto.objects.filter(pedido=pedido).delete()
+            # Grava novamente as formas
+            for f in formas:
+                forma = FormaPgto.objects.get(codigo=f["forma"], vinc_emp=empresa)
+                PedidoFormaPgto.objects.create(pedido=pedido, forma_pgto=forma, valor=f["valor"])
+            try:
+                pagamentos = gerar_pagamentos_pedido(pedido)
+            except Exception as e:
+                return JsonResponse({"erro": str(e)})
+            if not pagamentos:
+                return JsonResponse({"erro": "O fluxo rodou, mas a função gerar_pagamentos_pedido retornou vazia."})
+            return JsonResponse({"pagamentos": pagamentos})
+    except ObjectDoesNotExist:
+        erros.append("<i class='fa-solid fa-xmark'></i> Objeto não encontrado!")
+    except IntegrityError as e:
+        detalhe = str(e.__cause__ if e.__cause__ else e)
+        erros.append(f"<i class='fa-solid fa-xmark'></i> Erro de integridade: {detalhe}")
+    except DatabaseError as e:
+        erros.append(f"<i class='fa-solid fa-xmark'></i> Erro de banco: {str(e)}")
+    except ValueError as e:
+        erros.append(f"<i class='fa-solid fa-xmark'></i> {str(e)}")
     except Exception as e:
-        return JsonResponse({
-            "erro": str(e)
-        })
-
-    if not pagamentos:
-        return JsonResponse({
-            "erro": "O fluxo rodou, mas a função gerar_pagamentos_pedido retornou vazia."
-        })
-
-    return JsonResponse({
-        "pagamentos": pagamentos
-    })
+        erros.append(f"<i class='fa-solid fa-xmark'></i> Erro inesperado: {str(e)}")
+    return JsonResponse({"erro": erros})
 
 @login_required
 def status_pagamento_pedido(request, pedido_id):
     pedido = get_object_or_404(Pedido, codigo=pedido_id, vinc_emp=request.user.empresa)
-
-    return JsonResponse({
-        "status": pedido.status_pagamento,
-        "situacao": pedido.situacao
-    })
-
-import base64
-from io import BytesIO
-import qrcode
+    return JsonResponse({"status": pedido.status_pagamento, "situacao": pedido.situacao})
 
 def gerar_qr_base64(payload_pix):
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(payload_pix)
     qr.make(fit=True)
-
     img = qr.make_image(fill_color="black", back_color="white")
-
     buffer = BytesIO()
     img.save(buffer, format="PNG")
-
     return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode()
 
 @login_required
 def recuperar_pix_pendente(request, pedido_id):
-    pagamento = Pagamento.objects.filter(
-        content_type__model="pedido",
-        object_id=pedido_id,
-        status="pendente"
-    ).last()
-
+    pagamento = Pagamento.objects.filter(content_type__model="pedido", object_id=pedido_id, status="pendente").last()
     if not pagamento:
         return JsonResponse({"erro": True})
-
     qr_base64 = pagamento.qr_base64
-
     if not qr_base64 and pagamento.qr_code:
         qr_base64 = gerar_qr_base64(pagamento.qr_code)
+    return JsonResponse({"txid": pagamento.txid, "qr_code": pagamento.qr_code, "qr_base64": qr_base64, "valor": str(pagamento.valor)})
 
-    return JsonResponse({
-        "txid": pagamento.txid,
-        "qr_code": pagamento.qr_code,
-        "qr_base64": qr_base64,
-        "valor": str(pagamento.valor)
-    })
+from django.db.models import Sum
 
 @login_required
 def imprimir_cupom_pedido(request, codigo):
-    pedido = get_object_or_404(Pedido, codigo=codigo, vinc_emp=request.user.empresa)
-    return render(request, 'pedidos/cupom.html', {'pedido': pedido})
+    pedido = get_object_or_404(Pedido,codigo=codigo,vinc_emp=request.user.empresa)
+    contas_receber = ContaReceber.objects.filter(pedido=pedido).select_related('forma_pgto').order_by('data_vencimento')
+    total_contas_receber = contas_receber.aggregate(total=Sum('valor'))['total'] or 0
+    formas_pgto = pedido.formas_pgto.select_related('forma_pgto').all()
+    total_recebido = sum((fp.valor for fp in formas_pgto),Decimal('0.00'))
+    permite_troco = formas_pgto.filter(forma_pgto__troco='Sim').exists()
+    valor_troco = (max(total_recebido - pedido.total, Decimal('0.00')) if permite_troco else Decimal('0.00'))
+    context = {'pedido': pedido,'contas_receber': contas_receber,'total_contas_receber': total_contas_receber, 'formas_pgto': formas_pgto, 'valor_troco': valor_troco,}
+    return render(request, 'pedidos/cupom.html', context)
 
 @login_required
 def imprimir_pedido(request, codigo):
@@ -704,48 +700,21 @@ def imprimir_pedido(request, codigo):
     html_string = render_to_string('pedidos/a4.html', context)
     html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
     css = CSS(string='''
-        @page {
-            size: A4;
-            margin: 1.2cm 1cm 1.2cm 1cm;
+        @page {size: A4;margin: 1.2cm 1cm 1.2cm 1cm;
             @bottom-right { content: "Página " counter(page) " de " counter(pages); font-size: 10px; font-weight: bold; }
             @bottom-left { content: "By Allitec Sistemas"; font-size: 10px; font-weight: bold; font-style: italic; }
         }
-
-        body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 11px;
-            color: #222;
-            line-height: 1.3;
-        }
-
+        body {font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size: 11px;color: #222;line-height: 1.3;}
         /* Cabeçalho */
         .cabecalho { width: 100%; margin-bottom: 20px; }
         .cabecalho td { vertical-align: top; }
         .td-logo { width: 120px; text-align: left; }
         .td-info { width: auto; padding-left: 15px; }
         .td-status { width: 200px; }
-
-        .logo {
-            max-width: 120px;
-            max-height: 65px;
-            object-fit: contain;
-            display: block;
-        }
-
+        .logo {max-width: 120px;max-height: 65px;object-fit: contain;display: block;}
         .titulo { font-size: 18px; font-weight: bold; color: #1a1a1a; margin-bottom: 4px; }
         .sub-info { font-size: 10px; color: #555; margin-bottom: 2px; }
-
-        .badge-pedido {
-            background-color: #2c3e50;
-            color: #ffffff;
-            padding: 6px 12px;
-            font-size: 13px;
-            font-weight: bold;
-            display: inline-block;
-            text-align: center;
-            border-radius: 3px;
-        }
-
+        .badge-pedido {background-color: #2c3e50;color: #ffffff;padding: 6px 12px;font-size: 13px;font-weight: bold;display: inline-block;text-align: center;border-radius: 3px;}
         /* Estrutura de Tabelas Padrão */
         table { width: 100%; border-collapse: collapse; }
         .mb { margin-bottom: 18px; }
@@ -754,99 +723,26 @@ def imprimir_pedido(request, codigo):
         .font-bold { font-weight: bold; }
         .color-muted { color: #666; }
         .italic { font-style: italic; }
-
         .sem-borda td { border: none; padding: 0; }
-
         /* Tabelas de Dados (Cliente, Pagamentos, Obs) */
-        .table-dados {
-            border: 1px solid #e0e0e0;
-        }
-        .table-dados th {
-            background-color: #f8f9fa;
-            color: #2c3e50;
-            text-align: left;
-            font-size: 10px;
-            font-weight: bold;
-            padding: 6px 8px;
-            border-bottom: 2px solid #e0e0e0;
-            letter-spacing: 0.5px;
-        }
-        .table-dados td {
-            padding: 8px;
-            border: 1px solid #eee;
-            vertical-align: top;
-        }
-        .table-dados .label {
-            display: block;
-            font-size: 9px;
-            color: #777;
-            text-transform: uppercase;
-            margin-bottom: 2px;
-        }
-        .table-dados .valor {
-            font-size: 11px;
-            font-weight: bold;
-            color: #111;
-        }
-
+        .table-dados {border: 1px solid #e0e0e0;}
+        .table-dados th {background-color: #f8f9fa;color: #2c3e50;text-align: left;font-size: 10px;font-weight: bold;padding: 6px 8px;border-bottom: 2px solid #e0e0e0;letter-spacing: 0.5px;}
+        .table-dados td {padding: 8px;border: 1px solid #eee;vertical-align: top;}
+        .table-dados .label {display: block;font-size: 9px;color: #777;text-transform: uppercase;margin-bottom: 2px;}
+        .table-dados .valor {font-size: 11px;font-weight: bold;color: #111;}
         /* Tabela de Itens (Produtos) */
-        .table-itens {
-            border: 1px solid #dee2e6;
-        }
-        .table-itens th {
-            background-color: #2c3e50;
-            color: #ffffff;
-            font-size: 10px;
-            font-weight: 600;
-            padding: 8px;
-            text-transform: uppercase;
-            border: none;
-        }
-        .table-itens td {
-            padding: 7px 8px;
-            border-bottom: 1px solid #eee;
-            font-size: 10.5px;
-            vertical-align: middle;
-        }
-        .table-itens tbody tr:nth-child(even) {
-            background-color: #fdfdfd;
-        }
-        .table-itens tbody tr:hover {
-            background-color: #f8f9fa;
-        }
-
+        .table-itens {border: 1px solid #dee2e6;}
+        .table-itens th {background-color: #2c3e50;color: #ffffff;font-size: 10px;font-weight: 600;padding: 8px;text-transform: uppercase;border: none;}
+        .table-itens td {padding: 7px 8px;border-bottom: 1px solid #eee;font-size: 10.5px;vertical-align: middle;}
+        .table-itens tbody tr:nth-child(even) {background-color: #fdfdfd;}
+        .table-itens tbody tr:hover {background-color: #f8f9fa;}
         /* Bloco de Totais */
-        .table-totais {
-            border: 1px solid #e0e0e0;
-            background-color: #f8f9fa;
-        }
-        .table-totais td {
-            padding: 8px 12px;
-            font-size: 11px;
-            color: #444;
-            border-bottom: 1px solid #eee;
-        }
-        .table-totais .linha-total-final {
-            background-color: #e9ecef;
-            font-size: 13px;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-        .table-totais .linha-total-final td {
-            padding: 10px 12px;
-            border: none;
-        }
-
+        .table-totais {border: 1px solid #e0e0e0;background-color: #f8f9fa;}
+        .table-totais td {padding: 8px 12px;font-size: 11px;color: #444;border-bottom: 1px solid #eee;}
+        .table-totais .linha-total-final {background-color: #e9ecef;font-size: 13px;font-weight: bold;color: #2c3e50;}
+        .table-totais .linha-total-final td {padding: 10px 12px;border: none;}
         /* Rodapé Informativo */
-        .rodape-info {
-            text-align: center;
-            font-size: 9.5px;
-            color: #666;
-            border-top: 1px dashed #ccc;
-            padding-top: 8px;
-            margin-top: 20px;
-            page-break-inside: avoid;
-        }
+        .rodape-info {text-align: center;font-size: 9.5px;color: #666;border-top: 1px dashed #ccc;padding-top: 8px;margin-top: 20px;page-break-inside: avoid;}
     ''')
     pdf = html.write_pdf(stylesheets=[css])
     response = HttpResponse(pdf, content_type='application/pdf')

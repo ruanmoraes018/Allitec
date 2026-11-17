@@ -19,7 +19,7 @@
     </head>
     <body>
         {% if aviso_inadimplencia %}
-            <div id="popup-inadimplencia" class="shadow">
+            <div id="popup-inadimplencia" class="shadow" style="margin-left: 20px;">
                 <div class="popup-header">
                     <i class="fa-solid fa-triangle-exclamation text-warning"></i>
                     <strong>Aviso Financeiro</strong>
@@ -103,38 +103,27 @@
                         <div class="d-flex align-items-center ms-auto" style="font-size: 20px; margin-right: 10px;">
                             <!-- Ícone de Notificação -->
                             <div class="nav-item dropdown">
-                                <a class="nav-link" href="#" id="notificationsDropdown" role="button"
-                                   data-bs-toggle="dropdown" aria-expanded="false">
+                                <a class="nav-link" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="fas fa-bell text-dark"></i>
-                                    {% if notificacoes %}
-                                        <span class="position-absolute top-0 start-100 translate-middle badge border border-light rounded-circle bg-danger p-2 badge-pulse">
-                                          <span class="visually-hidden">Notificações não lidas</span>
-                                        </span>
-                                    {% endif %}
+                                    <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge border border-light rounded-circle bg-danger p-2 badge-pulse d-none">
+                                        <span class="visually-hidden"> Notificações não lidas </span>
+                                    </span>
                                 </a>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationsDropdown" style="width: 300px;">
-                                    {% for notificacao in notificacoes %}
-                                        <li>
-                                            <button type="button" class="abrir-modal-solicitacao dropdown-item text-wrap" data-id="{{ notificacao.data.solicitacao_id|default_if_none:'' }}" data-verb="{{ notificacao.verb|default_if_none:'' }}" data-description="{{ notificacao.description|default_if_none:'' }}">
-                                                {{ notificacao.verb }}
-                                                <br>
-                                                <small class="text-muted text-wrap">Mais informações, clique aqui!</small>
-                                            </button>
-                                        </li>
-                                    {% empty %}
-                                        <li><a href="#" class="dropdown-item disabled text-center">Nenhuma notificação</a></li>
-                                    {% endfor %}
+                                <ul class="dropdown-menu" aria-labelledby="notificationsDropdown" id="notificationsList" style="width: 330px; left: 50%; transform: translateX(-90%);">
+                                    <li>
+                                        <span class="dropdown-item disabled text-center">Nenhuma notificação</span>
+                                    </li>
                                 </ul>
                             </div>
                             {% if request.user.is_superuser %}
-                                <!-- Ícone de Logout Superuser -->
+                                <!-- Logout Superuser -->
                                 <div class="nav-item ms-3">
                                     <a class="nav-link" href="{% url 'logout-view-superuser' %}" title="Sair" onclick="showLoadingModal()">
                                         <i class="fa-solid fa-right-from-bracket text-dark"></i>
                                     </a>
                                 </div>
                             {% else %}
-                                <!-- Ícone de Logout -->
+                                <!-- Logout -->
                                 <div class="nav-item ms-3">
                                     <a class="nav-link" href="{% url 'logout-view' %}" title="Sair" onclick="showLoadingModal()">
                                         <i class="fa-solid fa-right-from-bracket text-dark"></i>
